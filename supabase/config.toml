@@ -1,0 +1,16 @@
+project_id = "htsjkvczxlrsfapkbidq"
+
+[functions.bot-webhook]
+verify_jwt = false
+
+[functions.bot-test]
+verify_jwt = true
+
+[functions.send-whatsapp]
+verify_jwt = false
+
+[functions.automation-runner]
+verify_jwt = false
+
+[functions.pipeline-qualifier]
+verify_jwt = false

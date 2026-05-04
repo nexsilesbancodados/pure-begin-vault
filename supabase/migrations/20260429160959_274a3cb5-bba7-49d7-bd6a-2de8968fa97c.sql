@@ -1,0 +1,24 @@
+-- Add missing columns to products table
+ALTER TABLE public.products 
+ADD COLUMN IF NOT EXISTS ean TEXT,
+ADD COLUMN IF NOT EXISTS ncm TEXT,
+ADD COLUMN IF NOT EXISTS reference TEXT,
+ADD COLUMN IF NOT EXISTS brand TEXT,
+ADD COLUMN IF NOT EXISTS supplier TEXT,
+ADD COLUMN IF NOT EXISTS model TEXT,
+ADD COLUMN IF NOT EXISTS wholesale_price NUMERIC,
+ADD COLUMN IF NOT EXISTS unit TEXT DEFAULT 'un',
+ADD COLUMN IF NOT EXISTS weight NUMERIC,
+ADD COLUMN IF NOT EXISTS location TEXT,
+ADD COLUMN IF NOT EXISTS store TEXT,
+ADD COLUMN IF NOT EXISTS imei TEXT,
+ADD COLUMN IF NOT EXISTS color TEXT,
+ADD COLUMN IF NOT EXISTS capacity TEXT,
+ADD COLUMN IF NOT EXISTS processor TEXT,
+ADD COLUMN IF NOT EXISTS ram TEXT,
+ADD COLUMN IF NOT EXISTS display TEXT;
+
+-- Create an index on imei and sku for faster searches
+CREATE INDEX IF NOT EXISTS idx_products_imei ON public.products(imei);
+CREATE INDEX IF NOT EXISTS idx_products_sku ON public.products(sku);
+CREATE INDEX IF NOT EXISTS idx_products_ean ON public.products(ean);

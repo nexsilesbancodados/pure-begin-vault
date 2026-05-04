@@ -6,4 +6,11 @@
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-export default defineConfig();
+// On Vercel we don't want the Cloudflare Vite plugin (it targets Workers).
+// Detect the Vercel build env and disable it so TanStack Start emits a
+// standard Node/Edge-compatible build that we wrap with api/server.ts.
+const isVercel = !!process.env.VERCEL;
+
+export default defineConfig({
+  cloudflare: isVercel ? false : undefined,
+});

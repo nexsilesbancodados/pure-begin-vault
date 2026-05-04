@@ -9,38 +9,810 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WhatsappRouteImport } from './routes/whatsapp'
+import { Route as VendasRouteImport } from './routes/vendas'
+import { Route as ServicosRouteImport } from './routes/servicos'
+import { Route as RelatoriosRouteImport } from './routes/relatorios'
+import { Route as RegistroRouteImport } from './routes/registro'
+import { Route as ProdutosRouteImport } from './routes/produtos'
+import { Route as PipelineRouteImport } from './routes/pipeline'
+import { Route as PdvRouteImport } from './routes/pdv'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as LeadsRouteImport } from './routes/leads'
+import { Route as InstagramRouteImport } from './routes/instagram'
+import { Route as FunilRouteImport } from './routes/funil'
+import { Route as FiscalRouteImport } from './routes/fiscal'
+import { Route as FinanceiroRouteImport } from './routes/financeiro'
+import { Route as EstoqueRouteImport } from './routes/estoque'
+import { Route as EquipeRouteImport } from './routes/equipe'
+import { Route as CrmRouteImport } from './routes/crm'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as ClientesRouteImport } from './routes/clientes'
+import { Route as AutomacaoRouteImport } from './routes/automacao'
+import { Route as AtendimentoRouteImport } from './routes/atendimento'
+import { Route as AgentesRouteImport } from './routes/agentes'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VendasSimuladorRouteImport } from './routes/vendas.simulador'
+import { Route as VendasOrcamentosRouteImport } from './routes/vendas.orcamentos'
+import { Route as VendasHistoricoRouteImport } from './routes/vendas.historico'
+import { Route as VendasGarantiasRouteImport } from './routes/vendas.garantias'
+import { Route as VendasDeliveryRouteImport } from './routes/vendas.delivery'
+import { Route as VendasConsultaEstoqueRouteImport } from './routes/vendas.consulta-estoque'
+import { Route as VendasCalculadoraRouteImport } from './routes/vendas.calculadora'
+import { Route as ServicosTermosRouteImport } from './routes/servicos.termos'
+import { Route as ServicosTecnicosRouteImport } from './routes/servicos.tecnicos'
+import { Route as ServicosNovaRouteImport } from './routes/servicos.nova'
+import { Route as ServicosDashboardRouteImport } from './routes/servicos.dashboard'
+import { Route as ServicosChecklistsRouteImport } from './routes/servicos.checklists'
+import { Route as FinanceiroPlanoContasRouteImport } from './routes/financeiro.plano-contas'
+import { Route as FinanceiroNotasAbertoRouteImport } from './routes/financeiro.notas-aberto'
+import { Route as FinanceiroMaquininhasRouteImport } from './routes/financeiro.maquininhas'
+import { Route as FinanceiroFornecedoresRouteImport } from './routes/financeiro.fornecedores'
+import { Route as FinanceiroDreRouteImport } from './routes/financeiro.dre'
+import { Route as FinanceiroCaixaRouteImport } from './routes/financeiro.caixa'
+import { Route as EstoqueVendidosRouteImport } from './routes/estoque.vendidos'
+import { Route as EstoqueMovimentacoesRouteImport } from './routes/estoque.movimentacoes'
+import { Route as EstoqueEtiquetasRouteImport } from './routes/estoque.etiquetas'
+import { Route as EstoqueComprasRouteImport } from './routes/estoque.compras'
+import { Route as EstoqueAtualRouteImport } from './routes/estoque.atual'
+import { Route as CrmConversasRouteImport } from './routes/crm_.conversas'
+import { Route as CrmCatalogoRouteImport } from './routes/crm_.catalogo'
+import { Route as CrmBotRouteImport } from './routes/crm_.bot'
+import { Route as ApiEvolutionSplatRouteImport } from './routes/api/evolution/$'
 
+const WhatsappRoute = WhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/whatsapp.lazy').then((d) => d.Route))
+const VendasRoute = VendasRouteImport.update({
+  id: '/vendas',
+  path: '/vendas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicosRoute = ServicosRouteImport.update({
+  id: '/servicos',
+  path: '/servicos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RelatoriosRoute = RelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegistroRoute = RegistroRouteImport.update({
+  id: '/registro',
+  path: '/registro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProdutosRoute = ProdutosRouteImport.update({
+  id: '/produtos',
+  path: '/produtos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PipelineRoute = PipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PdvRoute = PdvRouteImport.update({
+  id: '/pdv',
+  path: '/pdv',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadsRoute = LeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InstagramRoute = InstagramRouteImport.update({
+  id: '/instagram',
+  path: '/instagram',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FunilRoute = FunilRouteImport.update({
+  id: '/funil',
+  path: '/funil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FiscalRoute = FiscalRouteImport.update({
+  id: '/fiscal',
+  path: '/fiscal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceiroRoute = FinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EstoqueRoute = EstoqueRouteImport.update({
+  id: '/estoque',
+  path: '/estoque',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EquipeRoute = EquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmRoute = CrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientesRoute = ClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomacaoRoute = AutomacaoRouteImport.update({
+  id: '/automacao',
+  path: '/automacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AtendimentoRoute = AtendimentoRouteImport.update({
+  id: '/atendimento',
+  path: '/atendimento',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentesRoute = AgentesRouteImport.update({
+  id: '/agentes',
+  path: '/agentes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VendasSimuladorRoute = VendasSimuladorRouteImport.update({
+  id: '/simulador',
+  path: '/simulador',
+  getParentRoute: () => VendasRoute,
+} as any)
+const VendasOrcamentosRoute = VendasOrcamentosRouteImport.update({
+  id: '/orcamentos',
+  path: '/orcamentos',
+  getParentRoute: () => VendasRoute,
+} as any)
+const VendasHistoricoRoute = VendasHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => VendasRoute,
+} as any)
+const VendasGarantiasRoute = VendasGarantiasRouteImport.update({
+  id: '/garantias',
+  path: '/garantias',
+  getParentRoute: () => VendasRoute,
+} as any)
+const VendasDeliveryRoute = VendasDeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => VendasRoute,
+} as any)
+const VendasConsultaEstoqueRoute = VendasConsultaEstoqueRouteImport.update({
+  id: '/consulta-estoque',
+  path: '/consulta-estoque',
+  getParentRoute: () => VendasRoute,
+} as any)
+const VendasCalculadoraRoute = VendasCalculadoraRouteImport.update({
+  id: '/calculadora',
+  path: '/calculadora',
+  getParentRoute: () => VendasRoute,
+} as any)
+const ServicosTermosRoute = ServicosTermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => ServicosRoute,
+} as any)
+const ServicosTecnicosRoute = ServicosTecnicosRouteImport.update({
+  id: '/tecnicos',
+  path: '/tecnicos',
+  getParentRoute: () => ServicosRoute,
+} as any)
+const ServicosNovaRoute = ServicosNovaRouteImport.update({
+  id: '/nova',
+  path: '/nova',
+  getParentRoute: () => ServicosRoute,
+} as any)
+const ServicosDashboardRoute = ServicosDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => ServicosRoute,
+} as any)
+const ServicosChecklistsRoute = ServicosChecklistsRouteImport.update({
+  id: '/checklists',
+  path: '/checklists',
+  getParentRoute: () => ServicosRoute,
+} as any)
+const FinanceiroPlanoContasRoute = FinanceiroPlanoContasRouteImport.update({
+  id: '/plano-contas',
+  path: '/plano-contas',
+  getParentRoute: () => FinanceiroRoute,
+} as any)
+const FinanceiroNotasAbertoRoute = FinanceiroNotasAbertoRouteImport.update({
+  id: '/notas-aberto',
+  path: '/notas-aberto',
+  getParentRoute: () => FinanceiroRoute,
+} as any)
+const FinanceiroMaquininhasRoute = FinanceiroMaquininhasRouteImport.update({
+  id: '/maquininhas',
+  path: '/maquininhas',
+  getParentRoute: () => FinanceiroRoute,
+} as any)
+const FinanceiroFornecedoresRoute = FinanceiroFornecedoresRouteImport.update({
+  id: '/fornecedores',
+  path: '/fornecedores',
+  getParentRoute: () => FinanceiroRoute,
+} as any)
+const FinanceiroDreRoute = FinanceiroDreRouteImport.update({
+  id: '/dre',
+  path: '/dre',
+  getParentRoute: () => FinanceiroRoute,
+} as any)
+const FinanceiroCaixaRoute = FinanceiroCaixaRouteImport.update({
+  id: '/caixa',
+  path: '/caixa',
+  getParentRoute: () => FinanceiroRoute,
+} as any)
+const EstoqueVendidosRoute = EstoqueVendidosRouteImport.update({
+  id: '/vendidos',
+  path: '/vendidos',
+  getParentRoute: () => EstoqueRoute,
+} as any)
+const EstoqueMovimentacoesRoute = EstoqueMovimentacoesRouteImport.update({
+  id: '/movimentacoes',
+  path: '/movimentacoes',
+  getParentRoute: () => EstoqueRoute,
+} as any)
+const EstoqueEtiquetasRoute = EstoqueEtiquetasRouteImport.update({
+  id: '/etiquetas',
+  path: '/etiquetas',
+  getParentRoute: () => EstoqueRoute,
+} as any)
+const EstoqueComprasRoute = EstoqueComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
+  getParentRoute: () => EstoqueRoute,
+} as any)
+const EstoqueAtualRoute = EstoqueAtualRouteImport.update({
+  id: '/atual',
+  path: '/atual',
+  getParentRoute: () => EstoqueRoute,
+} as any)
+const CrmConversasRoute = CrmConversasRouteImport.update({
+  id: '/crm_/conversas',
+  path: '/crm/conversas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmCatalogoRoute = CrmCatalogoRouteImport.update({
+  id: '/crm_/catalogo',
+  path: '/crm/catalogo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmBotRoute = CrmBotRouteImport.update({
+  id: '/crm_/bot',
+  path: '/crm/bot',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEvolutionSplatRoute = ApiEvolutionSplatRouteImport.update({
+  id: '/api/evolution/$',
+  path: '/api/evolution/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agentes': typeof AgentesRoute
+  '/atendimento': typeof AtendimentoRoute
+  '/automacao': typeof AutomacaoRoute
+  '/clientes': typeof ClientesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/crm': typeof CrmRoute
+  '/equipe': typeof EquipeRoute
+  '/estoque': typeof EstoqueRouteWithChildren
+  '/financeiro': typeof FinanceiroRouteWithChildren
+  '/fiscal': typeof FiscalRoute
+  '/funil': typeof FunilRoute
+  '/instagram': typeof InstagramRoute
+  '/leads': typeof LeadsRoute
+  '/login': typeof LoginRoute
+  '/pdv': typeof PdvRoute
+  '/pipeline': typeof PipelineRoute
+  '/produtos': typeof ProdutosRoute
+  '/registro': typeof RegistroRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/servicos': typeof ServicosRouteWithChildren
+  '/vendas': typeof VendasRouteWithChildren
+  '/whatsapp': typeof WhatsappRoute
+  '/crm/bot': typeof CrmBotRoute
+  '/crm/catalogo': typeof CrmCatalogoRoute
+  '/crm/conversas': typeof CrmConversasRoute
+  '/estoque/atual': typeof EstoqueAtualRoute
+  '/estoque/compras': typeof EstoqueComprasRoute
+  '/estoque/etiquetas': typeof EstoqueEtiquetasRoute
+  '/estoque/movimentacoes': typeof EstoqueMovimentacoesRoute
+  '/estoque/vendidos': typeof EstoqueVendidosRoute
+  '/financeiro/caixa': typeof FinanceiroCaixaRoute
+  '/financeiro/dre': typeof FinanceiroDreRoute
+  '/financeiro/fornecedores': typeof FinanceiroFornecedoresRoute
+  '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
+  '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
+  '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/servicos/checklists': typeof ServicosChecklistsRoute
+  '/servicos/dashboard': typeof ServicosDashboardRoute
+  '/servicos/nova': typeof ServicosNovaRoute
+  '/servicos/tecnicos': typeof ServicosTecnicosRoute
+  '/servicos/termos': typeof ServicosTermosRoute
+  '/vendas/calculadora': typeof VendasCalculadoraRoute
+  '/vendas/consulta-estoque': typeof VendasConsultaEstoqueRoute
+  '/vendas/delivery': typeof VendasDeliveryRoute
+  '/vendas/garantias': typeof VendasGarantiasRoute
+  '/vendas/historico': typeof VendasHistoricoRoute
+  '/vendas/orcamentos': typeof VendasOrcamentosRoute
+  '/vendas/simulador': typeof VendasSimuladorRoute
+  '/api/evolution/$': typeof ApiEvolutionSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agentes': typeof AgentesRoute
+  '/atendimento': typeof AtendimentoRoute
+  '/automacao': typeof AutomacaoRoute
+  '/clientes': typeof ClientesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/crm': typeof CrmRoute
+  '/equipe': typeof EquipeRoute
+  '/estoque': typeof EstoqueRouteWithChildren
+  '/financeiro': typeof FinanceiroRouteWithChildren
+  '/fiscal': typeof FiscalRoute
+  '/funil': typeof FunilRoute
+  '/instagram': typeof InstagramRoute
+  '/leads': typeof LeadsRoute
+  '/login': typeof LoginRoute
+  '/pdv': typeof PdvRoute
+  '/pipeline': typeof PipelineRoute
+  '/produtos': typeof ProdutosRoute
+  '/registro': typeof RegistroRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/servicos': typeof ServicosRouteWithChildren
+  '/vendas': typeof VendasRouteWithChildren
+  '/whatsapp': typeof WhatsappRoute
+  '/crm/bot': typeof CrmBotRoute
+  '/crm/catalogo': typeof CrmCatalogoRoute
+  '/crm/conversas': typeof CrmConversasRoute
+  '/estoque/atual': typeof EstoqueAtualRoute
+  '/estoque/compras': typeof EstoqueComprasRoute
+  '/estoque/etiquetas': typeof EstoqueEtiquetasRoute
+  '/estoque/movimentacoes': typeof EstoqueMovimentacoesRoute
+  '/estoque/vendidos': typeof EstoqueVendidosRoute
+  '/financeiro/caixa': typeof FinanceiroCaixaRoute
+  '/financeiro/dre': typeof FinanceiroDreRoute
+  '/financeiro/fornecedores': typeof FinanceiroFornecedoresRoute
+  '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
+  '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
+  '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/servicos/checklists': typeof ServicosChecklistsRoute
+  '/servicos/dashboard': typeof ServicosDashboardRoute
+  '/servicos/nova': typeof ServicosNovaRoute
+  '/servicos/tecnicos': typeof ServicosTecnicosRoute
+  '/servicos/termos': typeof ServicosTermosRoute
+  '/vendas/calculadora': typeof VendasCalculadoraRoute
+  '/vendas/consulta-estoque': typeof VendasConsultaEstoqueRoute
+  '/vendas/delivery': typeof VendasDeliveryRoute
+  '/vendas/garantias': typeof VendasGarantiasRoute
+  '/vendas/historico': typeof VendasHistoricoRoute
+  '/vendas/orcamentos': typeof VendasOrcamentosRoute
+  '/vendas/simulador': typeof VendasSimuladorRoute
+  '/api/evolution/$': typeof ApiEvolutionSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agentes': typeof AgentesRoute
+  '/atendimento': typeof AtendimentoRoute
+  '/automacao': typeof AutomacaoRoute
+  '/clientes': typeof ClientesRoute
+  '/configuracoes': typeof ConfiguracoesRoute
+  '/crm': typeof CrmRoute
+  '/equipe': typeof EquipeRoute
+  '/estoque': typeof EstoqueRouteWithChildren
+  '/financeiro': typeof FinanceiroRouteWithChildren
+  '/fiscal': typeof FiscalRoute
+  '/funil': typeof FunilRoute
+  '/instagram': typeof InstagramRoute
+  '/leads': typeof LeadsRoute
+  '/login': typeof LoginRoute
+  '/pdv': typeof PdvRoute
+  '/pipeline': typeof PipelineRoute
+  '/produtos': typeof ProdutosRoute
+  '/registro': typeof RegistroRoute
+  '/relatorios': typeof RelatoriosRoute
+  '/servicos': typeof ServicosRouteWithChildren
+  '/vendas': typeof VendasRouteWithChildren
+  '/whatsapp': typeof WhatsappRoute
+  '/crm_/bot': typeof CrmBotRoute
+  '/crm_/catalogo': typeof CrmCatalogoRoute
+  '/crm_/conversas': typeof CrmConversasRoute
+  '/estoque/atual': typeof EstoqueAtualRoute
+  '/estoque/compras': typeof EstoqueComprasRoute
+  '/estoque/etiquetas': typeof EstoqueEtiquetasRoute
+  '/estoque/movimentacoes': typeof EstoqueMovimentacoesRoute
+  '/estoque/vendidos': typeof EstoqueVendidosRoute
+  '/financeiro/caixa': typeof FinanceiroCaixaRoute
+  '/financeiro/dre': typeof FinanceiroDreRoute
+  '/financeiro/fornecedores': typeof FinanceiroFornecedoresRoute
+  '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
+  '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
+  '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/servicos/checklists': typeof ServicosChecklistsRoute
+  '/servicos/dashboard': typeof ServicosDashboardRoute
+  '/servicos/nova': typeof ServicosNovaRoute
+  '/servicos/tecnicos': typeof ServicosTecnicosRoute
+  '/servicos/termos': typeof ServicosTermosRoute
+  '/vendas/calculadora': typeof VendasCalculadoraRoute
+  '/vendas/consulta-estoque': typeof VendasConsultaEstoqueRoute
+  '/vendas/delivery': typeof VendasDeliveryRoute
+  '/vendas/garantias': typeof VendasGarantiasRoute
+  '/vendas/historico': typeof VendasHistoricoRoute
+  '/vendas/orcamentos': typeof VendasOrcamentosRoute
+  '/vendas/simulador': typeof VendasSimuladorRoute
+  '/api/evolution/$': typeof ApiEvolutionSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/agentes'
+    | '/atendimento'
+    | '/automacao'
+    | '/clientes'
+    | '/configuracoes'
+    | '/crm'
+    | '/equipe'
+    | '/estoque'
+    | '/financeiro'
+    | '/fiscal'
+    | '/funil'
+    | '/instagram'
+    | '/leads'
+    | '/login'
+    | '/pdv'
+    | '/pipeline'
+    | '/produtos'
+    | '/registro'
+    | '/relatorios'
+    | '/servicos'
+    | '/vendas'
+    | '/whatsapp'
+    | '/crm/bot'
+    | '/crm/catalogo'
+    | '/crm/conversas'
+    | '/estoque/atual'
+    | '/estoque/compras'
+    | '/estoque/etiquetas'
+    | '/estoque/movimentacoes'
+    | '/estoque/vendidos'
+    | '/financeiro/caixa'
+    | '/financeiro/dre'
+    | '/financeiro/fornecedores'
+    | '/financeiro/maquininhas'
+    | '/financeiro/notas-aberto'
+    | '/financeiro/plano-contas'
+    | '/servicos/checklists'
+    | '/servicos/dashboard'
+    | '/servicos/nova'
+    | '/servicos/tecnicos'
+    | '/servicos/termos'
+    | '/vendas/calculadora'
+    | '/vendas/consulta-estoque'
+    | '/vendas/delivery'
+    | '/vendas/garantias'
+    | '/vendas/historico'
+    | '/vendas/orcamentos'
+    | '/vendas/simulador'
+    | '/api/evolution/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/agentes'
+    | '/atendimento'
+    | '/automacao'
+    | '/clientes'
+    | '/configuracoes'
+    | '/crm'
+    | '/equipe'
+    | '/estoque'
+    | '/financeiro'
+    | '/fiscal'
+    | '/funil'
+    | '/instagram'
+    | '/leads'
+    | '/login'
+    | '/pdv'
+    | '/pipeline'
+    | '/produtos'
+    | '/registro'
+    | '/relatorios'
+    | '/servicos'
+    | '/vendas'
+    | '/whatsapp'
+    | '/crm/bot'
+    | '/crm/catalogo'
+    | '/crm/conversas'
+    | '/estoque/atual'
+    | '/estoque/compras'
+    | '/estoque/etiquetas'
+    | '/estoque/movimentacoes'
+    | '/estoque/vendidos'
+    | '/financeiro/caixa'
+    | '/financeiro/dre'
+    | '/financeiro/fornecedores'
+    | '/financeiro/maquininhas'
+    | '/financeiro/notas-aberto'
+    | '/financeiro/plano-contas'
+    | '/servicos/checklists'
+    | '/servicos/dashboard'
+    | '/servicos/nova'
+    | '/servicos/tecnicos'
+    | '/servicos/termos'
+    | '/vendas/calculadora'
+    | '/vendas/consulta-estoque'
+    | '/vendas/delivery'
+    | '/vendas/garantias'
+    | '/vendas/historico'
+    | '/vendas/orcamentos'
+    | '/vendas/simulador'
+    | '/api/evolution/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/agentes'
+    | '/atendimento'
+    | '/automacao'
+    | '/clientes'
+    | '/configuracoes'
+    | '/crm'
+    | '/equipe'
+    | '/estoque'
+    | '/financeiro'
+    | '/fiscal'
+    | '/funil'
+    | '/instagram'
+    | '/leads'
+    | '/login'
+    | '/pdv'
+    | '/pipeline'
+    | '/produtos'
+    | '/registro'
+    | '/relatorios'
+    | '/servicos'
+    | '/vendas'
+    | '/whatsapp'
+    | '/crm_/bot'
+    | '/crm_/catalogo'
+    | '/crm_/conversas'
+    | '/estoque/atual'
+    | '/estoque/compras'
+    | '/estoque/etiquetas'
+    | '/estoque/movimentacoes'
+    | '/estoque/vendidos'
+    | '/financeiro/caixa'
+    | '/financeiro/dre'
+    | '/financeiro/fornecedores'
+    | '/financeiro/maquininhas'
+    | '/financeiro/notas-aberto'
+    | '/financeiro/plano-contas'
+    | '/servicos/checklists'
+    | '/servicos/dashboard'
+    | '/servicos/nova'
+    | '/servicos/tecnicos'
+    | '/servicos/termos'
+    | '/vendas/calculadora'
+    | '/vendas/consulta-estoque'
+    | '/vendas/delivery'
+    | '/vendas/garantias'
+    | '/vendas/historico'
+    | '/vendas/orcamentos'
+    | '/vendas/simulador'
+    | '/api/evolution/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentesRoute: typeof AgentesRoute
+  AtendimentoRoute: typeof AtendimentoRoute
+  AutomacaoRoute: typeof AutomacaoRoute
+  ClientesRoute: typeof ClientesRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  CrmRoute: typeof CrmRoute
+  EquipeRoute: typeof EquipeRoute
+  EstoqueRoute: typeof EstoqueRouteWithChildren
+  FinanceiroRoute: typeof FinanceiroRouteWithChildren
+  FiscalRoute: typeof FiscalRoute
+  FunilRoute: typeof FunilRoute
+  InstagramRoute: typeof InstagramRoute
+  LeadsRoute: typeof LeadsRoute
+  LoginRoute: typeof LoginRoute
+  PdvRoute: typeof PdvRoute
+  PipelineRoute: typeof PipelineRoute
+  ProdutosRoute: typeof ProdutosRoute
+  RegistroRoute: typeof RegistroRoute
+  RelatoriosRoute: typeof RelatoriosRoute
+  ServicosRoute: typeof ServicosRouteWithChildren
+  VendasRoute: typeof VendasRouteWithChildren
+  WhatsappRoute: typeof WhatsappRoute
+  CrmBotRoute: typeof CrmBotRoute
+  CrmCatalogoRoute: typeof CrmCatalogoRoute
+  CrmConversasRoute: typeof CrmConversasRoute
+  ApiEvolutionSplatRoute: typeof ApiEvolutionSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/whatsapp': {
+      id: '/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof WhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vendas': {
+      id: '/vendas'
+      path: '/vendas'
+      fullPath: '/vendas'
+      preLoaderRoute: typeof VendasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/servicos': {
+      id: '/servicos'
+      path: '/servicos'
+      fullPath: '/servicos'
+      preLoaderRoute: typeof ServicosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/relatorios': {
+      id: '/relatorios'
+      path: '/relatorios'
+      fullPath: '/relatorios'
+      preLoaderRoute: typeof RelatoriosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/registro': {
+      id: '/registro'
+      path: '/registro'
+      fullPath: '/registro'
+      preLoaderRoute: typeof RegistroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/produtos': {
+      id: '/produtos'
+      path: '/produtos'
+      fullPath: '/produtos'
+      preLoaderRoute: typeof ProdutosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pipeline': {
+      id: '/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof PipelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pdv': {
+      id: '/pdv'
+      path: '/pdv'
+      fullPath: '/pdv'
+      preLoaderRoute: typeof PdvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leads': {
+      id: '/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof LeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/instagram': {
+      id: '/instagram'
+      path: '/instagram'
+      fullPath: '/instagram'
+      preLoaderRoute: typeof InstagramRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/funil': {
+      id: '/funil'
+      path: '/funil'
+      fullPath: '/funil'
+      preLoaderRoute: typeof FunilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fiscal': {
+      id: '/fiscal'
+      path: '/fiscal'
+      fullPath: '/fiscal'
+      preLoaderRoute: typeof FiscalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/financeiro': {
+      id: '/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof FinanceiroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/estoque': {
+      id: '/estoque'
+      path: '/estoque'
+      fullPath: '/estoque'
+      preLoaderRoute: typeof EstoqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/equipe': {
+      id: '/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof EquipeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm': {
+      id: '/crm'
+      path: '/crm'
+      fullPath: '/crm'
+      preLoaderRoute: typeof CrmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clientes': {
+      id: '/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof ClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automacao': {
+      id: '/automacao'
+      path: '/automacao'
+      fullPath: '/automacao'
+      preLoaderRoute: typeof AutomacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/atendimento': {
+      id: '/atendimento'
+      path: '/atendimento'
+      fullPath: '/atendimento'
+      preLoaderRoute: typeof AtendimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agentes': {
+      id: '/agentes'
+      path: '/agentes'
+      fullPath: '/agentes'
+      preLoaderRoute: typeof AgentesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +820,320 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vendas/simulador': {
+      id: '/vendas/simulador'
+      path: '/simulador'
+      fullPath: '/vendas/simulador'
+      preLoaderRoute: typeof VendasSimuladorRouteImport
+      parentRoute: typeof VendasRoute
+    }
+    '/vendas/orcamentos': {
+      id: '/vendas/orcamentos'
+      path: '/orcamentos'
+      fullPath: '/vendas/orcamentos'
+      preLoaderRoute: typeof VendasOrcamentosRouteImport
+      parentRoute: typeof VendasRoute
+    }
+    '/vendas/historico': {
+      id: '/vendas/historico'
+      path: '/historico'
+      fullPath: '/vendas/historico'
+      preLoaderRoute: typeof VendasHistoricoRouteImport
+      parentRoute: typeof VendasRoute
+    }
+    '/vendas/garantias': {
+      id: '/vendas/garantias'
+      path: '/garantias'
+      fullPath: '/vendas/garantias'
+      preLoaderRoute: typeof VendasGarantiasRouteImport
+      parentRoute: typeof VendasRoute
+    }
+    '/vendas/delivery': {
+      id: '/vendas/delivery'
+      path: '/delivery'
+      fullPath: '/vendas/delivery'
+      preLoaderRoute: typeof VendasDeliveryRouteImport
+      parentRoute: typeof VendasRoute
+    }
+    '/vendas/consulta-estoque': {
+      id: '/vendas/consulta-estoque'
+      path: '/consulta-estoque'
+      fullPath: '/vendas/consulta-estoque'
+      preLoaderRoute: typeof VendasConsultaEstoqueRouteImport
+      parentRoute: typeof VendasRoute
+    }
+    '/vendas/calculadora': {
+      id: '/vendas/calculadora'
+      path: '/calculadora'
+      fullPath: '/vendas/calculadora'
+      preLoaderRoute: typeof VendasCalculadoraRouteImport
+      parentRoute: typeof VendasRoute
+    }
+    '/servicos/termos': {
+      id: '/servicos/termos'
+      path: '/termos'
+      fullPath: '/servicos/termos'
+      preLoaderRoute: typeof ServicosTermosRouteImport
+      parentRoute: typeof ServicosRoute
+    }
+    '/servicos/tecnicos': {
+      id: '/servicos/tecnicos'
+      path: '/tecnicos'
+      fullPath: '/servicos/tecnicos'
+      preLoaderRoute: typeof ServicosTecnicosRouteImport
+      parentRoute: typeof ServicosRoute
+    }
+    '/servicos/nova': {
+      id: '/servicos/nova'
+      path: '/nova'
+      fullPath: '/servicos/nova'
+      preLoaderRoute: typeof ServicosNovaRouteImport
+      parentRoute: typeof ServicosRoute
+    }
+    '/servicos/dashboard': {
+      id: '/servicos/dashboard'
+      path: '/dashboard'
+      fullPath: '/servicos/dashboard'
+      preLoaderRoute: typeof ServicosDashboardRouteImport
+      parentRoute: typeof ServicosRoute
+    }
+    '/servicos/checklists': {
+      id: '/servicos/checklists'
+      path: '/checklists'
+      fullPath: '/servicos/checklists'
+      preLoaderRoute: typeof ServicosChecklistsRouteImport
+      parentRoute: typeof ServicosRoute
+    }
+    '/financeiro/plano-contas': {
+      id: '/financeiro/plano-contas'
+      path: '/plano-contas'
+      fullPath: '/financeiro/plano-contas'
+      preLoaderRoute: typeof FinanceiroPlanoContasRouteImport
+      parentRoute: typeof FinanceiroRoute
+    }
+    '/financeiro/notas-aberto': {
+      id: '/financeiro/notas-aberto'
+      path: '/notas-aberto'
+      fullPath: '/financeiro/notas-aberto'
+      preLoaderRoute: typeof FinanceiroNotasAbertoRouteImport
+      parentRoute: typeof FinanceiroRoute
+    }
+    '/financeiro/maquininhas': {
+      id: '/financeiro/maquininhas'
+      path: '/maquininhas'
+      fullPath: '/financeiro/maquininhas'
+      preLoaderRoute: typeof FinanceiroMaquininhasRouteImport
+      parentRoute: typeof FinanceiroRoute
+    }
+    '/financeiro/fornecedores': {
+      id: '/financeiro/fornecedores'
+      path: '/fornecedores'
+      fullPath: '/financeiro/fornecedores'
+      preLoaderRoute: typeof FinanceiroFornecedoresRouteImport
+      parentRoute: typeof FinanceiroRoute
+    }
+    '/financeiro/dre': {
+      id: '/financeiro/dre'
+      path: '/dre'
+      fullPath: '/financeiro/dre'
+      preLoaderRoute: typeof FinanceiroDreRouteImport
+      parentRoute: typeof FinanceiroRoute
+    }
+    '/financeiro/caixa': {
+      id: '/financeiro/caixa'
+      path: '/caixa'
+      fullPath: '/financeiro/caixa'
+      preLoaderRoute: typeof FinanceiroCaixaRouteImport
+      parentRoute: typeof FinanceiroRoute
+    }
+    '/estoque/vendidos': {
+      id: '/estoque/vendidos'
+      path: '/vendidos'
+      fullPath: '/estoque/vendidos'
+      preLoaderRoute: typeof EstoqueVendidosRouteImport
+      parentRoute: typeof EstoqueRoute
+    }
+    '/estoque/movimentacoes': {
+      id: '/estoque/movimentacoes'
+      path: '/movimentacoes'
+      fullPath: '/estoque/movimentacoes'
+      preLoaderRoute: typeof EstoqueMovimentacoesRouteImport
+      parentRoute: typeof EstoqueRoute
+    }
+    '/estoque/etiquetas': {
+      id: '/estoque/etiquetas'
+      path: '/etiquetas'
+      fullPath: '/estoque/etiquetas'
+      preLoaderRoute: typeof EstoqueEtiquetasRouteImport
+      parentRoute: typeof EstoqueRoute
+    }
+    '/estoque/compras': {
+      id: '/estoque/compras'
+      path: '/compras'
+      fullPath: '/estoque/compras'
+      preLoaderRoute: typeof EstoqueComprasRouteImport
+      parentRoute: typeof EstoqueRoute
+    }
+    '/estoque/atual': {
+      id: '/estoque/atual'
+      path: '/atual'
+      fullPath: '/estoque/atual'
+      preLoaderRoute: typeof EstoqueAtualRouteImport
+      parentRoute: typeof EstoqueRoute
+    }
+    '/crm_/conversas': {
+      id: '/crm_/conversas'
+      path: '/crm/conversas'
+      fullPath: '/crm/conversas'
+      preLoaderRoute: typeof CrmConversasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm_/catalogo': {
+      id: '/crm_/catalogo'
+      path: '/crm/catalogo'
+      fullPath: '/crm/catalogo'
+      preLoaderRoute: typeof CrmCatalogoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm_/bot': {
+      id: '/crm_/bot'
+      path: '/crm/bot'
+      fullPath: '/crm/bot'
+      preLoaderRoute: typeof CrmBotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/evolution/$': {
+      id: '/api/evolution/$'
+      path: '/api/evolution/$'
+      fullPath: '/api/evolution/$'
+      preLoaderRoute: typeof ApiEvolutionSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface EstoqueRouteChildren {
+  EstoqueAtualRoute: typeof EstoqueAtualRoute
+  EstoqueComprasRoute: typeof EstoqueComprasRoute
+  EstoqueEtiquetasRoute: typeof EstoqueEtiquetasRoute
+  EstoqueMovimentacoesRoute: typeof EstoqueMovimentacoesRoute
+  EstoqueVendidosRoute: typeof EstoqueVendidosRoute
+}
+
+const EstoqueRouteChildren: EstoqueRouteChildren = {
+  EstoqueAtualRoute: EstoqueAtualRoute,
+  EstoqueComprasRoute: EstoqueComprasRoute,
+  EstoqueEtiquetasRoute: EstoqueEtiquetasRoute,
+  EstoqueMovimentacoesRoute: EstoqueMovimentacoesRoute,
+  EstoqueVendidosRoute: EstoqueVendidosRoute,
+}
+
+const EstoqueRouteWithChildren =
+  EstoqueRoute._addFileChildren(EstoqueRouteChildren)
+
+interface FinanceiroRouteChildren {
+  FinanceiroCaixaRoute: typeof FinanceiroCaixaRoute
+  FinanceiroDreRoute: typeof FinanceiroDreRoute
+  FinanceiroFornecedoresRoute: typeof FinanceiroFornecedoresRoute
+  FinanceiroMaquininhasRoute: typeof FinanceiroMaquininhasRoute
+  FinanceiroNotasAbertoRoute: typeof FinanceiroNotasAbertoRoute
+  FinanceiroPlanoContasRoute: typeof FinanceiroPlanoContasRoute
+}
+
+const FinanceiroRouteChildren: FinanceiroRouteChildren = {
+  FinanceiroCaixaRoute: FinanceiroCaixaRoute,
+  FinanceiroDreRoute: FinanceiroDreRoute,
+  FinanceiroFornecedoresRoute: FinanceiroFornecedoresRoute,
+  FinanceiroMaquininhasRoute: FinanceiroMaquininhasRoute,
+  FinanceiroNotasAbertoRoute: FinanceiroNotasAbertoRoute,
+  FinanceiroPlanoContasRoute: FinanceiroPlanoContasRoute,
+}
+
+const FinanceiroRouteWithChildren = FinanceiroRoute._addFileChildren(
+  FinanceiroRouteChildren,
+)
+
+interface ServicosRouteChildren {
+  ServicosChecklistsRoute: typeof ServicosChecklistsRoute
+  ServicosDashboardRoute: typeof ServicosDashboardRoute
+  ServicosNovaRoute: typeof ServicosNovaRoute
+  ServicosTecnicosRoute: typeof ServicosTecnicosRoute
+  ServicosTermosRoute: typeof ServicosTermosRoute
+}
+
+const ServicosRouteChildren: ServicosRouteChildren = {
+  ServicosChecklistsRoute: ServicosChecklistsRoute,
+  ServicosDashboardRoute: ServicosDashboardRoute,
+  ServicosNovaRoute: ServicosNovaRoute,
+  ServicosTecnicosRoute: ServicosTecnicosRoute,
+  ServicosTermosRoute: ServicosTermosRoute,
+}
+
+const ServicosRouteWithChildren = ServicosRoute._addFileChildren(
+  ServicosRouteChildren,
+)
+
+interface VendasRouteChildren {
+  VendasCalculadoraRoute: typeof VendasCalculadoraRoute
+  VendasConsultaEstoqueRoute: typeof VendasConsultaEstoqueRoute
+  VendasDeliveryRoute: typeof VendasDeliveryRoute
+  VendasGarantiasRoute: typeof VendasGarantiasRoute
+  VendasHistoricoRoute: typeof VendasHistoricoRoute
+  VendasOrcamentosRoute: typeof VendasOrcamentosRoute
+  VendasSimuladorRoute: typeof VendasSimuladorRoute
+}
+
+const VendasRouteChildren: VendasRouteChildren = {
+  VendasCalculadoraRoute: VendasCalculadoraRoute,
+  VendasConsultaEstoqueRoute: VendasConsultaEstoqueRoute,
+  VendasDeliveryRoute: VendasDeliveryRoute,
+  VendasGarantiasRoute: VendasGarantiasRoute,
+  VendasHistoricoRoute: VendasHistoricoRoute,
+  VendasOrcamentosRoute: VendasOrcamentosRoute,
+  VendasSimuladorRoute: VendasSimuladorRoute,
+}
+
+const VendasRouteWithChildren =
+  VendasRoute._addFileChildren(VendasRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentesRoute: AgentesRoute,
+  AtendimentoRoute: AtendimentoRoute,
+  AutomacaoRoute: AutomacaoRoute,
+  ClientesRoute: ClientesRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
+  CrmRoute: CrmRoute,
+  EquipeRoute: EquipeRoute,
+  EstoqueRoute: EstoqueRouteWithChildren,
+  FinanceiroRoute: FinanceiroRouteWithChildren,
+  FiscalRoute: FiscalRoute,
+  FunilRoute: FunilRoute,
+  InstagramRoute: InstagramRoute,
+  LeadsRoute: LeadsRoute,
+  LoginRoute: LoginRoute,
+  PdvRoute: PdvRoute,
+  PipelineRoute: PipelineRoute,
+  ProdutosRoute: ProdutosRoute,
+  RegistroRoute: RegistroRoute,
+  RelatoriosRoute: RelatoriosRoute,
+  ServicosRoute: ServicosRouteWithChildren,
+  VendasRoute: VendasRouteWithChildren,
+  WhatsappRoute: WhatsappRoute,
+  CrmBotRoute: CrmBotRoute,
+  CrmCatalogoRoute: CrmCatalogoRoute,
+  CrmConversasRoute: CrmConversasRoute,
+  ApiEvolutionSplatRoute: ApiEvolutionSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
