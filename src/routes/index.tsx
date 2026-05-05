@@ -6,6 +6,10 @@ import {
   Star, Globe, Calendar, Bell, Crown, TrendingUp, ShieldCheck as ShieldIcon,
 } from "lucide-react";
 import heroDashboard from "@/assets/hero-dashboard.png";
+import ownerStore from "@/assets/owner-store.jpg";
+import customerHappy from "@/assets/customer-happy.jpg";
+import attendantLaptop from "@/assets/attendant-laptop.jpg";
+import { X as XIcon, Clock, Heart } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
