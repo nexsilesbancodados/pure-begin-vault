@@ -32,6 +32,7 @@ import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as AutomacaoRouteImport } from './routes/automacao'
 import { Route as AtendimentoRouteImport } from './routes/atendimento'
 import { Route as AgentesRouteImport } from './routes/agentes'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as VendasSimuladorRouteImport } from './routes/vendas.simulador'
 import { Route as VendasOrcamentosRouteImport } from './routes/vendas.orcamentos'
 import { Route as VendasHistoricoRouteImport } from './routes/vendas.historico'
@@ -175,6 +176,11 @@ const AgentesRoute = AgentesRouteImport.update({
   path: '/agentes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VendasSimuladorRoute = VendasSimuladorRouteImport.update({
   id: '/simulador',
   path: '/simulador',
@@ -312,6 +318,7 @@ const ApiEvolutionSplatRoute = ApiEvolutionSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/agentes': typeof AgentesRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
@@ -364,6 +371,7 @@ export interface FileRoutesByFullPath {
   '/api/evolution/$': typeof ApiEvolutionSplatRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/agentes': typeof AgentesRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
@@ -417,6 +425,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/agentes': typeof AgentesRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
@@ -471,6 +480,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/agentes'
     | '/atendimento'
     | '/automacao'
@@ -523,6 +533,7 @@ export interface FileRouteTypes {
     | '/api/evolution/$'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/agentes'
     | '/atendimento'
     | '/automacao'
@@ -575,6 +586,7 @@ export interface FileRouteTypes {
     | '/api/evolution/$'
   id:
     | '__root__'
+    | '/'
     | '/agentes'
     | '/atendimento'
     | '/automacao'
@@ -628,6 +640,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AgentesRoute: typeof AgentesRoute
   AtendimentoRoute: typeof AtendimentoRoute
   AutomacaoRoute: typeof AutomacaoRoute
@@ -818,6 +831,13 @@ declare module '@tanstack/react-router' {
       path: '/agentes'
       fullPath: '/agentes'
       preLoaderRoute: typeof AgentesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vendas/simulador': {
@@ -1097,6 +1117,7 @@ const VendasRouteWithChildren =
   VendasRoute._addFileChildren(VendasRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AgentesRoute: AgentesRoute,
   AtendimentoRoute: AtendimentoRoute,
   AutomacaoRoute: AutomacaoRoute,
@@ -1128,12 +1149,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
