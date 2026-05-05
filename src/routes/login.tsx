@@ -38,7 +38,7 @@ export const Route = createFileRoute("/login")({
         return;
       }
 
-      navigate({ to: "/funil" });
+      navigate({ to: "/painel" });
    };
  
    return (
