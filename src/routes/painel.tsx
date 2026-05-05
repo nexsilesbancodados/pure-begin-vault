@@ -28,7 +28,7 @@ import { GoalProgress } from "@/components/dashboard/GoalProgress";
  const RecentLeads = lazy(() => import("@/components/dashboard/RecentPanels").then(m => ({ default: m.RecentLeads })));
  const MonthComparison = lazy(() => import("@/components/dashboard/MonthComparison").then(m => ({ default: m.MonthComparison })));
 
- export const Route = createFileRoute("/")({
+ export const Route = createFileRoute("/painel")({
    head: () => ({
      meta: [
        { title: "Painel — ConectaCRM" },

@@ -17,6 +17,7 @@ import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as PdvRouteImport } from './routes/pdv'
+import { Route as PainelRouteImport } from './routes/painel'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as InstagramRouteImport } from './routes/instagram'
@@ -31,7 +32,6 @@ import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as AutomacaoRouteImport } from './routes/automacao'
 import { Route as AtendimentoRouteImport } from './routes/atendimento'
 import { Route as AgentesRouteImport } from './routes/agentes'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as VendasSimuladorRouteImport } from './routes/vendas.simulador'
 import { Route as VendasOrcamentosRouteImport } from './routes/vendas.orcamentos'
 import { Route as VendasHistoricoRouteImport } from './routes/vendas.historico'
@@ -98,6 +98,11 @@ const PipelineRoute = PipelineRouteImport.update({
 const PdvRoute = PdvRouteImport.update({
   id: '/pdv',
   path: '/pdv',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PainelRoute = PainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -168,11 +173,6 @@ const AtendimentoRoute = AtendimentoRouteImport.update({
 const AgentesRoute = AgentesRouteImport.update({
   id: '/agentes',
   path: '/agentes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VendasSimuladorRoute = VendasSimuladorRouteImport.update({
@@ -312,7 +312,6 @@ const ApiEvolutionSplatRoute = ApiEvolutionSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/agentes': typeof AgentesRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
@@ -327,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
@@ -364,7 +364,6 @@ export interface FileRoutesByFullPath {
   '/api/evolution/$': typeof ApiEvolutionSplatRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/agentes': typeof AgentesRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
@@ -379,6 +378,7 @@ export interface FileRoutesByTo {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
@@ -417,7 +417,6 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/agentes': typeof AgentesRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
@@ -432,6 +431,7 @@ export interface FileRoutesById {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
@@ -471,7 +471,6 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/agentes'
     | '/atendimento'
     | '/automacao'
@@ -486,6 +485,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/painel'
     | '/pdv'
     | '/pipeline'
     | '/produtos'
@@ -523,7 +523,6 @@ export interface FileRouteTypes {
     | '/api/evolution/$'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/agentes'
     | '/atendimento'
     | '/automacao'
@@ -538,6 +537,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/painel'
     | '/pdv'
     | '/pipeline'
     | '/produtos'
@@ -575,7 +575,6 @@ export interface FileRouteTypes {
     | '/api/evolution/$'
   id:
     | '__root__'
-    | '/'
     | '/agentes'
     | '/atendimento'
     | '/automacao'
@@ -590,6 +589,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/painel'
     | '/pdv'
     | '/pipeline'
     | '/produtos'
@@ -628,7 +628,6 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AgentesRoute: typeof AgentesRoute
   AtendimentoRoute: typeof AtendimentoRoute
   AutomacaoRoute: typeof AutomacaoRoute
@@ -643,6 +642,7 @@ export interface RootRouteChildren {
   InstagramRoute: typeof InstagramRoute
   LeadsRoute: typeof LeadsRoute
   LoginRoute: typeof LoginRoute
+  PainelRoute: typeof PainelRoute
   PdvRoute: typeof PdvRoute
   PipelineRoute: typeof PipelineRoute
   ProdutosRoute: typeof ProdutosRoute
@@ -713,6 +713,13 @@ declare module '@tanstack/react-router' {
       path: '/pdv'
       fullPath: '/pdv'
       preLoaderRoute: typeof PdvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/painel': {
+      id: '/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof PainelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -811,13 +818,6 @@ declare module '@tanstack/react-router' {
       path: '/agentes'
       fullPath: '/agentes'
       preLoaderRoute: typeof AgentesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vendas/simulador': {
@@ -1097,7 +1097,6 @@ const VendasRouteWithChildren =
   VendasRoute._addFileChildren(VendasRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AgentesRoute: AgentesRoute,
   AtendimentoRoute: AtendimentoRoute,
   AutomacaoRoute: AutomacaoRoute,
@@ -1112,6 +1111,7 @@ const rootRouteChildren: RootRouteChildren = {
   InstagramRoute: InstagramRoute,
   LeadsRoute: LeadsRoute,
   LoginRoute: LoginRoute,
+  PainelRoute: PainelRoute,
   PdvRoute: PdvRoute,
   PipelineRoute: PipelineRoute,
   ProdutosRoute: ProdutosRoute,
@@ -1128,3 +1128,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
