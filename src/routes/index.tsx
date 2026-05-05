@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import {
   Check, Smartphone, Box, Wrench, BarChart3, Users, Bot, FileText,
   CreditCard, Tag, MessageCircle, Zap, ShieldCheck, Sparkles, ArrowRight,
-  Star, Globe, Calendar, Bell, Crown, TrendingUp,
+  Star, Globe, Calendar, Bell, Crown, TrendingUp, ShieldCheck as ShieldIcon,
 } from "lucide-react";
+import heroDashboard from "@/assets/hero-dashboard.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -126,67 +127,89 @@ function Landing() {
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-1/4 left-1/4 h-[500px] w-[500px] rounded-full bg-primary/20 blur-[140px]" />
-          <div className="absolute bottom-0 right-1/4 h-[400px] w-[400px] rounded-full bg-emerald-500/20 blur-[120px]" />
+          <div className="absolute top-1/3 -left-32 h-[520px] w-[520px] rounded-full bg-primary/15 blur-[140px]" />
+          <div className="absolute bottom-0 right-0 h-[420px] w-[420px] rounded-full bg-emerald-500/15 blur-[120px]" />
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-24 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-1.5 text-xs mb-6">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-muted-foreground">+3.000 lojas já transformaram a operação</span>
-          </div>
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight max-w-4xl mx-auto leading-[1.05]">
-            O sistema definitivo para sua{" "}
-            <span className="bg-gradient-to-r from-primary via-emerald-400 to-primary bg-clip-text text-transparent">
-              loja de celular
-            </span>
-          </h1>
-          <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            ERP, CRM, IA e app mobile em uma única plataforma. Controle total de estoque por IMEI,
-            ordens de serviço, vendas, fiscal e pós-venda automatizado.
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/registro">
-              <Button size="lg" className="rounded-full text-base px-8 h-12">
-                Testar grátis por 7 dias <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-            <a href="#planos">
-              <Button size="lg" variant="outline" className="rounded-full text-base px-8 h-12">
-                Ver planos
-              </Button>
-            </a>
-          </div>
-          <div className="mt-12 flex items-center justify-center gap-6 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-              <span className="ml-2">4.9/5 — 1.200+ avaliações</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-20 grid lg:grid-cols-2 gap-10 lg:gap-6 items-center">
+          {/* LEFT — copy */}
+          <div className="text-left">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-1.5 text-xs mb-7">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-muted-foreground">+3.000 lojas já transformaram a operação</span>
             </div>
-            <span className="hidden sm:inline">•</span>
-            <span className="hidden sm:inline">Sem cartão de crédito</span>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
+              O sistema completo para sua{" "}
+              <span className="bg-gradient-to-r from-primary via-emerald-400 to-primary bg-clip-text text-transparent">
+                loja de celular
+              </span>{" "}
+              vender mais todos os dias
+            </h1>
+            <p className="mt-6 text-lg text-muted-foreground max-w-xl">
+              Controle total de estoque por IMEI, vendas, assistência técnica,
+              CRM e pós-venda em uma única plataforma simples e poderosa.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <Link to="/registro">
+                <Button size="lg" className="rounded-full text-base px-8 h-12 w-full sm:w-auto">
+                  Começar grátis por 7 dias <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+              <a href="#planos">
+                <Button size="lg" variant="outline" className="rounded-full text-base px-8 h-12 w-full sm:w-auto">
+                  Ver planos
+                </Button>
+              </a>
+            </div>
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                {[0,1,2,3,4].map(i => (
+                  <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                ))}
+                <span className="ml-2">4.9/5 — 1.200+ avaliações</span>
+              </div>
+              <span className="hidden sm:inline">•</span>
+              <div className="flex items-center gap-1.5">
+                <ShieldIcon className="h-4 w-4 text-emerald-500" />
+                <span>Sem cartão de crédito</span>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT — hero image */}
+          <div className="relative">
+            <img
+              src={heroDashboard}
+              alt="Dashboard ConectaCRM em notebook e celular mostrando vendas, estoque por IMEI e atendimento WhatsApp"
+              width={1536}
+              height={1024}
+              className="w-full h-auto drop-shadow-2xl"
+            />
+          </div>
+        </div>
+
+        {/* PILLARS strip */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-12">
+          <div className="rounded-2xl border border-border bg-card/60 backdrop-blur grid grid-cols-2 md:grid-cols-4 gap-4 p-6">
+            {[
+              { icon: Zap, title: "Vendas em segundos", desc: "PDV rápido e intuitivo" },
+              { icon: Box, title: "Estoque por IMEI", desc: "Controle total e preciso" },
+              { icon: BarChart3, title: "+30 relatórios", desc: "Dados que geram resultado" },
+              { icon: Bot, title: "Pós-venda com IA", desc: "Atendimento que fideliza" },
+            ].map((p) => (
+              <div key={p.title} className="flex items-center gap-3">
+                <span className="h-11 w-11 rounded-xl bg-emerald-500/10 grid place-items-center text-emerald-500 shrink-0">
+                  <p.icon className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold leading-tight">{p.title}</p>
+                  <p className="text-xs text-muted-foreground">{p.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* PILLARS */}
-      <section className="border-y border-border bg-card/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { icon: Zap, label: "Vendas em segundos" },
-            { icon: Box, label: "Estoque por IMEI" },
-            { icon: BarChart3, label: "+30 relatórios" },
-            { icon: Bot, label: "Pós-venda com IA" },
-          ].map((p) => (
-            <div key={p.label} className="flex flex-col items-center gap-2">
-              <p.icon className="h-7 w-7 text-primary" />
-              <span className="text-sm font-semibold">{p.label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* FEATURES */}
       <section id="funcionalidades" className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
