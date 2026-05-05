@@ -1,6 +1,6 @@
 export const sidebarItems = [
   { type: "header", title: "Painel Principal" },
-  { title: "Dashboard", url: "/", icon: "LayoutDashboard" as const },
+  { title: "Dashboard", url: "/painel", icon: "LayoutDashboard" as const },
    { title: "Relatórios", url: "/relatorios", icon: "BarChart3" as const },
    { title: "Agentes", url: "/agentes", icon: "Headphones" as const },
 
