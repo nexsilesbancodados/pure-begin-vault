@@ -9,7 +9,15 @@ import heroDashboard from "@/assets/hero-dashboard.png";
 import ownerStore from "@/assets/owner-store.jpg";
 import customerHappy from "@/assets/customer-happy.jpg";
 import attendantLaptop from "@/assets/attendant-laptop.jpg";
-import { X as XIcon, Clock, Heart, Quote, Store, Headphones, BadgeCheck } from "lucide-react";
+import featImei from "@/assets/feat-imei.jpg";
+import featPdv from "@/assets/feat-pdv.jpg";
+import featAssist from "@/assets/feat-assist.jpg";
+import featCrm from "@/assets/feat-crm.jpg";
+import featReports from "@/assets/feat-reports.jpg";
+import featAi from "@/assets/feat-ai.jpg";
+import featDevices from "@/assets/feat-devices.jpg";
+import testimonialLeandro from "@/assets/testimonial-leandro.jpg";
+import { X as XIcon, Clock, Heart, Quote, Store, Headphones, BadgeCheck, Cloud, ShieldCheck as ShieldIcon2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
