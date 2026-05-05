@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import {
   Check, Smartphone, Box, Wrench, BarChart3, Users, Bot, FileText,
   CreditCard, Tag, MessageCircle, Zap, ShieldCheck, Sparkles, ArrowRight,
-  Star, Globe, Calendar, Bell, Crown, TrendingUp,
+  Star, Globe, Calendar, Bell, Crown, TrendingUp, ShieldCheck as ShieldIcon,
 } from "lucide-react";
+import heroDashboard from "@/assets/hero-dashboard.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
