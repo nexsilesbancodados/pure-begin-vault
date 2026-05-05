@@ -377,7 +377,97 @@ function Landing() {
         </div>
       </section>
 
-      {/* PLANS */}
+      {/* STATS */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {[
+            { value: "+3.000", label: "Lojas ativas no Brasil", icon: Store },
+            { value: "98%", label: "Clientes que renovam", icon: Heart },
+            { value: "24/7", label: "Suporte humano em PT-BR", icon: Headphones },
+            { value: "5 min", label: "Para começar a vender", icon: Zap },
+          ].map((s) => (
+            <div key={s.label} className="rounded-2xl bg-card border border-border p-6 text-center">
+              <s.icon className="h-6 w-6 text-emerald-500 mx-auto mb-3" />
+              <p className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-emerald-500 bg-clip-text text-transparent">{s.value}</p>
+              <p className="text-xs text-muted-foreground mt-2">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section className="bg-card/30 border-y border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">Depoimentos</span>
+            <h2 className="text-3xl md:text-5xl font-bold mt-3">Quem usa, recomenda</h2>
+            <p className="mt-4 text-muted-foreground text-lg">
+              Histórias reais de lojistas que transformaram a operação com o ConectaCRM.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                name: "Rafael Mendes",
+                role: "Conexão Mobile · São Paulo/SP",
+                text: "Em 30 dias triplicamos as vendas online. O controle por IMEI acabou com o sumiço de aparelhos no balcão.",
+                initial: "R",
+              },
+              {
+                name: "Juliana Costa",
+                role: "JC Celulares · Belo Horizonte/MG",
+                text: "A IA Blue cuida do pós-venda sozinha. Recebo avaliação 5 estrelas sem mover um dedo. Mudou meu negócio.",
+                initial: "J",
+              },
+              {
+                name: "Marcos Almeida",
+                role: "Tech Repair · Curitiba/PR",
+                text: "Saí de planilhas para um sistema completo em 1 dia. As ordens de serviço com etiqueta nunca mais se perderam.",
+                initial: "M",
+              },
+            ].map((t) => (
+              <div key={t.name} className="rounded-2xl bg-card border border-border p-7 flex flex-col">
+                <Quote className="h-7 w-7 text-primary/40 mb-4" />
+                <p className="text-foreground/90 leading-relaxed flex-1">"{t.text}"</p>
+                <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border">
+                  <div className="h-11 w-11 rounded-full bg-gradient-to-br from-primary to-emerald-500 grid place-items-center text-primary-foreground font-bold">
+                    {t.initial}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                  </div>
+                  <BadgeCheck className="h-4 w-4 text-emerald-500 ml-auto" />
+                </div>
+                <div className="flex gap-0.5 mt-4">
+                  {[0,1,2,3,4].map(i => (
+                    <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* INTEGRATIONS */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Integrações</span>
+          <h2 className="text-3xl md:text-4xl font-bold mt-3">Funciona com as ferramentas que você já usa</h2>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+          {[
+            "WhatsApp", "Instagram", "Mercado Pago", "PagSeguro", "Stone", "PIX",
+            "Correios", "Bling", "NF-e", "Google", "Meta Ads", "Zapier",
+          ].map((name) => (
+            <div key={name} className="h-16 rounded-xl border border-border bg-card grid place-items-center text-sm font-semibold text-muted-foreground hover:text-foreground hover:border-primary/40 transition">
+              {name}
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section id="planos" className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">Planos</span>
