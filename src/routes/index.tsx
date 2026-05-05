@@ -6,6 +6,10 @@ import {
   Star, Globe, Calendar, Bell, Crown, TrendingUp, ShieldCheck as ShieldIcon,
 } from "lucide-react";
 import heroDashboard from "@/assets/hero-dashboard.png";
+import ownerStore from "@/assets/owner-store.jpg";
+import customerHappy from "@/assets/customer-happy.jpg";
+import attendantLaptop from "@/assets/attendant-laptop.jpg";
+import { X as XIcon, Clock, Heart } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -210,8 +214,129 @@ function Landing() {
         </div>
       </section>
 
+      {/* COMPARISON SEM/COM */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
+        <div className="grid lg:grid-cols-2 gap-10 items-center">
+          {/* LEFT: copy + comparison */}
+          <div>
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">Feito para lojas que querem crescer</span>
+            <h2 className="text-3xl md:text-5xl font-bold mt-3 leading-tight">
+              Menos dor de cabeça, mais tempo e{" "}
+              <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">mais lucro.</span>
+            </h2>
+            <p className="mt-4 text-muted-foreground text-lg">
+              O ConectaCRM nasceu para resolver os principais desafios das lojas de celular e assistência técnica.
+            </p>
 
-      {/* FEATURES */}
+            <div className="mt-10 grid sm:grid-cols-2 gap-5 relative">
+              {/* Sem */}
+              <div className="rounded-2xl border border-rose-200 bg-rose-50/50 dark:bg-rose-950/20 dark:border-rose-900/40 p-6">
+                <h3 className="font-bold text-rose-600 dark:text-rose-400 mb-4">Sem o ConectaCRM</h3>
+                <ul className="space-y-4">
+                  {[
+                    ["Estoque desorganizado e sem controle", "Você não sabe o que tem, o que vendeu e o que falta."],
+                    ["Perda de vendas e clientes", "Orçamentos perdidos e atendimentos sem follow-up."],
+                    ["Assistência técnica bagunçada", "Ordens de serviço em papel, anotações e planilhas."],
+                    ["Falta de informações para decidir", "Sem relatórios, você trabalha no escuro."],
+                    ["Processos manuais que tomam tempo", "Mais trabalho, menos produtividade e mais erros."],
+                  ].map(([t, d]) => (
+                    <li key={t} className="flex gap-3">
+                      <span className="mt-0.5 h-5 w-5 rounded-full bg-rose-500 text-white grid place-items-center shrink-0">
+                        <XIcon className="h-3 w-3" />
+                      </span>
+                      <div>
+                        <p className="font-semibold text-sm leading-tight">{t}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{d}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Com */}
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900/40 p-6">
+                <h3 className="font-bold text-emerald-600 dark:text-emerald-400 mb-4">Com o ConectaCRM</h3>
+                <ul className="space-y-4">
+                  {[
+                    ["Estoque 100% controlado por IMEI", "Saiba exatamente o que tem e onde está."],
+                    ["Vendas registradas em segundos", "PDV rápido, integrado e sem complicação."],
+                    ["Assistência técnica organizada", "Ordens, status e histórico de cada aparelho."],
+                    ["Relatórios completos e inteligentes", "Dashboards que mostram o que importa."],
+                    ["Automação que faz o trabalho por você", "Mais eficiência para focar no que realmente importa."],
+                  ].map(([t, d]) => (
+                    <li key={t} className="flex gap-3">
+                      <span className="mt-0.5 h-5 w-5 rounded-full bg-emerald-500 text-white grid place-items-center shrink-0">
+                        <Check className="h-3 w-3" />
+                      </span>
+                      <div>
+                        <p className="font-semibold text-sm leading-tight">{t}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{d}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Arrow */}
+              <div className="hidden sm:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-background border border-border shadow-lg items-center justify-center z-10">
+                <ArrowRight className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: image + floating card */}
+          <div className="relative">
+            <div className="rounded-3xl overflow-hidden shadow-2xl">
+              <img
+                src={ownerStore}
+                alt="Lojista feliz usando o ConectaCRM no celular"
+                width={1024}
+                height={1024}
+                loading="lazy"
+                className="w-full h-auto object-cover aspect-[4/3]"
+              />
+            </div>
+            <div className="absolute -right-2 sm:-right-4 top-6 bg-card border border-border rounded-2xl shadow-xl px-5 py-4 flex flex-col items-center text-center w-36">
+              <span className="h-9 w-9 rounded-full bg-emerald-500/15 grid place-items-center text-emerald-500 mb-2">
+                <CreditCard className="h-4 w-4" />
+              </span>
+              <p className="font-bold text-lg leading-none">+3.000</p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-tight">lojas já confiam no ConectaCRM</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom result strip */}
+        <div className="mt-16 rounded-3xl border border-border bg-card overflow-hidden grid md:grid-cols-[1fr_2fr_1fr]">
+          <div className="hidden md:block">
+            <img src={customerHappy} alt="Cliente satisfeita" width={1024} height={768} loading="lazy" className="w-full h-full object-cover" />
+          </div>
+          <div className="p-8 md:p-12 text-center flex flex-col justify-center">
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">O resultado que sua loja merece</span>
+            <h3 className="text-2xl md:text-3xl font-bold mt-3">
+              Organize sua loja, encante seus clientes e venda muito mais!
+            </h3>
+            <div className="grid grid-cols-3 gap-4 mt-8">
+              {[
+                { icon: Clock, title: "Economize tempo", desc: "Automatize tarefas e foque em vender." },
+                { icon: TrendingUp, title: "Aumente suas vendas", desc: "Atendimento rápido e informações na palma da mão." },
+                { icon: Heart, title: "Clientes satisfeitos", desc: "Pós-venda eficiente e relacionamento que fideliza." },
+              ].map((b) => (
+                <div key={b.title} className="flex flex-col items-center text-center">
+                  <b.icon className="h-7 w-7 text-emerald-500 mb-2" />
+                  <p className="font-semibold text-sm">{b.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-snug">{b.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="hidden md:block">
+            <img src={attendantLaptop} alt="Atendente trabalhando no ConectaCRM" width={1024} height={768} loading="lazy" className="w-full h-full object-cover" />
+          </div>
+        </div>
+      </section>
+
+
       <section id="funcionalidades" className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">Funcionalidades</span>
