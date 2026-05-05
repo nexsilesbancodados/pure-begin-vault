@@ -1,145 +1,404 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AppSidebar } from "@/components/layout/Sidebar";
-import { Topbar } from "@/components/layout/Topbar";
-import { KpiCard } from "@/components/dashboard/KpiCard";
-import { TasksCard, AutomationsCard, AgendaCard, DispatchCard } from "@/components/dashboard/SidePanels";
-import { QuickActions } from "@/components/dashboard/QuickActions";
-import { HeroHeader } from "@/components/dashboard/HeroHeader";
-import { GoalProgress } from "@/components/dashboard/GoalProgress";
-  import { useState, Suspense, lazy } from "react";
-  import { useAuth } from "@/contexts/AuthContext";
-  import { useDashboardStats, type Period } from "@/hooks/useDashboardStats";
- import { 
-   DropdownMenu, 
-   DropdownMenuContent, 
-   DropdownMenuItem, 
-   DropdownMenuTrigger 
- } from "@/components/ui/dropdown-menu";
- import { Button } from "@/components/ui/button";
- import { Calendar, ChevronDown } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { Button } from "@/components/ui/button";
+import {
+  Check, Smartphone, Box, Wrench, BarChart3, Users, Bot, FileText,
+  CreditCard, Tag, MessageCircle, Zap, ShieldCheck, Sparkles, ArrowRight,
+  Star, Globe, Calendar, Bell, Crown, TrendingUp,
+} from "lucide-react";
 
- // Lazy load secondary components to improve initial paint
- const SalesChart = lazy(() => import("@/components/dashboard/SalesChart").then(m => ({ default: m.SalesChart })));
- const OriginDonut = lazy(() => import("@/components/dashboard/OriginDonut").then(m => ({ default: m.OriginDonut })));
- const ChannelMini = lazy(() => import("@/components/dashboard/ChannelMini").then(m => ({ default: m.ChannelMini })));
- const Funnel = lazy(() => import("@/components/dashboard/Funnel").then(m => ({ default: m.Funnel })));
- const MessagesPanel = lazy(() => import("@/components/dashboard/MessagesPanel").then(m => ({ default: m.MessagesPanel })));
- const RecentService = lazy(() => import("@/components/dashboard/RecentPanels").then(m => ({ default: m.RecentService })));
- const RecentLeads = lazy(() => import("@/components/dashboard/RecentPanels").then(m => ({ default: m.RecentLeads })));
- const MonthComparison = lazy(() => import("@/components/dashboard/MonthComparison").then(m => ({ default: m.MonthComparison })));
+export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "ConectaCRM — ERP, CRM e IA para lojas de celular" },
+      { name: "description", content: "O sistema mais completo do Brasil para lojas de celular: estoque por IMEI, ordem de serviço, vendas, fiscal, financeiro, CRM com IA e app mobile. Supere a concorrência." },
+      { property: "og:title", content: "ConectaCRM — Supere o Mercado Phone" },
+      { property: "og:description", content: "ERP + CRM + IA + App mobile em uma única plataforma. Controle total da sua loja de celular." },
+    ],
+  }),
+  component: Landing,
+});
 
- export const Route = createFileRoute("/")({
-   head: () => ({
-     meta: [
-       { title: "Painel — ConectaCRM" },
-       { name: "description", content: "Dashboard ConectaCRM: leads, vendas, atendimentos e automações em um só lugar." },
-     ],
-   }),
-   component: Dashboard,
- });
+const features = [
+  { icon: Box, title: "Estoque por IMEI/SN", desc: "Controle aparelhos, peças e acessórios com rastreio individual por IMEI ou número de série." },
+  { icon: Wrench, title: "Ordem de Serviço", desc: "OS completa com checklists, termos de garantia personalizados e acompanhamento técnico." },
+  { icon: CreditCard, title: "PDV e Vendas", desc: "Venda, upgrade, troca e assistência em segundos. Múltiplas formas de pagamento." },
+  { icon: FileText, title: "Módulo Fiscal", desc: "NF-e, NFC-e e NF de Upgrade emitidas direto do sistema, sem retrabalho." },
+  { icon: BarChart3, title: "+30 Relatórios e Dashboards", desc: "DRE, fluxo de caixa, vendas por vendedor, ranking de produtos, margem real e muito mais." },
+  { icon: Bot, title: "IA Blue — Pós-venda automático", desc: "IA que conversa, agradece, pede avaliação e reativa clientes inativos no WhatsApp." },
+  { icon: MessageCircle, title: "CRM Multicanal", desc: "WhatsApp, Instagram e Phone unificados. Funil Kanban com etapas e automações." },
+  { icon: Smartphone, title: "App Android e iOS", desc: "Sua loja no bolso: vendas, OS, estoque e mensagens com sincronização em tempo real." },
+  { icon: Globe, title: "Catálogo Online", desc: "Vitrine pública com link compartilhável, integrada ao seu estoque." },
+  { icon: Tag, title: "Etiquetas e Códigos", desc: "Imprima etiquetas para produtos, peças e ordens de serviço com 1 clique." },
+  { icon: Calendar, title: "Aniversários automáticos", desc: "Mensagem de aniversário enviada sozinha — clientes voltam mais." },
+  { icon: Zap, title: "Automação total", desc: "Gatilhos, fluxos e mensagens programadas. Configure uma vez, funciona para sempre." },
+];
 
- function Dashboard() {
-   const { user } = useAuth();
-   const [sidebarOpen, setSidebarOpen] = useState(false);
-   const [period] = useState<Period>('today');
-   const { stats, loading, refresh } = useDashboardStats(period);
+const plans = [
+  {
+    name: "Plus",
+    pitch: "Ideal para quem está começando",
+    annual: "86,00",
+    monthly: "129,00",
+    cta: "Quero o Plus",
+    highlight: false,
+    features: [
+      "Controle de estoque de acessórios e aparelhos por IMEI e SN",
+      "Vendas com upgrade e termos de garantia personalizados",
+      "Financeiro completo com contas a pagar e receber",
+      "Relatórios e dashboards essenciais",
+      "1 login (sem App iOS/Android)",
+      "Consultas IMEI, CPF, CNPJ e assinaturas digitais (pagas por uso)",
+    ],
+  },
+  {
+    name: "Pro",
+    pitch: "O equilíbrio ideal entre recursos e investimento",
+    annual: "146,00",
+    monthly: "219,00",
+    cta: "Quero o Pro",
+    highlight: false,
+    features: [
+      "Todos os recursos do Plus",
+      "Ordem de serviço com termos de garantia personalizados",
+      "Módulo Fiscal completo: NF de Venda e NF de Upgrade",
+      "App para Android e iOS",
+      "Etiquetas para produtos, peças e ordem de serviço",
+      "Até 5 logins simultâneos",
+      "Consultas IMEI, CPF, CNPJ e assinaturas digitais (pagas por uso)",
+    ],
+  },
+  {
+    name: "Pro Max",
+    pitch: "Ideal para quem deseja vender mais",
+    annual: "266,00",
+    monthly: "399,00",
+    cta: "Quero o Pro Max",
+    highlight: true,
+    badge: "Mais vendidos",
+    features: [
+      "Todos os recursos do plano Pro",
+      "IA Blue para Pós-venda e mensagem de aniversário automática",
+      "API de integração com outros sistemas",
+      "Catálogo online compartilhável",
+      "CRM Phone para atendimentos no WhatsApp e Instagram",
+      "Consultas IMEI, CPF, CNPJ e assinaturas digitais ilimitadas",
+      "Logins ilimitados",
+    ],
+  },
+];
 
-   const kpis = [
-     { label: "Vendas de hoje", value: stats.todaySales.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), trend: "", sub: "Total faturado no dia", icon: "ShoppingBag", tone: "success" },
-     { label: "Ordens de serviço em aberto", value: String(stats.activeOS), trend: "", sub: stats.activeOS > 5 ? "Demanda acima da média" : "Operação sob controle", icon: "Wrench", tone: "warning" },
-     { label: "Itens com estoque baixo", value: String(stats.lowStock), trend: "", sub: stats.lowStock > 0 ? "Reposição recomendada" : "Estoque equilibrado", icon: "Box", tone: "destructive" },
-     { label: "Faturamento do mês", value: stats.monthRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), trend: "", sub: "Meta mensal: R$ 50.000", icon: "DollarSign", tone: "primary" },
-     { label: "Leads recebidos hoje", value: String(stats.newLeads), trend: "", sub: "Novos contatos no funil", icon: "Users", tone: "info" },
-     { label: "Ticket médio", value: stats.avgTicket.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), trend: "", sub: "Valor médio por venda (30 dias)", icon: "TrendingUp", tone: "success" },
-   ];
+const differentials = [
+  { icon: Sparkles, title: "Setup em 5 minutos", desc: "Crie sua conta, importe seu estoque e comece a vender hoje mesmo." },
+  { icon: ShieldCheck, title: "Dados isolados por loja", desc: "Multi-tenant com criptografia. Seus dados nunca se misturam com os de outra loja." },
+  { icon: TrendingUp, title: "Atualizações semanais", desc: "Novas funcionalidades toda semana, sem custo extra." },
+  { icon: Bell, title: "Suporte humano", desc: "Time de atendimento real, em português, todos os dias." },
+];
 
-   return (
-     <div className="min-h-screen flex w-full bg-background/50">
-       <AppSidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-      <div className="flex-1 flex flex-col min-w-0">
-         <Topbar 
-          title={`Olá, ${user?.user_metadata?.display_name || 'Usuário'}! 👋`}
-          subtitle="Aqui está o resumo do seu negócio hoje." 
-          toggleSidebar={() => setSidebarOpen(true)}
-        />
-         <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
-           <HeroHeader
-             userName={user?.user_metadata?.display_name || "Usuário"}
-             todaySales={stats.todaySales}
-             monthRevenue={stats.monthRevenue}
-             newLeads={stats.newLeads}
-           />
+function Landing() {
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      {/* NAV */}
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-background/70 border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 font-bold text-lg">
+            <span className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/60 grid place-items-center text-primary-foreground">
+              <Smartphone className="h-4 w-4" />
+            </span>
+            ConectaCRM
+          </Link>
+          <nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+            <a href="#funcionalidades" className="hover:text-foreground transition">Funcionalidades</a>
+            <a href="#planos" className="hover:text-foreground transition">Planos</a>
+            <a href="#diferenciais" className="hover:text-foreground transition">Diferenciais</a>
+            <a href="#faq" className="hover:text-foreground transition">Dúvidas</a>
+          </nav>
+          <div className="flex items-center gap-2">
+            <Link to="/login">
+              <Button variant="ghost" size="sm">Entrar</Button>
+            </Link>
+            <Link to="/registro">
+              <Button size="sm" className="rounded-full">Começar grátis <ArrowRight className="h-3.5 w-3.5 ml-1" /></Button>
+            </Link>
+          </div>
+        </div>
+      </header>
 
-           <QuickActions />
-
-             <div className="flex flex-col xl:flex-row gap-4 sm:gap-6">
-             <div className="flex-1 flex flex-col gap-6 min-w-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  {loading ? (
-                    Array.from({ length: 6 }).map((_, i) => (
-                      <div key={i} className="h-28 rounded-2xl bg-card border border-border animate-pulse" />
-                    ))
-                  ) : kpis.map((k) => (
-                     <KpiCard key={k.label} {...k} />
-                  ))}
-                </div>
-
-                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                   <div className="lg:col-span-2">
-                     <Suspense fallback={<div className="h-[340px] rounded-2xl bg-card border border-border animate-pulse" />}>
-                       <SalesChart />
-                     </Suspense>
-                   </div>
-                   <GoalProgress current={stats.monthRevenue} goal={50000} onGoalUpdate={refresh} />
-                 </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Suspense fallback={<div className="h-[200px] rounded-2xl bg-card border border-border animate-pulse" />}>
-                      <MonthComparison />
-                    </Suspense>
-                    <Suspense fallback={<div className="h-[200px] rounded-2xl bg-card border border-border animate-pulse" />}>
-                      <OriginDonut />
-                    </Suspense>
-                    <Suspense fallback={<div className="h-[200px] rounded-2xl bg-card border border-border animate-pulse" />}>
-                      <ChannelMini />
-                    </Suspense>
-                 </div>
-
-                 <Suspense fallback={<div className="h-[300px] rounded-2xl bg-card border border-border animate-pulse" />}>
-                   <Funnel />
-                 </Suspense>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Suspense fallback={<div className="h-[200px] rounded-2xl bg-card border border-border animate-pulse" />}>
-                      <RecentService />
-                    </Suspense>
-                    <TasksCard />
-                 </div>
-
-                 <Suspense fallback={<div className="h-[200px] rounded-2xl bg-card border border-border animate-pulse" />}>
-                   <RecentLeads />
-                 </Suspense>
-                <AutomationsCard />
-              </div>
-
-               <div className="w-full xl:w-[380px] shrink-0 flex flex-col gap-6">
-                 <div className="xl:sticky xl:top-24">
-                   <Suspense fallback={<div className="h-[400px] rounded-2xl bg-card border border-border animate-pulse" />}>
-                     <MessagesPanel />
-                   </Suspense>
-                 </div>
-                <div className="hidden xl:flex flex-col gap-6">
-                  <AgendaCard />
-                  <DispatchCard />
-                </div>
-                <div className="xl:hidden grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <AgendaCard />
-                  <DispatchCard />
-                </div>
-              </div>
+      {/* HERO */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-1/4 left-1/4 h-[500px] w-[500px] rounded-full bg-primary/20 blur-[140px]" />
+          <div className="absolute bottom-0 right-1/4 h-[400px] w-[400px] rounded-full bg-emerald-500/20 blur-[120px]" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-24 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-1.5 text-xs mb-6">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-muted-foreground">+3.000 lojas já transformaram a operação</span>
+          </div>
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight max-w-4xl mx-auto leading-[1.05]">
+            O sistema definitivo para sua{" "}
+            <span className="bg-gradient-to-r from-primary via-emerald-400 to-primary bg-clip-text text-transparent">
+              loja de celular
+            </span>
+          </h1>
+          <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+            ERP, CRM, IA e app mobile em uma única plataforma. Controle total de estoque por IMEI,
+            ordens de serviço, vendas, fiscal e pós-venda automatizado.
+          </p>
+          <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
+            <Link to="/registro">
+              <Button size="lg" className="rounded-full text-base px-8 h-12">
+                Testar grátis por 7 dias <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+            <a href="#planos">
+              <Button size="lg" variant="outline" className="rounded-full text-base px-8 h-12">
+                Ver planos
+              </Button>
+            </a>
+          </div>
+          <div className="mt-12 flex items-center justify-center gap-6 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <span className="ml-2">4.9/5 — 1.200+ avaliações</span>
             </div>
-          </main>
-      </div>
+            <span className="hidden sm:inline">•</span>
+            <span className="hidden sm:inline">Sem cartão de crédito</span>
+          </div>
+        </div>
+      </section>
+
+      {/* PILLARS */}
+      <section className="border-y border-border bg-card/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          {[
+            { icon: Zap, label: "Vendas em segundos" },
+            { icon: Box, label: "Estoque por IMEI" },
+            { icon: BarChart3, label: "+30 relatórios" },
+            { icon: Bot, label: "Pós-venda com IA" },
+          ].map((p) => (
+            <div key={p.label} className="flex flex-col items-center gap-2">
+              <p.icon className="h-7 w-7 text-primary" />
+              <span className="text-sm font-semibold">{p.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section id="funcionalidades" className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Funcionalidades</span>
+          <h2 className="text-3xl md:text-5xl font-bold mt-3">Tudo que sua loja precisa em um só lugar</h2>
+          <p className="mt-4 text-muted-foreground text-lg">
+            Substitua planilhas, sistemas separados e processos manuais. O ConectaCRM unifica toda sua operação.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {features.map((f) => (
+            <div key={f.title} className="group rounded-2xl border border-border bg-card p-6 hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5 transition-all">
+              <div className="h-11 w-11 rounded-xl bg-primary/10 grid place-items-center text-primary mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition">
+                <f.icon className="h-5 w-5" />
+              </div>
+              <h3 className="font-semibold text-base mb-1.5">{f.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* DIFFERENTIALS */}
+      <section id="diferenciais" className="bg-card/30 border-y border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">Por que ConectaCRM</span>
+            <h2 className="text-3xl md:text-5xl font-bold mt-3">Superior em cada detalhe</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {differentials.map((d) => (
+              <div key={d.title} className="rounded-2xl bg-card border border-border p-6">
+                <d.icon className="h-7 w-7 text-emerald-500 mb-4" />
+                <h3 className="font-semibold mb-2">{d.title}</h3>
+                <p className="text-sm text-muted-foreground">{d.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PLANS */}
+      <section id="planos" className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Planos</span>
+          <h2 className="text-3xl md:text-5xl font-bold mt-3">Confira nossos planos</h2>
+          <p className="mt-4 text-muted-foreground text-lg">
+            Escolha o plano ideal para o tamanho da sua loja. Cancele quando quiser.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {plans.map((p) => (
+            <div
+              key={p.name}
+              className={`relative rounded-3xl p-8 flex flex-col ${
+                p.highlight
+                  ? "bg-gradient-to-br from-primary via-primary to-emerald-600 text-primary-foreground shadow-2xl scale-[1.02]"
+                  : "bg-card border border-border"
+              }`}
+            >
+              {p.highlight && p.badge && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-background text-foreground border border-border rounded-full px-4 py-1.5 text-xs font-semibold flex items-center gap-1.5 shadow-lg">
+                  <Crown className="h-3.5 w-3.5 text-amber-500" /> {p.badge}
+                </div>
+              )}
+              <p className={`text-sm ${p.highlight ? "opacity-90" : "text-muted-foreground"}`}>{p.pitch}</p>
+              <h3 className="text-4xl font-bold mt-2 mb-6">{p.name}</h3>
+
+              <ul className="space-y-3 flex-1 mb-8">
+                {p.features.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm">
+                    <span className={`mt-0.5 h-5 w-5 rounded-full grid place-items-center shrink-0 ${
+                      p.highlight ? "bg-white/20" : "bg-emerald-500/15 text-emerald-500"
+                    }`}>
+                      <Check className="h-3 w-3" />
+                    </span>
+                    <span className={p.highlight ? "" : "text-foreground/90"}>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="text-center mb-2">
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className={`text-base ${p.highlight ? "opacity-80" : "text-muted-foreground"}`}>12x</span>
+                  <span className="text-5xl font-bold">{p.annual}</span>
+                </div>
+                <p className={`text-sm mt-2 ${p.highlight ? "opacity-90" : "text-muted-foreground"}`}>
+                  Mensal R$ {p.monthly}
+                </p>
+                <p className={`text-xs mt-1 ${p.highlight ? "opacity-75" : "text-muted-foreground"}`}>
+                  Pacote anual. Prossiga para ver a condição mensal.
+                </p>
+              </div>
+
+              <Link to="/registro" className="mt-6">
+                <Button
+                  size="lg"
+                  variant={p.highlight ? "secondary" : "default"}
+                  className={`w-full rounded-full font-semibold ${
+                    p.highlight ? "bg-emerald-400 text-emerald-950 hover:bg-emerald-300" : ""
+                  }`}
+                >
+                  {p.cta}
+                </Button>
+              </Link>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* COMPARISON */}
+      <section className="bg-card/30 border-y border-border">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-24">
+          <div className="text-center mb-12">
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">Comparativo</span>
+            <h2 className="text-3xl md:text-5xl font-bold mt-3">ConectaCRM vs. concorrentes</h2>
+          </div>
+          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <div className="grid grid-cols-3 text-sm">
+              <div className="p-4 font-semibold border-b border-border">Recurso</div>
+              <div className="p-4 font-semibold border-b border-border bg-primary/5 text-center">ConectaCRM</div>
+              <div className="p-4 font-semibold border-b border-border text-center text-muted-foreground">Outros</div>
+              {[
+                ["Estoque por IMEI/SN", true, true],
+                ["IA de pós-venda integrada", true, false],
+                ["App iOS e Android nativos", true, true],
+                ["Catálogo online incluso", true, false],
+                ["Logins ilimitados (Pro Max)", true, false],
+                ["Atualizações semanais", true, false],
+                ["Suporte humano em PT-BR", true, true],
+                ["Setup em 5 minutos", true, false],
+              ].map(([label, us, them], i) => (
+                <div key={i} className="contents">
+                  <div className="p-4 border-b border-border">{label as string}</div>
+                  <div className="p-4 border-b border-border bg-primary/5 text-center">
+                    {us ? <Check className="h-5 w-5 text-emerald-500 inline" /> : <span className="text-muted-foreground">—</span>}
+                  </div>
+                  <div className="p-4 border-b border-border text-center">
+                    {them ? <Check className="h-5 w-5 text-muted-foreground inline" /> : <span className="text-muted-foreground">—</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="max-w-3xl mx-auto px-4 sm:px-6 py-24">
+        <div className="text-center mb-12">
+          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Dúvidas</span>
+          <h2 className="text-3xl md:text-5xl font-bold mt-3">Perguntas frequentes</h2>
+        </div>
+        <div className="space-y-4">
+          {[
+            { q: "Posso testar antes de pagar?", a: "Sim. Você tem 7 dias grátis para testar todos os recursos do plano Pro Max, sem precisar de cartão." },
+            { q: "Tem fidelidade?", a: "Não. Você pode cancelar quando quiser. O pacote anual oferece desconto, mas é opcional." },
+            { q: "Meus dados ficam seguros?", a: "Sim. Usamos criptografia em repouso e em trânsito, com backups diários e isolamento total entre lojas." },
+            { q: "Funciona offline?", a: "O sistema é cloud-first, mas o app mobile mantém ações essenciais em cache para continuar vendendo se a internet cair." },
+            { q: "Importam meus dados do sistema antigo?", a: "Sim. Importamos seu estoque, clientes e histórico via planilha, sem custo, em qualquer plano." },
+          ].map((item) => (
+            <details key={item.q} className="group rounded-xl border border-border bg-card p-5">
+              <summary className="cursor-pointer font-semibold flex items-center justify-between list-none">
+                {item.q}
+                <span className="ml-4 text-muted-foreground group-open:rotate-45 transition">+</span>
+              </summary>
+              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{item.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
+        <div className="rounded-3xl bg-gradient-to-br from-primary via-primary to-emerald-600 text-primary-foreground p-12 md:p-16 text-center relative overflow-hidden">
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-white blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-white blur-3xl" />
+          </div>
+          <div className="relative">
+            <h2 className="text-3xl md:text-5xl font-bold max-w-2xl mx-auto">
+              Pronto para vender mais e gerenciar melhor?
+            </h2>
+            <p className="mt-4 opacity-90 max-w-xl mx-auto">
+              Junte-se a milhares de lojas que já transformaram a operação com o ConectaCRM.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link to="/registro">
+                <Button size="lg" variant="secondary" className="rounded-full text-base px-8 h-12 bg-white text-primary hover:bg-white/90">
+                  Começar grátis agora <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+              <Link to="/login">
+                <Button size="lg" variant="outline" className="rounded-full text-base px-8 h-12 bg-transparent border-white/40 text-white hover:bg-white/10">
+                  Já tenho conta
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 font-semibold text-foreground">
+            <Smartphone className="h-4 w-4" /> ConectaCRM
+          </div>
+          <p>© {new Date().getFullYear()} ConectaCRM — Sistema completo para lojas de celular.</p>
+        </div>
+      </footer>
     </div>
   );
 }

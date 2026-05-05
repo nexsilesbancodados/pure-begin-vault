@@ -17,6 +17,7 @@ import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as PdvRouteImport } from './routes/pdv'
+import { Route as PainelRouteImport } from './routes/painel'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as InstagramRouteImport } from './routes/instagram'
@@ -98,6 +99,11 @@ const PipelineRoute = PipelineRouteImport.update({
 const PdvRoute = PdvRouteImport.update({
   id: '/pdv',
   path: '/pdv',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PainelRoute = PainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -327,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
@@ -379,6 +386,7 @@ export interface FileRoutesByTo {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
@@ -432,6 +440,7 @@ export interface FileRoutesById {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
@@ -486,6 +495,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/painel'
     | '/pdv'
     | '/pipeline'
     | '/produtos'
@@ -538,6 +548,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/painel'
     | '/pdv'
     | '/pipeline'
     | '/produtos'
@@ -590,6 +601,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/painel'
     | '/pdv'
     | '/pipeline'
     | '/produtos'
@@ -643,6 +655,7 @@ export interface RootRouteChildren {
   InstagramRoute: typeof InstagramRoute
   LeadsRoute: typeof LeadsRoute
   LoginRoute: typeof LoginRoute
+  PainelRoute: typeof PainelRoute
   PdvRoute: typeof PdvRoute
   PipelineRoute: typeof PipelineRoute
   ProdutosRoute: typeof ProdutosRoute
@@ -713,6 +726,13 @@ declare module '@tanstack/react-router' {
       path: '/pdv'
       fullPath: '/pdv'
       preLoaderRoute: typeof PdvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/painel': {
+      id: '/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof PainelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1112,6 +1132,7 @@ const rootRouteChildren: RootRouteChildren = {
   InstagramRoute: InstagramRoute,
   LeadsRoute: LeadsRoute,
   LoginRoute: LoginRoute,
+  PainelRoute: PainelRoute,
   PdvRoute: PdvRoute,
   PipelineRoute: PipelineRoute,
   ProdutosRoute: ProdutosRoute,
