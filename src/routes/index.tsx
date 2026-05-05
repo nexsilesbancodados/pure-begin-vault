@@ -212,6 +212,7 @@ function Landing() {
             ))}
           </div>
         </div>
+      </section>
 
       {/* COMPARISON SEM/COM */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
