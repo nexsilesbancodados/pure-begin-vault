@@ -187,6 +187,9 @@ function AutomationPage() {
               <Button onClick={() => setOpen(true)} className="h-11 px-6 rounded-xl bg-white text-primary font-bold hover:bg-white/90 gap-2">
                 <Plus className="h-5 w-5" strokeWidth={3} /> Criar Novo Fluxo
               </Button>
+              <Button onClick={seedTemplates} variant="outline" className="ml-3 h-11 px-6 rounded-xl border-white/30 bg-white/10 text-white hover:bg-white/20 gap-2">
+                <Sparkles className="h-5 w-5" /> Carregar 4 fluxos prontos
+              </Button>
             </div>
           </div>
 
