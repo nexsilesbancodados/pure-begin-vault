@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { AutomationLogs } from "@/components/automacao/AutomationLogs";
 
 export const Route = createFileRoute("/automacao")({
   head: () => ({ meta: [{ title: "Automações — ConectaCRM" }, { name: "description", content: "Fluxos automáticos de atendimento e CRM." }] }),
