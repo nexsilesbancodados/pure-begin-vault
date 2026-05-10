@@ -378,7 +378,7 @@ import { ProductForm } from "@/components/estoque/ProductForm";
           try {
             const { data: sale, error } = await supabase
               .from("sales_orders")
-              .select("*, customers(*)")
+              .select("*, customers(*), sale_items(*)")
               .eq("id", saleId)
               .single();
 
@@ -391,19 +391,27 @@ import { ProductForm } from "@/components/estoque/ProductForm";
               address: "Rua Major Prado, 123 - Centro, Jaú - SP"
             };
 
+            const items = ((sale as any).sale_items || []).map((it: any) => ({
+              id: it.product_id || it.id,
+              name: it.product_name,
+              price: Number(it.unit_price) || 0,
+              quantity: Number(it.quantity) || 1,
+              ...((it.metadata) || {}),
+            }));
+
             const saleSnapshot: any = {
               id: sale.id,
-              items: (sale.items as any[]) || [],
+              items,
               total: sale.total_amount || 0,
-              discount: sale.discount_amount || 0,
-              customer: sale.customers ? {
-                id: sale.customers.id,
-                name: sale.customers.full_name,
-                phone: sale.customers.phone,
-                document: sale.customers.document,
-                address: `${sale.customers.address_street || ''}, ${sale.customers.address_number || ''}`.trim()
+              discount: (sale as any).discount || 0,
+              customer: (sale as any).customers ? {
+                id: (sale as any).customers.id,
+                name: (sale as any).customers.name,
+                phone: (sale as any).customers.phone,
+                document: (sale as any).customers.document,
+                address: [(sale as any).customers.address, (sale as any).customers.city].filter(Boolean).join(' - ')
               } : null,
-              paymentMethod: sale.payment_method || 'Não informado',
+              paymentMethod: (sale as any).payment_method || 'Não informado',
               vendedor: 'Sistema',
                data: new Date(sale.created_at || new Date()).toLocaleString('pt-BR'),
               storeInfo: storeConfig
@@ -413,19 +421,14 @@ import { ProductForm } from "@/components/estoque/ProductForm";
             setLastSaleData(saleSnapshot);
 
             if (action === 'receipt') {
-              // Pequeno delay para garantir que o estado foi atualizado
-              setTimeout(() => {
-                handlePrintReceipt(saleSnapshot);
-              }, 500);
+              setTimeout(() => { handlePrintReceipt(saleSnapshot); }, 500);
             } else if (action === 'warranty') {
-              setTimeout(() => {
-                handlePrintWarranty(warrantyType || 'seminovo', saleSnapshot);
-              }, 500);
+              setTimeout(() => { handlePrintWarranty(warrantyType || 'seminovo', saleSnapshot); }, 500);
             } else if (isEditing) {
               setEditingSaleId(sale.id);
-              setSelectedCustomer(sale.customers ? { id: sale.customers.id, name: sale.customers.full_name } : null);
-              setCart((sale.items as any[]) || []);
-              setDiscountValue(sale.discount_amount || 0);
+              setSelectedCustomer((sale as any).customers ? { id: (sale as any).customers.id, name: (sale as any).customers.name } : null);
+              setCart(items);
+              setDiscountValue((sale as any).discount || 0);
               toast.success("Venda carregada para edição");
             }
           } catch (err) {
