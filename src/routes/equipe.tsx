@@ -22,18 +22,19 @@ function EquipePage() {
 
   useEffect(() => {
     fetchTeam();
-  }, []);
+  }, [profile?.organization_id]);
 
   const fetchTeam = async () => {
+    if (!profile?.organization_id) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('display_name', { ascending: true });
-      
-      if (error) throw error;
-      setTeam(data || []);
+      const [{ data: members, error: e1 }, { data: invites }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('organization_id', profile.organization_id),
+        supabase.from('team_invitations').select('*').eq('organization_id', profile.organization_id).eq('status', 'pending').order('created_at', { ascending: false }),
+      ]);
+      if (e1) throw e1;
+      setTeam(members || []);
+      setPendingInvites(invites || []);
     } catch (error) {
       console.error('Error fetching team:', error);
       toast.error('Erro ao carregar equipe');
@@ -42,53 +43,51 @@ function EquipePage() {
     }
   };
 
+  const handleInvite = async (newMember: any) => {
+    if (!user?.id || !profile?.organization_id) return;
+    try {
+      const role = newMember.role.toLowerCase() === 'administrador' ? 'admin' :
+                   newMember.role.toLowerCase() === 'financeiro' ? 'financeiro' :
+                   newMember.role.toLowerCase() === 'vendedor' ? 'vendedor' : 'employee';
 
-    const handleInvite = async (newMember: any) => {
-      if (!user?.id) return;
-      
-      try {
-        // 1. Criar convite no banco (gera token automático)
-        const { data: invite, error: inviteErr } = await supabase
-          .from('team_invitations')
-          .insert({
-            user_id: user.id,
-            email: newMember.email,
-            role: newMember.role.toLowerCase() === 'administrador' ? 'admin' : 
-                  newMember.role.toLowerCase() === 'vendedor' ? 'vendedor' : 'vendedor'
-          })
-          .select()
-          .single();
+      const { data: invite, error: inviteErr } = await supabase
+        .from('team_invitations')
+        .insert({
+          organization_id: profile.organization_id,
+          invited_by: user.id,
+          email: newMember.email,
+          role,
+        })
+        .select()
+        .single();
 
-        if (inviteErr) throw inviteErr;
+      if (inviteErr) throw inviteErr;
 
-        // 2. Chamar Edge Function para enviar e-mail com template
-        const { error: emailErr } = await supabase.functions.invoke('send-email', {
-          body: {
-            to: newMember.email,
-            subject: `Você foi convidado para o ConectaCRM por ${user.email}`,
-            template: 'invite',
-            templateData: {
-              token: invite.token,
-              inviterEmail: user.email
-            }
-          }
-        });
+      const url = `${window.location.origin}/aceitar-convite/${invite.token}`;
+      try { await navigator.clipboard.writeText(url); } catch {}
+      toast.success(`Convite criado! Link copiado para a área de transferência.`, {
+        description: url,
+        duration: 8000,
+      });
+      fetchTeam();
+    } catch (error: any) {
+      console.error('Invite error:', error);
+      toast.error('Erro ao convidar: ' + (error.message || 'Erro interno'));
+    }
+  };
 
-        if (emailErr) throw emailErr;
-
-        toast.success(`Convite enviado para ${newMember.email}`);
-        fetchTeam();
-      } catch (error: any) {
-        console.error('Invite error:', error);
-        toast.error('Erro ao enviar convite: ' + (error.message || 'Erro interno'));
-      }
-    };
+  const handleRevokeInvite = async (id: string) => {
+    if (!confirm('Revogar este convite?')) return;
+    const { error } = await supabase.from('team_invitations').update({ status: 'revoked' }).eq('id', id);
+    if (error) return toast.error('Erro ao revogar');
+    toast.success('Convite revogado');
+    fetchTeam();
+  };
 
    const handleRemoveMember = async (id: string) => {
      if (!confirm("Tem certeza que deseja remover este membro?")) return;
-     
      try {
-       const { error } = await supabase.from('profiles').delete().eq('id', id);
+       const { error } = await supabase.from('profiles').update({ organization_id: null }).eq('id', id);
        if (error) throw error;
        toast.success("Membro removido");
        fetchTeam();
