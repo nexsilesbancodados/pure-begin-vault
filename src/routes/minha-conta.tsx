@@ -102,7 +102,7 @@ function MinhaContaPage() {
     setCanceling(true);
     try {
       const { data: s } = await supabase.auth.getSession();
-      const res = await fetch(`https://htsjkvczxlrsfapkbidq.supabase.co/functions/v1/cancel-subscription`, {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancel-subscription`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
