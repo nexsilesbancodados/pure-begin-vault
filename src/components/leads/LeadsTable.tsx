@@ -79,11 +79,14 @@ export function LeadsTable() {
       status: editing.status || "new",
       user_id: user.id,
     };
-    const { error } = editing.id
-      ? await supabase.from("leads").update(payload).eq("id", editing.id)
-      : await supabase.from("leads").insert(payload);
+    const { data: inserted, error } = editing.id
+      ? await supabase.from("leads").update(payload).eq("id", editing.id).select().maybeSingle()
+      : await supabase.from("leads").insert(payload).select().maybeSingle();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    if (!editing.id && inserted?.id) {
+      fireAutomation(user.id, "new_lead", { lead_id: inserted.id, phone: inserted.phone, email: inserted.email });
+    }
     toast.success(editing.id ? "Lead atualizado" : "Lead criado");
     setEditing(null);
     load();
