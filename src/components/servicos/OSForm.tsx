@@ -10,9 +10,11 @@
  import { toast } from "sonner";
  import { useNavigate } from "@tanstack/react-router";
  import { Search, UserPlus, Loader2, ArrowLeft, Wrench } from "lucide-react";
- 
+ import { useOrg } from "@/lib/useOrg";
+
  export function OSForm() {
    const { user } = useAuth();
+   const { orgId } = useOrg();
    const navigate = useNavigate();
    const [loading, setLoading] = useState(false);
    const [customers, setCustomers] = useState<any[]>([]);
@@ -28,33 +30,35 @@
  
    useEffect(() => {
      const fetchCustomers = async () => {
-       if (!user?.id) return;
+       if (!user?.id || !orgId) return;
        setSearchingCustomers(true);
        const { data, error } = await supabase
          .from("customers")
-         .select("id, full_name, phone")
-         .eq("user_id", user.id)
-         .limit(50);
+         .select("id, name, phone")
+         .eq("organization_id", orgId)
+         .order("name")
+         .limit(200);
        if (error) console.error(error);
-       else setCustomers(data || []);
+       else setCustomers((data || []).map((c: any) => ({ ...c, full_name: c.name })));
        setSearchingCustomers(false);
      };
      fetchCustomers();
-   }, [user?.id]);
+   }, [user?.id, orgId]);
  
    const handleSubmit = async (e: React.FormEvent) => {
      e.preventDefault();
-     if (!user?.id) return;
+     if (!user?.id || !orgId) return toast.error("Organização não encontrada");
      if (!formData.customer_id) return toast.error("Selecione um cliente");
- 
+
      setLoading(true);
      try {
        const { error } = await supabase.from("service_orders").insert([{
          ...formData,
          user_id: user.id,
+         organization_id: orgId,
          estimated_cost: parseFloat(formData.estimated_cost) || 0,
        }]);
- 
+
        if (error) throw error;
        toast.success("Ordem de serviço aberta com sucesso!");
        navigate({ to: "/servicos" });

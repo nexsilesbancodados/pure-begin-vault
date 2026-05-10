@@ -5,6 +5,7 @@ import { ProductForm } from "@/components/estoque/ProductForm";
  import { toast } from "sonner";
  import { supabase } from "@/integrations/supabase/client";
  import { useAuth } from "@/contexts/AuthContext";
+ import { useOrg } from "@/lib/useOrg";
  import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
@@ -27,9 +28,10 @@ import { ProductForm } from "@/components/estoque/ProductForm";
   battery_health?: string;
  }
  
- export function PDVInterface() {
-   const { user } = useAuth();
-   const [cart, setCart] = useState<CartItem[]>([]);
+  export function PDVInterface() {
+    const { user } = useAuth();
+    const { orgId } = useOrg();
+    const [cart, setCart] = useState<CartItem[]>([]);
    const [search, setSearch] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
    const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -66,16 +68,16 @@ import { ProductForm } from "@/components/estoque/ProductForm";
   const barcodeInputRef = useRef<HTMLInputElement>(null);
  
    const fetchProducts = useCallback(async () => {
-     if (!user?.id) return;
+     if (!user?.id || !orgId) return;
      setLoadingProducts(true);
      try {
        const { data, error } = await supabase
          .from("products")
          .select("*")
-         .eq("user_id", user.id);
-       
+         .eq("organization_id", orgId);
+
        if (error) throw error;
-       
+
         const formattedProducts: Product[] = (data || []).map(p => {
           const product: Product = {
             id: p.id,
@@ -86,15 +88,16 @@ import { ProductForm } from "@/components/estoque/ProductForm";
             description: p.description || "",
             image: p.image_url || undefined,
           };
-          
-          if (p.model) product.model = p.model;
-          if (p.capacity) product.capacity = p.capacity;
-          if (p.color) product.color = p.color;
-          if (p.battery_health) product.battery_health = p.battery_health;
-          
+
+          if (p.model) (product as any).model = p.model;
+          const meta = (p as any).metadata || {};
+          if (meta.capacity) (product as any).capacity = meta.capacity;
+          if (meta.color) (product as any).color = meta.color;
+          if (meta.battery_health) (product as any).battery_health = meta.battery_health;
+
           return product;
         });
-       
+
        setAllProducts(formattedProducts);
      } catch (error) {
        console.error("Erro ao carregar produtos:", error);
@@ -102,23 +105,24 @@ import { ProductForm } from "@/components/estoque/ProductForm";
      } finally {
        setLoadingProducts(false);
      }
-   }, [user?.id]);
- 
+   }, [user?.id, orgId]);
+
   const fetchCustomers = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) return;
     try {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, full_name")
-        .eq("user_id", user.id)
-        .limit(50);
-      
+        .select("id, name")
+        .eq("organization_id", orgId)
+        .order("name")
+        .limit(200);
+
       if (error) throw error;
-      setCustomersList(data || []);
+      setCustomersList((data || []).map((c: any) => ({ id: c.id, full_name: c.name })));
     } catch (error) {
       console.error("Erro ao carregar clientes:", error);
     }
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   const handlePrintReceipt = (saleData?: any) => {
     const data = saleData || lastSaleData;
@@ -374,7 +378,7 @@ import { ProductForm } from "@/components/estoque/ProductForm";
           try {
             const { data: sale, error } = await supabase
               .from("sales_orders")
-              .select("*, customers(*)")
+              .select("*, customers(*), sale_items(*)")
               .eq("id", saleId)
               .single();
 
@@ -387,19 +391,27 @@ import { ProductForm } from "@/components/estoque/ProductForm";
               address: "Rua Major Prado, 123 - Centro, Jaú - SP"
             };
 
+            const items = ((sale as any).sale_items || []).map((it: any) => ({
+              id: it.product_id || it.id,
+              name: it.product_name,
+              price: Number(it.unit_price) || 0,
+              quantity: Number(it.quantity) || 1,
+              ...((it.metadata) || {}),
+            }));
+
             const saleSnapshot: any = {
               id: sale.id,
-              items: (sale.items as any[]) || [],
+              items,
               total: sale.total_amount || 0,
-              discount: sale.discount_amount || 0,
-              customer: sale.customers ? {
-                id: sale.customers.id,
-                name: sale.customers.full_name,
-                phone: sale.customers.phone,
-                document: sale.customers.document,
-                address: `${sale.customers.address_street || ''}, ${sale.customers.address_number || ''}`.trim()
+              discount: (sale as any).discount || 0,
+              customer: (sale as any).customers ? {
+                id: (sale as any).customers.id,
+                name: (sale as any).customers.name,
+                phone: (sale as any).customers.phone,
+                document: (sale as any).customers.document,
+                address: [(sale as any).customers.address, (sale as any).customers.city].filter(Boolean).join(' - ')
               } : null,
-              paymentMethod: sale.payment_method || 'Não informado',
+              paymentMethod: (sale as any).payment_method || 'Não informado',
               vendedor: 'Sistema',
                data: new Date(sale.created_at || new Date()).toLocaleString('pt-BR'),
               storeInfo: storeConfig
@@ -409,19 +421,14 @@ import { ProductForm } from "@/components/estoque/ProductForm";
             setLastSaleData(saleSnapshot);
 
             if (action === 'receipt') {
-              // Pequeno delay para garantir que o estado foi atualizado
-              setTimeout(() => {
-                handlePrintReceipt(saleSnapshot);
-              }, 500);
+              setTimeout(() => { handlePrintReceipt(saleSnapshot); }, 500);
             } else if (action === 'warranty') {
-              setTimeout(() => {
-                handlePrintWarranty(warrantyType || 'seminovo', saleSnapshot);
-              }, 500);
+              setTimeout(() => { handlePrintWarranty(warrantyType || 'seminovo', saleSnapshot); }, 500);
             } else if (isEditing) {
               setEditingSaleId(sale.id);
-              setSelectedCustomer(sale.customers ? { id: sale.customers.id, name: sale.customers.full_name } : null);
-              setCart((sale.items as any[]) || []);
-              setDiscountValue(sale.discount_amount || 0);
+              setSelectedCustomer((sale as any).customers ? { id: (sale as any).customers.id, name: (sale as any).customers.name } : null);
+              setCart(items);
+              setDiscountValue((sale as any).discount || 0);
               toast.success("Venda carregada para edição");
             }
           } catch (err) {
@@ -607,179 +614,174 @@ import { ProductForm } from "@/components/estoque/ProductForm";
         : usedMethods[0] || (paymentMethod === 'money' ? 'Dinheiro' : paymentMethod === 'card' ? 'Cartão' : paymentMethod === 'pix' ? 'PIX' : 'Não informado');
 
        try {
-         // Buscar dados completos do cliente para o snapshot
-          let customerDetails: { id?: string; name: string; phone?: string; document?: string; address?: string } | null = selectedCustomer ? { name: selectedCustomer.name, id: selectedCustomer.id } : null;
-         
+         // Snapshot do cliente para o recibo
+         let customerDetails: { id?: string; name: string; phone?: string; document?: string; address?: string } | null = selectedCustomer ? { name: selectedCustomer.name, id: selectedCustomer.id } : null;
          if (selectedCustomer?.id) {
            const { data: fullCustomer } = await supabase
              .from("customers")
              .select("*")
              .eq("id", selectedCustomer.id)
              .single();
-             
            if (fullCustomer) {
              customerDetails = {
                id: fullCustomer.id,
-               name: fullCustomer.full_name,
-                phone: fullCustomer.phone || undefined,
-                document: fullCustomer.document || undefined,
-               address: `${fullCustomer.address_street || ''}, ${fullCustomer.address_number || ''} ${fullCustomer.address_neighborhood || ''} ${fullCustomer.address_city || ''}-${fullCustomer.address_state || ''}`.trim().replace(/^,/, '').trim()
+               name: fullCustomer.name,
+               phone: fullCustomer.phone || undefined,
+               document: fullCustomer.document || undefined,
+               address: [fullCustomer.address, fullCustomer.city].filter(Boolean).join(' - ')
              };
            }
          }
 
-        // 1. Criar ou atualizar a ordem de venda
-        let sale;
-        let saleError;
-
-        const salePayload = {
-          user_id: user.id,
-          customer_id: selectedCustomer?.id || null,
-          total_amount: total,
-          discount_amount: discountValue,
-          payment_method: finalPaymentMethod,
-          status: "concluded",
-          items: cart.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            model: item.model,
-            capacity: item.capacity,
-            color: item.color,
-            battery_health: item.battery_health
-          }))
-        };
-
-        if (editingSaleId) {
-          const { data, error } = await supabase
-            .from("sales_orders")
-            .update(salePayload)
-            .eq("id", editingSaleId)
-            .select()
-            .single();
-          sale = data;
-          saleError = error;
-        } else {
-          const { data, error } = await supabase
-            .from("sales_orders")
-            .insert(salePayload)
-            .select()
-            .single();
-          sale = data;
-          saleError = error;
-        }
-
-        if (saleError || !sale) throw saleError || new Error("Falha ao processar venda");
-
-        const storeConfig = {
-          name: "APPLE JAU",
-          cnpj: "54.123.456/0001-89",
-          phone: "(14) 99876-5432",
-          address: "Rua Major Prado, 123 - Centro, Jaú - SP"
-        };
-
-        const saleSnapshot = {
-          id: sale.id,
-          items: [...cart],
-          total: total,
-          discount: discountValue,
-          customer: customerDetails,
-          paymentMethod: finalPaymentMethod,
-          vendedor: user?.email?.split('@')[0] || 'Sistema',
-          data: new Date().toLocaleString('pt-BR'),
-          storeInfo: storeConfig
-        };
- 
-       // 2. Atualizar estoque dos produtos
-       for (const item of cart) {
-         const product = allProducts.find(p => p.id === item.id);
-         if (product) {
-           const newStock = Math.max(0, product.stock - item.quantity);
-           await supabase
-             .from("products")
-             .update({ stock_quantity: newStock })
-             .eq("id", item.id);
+         const subtotal = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+         const payments: any[] = [];
+         const moneyN = parseFloat(moneyAmount) || 0;
+         const cardN = parseFloat(cardAmount) || 0;
+         const pixN = parseFloat(pixAmount) || 0;
+         if (moneyN > 0) payments.push({ method: 'cash', amount: moneyN });
+         if (cardN > 0) payments.push({ method: 'card', amount: cardN });
+         if (pixN > 0) payments.push({ method: 'pix', amount: pixN });
+         if (payments.length === 0) {
+           const fallback = paymentMethod === 'money' ? 'cash' : paymentMethod === 'card' ? 'card' : paymentMethod === 'pix' ? 'pix' : 'cash';
+           payments.push({ method: fallback, amount: total });
          }
-       }
- 
-       // 3. Registrar no financeiro (Fluxo de Caixa)
-       if (!editingSaleId) {
-       await supabase
-         .from("finance_transactions")
-         .insert({
-           user_id: user.id,
-           type: "income",
-           amount: total,
-           description: `Venda PDV - #${sale.id.slice(0, 8)}`,
-           category: "Vendas",
-           status: "paid",
-           payment_date: new Date().toISOString()
+
+         let saleId: string | null = null;
+
+         if (editingSaleId) {
+           // Edição mantém o fluxo legado simples (não refaz baixa de estoque)
+           const { data, error } = await supabase
+             .from("sales_orders")
+             .update({
+               customer_id: selectedCustomer?.id || null,
+               total_amount: total,
+               subtotal,
+               discount: discountValue,
+               payment_method: finalPaymentMethod,
+               notes: null,
+             })
+             .eq("id", editingSaleId)
+             .select()
+             .single();
+           if (error || !data) throw error || new Error('Falha ao atualizar venda');
+           saleId = data.id;
+         } else {
+           const { data, error } = await supabase.rpc('checkout_sale', {
+             _payload: {
+               customer_id: selectedCustomer?.id || null,
+               total,
+               subtotal,
+               discount: discountValue,
+               addition: 0,
+               payment_method: finalPaymentMethod,
+               channel: 'pdv',
+               items: cart.map(item => ({
+                 product_id: item.id,
+                 product_name: item.name,
+                 sku: (item as any).sku,
+                 quantity: item.quantity,
+                 unit_price: item.price,
+                 unit_cost: (item as any).cost_price,
+                 total: item.price * item.quantity,
+                 imei: (item as any).imei || null,
+                 metadata: {
+                   model: item.model,
+                   capacity: item.capacity,
+                   color: item.color,
+                   battery_health: item.battery_health,
+                 },
+               })),
+               payments,
+             }
+           });
+           if (error || !data) throw error || new Error('Falha ao processar venda');
+           saleId = data as unknown as string;
+         }
+
+         const storeConfig = {
+           name: "APPLE JAU",
+           cnpj: "54.123.456/0001-89",
+           phone: "(14) 99876-5432",
+           address: "Rua Major Prado, 123 - Centro, Jaú - SP"
+         };
+
+         const saleSnapshot = {
+           id: saleId,
+           items: [...cart],
+           total: total,
+           discount: discountValue,
+           customer: customerDetails,
+           paymentMethod: finalPaymentMethod,
+           vendedor: user?.email?.split('@')[0] || 'Sistema',
+           data: new Date().toLocaleString('pt-BR'),
+           storeInfo: storeConfig
+         };
+
+         toast.success(editingSaleId ? "Venda atualizada com sucesso!" : "Venda finalizada com sucesso!", {
+           description: `Total de ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
          });
-       }
- 
-        toast.success(editingSaleId ? "Venda atualizada com sucesso!" : "Venda finalizada com sucesso!", {
-          description: editingSaleId ? "As alterações foram salvas." : `Total de ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} em ${paymentMethod?.toUpperCase()}`,
-       });
- 
+
          setCart([]);
          setPaymentMethod(null);
          setSelectedCustomer(null);
          setIsCheckoutModalOpen(false);
-          setMoneyAmount("");
-          setCardAmount("");
-          setPixAmount("");
+         setMoneyAmount("");
+         setCardAmount("");
+         setPixAmount("");
          setDiscountValue(0);
          setEditingSaleId(null);
-         setLastSaleId(sale.id);
+         setLastSaleId(saleId);
          setLastSaleData(saleSnapshot);
          setIsSuccessModalOpen(true);
-       fetchProducts(); // Atualiza estoque na interface
-     } catch (error) {
-       console.error("Erro ao finalizar venda:", error);
-       toast.error("Erro ao processar a venda. Tente novamente.");
-      } finally {
-        setIsFinishing(false);
-      }
-    };
+         fetchProducts();
+      } catch (error: any) {
+        console.error("Erro ao finalizar venda:", error);
+        toast.error("Erro ao processar a venda: " + (error?.message || ''));
+       } finally {
+         setIsFinishing(false);
+       }
+     };
     const handleSaveNewProduct = async (formData: any) => {
-      if (!user?.id) return;
-      
+      if (!user?.id || !orgId) return toast.error("Organização não encontrada");
+
       setIsCreatingProduct(true);
       try {
         const { data, error } = await supabase
           .from("products")
           .insert({
             user_id: user.id,
+            organization_id: orgId,
             name: formData.name,
-            sku: formData.sku,
-            ean: formData.ean,
-            ncm: formData.ncm,
-            reference: formData.reference,
-            category: formData.category,
-            brand: formData.brand,
-            supplier: formData.supplier,
-            model: formData.model,
-            price: formData.price,
-            wholesale_price: formData.wholesale_price,
-            cost_price: formData.cost_price,
-            stock_quantity: formData.stock,
-            min_stock: formData.min_stock,
-            unit: formData.unit,
-            weight: formData.weight,
-            location: formData.location,
-            store: formData.store,
-            imei: formData.imei,
-            imei2: formData.imei2,
-            color: formData.color,
-            capacity: formData.capacity,
-            description: formData.description,
-            image_url: formData.image_url,
-            processor: formData.processor,
-            ram: formData.ram,
-            display: formData.display,
-            battery_health: formData.battery_health,
-            observations: formData.observations
+            sku: formData.sku || null,
+            ean: formData.ean || null,
+            ncm: formData.ncm || null,
+            reference: formData.reference || null,
+            category: formData.category || 'Geral',
+            brand: formData.brand || null,
+            supplier: formData.supplier || null,
+            model: formData.model || null,
+            price: Number(formData.price || 0),
+            wholesale_price: Number(formData.wholesale_price || 0),
+            cost_price: Number(formData.cost_price || 0),
+            stock_quantity: Number(formData.stock || 0),
+            min_stock: Number(formData.min_stock || 0),
+            unit: formData.unit || 'un',
+            weight: Number(formData.weight || 0),
+            location: formData.location || null,
+            description: formData.description || null,
+            image_url: formData.image_url || null,
+            metadata: {
+              store: formData.store,
+              imei: formData.imei,
+              imei2: formData.imei2,
+              color: formData.color,
+              capacity: formData.capacity,
+              processor: formData.processor,
+              ram: formData.ram,
+              display: formData.display,
+              battery_health: formData.battery_health,
+              observations: formData.observations,
+            },
           })
           .select()
           .single();
@@ -794,11 +796,11 @@ import { ProductForm } from "@/components/estoque/ProductForm";
           stock: data.stock_quantity || 0,
           description: data.description || "",
         };
-
-        if (data.model) formattedProduct.model = data.model;
-        if (data.capacity) formattedProduct.capacity = data.capacity;
-        if (data.color) formattedProduct.color = data.color;
-        if (data.battery_health) formattedProduct.battery_health = data.battery_health;
+        const meta = (data as any).metadata || {};
+        if (data.model) (formattedProduct as any).model = data.model;
+        if (meta.capacity) (formattedProduct as any).capacity = meta.capacity;
+        if (meta.color) (formattedProduct as any).color = meta.color;
+        if (meta.battery_health) (formattedProduct as any).battery_health = meta.battery_health;
 
         toast.success("Produto cadastrado com sucesso!");
         addToCart(formattedProduct);
@@ -806,20 +808,21 @@ import { ProductForm } from "@/components/estoque/ProductForm";
         fetchProducts();
       } catch (error: any) {
         console.error("Erro ao criar produto:", error);
-        toast.error("Erro ao cadastrar produto.");
+        toast.error("Erro ao cadastrar produto: " + (error?.message || ''));
       } finally {
         setIsCreatingProduct(false);
       }
     };
 
     const handleCreateCustomer = async () => {
-      if (!user?.id || !newCustomerName) return;
+      if (!user?.id || !orgId || !newCustomerName) return;
      try {
        const { data, error } = await supabase
          .from("customers")
          .insert({
            user_id: user.id,
-           full_name: newCustomerName,
+           organization_id: orgId,
+           name: newCustomerName,
            phone: newCustomerPhone,
          })
          .select()
@@ -828,7 +831,7 @@ import { ProductForm } from "@/components/estoque/ProductForm";
        if (error) throw error;
 
        toast.success("Cliente cadastrado com sucesso!");
-       setSelectedCustomer({ id: data.id, name: data.full_name });
+       setSelectedCustomer({ id: data.id, name: data.name });
        setIsNewCustomerModalOpen(false);
        setIsCustomerModalOpen(false);
        fetchCustomers();

@@ -13,10 +13,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
  
   export function StockList() {
     const { user } = useAuth();
+    const { orgId } = useOrg();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<any>(null);
      const [localProducts, setLocalProducts] = useState<any[]>([]);
@@ -31,19 +33,16 @@ import { toast } from "sonner";
     const [quickProduct, setQuickProduct] = useState({ name: "", price: "", stock: "", category: "Acessórios", cost_price: "" });
 
     const fetchProducts = async (pageNum: number, isInitial = false) => {
-      if (!user?.id) return;
+      if (!user?.id || !orgId) return;
       if (isInitial) {
         setLoading(true);
         setPage(0);
       }
-      
-      const { data: profile } = await supabase.from('profiles').select('owner_id').eq('id', user.id).maybeSingle();
-      const ownerId = profile?.owner_id || user.id;
 
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .eq("user_id", ownerId)
+        .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
@@ -63,14 +62,10 @@ import { toast } from "sonner";
     };
  
       useEffect(() => {
-        if (user?.id) {
-          // Executa as duas buscas em paralelo para ganhar tempo
-          Promise.all([
-            fetchProducts(0, true),
-            fetchStats()
-          ]);
+        if (user?.id && orgId) {
+          Promise.all([fetchProducts(0, true), fetchStats()]);
         }
-      }, [user?.id]);
+      }, [user?.id, orgId]);
  
      const handleLoadMore = () => {
        const nextPage = page + 1;
@@ -81,14 +76,11 @@ import { toast } from "sonner";
     const [totalStats, setTotalStats] = useState({ totalValue: 0, totalCost: 0, lowStock: 0, outOfStock: 0, totalItems: 0 });
 
     const fetchStats = async () => {
-      if (!user?.id) return;
-      const { data: profile } = await supabase.from('profiles').select('owner_id').eq('id', user.id).maybeSingle();
-      const ownerId = profile?.owner_id || user.id;
-
+      if (!user?.id || !orgId) return;
       const { data, error } = await supabase
         .from('products')
         .select('price, cost_price, stock_quantity, min_stock')
-        .eq('user_id', ownerId);
+        .eq('organization_id', orgId);
 
       if (error) return;
       
@@ -173,12 +165,10 @@ import { toast } from "sonner";
   }, [searchTerm, filterCategory, viewTab, localProducts]);
 
   const handleAddProduct = async (data: any) => {
-    if (!user?.id) return;
-    const { data: profile } = await supabase.from('profiles').select('owner_id').eq('id', user.id).maybeSingle();
-    const ownerId = profile?.owner_id || user.id;
-
-    const payload = {
-      user_id: ownerId,
+    if (!user?.id || !orgId) return toast.error("Organização não encontrada");
+    const payload: any = {
+      user_id: user.id,
+      organization_id: orgId,
       ...data,
       price: Number(data.price || 0),
       cost_price: Number(data.cost_price || 0),
@@ -187,12 +177,12 @@ import { toast } from "sonner";
       wholesale_price: Number(data.wholesale_price || 0),
       weight: Number(data.weight || 0),
     };
-    delete payload.stock; // Remove virtual field
+    delete payload.stock;
 
     const { data: row, error } = await supabase.from("products").insert(payload).select().single();
     if (error) return toast.error("Erro ao criar: " + error.message);
     setLocalProducts((prev) => [{ ...row, stock: row.stock_quantity }, ...prev]);
-    fetchStats(); // Atualiza estatísticas após inserção
+    fetchStats();
     toast.success("Produto criado!");
   };
 
@@ -230,14 +220,13 @@ import { toast } from "sonner";
    };
 
     const handleQuickAdd = async () => {
-      if (!user?.id) return;
+      if (!user?.id || !orgId) return toast.error("Organização não encontrada");
       if (!quickProduct.name.trim()) { toast.error("Nome é obrigatório"); return; }
       setLoading(true);
-      const { data: profile } = await supabase.from('profiles').select('owner_id').eq('id', user.id).maybeSingle();
-      const ownerId = profile?.owner_id || user.id;
 
       const payload = {
-        user_id: ownerId,
+        user_id: user.id,
+        organization_id: orgId,
         name: quickProduct.name.trim(),
         cost_price: Number(quickProduct.cost_price || 0),
         price: Number(quickProduct.price || 0),

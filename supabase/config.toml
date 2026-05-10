@@ -20,3 +20,5 @@ verify_jwt = false
 
 [functions.run-setup-v2]
 verify_jwt = false
+[functions.run-setup-erp]
+verify_jwt = false
