@@ -7,7 +7,30 @@ const MP_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+const WEBHOOK_SECRET = Deno.env.get("MERCADOPAGO_WEBHOOK_SECRET") || "";
+
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*" };
+
+async function verifyMpSignature(req: Request, dataId: string | null): Promise<boolean> {
+  if (!WEBHOOK_SECRET) return true; // sem secret configurado, pula validação
+  const sigHeader = req.headers.get("x-signature") || "";
+  const requestId = req.headers.get("x-request-id") || "";
+  if (!sigHeader || !dataId) return false;
+  const parts = Object.fromEntries(sigHeader.split(",").map(p => {
+    const [k, v] = p.split("=");
+    return [k.trim(), (v || "").trim()];
+  }));
+  const ts = parts["ts"]; const v1 = parts["v1"];
+  if (!ts || !v1) return false;
+  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(WEBHOOK_SECRET),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(manifest));
+  const hex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+  return hex === v1;
+}
 
 async function fetchPayment(id: string) {
   const r = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
