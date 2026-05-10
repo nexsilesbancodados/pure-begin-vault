@@ -1,5 +1,5 @@
-// Recebe { user_id, lead_id, message } e usa Lovable AI para classificar
-// a intenção da mensagem e mover o card para o estágio correto.
+// pipeline-qualifier — classifica mensagem do lead com IA e move para o estágio
+// adequado do funil (atualiza leads.stage_id).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -9,51 +9,47 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const STAGE_DESCRIPTIONS: Record<string, string> = {
-  "Novo Contato": "primeiro contato, saudação, pergunta genérica",
-  "Qualificando": "demonstra interesse, pergunta preço, valores, condições, modelo",
-  "Proposta Enviada": "pediu/recebeu proposta, orçamento, cotação formal",
-  "Negociando": "discute desconto, parcelamento, contraproposta, objeção sobre preço",
-  "Aguardando Pagamento": "informou que pagou, enviou comprovante, pix, transferência feita",
-  "Concluído": "agradeceu, confirmou recebimento, finalizou compra com sucesso",
-  "Não qualificado": "desistiu, não tem interesse, número errado, spam",
-};
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   try {
     const { user_id, lead_id, message } = await req.json();
-    if (!user_id || !lead_id || !message) return j({ error: "missing fields" }, 400);
+    if (!user_id || !lead_id) return j({ error: "missing user_id or lead_id" }, 400);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Carrega estágios disponíveis para esse usuário
+    // 1) Lead + organization
+    const { data: lead } = await supabase
+      .from("leads")
+      .select("id, organization_id, stage_id, status, name")
+      .eq("id", lead_id)
+      .maybeSingle();
+    if (!lead) return j({ error: "lead not found" }, 404);
+
+    // 2) Estágios do funil dessa organização
     const { data: stages } = await supabase
       .from("funnel_stages")
-      .select("id, name, order_index")
-      .eq("user_id", user_id)
-      .order("order_index");
+      .select("id, name, order")
+      .eq("organization_id", lead.organization_id)
+      .order("order");
     if (!stages || stages.length === 0) return j({ ok: true, no_stages: true });
 
-    // Carrega últimas mensagens do lead para contexto
+    // 3) Histórico recente
     const { data: history } = await supabase
       .from("messages")
       .select("content, direction, created_at")
       .eq("lead_id", lead_id)
       .order("created_at", { ascending: false })
-      .limit(8);
+      .limit(10);
 
     const transcript = (history ?? [])
       .reverse()
-      .map((m) => `${m.direction === "inbound" ? "Cliente" : "Atendente"}: ${m.content}`)
+      .map((m: any) => `${m.direction === "inbound" ? "Cliente" : "Atendente"}: ${m.content}`)
       .join("\n");
 
-    const stageList = stages
-      .map((s) => `- ${s.name}: ${STAGE_DESCRIPTIONS[s.name] ?? ""}`)
-      .join("\n");
+    const stageList = stages.map((s: any) => `- ${s.name}`).join("\n");
 
     const aiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!aiKey) return j({ error: "no AI key" }, 500);
@@ -67,41 +63,39 @@ serve(async (req) => {
           {
             role: "system",
             content:
-              "Você classifica leads de WhatsApp em estágios de funil de vendas. " +
-              "Analise a conversa e escolha o estágio que MELHOR representa o estado atual do lead. " +
-              "Responda APENAS chamando a função classify_lead.",
+              "Você qualifica leads de um CRM analisando a conversa em português. " +
+              "Escolha o estágio do funil que melhor representa o estado atual do lead. " +
+              "Também classifique o status comercial (new, contacted, qualified, won, lost). " +
+              "Responda APENAS chamando a função qualify_lead.",
           },
           {
             role: "user",
             content:
               `Estágios disponíveis:\n${stageList}\n\n` +
-              `Conversa recente:\n${transcript}\n\n` +
-              `Última mensagem do cliente: "${message}"\n\n` +
-              `Em qual estágio o lead deve estar agora?`,
+              `Conversa recente:\n${transcript || "(sem histórico)"}\n\n` +
+              (message ? `Última mensagem do cliente: "${message}"\n\n` : "") +
+              `Qualifique o lead "${lead.name}".`,
           },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "classify_lead",
-              description: "Classifica o lead no estágio mais adequado",
-              parameters: {
-                type: "object",
-                properties: {
-                  stage_name: {
-                    type: "string",
-                    enum: stages.map((s) => s.name),
-                  },
-                  confidence: { type: "number", minimum: 0, maximum: 1 },
-                  reason: { type: "string" },
-                },
-                required: ["stage_name", "confidence", "reason"],
+        tools: [{
+          type: "function",
+          function: {
+            name: "qualify_lead",
+            description: "Classifica o lead",
+            parameters: {
+              type: "object",
+              properties: {
+                stage_name: { type: "string", enum: stages.map((s: any) => s.name) },
+                status: { type: "string", enum: ["new", "contacted", "qualified", "won", "lost"] },
+                confidence: { type: "number", minimum: 0, maximum: 1 },
+                reason: { type: "string" },
+                summary: { type: "string", description: "Resumo curto da intenção do lead" },
               },
+              required: ["stage_name", "status", "confidence", "reason"],
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "classify_lead" } },
+        }],
+        tool_choice: { type: "function", function: { name: "qualify_lead" } },
       }),
     });
 
@@ -114,30 +108,33 @@ serve(async (req) => {
     if (!toolCall) return j({ ok: true, no_classification: true });
 
     const args = JSON.parse(toolCall.function.arguments);
-    const targetStage = stages.find((s) => s.name === args.stage_name);
-    if (!targetStage) return j({ ok: true, unknown_stage: args.stage_name });
+    const target = stages.find((s: any) => s.name === args.stage_name);
 
-    // Só move se confiança >= 0.6
-    if ((args.confidence ?? 0) < 0.6) {
+    if ((args.confidence ?? 0) < 0.55) {
       return j({ ok: true, low_confidence: args.confidence, reason: args.reason });
     }
 
-    // Atualiza card no pipeline (só se estágio diferente)
-    const { data: card } = await supabase
-      .from("pipeline_leads")
-      .select("id, stage_id")
-      .eq("user_id", user_id)
-      .eq("lead_id", lead_id)
-      .maybeSingle();
+    const update: any = { updated_at: new Date().toISOString() };
+    if (target && target.id !== lead.stage_id) update.stage_id = target.id;
+    if (args.status && args.status !== lead.status) update.status = args.status;
 
-    if (card && card.stage_id !== targetStage.id) {
-      await supabase
-        .from("pipeline_leads")
-        .update({ stage_id: targetStage.id, updated_at: new Date().toISOString() })
-        .eq("id", card.id);
+    if (Object.keys(update).length > 1) {
+      await supabase.from("leads").update(update).eq("id", lead_id);
     }
 
-    return j({ ok: true, moved_to: args.stage_name, reason: args.reason, confidence: args.confidence });
+    // Notifica o dono se virou qualificado/ganho
+    if (args.status === "qualified" || args.status === "won") {
+      await supabase.from("notifications").insert({
+        user_id,
+        organization_id: lead.organization_id,
+        type: "lead_qualified",
+        title: `IA qualificou: ${lead.name}`,
+        body: args.summary ?? args.reason,
+        link: `/leads`,
+      });
+    }
+
+    return j({ ok: true, moved_to: args.stage_name, status: args.status, reason: args.reason, confidence: args.confidence });
   } catch (e) {
     console.error(e);
     return j({ error: String(e) }, 500);

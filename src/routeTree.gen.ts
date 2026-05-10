@@ -21,6 +21,7 @@ import { Route as PainelRouteImport } from './routes/painel'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as InstagramRouteImport } from './routes/instagram'
+import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as FunilRouteImport } from './routes/funil'
 import { Route as FiscalRouteImport } from './routes/fiscal'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
@@ -45,6 +46,7 @@ import { Route as ServicosTecnicosRouteImport } from './routes/servicos.tecnicos
 import { Route as ServicosNovaRouteImport } from './routes/servicos.nova'
 import { Route as ServicosDashboardRouteImport } from './routes/servicos.dashboard'
 import { Route as ServicosChecklistsRouteImport } from './routes/servicos.checklists'
+import { Route as RelatoriosCrescimentoRouteImport } from './routes/relatorios.crescimento'
 import { Route as FinanceiroPlanoContasRouteImport } from './routes/financeiro.plano-contas'
 import { Route as FinanceiroNotasAbertoRouteImport } from './routes/financeiro.notas-aberto'
 import { Route as FinanceiroMaquininhasRouteImport } from './routes/financeiro.maquininhas'
@@ -119,6 +121,11 @@ const LeadsRoute = LeadsRouteImport.update({
 const InstagramRoute = InstagramRouteImport.update({
   id: '/instagram',
   path: '/instagram',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FunilRoute = FunilRouteImport.update({
@@ -241,6 +248,11 @@ const ServicosChecklistsRoute = ServicosChecklistsRouteImport.update({
   path: '/checklists',
   getParentRoute: () => ServicosRoute,
 } as any)
+const RelatoriosCrescimentoRoute = RelatoriosCrescimentoRouteImport.update({
+  id: '/crescimento',
+  path: '/crescimento',
+  getParentRoute: () => RelatoriosRoute,
+} as any)
 const FinanceiroPlanoContasRoute = FinanceiroPlanoContasRouteImport.update({
   id: '/plano-contas',
   path: '/plano-contas',
@@ -330,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
@@ -338,7 +351,7 @@ export interface FileRoutesByFullPath {
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
   '/registro': typeof RegistroRoute
-  '/relatorios': typeof RelatoriosRoute
+  '/relatorios': typeof RelatoriosRouteWithChildren
   '/servicos': typeof ServicosRouteWithChildren
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
@@ -356,6 +369,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/relatorios/crescimento': typeof RelatoriosCrescimentoRoute
   '/servicos/checklists': typeof ServicosChecklistsRoute
   '/servicos/dashboard': typeof ServicosDashboardRoute
   '/servicos/nova': typeof ServicosNovaRoute
@@ -383,6 +397,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
@@ -391,7 +406,7 @@ export interface FileRoutesByTo {
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
   '/registro': typeof RegistroRoute
-  '/relatorios': typeof RelatoriosRoute
+  '/relatorios': typeof RelatoriosRouteWithChildren
   '/servicos': typeof ServicosRouteWithChildren
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
@@ -409,6 +424,7 @@ export interface FileRoutesByTo {
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/relatorios/crescimento': typeof RelatoriosCrescimentoRoute
   '/servicos/checklists': typeof ServicosChecklistsRoute
   '/servicos/dashboard': typeof ServicosDashboardRoute
   '/servicos/nova': typeof ServicosNovaRoute
@@ -437,6 +453,7 @@ export interface FileRoutesById {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
@@ -445,7 +462,7 @@ export interface FileRoutesById {
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
   '/registro': typeof RegistroRoute
-  '/relatorios': typeof RelatoriosRoute
+  '/relatorios': typeof RelatoriosRouteWithChildren
   '/servicos': typeof ServicosRouteWithChildren
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
@@ -463,6 +480,7 @@ export interface FileRoutesById {
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/relatorios/crescimento': typeof RelatoriosCrescimentoRoute
   '/servicos/checklists': typeof ServicosChecklistsRoute
   '/servicos/dashboard': typeof ServicosDashboardRoute
   '/servicos/nova': typeof ServicosNovaRoute
@@ -492,6 +510,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/inbox'
     | '/instagram'
     | '/leads'
     | '/login'
@@ -518,6 +537,7 @@ export interface FileRouteTypes {
     | '/financeiro/maquininhas'
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/relatorios/crescimento'
     | '/servicos/checklists'
     | '/servicos/dashboard'
     | '/servicos/nova'
@@ -545,6 +565,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/inbox'
     | '/instagram'
     | '/leads'
     | '/login'
@@ -571,6 +592,7 @@ export interface FileRouteTypes {
     | '/financeiro/maquininhas'
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/relatorios/crescimento'
     | '/servicos/checklists'
     | '/servicos/dashboard'
     | '/servicos/nova'
@@ -598,6 +620,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/inbox'
     | '/instagram'
     | '/leads'
     | '/login'
@@ -624,6 +647,7 @@ export interface FileRouteTypes {
     | '/financeiro/maquininhas'
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/relatorios/crescimento'
     | '/servicos/checklists'
     | '/servicos/dashboard'
     | '/servicos/nova'
@@ -652,6 +676,7 @@ export interface RootRouteChildren {
   FinanceiroRoute: typeof FinanceiroRouteWithChildren
   FiscalRoute: typeof FiscalRoute
   FunilRoute: typeof FunilRoute
+  InboxRoute: typeof InboxRoute
   InstagramRoute: typeof InstagramRoute
   LeadsRoute: typeof LeadsRoute
   LoginRoute: typeof LoginRoute
@@ -660,7 +685,7 @@ export interface RootRouteChildren {
   PipelineRoute: typeof PipelineRoute
   ProdutosRoute: typeof ProdutosRoute
   RegistroRoute: typeof RegistroRoute
-  RelatoriosRoute: typeof RelatoriosRoute
+  RelatoriosRoute: typeof RelatoriosRouteWithChildren
   ServicosRoute: typeof ServicosRouteWithChildren
   VendasRoute: typeof VendasRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
@@ -754,6 +779,13 @@ declare module '@tanstack/react-router' {
       path: '/instagram'
       fullPath: '/instagram'
       preLoaderRoute: typeof InstagramRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/funil': {
@@ -924,6 +956,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicosChecklistsRouteImport
       parentRoute: typeof ServicosRoute
     }
+    '/relatorios/crescimento': {
+      id: '/relatorios/crescimento'
+      path: '/crescimento'
+      fullPath: '/relatorios/crescimento'
+      preLoaderRoute: typeof RelatoriosCrescimentoRouteImport
+      parentRoute: typeof RelatoriosRoute
+    }
     '/financeiro/plano-contas': {
       id: '/financeiro/plano-contas'
       path: '/plano-contas'
@@ -1073,6 +1112,18 @@ const FinanceiroRouteWithChildren = FinanceiroRoute._addFileChildren(
   FinanceiroRouteChildren,
 )
 
+interface RelatoriosRouteChildren {
+  RelatoriosCrescimentoRoute: typeof RelatoriosCrescimentoRoute
+}
+
+const RelatoriosRouteChildren: RelatoriosRouteChildren = {
+  RelatoriosCrescimentoRoute: RelatoriosCrescimentoRoute,
+}
+
+const RelatoriosRouteWithChildren = RelatoriosRoute._addFileChildren(
+  RelatoriosRouteChildren,
+)
+
 interface ServicosRouteChildren {
   ServicosChecklistsRoute: typeof ServicosChecklistsRoute
   ServicosDashboardRoute: typeof ServicosDashboardRoute
@@ -1129,6 +1180,7 @@ const rootRouteChildren: RootRouteChildren = {
   FinanceiroRoute: FinanceiroRouteWithChildren,
   FiscalRoute: FiscalRoute,
   FunilRoute: FunilRoute,
+  InboxRoute: InboxRoute,
   InstagramRoute: InstagramRoute,
   LeadsRoute: LeadsRoute,
   LoginRoute: LoginRoute,
@@ -1137,7 +1189,7 @@ const rootRouteChildren: RootRouteChildren = {
   PipelineRoute: PipelineRoute,
   ProdutosRoute: ProdutosRoute,
   RegistroRoute: RegistroRoute,
-  RelatoriosRoute: RelatoriosRoute,
+  RelatoriosRoute: RelatoriosRouteWithChildren,
   ServicosRoute: ServicosRouteWithChildren,
   VendasRoute: VendasRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
