@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { PipelineTabs } from "@/components/pipeline/PipelineTabs";
+import { fireAutomation } from "@/lib/automation-trigger";
 
 type Lead = {
   id: string;
@@ -79,11 +80,14 @@ export function LeadsTable() {
       status: editing.status || "new",
       user_id: user.id,
     };
-    const { error } = editing.id
-      ? await supabase.from("leads").update(payload).eq("id", editing.id)
-      : await supabase.from("leads").insert(payload);
+    const { data: inserted, error } = editing.id
+      ? await supabase.from("leads").update(payload).eq("id", editing.id).select().maybeSingle()
+      : await supabase.from("leads").insert(payload).select().maybeSingle();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    if (!editing.id && inserted?.id) {
+      fireAutomation(user.id, "new_lead", { lead_id: inserted.id, phone: inserted.phone, email: inserted.email });
+    }
     toast.success(editing.id ? "Lead atualizado" : "Lead criado");
     setEditing(null);
     load();
@@ -100,9 +104,10 @@ export function LeadsTable() {
       status: "new",
       user_id: user.id,
     };
-    const { error } = await supabase.from("leads").insert(payload);
+    const { data: inserted, error } = await supabase.from("leads").insert(payload).select().maybeSingle();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    if (inserted?.id) fireAutomation(user.id, "new_lead", { lead_id: inserted.id, phone: inserted.phone });
     toast.success("Lead cadastrado com sucesso!");
     setQuickLead({ name: "", phone: "" });
     setIsQuickAddOpen(false);

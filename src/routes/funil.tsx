@@ -24,6 +24,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AddDealDialog } from "@/components/funil/AddDealDialog";
 import { AddStageDialog } from "@/components/funil/AddStageDialog";
 import { PipelineTabs } from "@/components/pipeline/PipelineTabs";
+import { fireAutomation } from "@/lib/automation-trigger";
 
  import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -884,9 +885,18 @@ type Deal = {
     }, [user?.id, authLoading, activeInstance]);
 
   const moveDeal = async (dealId: string, newStageId: string) => {
+    const prevDeal = deals.find((d) => d.id === dealId);
+    const fromStageId = prevDeal?.stage_id;
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage_id: newStageId } : d)));
     const { error } = await supabase.from("pipeline_leads").update({ stage_id: newStageId }).eq("id", dealId);
-    if (error) { toast.error(error.message); load(); }
+    if (error) { toast.error(error.message); load(); return; }
+    if (user?.id && fromStageId !== newStageId) {
+      fireAutomation(user.id, "stage_changed", {
+        lead_id: (prevDeal as any)?.lead_id ?? dealId,
+        from_stage_id: fromStageId,
+        to_stage_id: newStageId,
+      });
+    }
   };
 
   const removeDeal = async (id: string) => {

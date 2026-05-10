@@ -98,6 +98,38 @@ serve(async (req) => {
 
     const currentInstanceName = settings.whatsapp_instance || payload?.instance || null;
 
+    // Resolve lead pelo telefone (se existir) e dispara automações de "mensagem recebida"
+    let leadIdForAutomation: string | null = null;
+    try {
+      const { data: leadRow } = await supabase
+        .from("leads").select("id").eq("user_id", userId).eq("phone", phone).maybeSingle();
+      leadIdForAutomation = leadRow?.id ?? null;
+    } catch (_) { /* ignore */ }
+
+    // Grava a mensagem inbound para o gatilho "no_reply_24h" funcionar
+    await supabase.from("messages").insert({
+      user_id: userId,
+      lead_id: leadIdForAutomation,
+      phone,
+      direction: "inbound",
+      content: messageText,
+    }).then(() => {}, () => {});
+
+    // Dispara o motor de automações (não-bloqueante)
+    fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/automation-runner`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        apikey: Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        trigger_type: "message_received",
+        payload: { lead_id: leadIdForAutomation, phone, content: messageText },
+      }),
+    }).catch(() => {});
+
     // Para grupos ou participantes de grupo, apenas grava a mensagem para o atendimento manual
     if (isGroup || participant) {
       await persist(supabase, userId, phone, contactName, transcript, conv?.status ?? "active", remoteJid, currentInstanceName, avatarUrl, whatsappTags);

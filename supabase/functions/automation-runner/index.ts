@@ -72,6 +72,13 @@ async function sendWhatsApp(user_id: string, phone: string, text: string, contac
   if (!res.ok) throw new Error(`send-whatsapp ${res.status}`);
 }
 
+async function recordOutbound(admin: any, user_id: string, phone: string | null, lead_id: string | null, content: string) {
+  if (!phone && !lead_id) return;
+  await admin.from("messages").insert({
+    user_id, phone, lead_id, direction: "outbound", content,
+  }).then(() => {}, () => {});
+}
+
 async function sendEmail(user_id: string, to: string, subject: string, html: string) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
     method: "POST",
@@ -192,6 +199,7 @@ Deno.serve(async (req) => {
           const text = interpolate(cfg.message ?? "", vars);
           if (!text.trim()) throw new Error("mensagem vazia");
           await sendWhatsApp(user_id, phone, text, lead?.name);
+          await recordOutbound(admin, user_id, phone, lead?.id ?? payload.lead_id ?? null, text);
           break;
         }
 
@@ -250,7 +258,10 @@ Deno.serve(async (req) => {
         const phone = lead?.phone || payload.phone;
         if (phone) {
           const text = interpolate(cfg.message, vars);
-          if (text.trim()) await sendWhatsApp(user_id, phone, text, lead?.name);
+          if (text.trim()) {
+            await sendWhatsApp(user_id, phone, text, lead?.name);
+            await recordOutbound(admin, user_id, phone, lead?.id ?? payload.lead_id ?? null, text);
+          }
         }
       }
       if (cfg.also_create_task && cfg.task_title) {
