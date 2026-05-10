@@ -742,43 +742,46 @@ import { ProductForm } from "@/components/estoque/ProductForm";
        }
      };
     const handleSaveNewProduct = async (formData: any) => {
-      if (!user?.id) return;
-      
+      if (!user?.id || !orgId) return toast.error("Organização não encontrada");
+
       setIsCreatingProduct(true);
       try {
         const { data, error } = await supabase
           .from("products")
           .insert({
             user_id: user.id,
+            organization_id: orgId,
             name: formData.name,
-            sku: formData.sku,
-            ean: formData.ean,
-            ncm: formData.ncm,
-            reference: formData.reference,
-            category: formData.category,
-            brand: formData.brand,
-            supplier: formData.supplier,
-            model: formData.model,
-            price: formData.price,
-            wholesale_price: formData.wholesale_price,
-            cost_price: formData.cost_price,
-            stock_quantity: formData.stock,
-            min_stock: formData.min_stock,
-            unit: formData.unit,
-            weight: formData.weight,
-            location: formData.location,
-            store: formData.store,
-            imei: formData.imei,
-            imei2: formData.imei2,
-            color: formData.color,
-            capacity: formData.capacity,
-            description: formData.description,
-            image_url: formData.image_url,
-            processor: formData.processor,
-            ram: formData.ram,
-            display: formData.display,
-            battery_health: formData.battery_health,
-            observations: formData.observations
+            sku: formData.sku || null,
+            ean: formData.ean || null,
+            ncm: formData.ncm || null,
+            reference: formData.reference || null,
+            category: formData.category || 'Geral',
+            brand: formData.brand || null,
+            supplier: formData.supplier || null,
+            model: formData.model || null,
+            price: Number(formData.price || 0),
+            wholesale_price: Number(formData.wholesale_price || 0),
+            cost_price: Number(formData.cost_price || 0),
+            stock_quantity: Number(formData.stock || 0),
+            min_stock: Number(formData.min_stock || 0),
+            unit: formData.unit || 'un',
+            weight: Number(formData.weight || 0),
+            location: formData.location || null,
+            description: formData.description || null,
+            image_url: formData.image_url || null,
+            metadata: {
+              store: formData.store,
+              imei: formData.imei,
+              imei2: formData.imei2,
+              color: formData.color,
+              capacity: formData.capacity,
+              processor: formData.processor,
+              ram: formData.ram,
+              display: formData.display,
+              battery_health: formData.battery_health,
+              observations: formData.observations,
+            },
           })
           .select()
           .single();
@@ -793,11 +796,11 @@ import { ProductForm } from "@/components/estoque/ProductForm";
           stock: data.stock_quantity || 0,
           description: data.description || "",
         };
-
-        if (data.model) formattedProduct.model = data.model;
-        if (data.capacity) formattedProduct.capacity = data.capacity;
-        if (data.color) formattedProduct.color = data.color;
-        if (data.battery_health) formattedProduct.battery_health = data.battery_health;
+        const meta = (data as any).metadata || {};
+        if (data.model) (formattedProduct as any).model = data.model;
+        if (meta.capacity) (formattedProduct as any).capacity = meta.capacity;
+        if (meta.color) (formattedProduct as any).color = meta.color;
+        if (meta.battery_health) (formattedProduct as any).battery_health = meta.battery_health;
 
         toast.success("Produto cadastrado com sucesso!");
         addToCart(formattedProduct);
@@ -805,20 +808,21 @@ import { ProductForm } from "@/components/estoque/ProductForm";
         fetchProducts();
       } catch (error: any) {
         console.error("Erro ao criar produto:", error);
-        toast.error("Erro ao cadastrar produto.");
+        toast.error("Erro ao cadastrar produto: " + (error?.message || ''));
       } finally {
         setIsCreatingProduct(false);
       }
     };
 
     const handleCreateCustomer = async () => {
-      if (!user?.id || !newCustomerName) return;
+      if (!user?.id || !orgId || !newCustomerName) return;
      try {
        const { data, error } = await supabase
          .from("customers")
          .insert({
            user_id: user.id,
-           full_name: newCustomerName,
+           organization_id: orgId,
+           name: newCustomerName,
            phone: newCustomerPhone,
          })
          .select()
@@ -827,7 +831,7 @@ import { ProductForm } from "@/components/estoque/ProductForm";
        if (error) throw error;
 
        toast.success("Cliente cadastrado com sucesso!");
-       setSelectedCustomer({ id: data.id, name: data.full_name });
+       setSelectedCustomer({ id: data.id, name: data.name });
        setIsNewCustomerModalOpen(false);
        setIsCustomerModalOpen(false);
        fetchCustomers();
