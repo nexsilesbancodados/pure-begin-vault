@@ -6,6 +6,7 @@ import { TasksCard, AutomationsCard, AgendaCard, DispatchCard } from "@/componen
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { HeroHeader } from "@/components/dashboard/HeroHeader";
 import { GoalProgress } from "@/components/dashboard/GoalProgress";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
   import { useState, Suspense, lazy } from "react";
   import { useAuth } from "@/contexts/AuthContext";
   import { useDashboardStats, type Period } from "@/hooks/useDashboardStats";
@@ -55,6 +56,7 @@ import { GoalProgress } from "@/components/dashboard/GoalProgress";
 
    return (
      <div className="min-h-screen flex w-full bg-background/50">
+       <OnboardingWizard />
        <AppSidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       <div className="flex-1 flex flex-col min-w-0">
          <Topbar 
