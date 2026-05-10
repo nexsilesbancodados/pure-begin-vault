@@ -5,6 +5,7 @@ import { ProductForm } from "@/components/estoque/ProductForm";
  import { toast } from "sonner";
  import { supabase } from "@/integrations/supabase/client";
  import { useAuth } from "@/contexts/AuthContext";
+ import { useOrg } from "@/lib/useOrg";
  import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
@@ -27,9 +28,10 @@ import { ProductForm } from "@/components/estoque/ProductForm";
   battery_health?: string;
  }
  
- export function PDVInterface() {
-   const { user } = useAuth();
-   const [cart, setCart] = useState<CartItem[]>([]);
+  export function PDVInterface() {
+    const { user } = useAuth();
+    const { orgId } = useOrg();
+    const [cart, setCart] = useState<CartItem[]>([]);
    const [search, setSearch] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
    const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -66,16 +68,16 @@ import { ProductForm } from "@/components/estoque/ProductForm";
   const barcodeInputRef = useRef<HTMLInputElement>(null);
  
    const fetchProducts = useCallback(async () => {
-     if (!user?.id) return;
+     if (!user?.id || !orgId) return;
      setLoadingProducts(true);
      try {
        const { data, error } = await supabase
          .from("products")
          .select("*")
-         .eq("user_id", user.id);
-       
+         .eq("organization_id", orgId);
+
        if (error) throw error;
-       
+
         const formattedProducts: Product[] = (data || []).map(p => {
           const product: Product = {
             id: p.id,
@@ -86,15 +88,16 @@ import { ProductForm } from "@/components/estoque/ProductForm";
             description: p.description || "",
             image: p.image_url || undefined,
           };
-          
-          if (p.model) product.model = p.model;
-          if (p.capacity) product.capacity = p.capacity;
-          if (p.color) product.color = p.color;
-          if (p.battery_health) product.battery_health = p.battery_health;
-          
+
+          if (p.model) (product as any).model = p.model;
+          const meta = (p as any).metadata || {};
+          if (meta.capacity) (product as any).capacity = meta.capacity;
+          if (meta.color) (product as any).color = meta.color;
+          if (meta.battery_health) (product as any).battery_health = meta.battery_health;
+
           return product;
         });
-       
+
        setAllProducts(formattedProducts);
      } catch (error) {
        console.error("Erro ao carregar produtos:", error);
@@ -102,23 +105,24 @@ import { ProductForm } from "@/components/estoque/ProductForm";
      } finally {
        setLoadingProducts(false);
      }
-   }, [user?.id]);
- 
+   }, [user?.id, orgId]);
+
   const fetchCustomers = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) return;
     try {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, full_name")
-        .eq("user_id", user.id)
-        .limit(50);
-      
+        .select("id, name")
+        .eq("organization_id", orgId)
+        .order("name")
+        .limit(200);
+
       if (error) throw error;
-      setCustomersList(data || []);
+      setCustomersList((data || []).map((c: any) => ({ id: c.id, full_name: c.name })));
     } catch (error) {
       console.error("Erro ao carregar clientes:", error);
     }
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   const handlePrintReceipt = (saleData?: any) => {
     const data = saleData || lastSaleData;
