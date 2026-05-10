@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
-import { Search, Plus, MoreHorizontal, MessageSquare, Instagram, Trash2, Pencil, Phone, Loader2, Download, X } from "lucide-react";
+import { Search, Plus, MoreHorizontal, MessageSquare, Instagram, Trash2, Pencil, Phone, Loader2, Download, X, Upload } from "lucide-react";
+import { CsvImporter } from "@/components/leads/CsvImporter";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ export function LeadsTable() {
   const [saving, setSaving] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [quickLead, setQuickLead] = useState({ name: "", phone: "" });
+  const [showImporter, setShowImporter] = useState(false);
 
   const load = async () => {
     if (!user?.id) return;
@@ -214,6 +216,9 @@ export function LeadsTable() {
                 </Select>
               </div>
               <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setShowImporter(true)} className="gap-2">
+                  <Upload className="h-4 w-4" /> Importar CSV
+                </Button>
                 <Button variant="outline" onClick={exportCsv} className="gap-2">
                   <Download className="h-4 w-4" /> Exportar
                 </Button>
