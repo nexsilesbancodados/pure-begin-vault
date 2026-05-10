@@ -31,3 +31,6 @@ verify_jwt = false
 
 [functions.mp-process-payment]
 verify_jwt = true
+
+[functions.mp-checkout-signup]
+verify_jwt = false
