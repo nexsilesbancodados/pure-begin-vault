@@ -155,6 +155,8 @@ export const Route = createFileRoute("/configuracoes")({
       reader.readAsText(file);
     };
     const [activeTab, setActiveTab] = useState("perfil");
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [formData, setFormData] = useState({
       display_name: "",
       role: "",
@@ -168,8 +170,32 @@ export const Route = createFileRoute("/configuracoes")({
           role: profile.role || "",
           phone: profile.phone || ""
         });
+        setAvatarUrl(profile.avatar_url || null);
       }
     }, [profile]);
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !user?.id) return;
+      if (file.size > 2 * 1024 * 1024) { toast.error("Arquivo maior que 2MB"); return; }
+      setUploadingAvatar(true);
+      try {
+        const ext = file.name.split('.').pop() || 'png';
+        const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+        if (upErr) throw upErr;
+        const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path);
+        const url = pub.publicUrl;
+        const { error: updErr } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);
+        if (updErr) throw updErr;
+        setAvatarUrl(url);
+        toast.success("Foto atualizada!");
+      } catch (err: any) {
+        toast.error("Falha ao enviar foto: " + (err.message || ''));
+      } finally {
+        setUploadingAvatar(false);
+      }
+    };
 
     const handleSaveProfile = async () => {
       if (!user?.id) return;
@@ -311,11 +337,20 @@ export const Route = createFileRoute("/configuracoes")({
                      </CardHeader>
                      <CardContent className="space-y-4">
                         <div className="flex items-center gap-6 pb-6 border-b border-border mb-6">
-                          <div className="h-20 w-20 rounded-full bg-gradient-primary grid place-items-center text-2xl font-bold text-white shadow-elegant">
-                            {formData.display_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
+                          <div className="h-20 w-20 rounded-full bg-gradient-primary grid place-items-center text-2xl font-bold text-white shadow-elegant overflow-hidden">
+                            {avatarUrl ? (
+                              <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                            ) : (
+                              formData.display_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"
+                            )}
                           </div>
                           <div className="space-y-2">
-                            <Button variant="outline" size="sm">Alterar Foto</Button>
+                            <label>
+                              <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+                              <Button variant="outline" size="sm" asChild disabled={uploadingAvatar}>
+                                <span className="cursor-pointer">{uploadingAvatar ? "Enviando..." : "Alterar Foto"}</span>
+                              </Button>
+                            </label>
                             <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">JPG, PNG ou GIF. Máx 2MB.</p>
                           </div>
                         </div>
