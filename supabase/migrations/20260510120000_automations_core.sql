@@ -81,3 +81,61 @@ create trigger trg_automations_updated before update on public.automations
   for each row execute function public.handle_updated_at();
 create trigger trg_tasks_updated before update on public.tasks
   for each row execute function public.handle_updated_at();
+
+-- ===== Cron job: dispara "no_reply_24h" para leads parados =====
+-- Requer extensions: pg_cron, pg_net (ative no Supabase Dashboard)
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+
+create or replace function public.dispatch_no_reply_24h()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  r record;
+  fn_url text := 'https://htsjkvczxlrsfapkbidq.supabase.co/functions/v1/automation-runner';
+  anon text := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlyanpmcmh2anJ2dndueHlndWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MjMwOTAsImV4cCI6MjA5MzQ5OTA5MH0.sAikO8-diO61Aimk49hd9mAIxcwrULPzrU0pKqUFXTs';
+begin
+  for r in
+    -- Para cada (user, phone) cuja última mensagem é inbound e tem >24h,
+    -- e ainda não disparou no_reply_24h depois dessa última inbound.
+    with last_msg as (
+      select distinct on (user_id, phone)
+        user_id, phone, lead_id, direction, created_at
+      from public.messages
+      where phone is not null
+      order by user_id, phone, created_at desc
+    )
+    select lm.user_id, lm.phone, lm.lead_id, lm.created_at as last_inbound_at
+    from last_msg lm
+    where lm.direction = 'inbound'
+      and lm.created_at < now() - interval '24 hours'
+      and not exists (
+        select 1 from public.automation_runs ar
+        where ar.user_id = lm.user_id
+          and ar.trigger_type = 'no_reply_24h'
+          and (ar.payload->>'phone') = lm.phone
+          and ar.created_at > lm.created_at
+      )
+  loop
+    perform net.http_post(
+      url := fn_url,
+      headers := jsonb_build_object('Content-Type','application/json','apikey',anon,'Authorization','Bearer '||anon),
+      body := jsonb_build_object(
+        'user_id', r.user_id,
+        'trigger_type', 'no_reply_24h',
+        'payload', jsonb_build_object('phone', r.phone, 'lead_id', r.lead_id)
+      )
+    );
+  end loop;
+end;
+$$;
+
+-- Agenda a cada hora (no minuto 0)
+select cron.schedule(
+  'automation-no-reply-24h',
+  '0 * * * *',
+  $$ select public.dispatch_no_reply_24h(); $$
+);
