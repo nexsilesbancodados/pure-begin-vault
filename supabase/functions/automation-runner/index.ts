@@ -258,7 +258,10 @@ Deno.serve(async (req) => {
         const phone = lead?.phone || payload.phone;
         if (phone) {
           const text = interpolate(cfg.message, vars);
-          if (text.trim()) await sendWhatsApp(user_id, phone, text, lead?.name);
+          if (text.trim()) {
+            await sendWhatsApp(user_id, phone, text, lead?.name);
+            await recordOutbound(admin, user_id, phone, lead?.id ?? payload.lead_id ?? null, text);
+          }
         }
       }
       if (cfg.also_create_task && cfg.task_title) {
