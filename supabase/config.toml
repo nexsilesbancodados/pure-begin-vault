@@ -28,3 +28,6 @@ verify_jwt = true
 
 [functions.mp-webhook]
 verify_jwt = false
+
+[functions.mp-process-payment]
+verify_jwt = true
