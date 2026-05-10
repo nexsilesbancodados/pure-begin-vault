@@ -18,6 +18,7 @@ import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as PdvRouteImport } from './routes/pdv'
 import { Route as PainelRouteImport } from './routes/painel'
+import { Route as NpsRouteImport } from './routes/nps'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as InstagramRouteImport } from './routes/instagram'
@@ -30,6 +31,7 @@ import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as CrmRouteImport } from './routes/crm'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ClientesRouteImport } from './routes/clientes'
+import { Route as CalendarioRouteImport } from './routes/calendario'
 import { Route as AutomacaoRouteImport } from './routes/automacao'
 import { Route as AtendimentoRouteImport } from './routes/atendimento'
 import { Route as AgentesRouteImport } from './routes/agentes'
@@ -108,6 +110,11 @@ const PainelRoute = PainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => rootRouteImport,
 } as any)
+const NpsRoute = NpsRouteImport.update({
+  id: '/nps',
+  path: '/nps',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -166,6 +173,11 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
 const ClientesRoute = ClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CalendarioRoute = CalendarioRouteImport.update({
+  id: '/calendario',
+  path: '/calendario',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AutomacaoRoute = AutomacaoRouteImport.update({
@@ -334,6 +346,7 @@ export interface FileRoutesByFullPath {
   '/agentes': typeof AgentesRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
+  '/calendario': typeof CalendarioRoute
   '/clientes': typeof ClientesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/crm': typeof CrmRoute
@@ -346,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/nps': typeof NpsRoute
   '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
@@ -389,6 +403,7 @@ export interface FileRoutesByTo {
   '/agentes': typeof AgentesRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
+  '/calendario': typeof CalendarioRoute
   '/clientes': typeof ClientesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/crm': typeof CrmRoute
@@ -401,6 +416,7 @@ export interface FileRoutesByTo {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/nps': typeof NpsRoute
   '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
@@ -445,6 +461,7 @@ export interface FileRoutesById {
   '/agentes': typeof AgentesRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
+  '/calendario': typeof CalendarioRoute
   '/clientes': typeof ClientesRoute
   '/configuracoes': typeof ConfiguracoesRoute
   '/crm': typeof CrmRoute
@@ -457,6 +474,7 @@ export interface FileRoutesById {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/nps': typeof NpsRoute
   '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
@@ -502,6 +520,7 @@ export interface FileRouteTypes {
     | '/agentes'
     | '/atendimento'
     | '/automacao'
+    | '/calendario'
     | '/clientes'
     | '/configuracoes'
     | '/crm'
@@ -514,6 +533,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/nps'
     | '/painel'
     | '/pdv'
     | '/pipeline'
@@ -557,6 +577,7 @@ export interface FileRouteTypes {
     | '/agentes'
     | '/atendimento'
     | '/automacao'
+    | '/calendario'
     | '/clientes'
     | '/configuracoes'
     | '/crm'
@@ -569,6 +590,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/nps'
     | '/painel'
     | '/pdv'
     | '/pipeline'
@@ -612,6 +634,7 @@ export interface FileRouteTypes {
     | '/agentes'
     | '/atendimento'
     | '/automacao'
+    | '/calendario'
     | '/clientes'
     | '/configuracoes'
     | '/crm'
@@ -624,6 +647,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/nps'
     | '/painel'
     | '/pdv'
     | '/pipeline'
@@ -668,6 +692,7 @@ export interface RootRouteChildren {
   AgentesRoute: typeof AgentesRoute
   AtendimentoRoute: typeof AtendimentoRoute
   AutomacaoRoute: typeof AutomacaoRoute
+  CalendarioRoute: typeof CalendarioRoute
   ClientesRoute: typeof ClientesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   CrmRoute: typeof CrmRoute
@@ -680,6 +705,7 @@ export interface RootRouteChildren {
   InstagramRoute: typeof InstagramRoute
   LeadsRoute: typeof LeadsRoute
   LoginRoute: typeof LoginRoute
+  NpsRoute: typeof NpsRoute
   PainelRoute: typeof PainelRoute
   PdvRoute: typeof PdvRoute
   PipelineRoute: typeof PipelineRoute
@@ -758,6 +784,13 @@ declare module '@tanstack/react-router' {
       path: '/painel'
       fullPath: '/painel'
       preLoaderRoute: typeof PainelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nps': {
+      id: '/nps'
+      path: '/nps'
+      fullPath: '/nps'
+      preLoaderRoute: typeof NpsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -842,6 +875,13 @@ declare module '@tanstack/react-router' {
       path: '/clientes'
       fullPath: '/clientes'
       preLoaderRoute: typeof ClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calendario': {
+      id: '/calendario'
+      path: '/calendario'
+      fullPath: '/calendario'
+      preLoaderRoute: typeof CalendarioRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/automacao': {
@@ -1172,6 +1212,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentesRoute: AgentesRoute,
   AtendimentoRoute: AtendimentoRoute,
   AutomacaoRoute: AutomacaoRoute,
+  CalendarioRoute: CalendarioRoute,
   ClientesRoute: ClientesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
   CrmRoute: CrmRoute,
@@ -1184,6 +1225,7 @@ const rootRouteChildren: RootRouteChildren = {
   InstagramRoute: InstagramRoute,
   LeadsRoute: LeadsRoute,
   LoginRoute: LoginRoute,
+  NpsRoute: NpsRoute,
   PainelRoute: PainelRoute,
   PdvRoute: PdvRoute,
   PipelineRoute: PipelineRoute,

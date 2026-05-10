@@ -68,6 +68,24 @@ create policy "notifications owner all" on public.notifications
 
 -- Realtime
 alter publication supabase_realtime add table public.notifications;
+
+-- ============= NPS =============
+create table if not exists public.nps_responses (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  organization_id uuid,
+  score int not null check (score >= 0 and score <= 10),
+  comment text,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_nps_org on public.nps_responses(organization_id, created_at desc);
+alter table public.nps_responses enable row level security;
+drop policy if exists "nps owner all" on public.nps_responses;
+create policy "nps owner all" on public.nps_responses
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "nps org read" on public.nps_responses;
+create policy "nps org read" on public.nps_responses
+  for select using (public.is_org_member(auth.uid(), organization_id));
 `;
 
 Deno.serve(async () => {
@@ -77,7 +95,9 @@ Deno.serve(async () => {
   try {
     await client.connect();
     // executa em transação tolerante (alter publication pode falhar se já existe)
-    const stmts = SQL.split(/;\s*\n(?=(?:create|alter|drop|insert|do)\b)/i);
+    // strip SQL comments to keep splitter reliable
+    const cleaned = SQL.replace(/^\s*--[^\n]*\n/gm, "").replace(/\n{2,}/g, "\n");
+    const stmts = cleaned.split(/;\s*\n(?=(?:create|alter|drop|insert|do)\b)/i);
     for (const s of stmts) {
       const sql = s.trim();
       if (!sql) continue;

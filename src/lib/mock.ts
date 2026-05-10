@@ -3,6 +3,8 @@ export const sidebarItems = [
   { title: "Dashboard", url: "/painel", icon: "LayoutDashboard" as const },
    { title: "Relatórios", url: "/relatorios", icon: "BarChart3" as const },
    { title: "Crescimento (CAC/LTV)", url: "/relatorios/crescimento", icon: "TrendingUp" as const, badge: "Novo" },
+   { title: "Calendário", url: "/calendario", icon: "Calendar" as const, badge: "Novo" },
+   { title: "NPS", url: "/nps", icon: "Smile" as const, badge: "Novo" },
    { title: "Agentes", url: "/agentes", icon: "Headphones" as const },
 
   { type: "header", title: "Atendimento & CRM" },
