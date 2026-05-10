@@ -362,6 +362,7 @@ export function LeadsTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {showImporter && <CsvImporter open={showImporter} onClose={() => { setShowImporter(false); load(); }} />}
     </div>
   );
 }
