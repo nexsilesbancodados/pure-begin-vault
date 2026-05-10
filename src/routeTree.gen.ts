@@ -21,6 +21,7 @@ import { Route as PainelRouteImport } from './routes/painel'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as InstagramRouteImport } from './routes/instagram'
+import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as FunilRouteImport } from './routes/funil'
 import { Route as FiscalRouteImport } from './routes/fiscal'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
@@ -119,6 +120,11 @@ const LeadsRoute = LeadsRouteImport.update({
 const InstagramRoute = InstagramRouteImport.update({
   id: '/instagram',
   path: '/instagram',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FunilRoute = FunilRouteImport.update({
@@ -330,6 +336,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
@@ -383,6 +390,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
@@ -437,6 +445,7 @@ export interface FileRoutesById {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
@@ -492,6 +501,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/inbox'
     | '/instagram'
     | '/leads'
     | '/login'
@@ -545,6 +555,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/inbox'
     | '/instagram'
     | '/leads'
     | '/login'
@@ -598,6 +609,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/inbox'
     | '/instagram'
     | '/leads'
     | '/login'
@@ -652,6 +664,7 @@ export interface RootRouteChildren {
   FinanceiroRoute: typeof FinanceiroRouteWithChildren
   FiscalRoute: typeof FiscalRoute
   FunilRoute: typeof FunilRoute
+  InboxRoute: typeof InboxRoute
   InstagramRoute: typeof InstagramRoute
   LeadsRoute: typeof LeadsRoute
   LoginRoute: typeof LoginRoute
@@ -754,6 +767,13 @@ declare module '@tanstack/react-router' {
       path: '/instagram'
       fullPath: '/instagram'
       preLoaderRoute: typeof InstagramRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/funil': {
@@ -1129,6 +1149,7 @@ const rootRouteChildren: RootRouteChildren = {
   FinanceiroRoute: FinanceiroRouteWithChildren,
   FiscalRoute: FiscalRoute,
   FunilRoute: FunilRoute,
+  InboxRoute: InboxRoute,
   InstagramRoute: InstagramRoute,
   LeadsRoute: LeadsRoute,
   LoginRoute: LoginRoute,
