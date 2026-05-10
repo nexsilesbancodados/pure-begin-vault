@@ -46,6 +46,7 @@ import { Route as ServicosTecnicosRouteImport } from './routes/servicos.tecnicos
 import { Route as ServicosNovaRouteImport } from './routes/servicos.nova'
 import { Route as ServicosDashboardRouteImport } from './routes/servicos.dashboard'
 import { Route as ServicosChecklistsRouteImport } from './routes/servicos.checklists'
+import { Route as RelatoriosCrescimentoRouteImport } from './routes/relatorios.crescimento'
 import { Route as FinanceiroPlanoContasRouteImport } from './routes/financeiro.plano-contas'
 import { Route as FinanceiroNotasAbertoRouteImport } from './routes/financeiro.notas-aberto'
 import { Route as FinanceiroMaquininhasRouteImport } from './routes/financeiro.maquininhas'
@@ -247,6 +248,11 @@ const ServicosChecklistsRoute = ServicosChecklistsRouteImport.update({
   path: '/checklists',
   getParentRoute: () => ServicosRoute,
 } as any)
+const RelatoriosCrescimentoRoute = RelatoriosCrescimentoRouteImport.update({
+  id: '/crescimento',
+  path: '/crescimento',
+  getParentRoute: () => RelatoriosRoute,
+} as any)
 const FinanceiroPlanoContasRoute = FinanceiroPlanoContasRouteImport.update({
   id: '/plano-contas',
   path: '/plano-contas',
@@ -345,7 +351,7 @@ export interface FileRoutesByFullPath {
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
   '/registro': typeof RegistroRoute
-  '/relatorios': typeof RelatoriosRoute
+  '/relatorios': typeof RelatoriosRouteWithChildren
   '/servicos': typeof ServicosRouteWithChildren
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
@@ -363,6 +369,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/relatorios/crescimento': typeof RelatoriosCrescimentoRoute
   '/servicos/checklists': typeof ServicosChecklistsRoute
   '/servicos/dashboard': typeof ServicosDashboardRoute
   '/servicos/nova': typeof ServicosNovaRoute
@@ -399,7 +406,7 @@ export interface FileRoutesByTo {
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
   '/registro': typeof RegistroRoute
-  '/relatorios': typeof RelatoriosRoute
+  '/relatorios': typeof RelatoriosRouteWithChildren
   '/servicos': typeof ServicosRouteWithChildren
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
@@ -417,6 +424,7 @@ export interface FileRoutesByTo {
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/relatorios/crescimento': typeof RelatoriosCrescimentoRoute
   '/servicos/checklists': typeof ServicosChecklistsRoute
   '/servicos/dashboard': typeof ServicosDashboardRoute
   '/servicos/nova': typeof ServicosNovaRoute
@@ -454,7 +462,7 @@ export interface FileRoutesById {
   '/pipeline': typeof PipelineRoute
   '/produtos': typeof ProdutosRoute
   '/registro': typeof RegistroRoute
-  '/relatorios': typeof RelatoriosRoute
+  '/relatorios': typeof RelatoriosRouteWithChildren
   '/servicos': typeof ServicosRouteWithChildren
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
@@ -472,6 +480,7 @@ export interface FileRoutesById {
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/relatorios/crescimento': typeof RelatoriosCrescimentoRoute
   '/servicos/checklists': typeof ServicosChecklistsRoute
   '/servicos/dashboard': typeof ServicosDashboardRoute
   '/servicos/nova': typeof ServicosNovaRoute
@@ -528,6 +537,7 @@ export interface FileRouteTypes {
     | '/financeiro/maquininhas'
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/relatorios/crescimento'
     | '/servicos/checklists'
     | '/servicos/dashboard'
     | '/servicos/nova'
@@ -582,6 +592,7 @@ export interface FileRouteTypes {
     | '/financeiro/maquininhas'
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/relatorios/crescimento'
     | '/servicos/checklists'
     | '/servicos/dashboard'
     | '/servicos/nova'
@@ -636,6 +647,7 @@ export interface FileRouteTypes {
     | '/financeiro/maquininhas'
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/relatorios/crescimento'
     | '/servicos/checklists'
     | '/servicos/dashboard'
     | '/servicos/nova'
@@ -673,7 +685,7 @@ export interface RootRouteChildren {
   PipelineRoute: typeof PipelineRoute
   ProdutosRoute: typeof ProdutosRoute
   RegistroRoute: typeof RegistroRoute
-  RelatoriosRoute: typeof RelatoriosRoute
+  RelatoriosRoute: typeof RelatoriosRouteWithChildren
   ServicosRoute: typeof ServicosRouteWithChildren
   VendasRoute: typeof VendasRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
@@ -944,6 +956,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicosChecklistsRouteImport
       parentRoute: typeof ServicosRoute
     }
+    '/relatorios/crescimento': {
+      id: '/relatorios/crescimento'
+      path: '/crescimento'
+      fullPath: '/relatorios/crescimento'
+      preLoaderRoute: typeof RelatoriosCrescimentoRouteImport
+      parentRoute: typeof RelatoriosRoute
+    }
     '/financeiro/plano-contas': {
       id: '/financeiro/plano-contas'
       path: '/plano-contas'
@@ -1093,6 +1112,18 @@ const FinanceiroRouteWithChildren = FinanceiroRoute._addFileChildren(
   FinanceiroRouteChildren,
 )
 
+interface RelatoriosRouteChildren {
+  RelatoriosCrescimentoRoute: typeof RelatoriosCrescimentoRoute
+}
+
+const RelatoriosRouteChildren: RelatoriosRouteChildren = {
+  RelatoriosCrescimentoRoute: RelatoriosCrescimentoRoute,
+}
+
+const RelatoriosRouteWithChildren = RelatoriosRoute._addFileChildren(
+  RelatoriosRouteChildren,
+)
+
 interface ServicosRouteChildren {
   ServicosChecklistsRoute: typeof ServicosChecklistsRoute
   ServicosDashboardRoute: typeof ServicosDashboardRoute
@@ -1158,7 +1189,7 @@ const rootRouteChildren: RootRouteChildren = {
   PipelineRoute: PipelineRoute,
   ProdutosRoute: ProdutosRoute,
   RegistroRoute: RegistroRoute,
-  RelatoriosRoute: RelatoriosRoute,
+  RelatoriosRoute: RelatoriosRouteWithChildren,
   ServicosRoute: ServicosRouteWithChildren,
   VendasRoute: VendasRouteWithChildren,
   WhatsappRoute: WhatsappRoute,

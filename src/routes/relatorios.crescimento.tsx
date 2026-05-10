@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TrendingUp, Users, DollarSign, Target, Clock, Loader2, Repeat, Activity } from "lucide-react";
 
-export const Route = createFileRoute("/relatorios.crescimento")({
+export const Route = createFileRoute("/relatorios/crescimento")({
   head: () => ({
     meta: [
       { title: "Crescimento — ConectaCRM" },
