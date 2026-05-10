@@ -22,6 +22,7 @@ import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as PdvRouteImport } from './routes/pdv'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as PainelRouteImport } from './routes/painel'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NpsRouteImport } from './routes/nps'
@@ -137,6 +138,11 @@ const PipelineRoute = PipelineRouteImport.update({
 const PdvRoute = PdvRouteImport.update({
   id: '/pdv',
   path: '/pdv',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PainelRoute = PainelRouteImport.update({
@@ -417,6 +423,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/nps': typeof NpsRoute
   '/onboarding': typeof OnboardingRoute
+  '/onboarding': typeof OnboardingRoute
   '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
@@ -482,6 +489,7 @@ export interface FileRoutesByTo {
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
   '/nps': typeof NpsRoute
+  '/onboarding': typeof OnboardingRoute
   '/onboarding': typeof OnboardingRoute
   '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
@@ -549,6 +557,7 @@ export interface FileRoutesById {
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
   '/nps': typeof NpsRoute
+  '/onboarding': typeof OnboardingRoute
   '/onboarding': typeof OnboardingRoute
   '/painel': typeof PainelRoute
   '/pdv': typeof PdvRoute
@@ -618,6 +627,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/nps'
     | '/onboarding'
+    | '/onboarding'
     | '/painel'
     | '/pdv'
     | '/pipeline'
@@ -683,6 +693,7 @@ export interface FileRouteTypes {
     | '/leads'
     | '/login'
     | '/nps'
+    | '/onboarding'
     | '/onboarding'
     | '/painel'
     | '/pdv'
@@ -750,6 +761,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/nps'
     | '/onboarding'
+    | '/onboarding'
     | '/painel'
     | '/pdv'
     | '/pipeline'
@@ -816,6 +828,7 @@ export interface RootRouteChildren {
   LeadsRoute: typeof LeadsRoute
   LoginRoute: typeof LoginRoute
   NpsRoute: typeof NpsRoute
+  OnboardingRoute: typeof OnboardingRoute
   OnboardingRoute: typeof OnboardingRoute
   PainelRoute: typeof PainelRoute
   PdvRoute: typeof PdvRoute
@@ -929,6 +942,13 @@ declare module '@tanstack/react-router' {
       path: '/pdv'
       fullPath: '/pdv'
       preLoaderRoute: typeof PdvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/painel': {
@@ -1408,6 +1428,7 @@ const rootRouteChildren: RootRouteChildren = {
   LeadsRoute: LeadsRoute,
   LoginRoute: LoginRoute,
   NpsRoute: NpsRoute,
+  OnboardingRoute: OnboardingRoute,
   OnboardingRoute: OnboardingRoute,
   PainelRoute: PainelRoute,
   PdvRoute: PdvRoute,
