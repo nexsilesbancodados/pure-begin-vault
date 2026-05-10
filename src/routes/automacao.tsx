@@ -251,6 +251,10 @@ function AutomationPage() {
               ))}
             </div>
           )}
+
+          <div className="mt-8">
+            <AutomationLogs />
+          </div>
         </main>
       </div>
 
