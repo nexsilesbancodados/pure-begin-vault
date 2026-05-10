@@ -56,6 +56,20 @@ export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subt
         </button>
         <NotificationBell />
 
+        <div className="hidden sm:flex items-center gap-1 h-10 px-2 rounded-xl hover:bg-muted">
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            className="bg-transparent text-xs font-bold uppercase outline-none cursor-pointer"
+            aria-label="Idioma"
+          >
+            <option value="pt">PT</option>
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+          </select>
+        </div>
+
         <button className="hidden sm:grid relative h-10 w-10 place-items-center rounded-xl hover:bg-muted">
           <MessageCircle className="h-[18px] w-[18px] text-foreground/70" />
           <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-[10px] font-semibold text-primary-foreground grid place-items-center">3</span>
