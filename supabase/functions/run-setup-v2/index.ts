@@ -86,6 +86,26 @@ create policy "nps owner all" on public.nps_responses
 drop policy if exists "nps org read" on public.nps_responses;
 create policy "nps org read" on public.nps_responses
   for select using (public.is_org_member(auth.uid(), organization_id));
+
+create table if not exists public.message_templates (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  organization_id uuid,
+  name text not null,
+  category text not null default 'geral',
+  body text not null,
+  media_url text,
+  media_type text,
+  variables jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists idx_msg_templates_org on public.message_templates(organization_id, created_at desc);
+alter table public.message_templates enable row level security;
+drop policy if exists "msg_templates org all" on public.message_templates;
+create policy "msg_templates org all" on public.message_templates
+  for all using (public.is_org_member(auth.uid(), organization_id))
+  with check (public.is_org_member(auth.uid(), organization_id));
 `;
 
 Deno.serve(async () => {
