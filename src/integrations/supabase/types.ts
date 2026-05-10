@@ -420,6 +420,33 @@ export type Database = {
         }
         Relationships: []
       }
+      nps_responses: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          organization_id: string | null
+          score: number
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          score: number
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           created_at: string
