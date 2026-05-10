@@ -125,6 +125,27 @@ function EquipePage() {
                </div>
              </div>
 
+           {pendingInvites.length > 0 && (
+             <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+               <h3 className="text-sm font-bold text-slate-900 mb-3">Convites pendentes ({pendingInvites.length})</h3>
+               <div className="space-y-2">
+                 {pendingInvites.map((inv) => {
+                   const link = `${window.location.origin}/aceitar-convite/${inv.token}`;
+                   return (
+                     <div key={inv.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                       <div className="min-w-0 flex-1">
+                         <div className="text-sm font-semibold text-slate-900 truncate">{inv.email}</div>
+                         <div className="text-xs text-slate-500">{inv.role} · expira {new Date(inv.expires_at).toLocaleDateString('pt-BR')}</div>
+                       </div>
+                       <button onClick={() => { navigator.clipboard.writeText(link); toast.success('Link copiado'); }} className="text-xs font-semibold text-indigo-600 hover:underline">Copiar link</button>
+                       <button onClick={() => handleRevokeInvite(inv.id)} className="text-xs font-semibold text-red-500 hover:underline">Revogar</button>
+                     </div>
+                   );
+                 })}
+               </div>
+             </div>
+           )}
+
            {loading ? (
              <div className="flex justify-center p-20">
                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
