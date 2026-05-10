@@ -36,6 +36,7 @@ import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as CalendarioRouteImport } from './routes/calendario'
 import { Route as AutomacaoRouteImport } from './routes/automacao'
 import { Route as AtendimentoRouteImport } from './routes/atendimento'
+import { Route as AssinarRouteImport } from './routes/assinar'
 import { Route as AgentesRouteImport } from './routes/agentes'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VendasSimuladorRouteImport } from './routes/vendas.simulador'
@@ -202,6 +203,11 @@ const AtendimentoRoute = AtendimentoRouteImport.update({
   path: '/atendimento',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AssinarRoute = AssinarRouteImport.update({
+  id: '/assinar',
+  path: '/assinar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgentesRoute = AgentesRouteImport.update({
   id: '/agentes',
   path: '/agentes',
@@ -356,6 +362,7 @@ const ApiEvolutionSplatRoute = ApiEvolutionSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agentes': typeof AgentesRoute
+  '/assinar': typeof AssinarRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
   '/calendario': typeof CalendarioRoute
@@ -415,6 +422,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agentes': typeof AgentesRoute
+  '/assinar': typeof AssinarRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
   '/calendario': typeof CalendarioRoute
@@ -475,6 +483,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agentes': typeof AgentesRoute
+  '/assinar': typeof AssinarRoute
   '/atendimento': typeof AtendimentoRoute
   '/automacao': typeof AutomacaoRoute
   '/calendario': typeof CalendarioRoute
@@ -536,6 +545,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agentes'
+    | '/assinar'
     | '/atendimento'
     | '/automacao'
     | '/calendario'
@@ -595,6 +605,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agentes'
+    | '/assinar'
     | '/atendimento'
     | '/automacao'
     | '/calendario'
@@ -654,6 +665,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agentes'
+    | '/assinar'
     | '/atendimento'
     | '/automacao'
     | '/calendario'
@@ -714,6 +726,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgentesRoute: typeof AgentesRoute
+  AssinarRoute: typeof AssinarRoute
   AtendimentoRoute: typeof AtendimentoRoute
   AutomacaoRoute: typeof AutomacaoRoute
   CalendarioRoute: typeof CalendarioRoute
@@ -936,6 +949,13 @@ declare module '@tanstack/react-router' {
       path: '/atendimento'
       fullPath: '/atendimento'
       preLoaderRoute: typeof AtendimentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assinar': {
+      id: '/assinar'
+      path: '/assinar'
+      fullPath: '/assinar'
+      preLoaderRoute: typeof AssinarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agentes': {
@@ -1250,6 +1270,7 @@ const VendasRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgentesRoute: AgentesRoute,
+  AssinarRoute: AssinarRoute,
   AtendimentoRoute: AtendimentoRoute,
   AutomacaoRoute: AutomacaoRoute,
   CalendarioRoute: CalendarioRoute,
