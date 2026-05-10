@@ -21,7 +21,17 @@ type Plan = {
   sort_order: number;
 };
 
-export const Route = createFileRoute("/planos")({ component: PlanosPage });
+export const Route = createFileRoute("/planos")({
+  head: () => ({
+    meta: [
+      { title: "Planos e preços — ConectaCRM" },
+      { name: "description", content: "Compare os planos do ConectaCRM e escolha o ideal para sua loja: estoque IMEI, OS, vendas, fiscal, CRM e IA." },
+      { property: "og:title", content: "Planos ConectaCRM" },
+      { property: "og:description", content: "Starter, Professional e Business — escolha seu plano e comece hoje." },
+    ],
+  }),
+  component: PlanosPage,
+});
 
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

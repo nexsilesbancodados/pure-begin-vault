@@ -19,7 +19,17 @@ type Plan = {
   features: string[]; sort_order: number;
 };
 
-export const Route = createFileRoute("/assinar")({ component: AssinarPage });
+export const Route = createFileRoute("/assinar")({
+  head: () => ({
+    meta: [
+      { title: "Assinar — ConectaCRM" },
+      { name: "description", content: "Crie sua conta após o pagamento. Checkout seguro via Mercado Pago." },
+      { property: "og:title", content: "Comece agora no ConectaCRM" },
+      { property: "og:description", content: "Cartão, PIX ou boleto. Acesso liberado na hora." },
+    ],
+  }),
+  component: AssinarPage,
+});
 
 function brl(c: number) { return (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 
