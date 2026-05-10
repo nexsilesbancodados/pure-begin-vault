@@ -14,6 +14,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      automation_runs: {
+        Row: {
+          action_type: string
+          automation_id: string
+          created_at: string
+          error: string | null
+          id: string
+          payload: Json | null
+          status: string
+          trigger_type: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          automation_id: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json | null
+          status: string
+          trigger_type: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          automation_id?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json | null
+          status?: string
+          trigger_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automations: {
+        Row: {
+          action_type: string
+          config: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          config?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          trigger_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bot_conversations: {
         Row: {
           contact_name: string | null
@@ -266,6 +346,44 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string | null
+          created_at: string
+          direction: string
+          id: string
+          lead_id: string | null
+          phone: string | null
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          direction: string
+          id?: string
+          lead_id?: string | null
+          phone?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          lead_id?: string | null
+          phone?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -366,12 +484,59 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          lead_id: string | null
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string | null
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lead_id?: string | null
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      dispatch_no_reply_24h: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
