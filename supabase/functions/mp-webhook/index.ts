@@ -101,6 +101,11 @@ Deno.serve(async (req) => {
     console.log("mp-webhook", { type, dataId });
     if (!dataId) return new Response("ok", { headers: cors });
 
+    const ok = await verifyMpSignature(req, String(dataId));
+    if (!ok) {
+      console.warn("mp-webhook invalid signature");
+      return new Response("invalid signature", { status: 401, headers: cors });
+    }
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
     if (type === "payment" || topic === "payment") {
