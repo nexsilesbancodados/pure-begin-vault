@@ -72,6 +72,13 @@ async function sendWhatsApp(user_id: string, phone: string, text: string, contac
   if (!res.ok) throw new Error(`send-whatsapp ${res.status}`);
 }
 
+async function recordOutbound(admin: any, user_id: string, phone: string | null, lead_id: string | null, content: string) {
+  if (!phone && !lead_id) return;
+  await admin.from("messages").insert({
+    user_id, phone, lead_id, direction: "outbound", content,
+  }).then(() => {}, () => {});
+}
+
 async function sendEmail(user_id: string, to: string, subject: string, html: string) {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
     method: "POST",
