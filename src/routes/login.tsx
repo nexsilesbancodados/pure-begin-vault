@@ -82,7 +82,7 @@ export const Route = createFileRoute("/login")({
              <div className="space-y-2">
                <div className="flex items-center justify-between">
                  <label className="text-sm font-medium text-slate-700">Senha</label>
-                 <a className="text-sm text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer">Esqueci a senha</a>
+                 <Link to="/esqueci-senha" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">Esqueci a senha</Link>
                </div>
                <div className="relative">
                  <Lock className="h-4 w-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
