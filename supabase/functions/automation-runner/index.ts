@@ -199,6 +199,7 @@ Deno.serve(async (req) => {
           const text = interpolate(cfg.message ?? "", vars);
           if (!text.trim()) throw new Error("mensagem vazia");
           await sendWhatsApp(user_id, phone, text, lead?.name);
+          await recordOutbound(admin, user_id, phone, lead?.id ?? payload.lead_id ?? null, text);
           break;
         }
 
