@@ -2,6 +2,7 @@ export const sidebarItems = [
   { type: "header", title: "Painel Principal" },
   { title: "Dashboard", url: "/painel", icon: "LayoutDashboard" as const },
    { title: "Relatórios", url: "/relatorios", icon: "BarChart3" as const },
+   { title: "Crescimento (CAC/LTV)", url: "/relatorios/crescimento", icon: "TrendingUp" as const, badge: "Novo" },
    { title: "Agentes", url: "/agentes", icon: "Headphones" as const },
 
   { type: "header", title: "Atendimento & CRM" },
@@ -12,6 +13,7 @@ export const sidebarItems = [
     flyout: true,
     children: [
       { title: "Visão Geral", url: "/crm", icon: "LayoutDashboard" },
+      { title: "Inbox unificada", url: "/inbox", icon: "Inbox", badge: "Novo" },
       { title: "Pipeline de Vendas", url: "/funil", icon: "Trello" },
       { title: "Bot de Atendimento", url: "/crm/bot", icon: "Bot", badge: "IA" },
       { title: "Conversas", url: "/crm/conversas", icon: "MessageSquare", badge: "Live" },
