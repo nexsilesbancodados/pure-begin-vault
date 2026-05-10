@@ -359,6 +359,20 @@ function CustomersPage() {
                 />
               </div>
             </div>
+            <button
+              onClick={() => {
+                import("@/lib/exportCsv").then(({ exportToCsv }) => {
+                  exportToCsv("clientes.csv", customers.map((c) => ({
+                    nome: c.name, email: c.email, telefone: c.phone,
+                    documento: c.document, cidade: c.city, estado: c.state,
+                    criado_em: c.created_at,
+                  })));
+                });
+              }}
+              className="h-10 px-4 rounded-xl text-sm font-semibold border border-border bg-card hover:bg-muted transition flex items-center gap-2"
+            >
+              Exportar CSV
+            </button>
             <button 
               onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
               className={`h-10 px-4 rounded-xl text-sm font-semibold shadow-elegant transition flex items-center gap-2 ${isQuickAddOpen ? "bg-muted text-foreground hover:bg-muted/80" : "bg-gradient-primary text-white hover:opacity-95"}`}
