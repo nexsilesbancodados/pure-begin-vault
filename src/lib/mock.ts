@@ -16,6 +16,7 @@ export const sidebarItems = [
     children: [
       { title: "Visão Geral", url: "/crm", icon: "LayoutDashboard" },
       { title: "Inbox unificada", url: "/inbox", icon: "Inbox", badge: "Novo" },
+      { title: "Modelos de Mensagem", url: "/templates", icon: "FileText", badge: "Novo" },
       { title: "Pipeline de Vendas", url: "/funil", icon: "Trello" },
       { title: "Bot de Atendimento", url: "/crm/bot", icon: "Bot", badge: "IA" },
       { title: "Conversas", url: "/crm/conversas", icon: "MessageSquare", badge: "Live" },
