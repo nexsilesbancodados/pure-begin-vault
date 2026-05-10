@@ -1,12 +1,14 @@
- import { MessageCircle, Plus, Search, ChevronDown, ArrowLeft } from "lucide-react";
+ import { MessageCircle, Plus, Search, ChevronDown, ArrowLeft, Globe } from "lucide-react";
  import { useNavigate, useLocation } from "@tanstack/react-router";
  import { useAuth } from "@/contexts/AuthContext";
  import { NotificationBell } from "./NotificationBell";
+ import { useI18n, type Locale } from "@/lib/i18n";
 
 export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subtitle?: string; toggleSidebar?: () => void }) {
   const navigate = useNavigate();
    const location = useLocation();
    const { user, profile } = useAuth();
+   const { locale, setLocale } = useI18n();
    const isHome = location.pathname === "/";
 
   return (
@@ -53,6 +55,20 @@ export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subt
           <Plus className="h-[18px] w-[18px]" />
         </button>
         <NotificationBell />
+
+        <div className="hidden sm:flex items-center gap-1 h-10 px-2 rounded-xl hover:bg-muted">
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            className="bg-transparent text-xs font-bold uppercase outline-none cursor-pointer"
+            aria-label="Idioma"
+          >
+            <option value="pt">PT</option>
+            <option value="en">EN</option>
+            <option value="es">ES</option>
+          </select>
+        </div>
 
         <button className="hidden sm:grid relative h-10 w-10 place-items-center rounded-xl hover:bg-muted">
           <MessageCircle className="h-[18px] w-[18px] text-foreground/70" />

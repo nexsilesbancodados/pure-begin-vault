@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
+import { I18nProvider } from "@/lib/i18n";
 
 import appCss from "../styles.css?url";
 
@@ -78,9 +79,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <AuthProvider>
-      <Outlet />
-      <PwaInstallPrompt />
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <Outlet />
+        <PwaInstallPrompt />
+      </AuthProvider>
+    </I18nProvider>
   );
 }

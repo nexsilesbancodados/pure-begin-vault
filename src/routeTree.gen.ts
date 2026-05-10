@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatsappRouteImport } from './routes/whatsapp'
 import { Route as VendasRouteImport } from './routes/vendas'
+import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as ServicosRouteImport } from './routes/servicos'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as RegistroRouteImport } from './routes/registro'
@@ -73,6 +74,11 @@ const WhatsappRoute = WhatsappRouteImport.update({
 const VendasRoute = VendasRouteImport.update({
   id: '/vendas',
   path: '/vendas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServicosRoute = ServicosRouteImport.update({
@@ -367,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/registro': typeof RegistroRoute
   '/relatorios': typeof RelatoriosRouteWithChildren
   '/servicos': typeof ServicosRouteWithChildren
+  '/templates': typeof TemplatesRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/crm/bot': typeof CrmBotRoute
@@ -424,6 +431,7 @@ export interface FileRoutesByTo {
   '/registro': typeof RegistroRoute
   '/relatorios': typeof RelatoriosRouteWithChildren
   '/servicos': typeof ServicosRouteWithChildren
+  '/templates': typeof TemplatesRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/crm/bot': typeof CrmBotRoute
@@ -482,6 +490,7 @@ export interface FileRoutesById {
   '/registro': typeof RegistroRoute
   '/relatorios': typeof RelatoriosRouteWithChildren
   '/servicos': typeof ServicosRouteWithChildren
+  '/templates': typeof TemplatesRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/crm_/bot': typeof CrmBotRoute
@@ -541,6 +550,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/relatorios'
     | '/servicos'
+    | '/templates'
     | '/vendas'
     | '/whatsapp'
     | '/crm/bot'
@@ -598,6 +608,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/relatorios'
     | '/servicos'
+    | '/templates'
     | '/vendas'
     | '/whatsapp'
     | '/crm/bot'
@@ -655,6 +666,7 @@ export interface FileRouteTypes {
     | '/registro'
     | '/relatorios'
     | '/servicos'
+    | '/templates'
     | '/vendas'
     | '/whatsapp'
     | '/crm_/bot'
@@ -713,6 +725,7 @@ export interface RootRouteChildren {
   RegistroRoute: typeof RegistroRoute
   RelatoriosRoute: typeof RelatoriosRouteWithChildren
   ServicosRoute: typeof ServicosRouteWithChildren
+  TemplatesRoute: typeof TemplatesRoute
   VendasRoute: typeof VendasRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
   CrmBotRoute: typeof CrmBotRoute
@@ -735,6 +748,13 @@ declare module '@tanstack/react-router' {
       path: '/vendas'
       fullPath: '/vendas'
       preLoaderRoute: typeof VendasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/servicos': {
@@ -1233,6 +1253,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegistroRoute: RegistroRoute,
   RelatoriosRoute: RelatoriosRouteWithChildren,
   ServicosRoute: ServicosRouteWithChildren,
+  TemplatesRoute: TemplatesRoute,
   VendasRoute: VendasRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
   CrmBotRoute: CrmBotRoute,
