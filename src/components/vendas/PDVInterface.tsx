@@ -607,141 +607,133 @@ import { ProductForm } from "@/components/estoque/ProductForm";
         : usedMethods[0] || (paymentMethod === 'money' ? 'Dinheiro' : paymentMethod === 'card' ? 'Cartão' : paymentMethod === 'pix' ? 'PIX' : 'Não informado');
 
        try {
-         // Buscar dados completos do cliente para o snapshot
-          let customerDetails: { id?: string; name: string; phone?: string; document?: string; address?: string } | null = selectedCustomer ? { name: selectedCustomer.name, id: selectedCustomer.id } : null;
-         
+         // Snapshot do cliente para o recibo
+         let customerDetails: { id?: string; name: string; phone?: string; document?: string; address?: string } | null = selectedCustomer ? { name: selectedCustomer.name, id: selectedCustomer.id } : null;
          if (selectedCustomer?.id) {
            const { data: fullCustomer } = await supabase
              .from("customers")
              .select("*")
              .eq("id", selectedCustomer.id)
              .single();
-             
            if (fullCustomer) {
              customerDetails = {
                id: fullCustomer.id,
-               name: fullCustomer.full_name,
-                phone: fullCustomer.phone || undefined,
-                document: fullCustomer.document || undefined,
-               address: `${fullCustomer.address_street || ''}, ${fullCustomer.address_number || ''} ${fullCustomer.address_neighborhood || ''} ${fullCustomer.address_city || ''}-${fullCustomer.address_state || ''}`.trim().replace(/^,/, '').trim()
+               name: fullCustomer.name,
+               phone: fullCustomer.phone || undefined,
+               document: fullCustomer.document || undefined,
+               address: [fullCustomer.address, fullCustomer.city].filter(Boolean).join(' - ')
              };
            }
          }
 
-        // 1. Criar ou atualizar a ordem de venda
-        let sale;
-        let saleError;
-
-        const salePayload = {
-          user_id: user.id,
-          customer_id: selectedCustomer?.id || null,
-          total_amount: total,
-          discount_amount: discountValue,
-          payment_method: finalPaymentMethod,
-          status: "concluded",
-          items: cart.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            model: item.model,
-            capacity: item.capacity,
-            color: item.color,
-            battery_health: item.battery_health
-          }))
-        };
-
-        if (editingSaleId) {
-          const { data, error } = await supabase
-            .from("sales_orders")
-            .update(salePayload)
-            .eq("id", editingSaleId)
-            .select()
-            .single();
-          sale = data;
-          saleError = error;
-        } else {
-          const { data, error } = await supabase
-            .from("sales_orders")
-            .insert(salePayload)
-            .select()
-            .single();
-          sale = data;
-          saleError = error;
-        }
-
-        if (saleError || !sale) throw saleError || new Error("Falha ao processar venda");
-
-        const storeConfig = {
-          name: "APPLE JAU",
-          cnpj: "54.123.456/0001-89",
-          phone: "(14) 99876-5432",
-          address: "Rua Major Prado, 123 - Centro, Jaú - SP"
-        };
-
-        const saleSnapshot = {
-          id: sale.id,
-          items: [...cart],
-          total: total,
-          discount: discountValue,
-          customer: customerDetails,
-          paymentMethod: finalPaymentMethod,
-          vendedor: user?.email?.split('@')[0] || 'Sistema',
-          data: new Date().toLocaleString('pt-BR'),
-          storeInfo: storeConfig
-        };
- 
-       // 2. Atualizar estoque dos produtos
-       for (const item of cart) {
-         const product = allProducts.find(p => p.id === item.id);
-         if (product) {
-           const newStock = Math.max(0, product.stock - item.quantity);
-           await supabase
-             .from("products")
-             .update({ stock_quantity: newStock })
-             .eq("id", item.id);
+         const subtotal = cart.reduce((s, it) => s + it.price * it.quantity, 0);
+         const payments: any[] = [];
+         const moneyN = parseFloat(moneyAmount) || 0;
+         const cardN = parseFloat(cardAmount) || 0;
+         const pixN = parseFloat(pixAmount) || 0;
+         if (moneyN > 0) payments.push({ method: 'cash', amount: moneyN });
+         if (cardN > 0) payments.push({ method: 'card', amount: cardN });
+         if (pixN > 0) payments.push({ method: 'pix', amount: pixN });
+         if (payments.length === 0) {
+           const fallback = paymentMethod === 'money' ? 'cash' : paymentMethod === 'card' ? 'card' : paymentMethod === 'pix' ? 'pix' : 'cash';
+           payments.push({ method: fallback, amount: total });
          }
-       }
- 
-       // 3. Registrar no financeiro (Fluxo de Caixa)
-       if (!editingSaleId) {
-       await supabase
-         .from("finance_transactions")
-         .insert({
-           user_id: user.id,
-           type: "income",
-           amount: total,
-           description: `Venda PDV - #${sale.id.slice(0, 8)}`,
-           category: "Vendas",
-           status: "paid",
-           payment_date: new Date().toISOString()
+
+         let saleId: string | null = null;
+
+         if (editingSaleId) {
+           // Edição mantém o fluxo legado simples (não refaz baixa de estoque)
+           const { data, error } = await supabase
+             .from("sales_orders")
+             .update({
+               customer_id: selectedCustomer?.id || null,
+               total_amount: total,
+               subtotal,
+               discount: discountValue,
+               payment_method: finalPaymentMethod,
+               notes: null,
+             })
+             .eq("id", editingSaleId)
+             .select()
+             .single();
+           if (error || !data) throw error || new Error('Falha ao atualizar venda');
+           saleId = data.id;
+         } else {
+           const { data, error } = await supabase.rpc('checkout_sale', {
+             _payload: {
+               customer_id: selectedCustomer?.id || null,
+               total,
+               subtotal,
+               discount: discountValue,
+               addition: 0,
+               payment_method: finalPaymentMethod,
+               channel: 'pdv',
+               items: cart.map(item => ({
+                 product_id: item.id,
+                 product_name: item.name,
+                 sku: (item as any).sku,
+                 quantity: item.quantity,
+                 unit_price: item.price,
+                 unit_cost: (item as any).cost_price,
+                 total: item.price * item.quantity,
+                 imei: (item as any).imei || null,
+                 metadata: {
+                   model: item.model,
+                   capacity: item.capacity,
+                   color: item.color,
+                   battery_health: item.battery_health,
+                 },
+               })),
+               payments,
+             }
+           });
+           if (error || !data) throw error || new Error('Falha ao processar venda');
+           saleId = data as unknown as string;
+         }
+
+         const storeConfig = {
+           name: "APPLE JAU",
+           cnpj: "54.123.456/0001-89",
+           phone: "(14) 99876-5432",
+           address: "Rua Major Prado, 123 - Centro, Jaú - SP"
+         };
+
+         const saleSnapshot = {
+           id: saleId,
+           items: [...cart],
+           total: total,
+           discount: discountValue,
+           customer: customerDetails,
+           paymentMethod: finalPaymentMethod,
+           vendedor: user?.email?.split('@')[0] || 'Sistema',
+           data: new Date().toLocaleString('pt-BR'),
+           storeInfo: storeConfig
+         };
+
+         toast.success(editingSaleId ? "Venda atualizada com sucesso!" : "Venda finalizada com sucesso!", {
+           description: `Total de ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
          });
-       }
- 
-        toast.success(editingSaleId ? "Venda atualizada com sucesso!" : "Venda finalizada com sucesso!", {
-          description: editingSaleId ? "As alterações foram salvas." : `Total de ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} em ${paymentMethod?.toUpperCase()}`,
-       });
- 
+
          setCart([]);
          setPaymentMethod(null);
          setSelectedCustomer(null);
          setIsCheckoutModalOpen(false);
-          setMoneyAmount("");
-          setCardAmount("");
-          setPixAmount("");
+         setMoneyAmount("");
+         setCardAmount("");
+         setPixAmount("");
          setDiscountValue(0);
          setEditingSaleId(null);
-         setLastSaleId(sale.id);
+         setLastSaleId(saleId);
          setLastSaleData(saleSnapshot);
          setIsSuccessModalOpen(true);
-       fetchProducts(); // Atualiza estoque na interface
-     } catch (error) {
-       console.error("Erro ao finalizar venda:", error);
-       toast.error("Erro ao processar a venda. Tente novamente.");
-      } finally {
-        setIsFinishing(false);
-      }
-    };
+         fetchProducts();
+      } catch (error: any) {
+        console.error("Erro ao finalizar venda:", error);
+        toast.error("Erro ao processar a venda: " + (error?.message || ''));
+       } finally {
+         setIsFinishing(false);
+       }
+     };
     const handleSaveNewProduct = async (formData: any) => {
       if (!user?.id) return;
       
