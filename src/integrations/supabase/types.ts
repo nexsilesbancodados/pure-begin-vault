@@ -346,6 +346,48 @@ export type Database = {
           },
         ]
       }
+      message_templates: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          id: string
+          media_type: string | null
+          media_url: string | null
+          name: string
+          organization_id: string | null
+          updated_at: string
+          user_id: string
+          variables: Json
+        }
+        Insert: {
+          body: string
+          category?: string
+          created_at?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          name: string
+          organization_id?: string | null
+          updated_at?: string
+          user_id: string
+          variables?: Json
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          name?: string
+          organization_id?: string | null
+          updated_at?: string
+          user_id?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string | null
