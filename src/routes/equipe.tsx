@@ -16,6 +16,7 @@ export const Route = createFileRoute("/equipe")({
 function EquipePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
    const [team, setTeam] = useState<any[]>([]);
+   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
    const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, profile } = useAuth();
