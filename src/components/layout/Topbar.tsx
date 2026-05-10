@@ -1,6 +1,7 @@
- import { Bell, MessageCircle, Plus, Search, ChevronDown, ArrowLeft } from "lucide-react";
+ import { MessageCircle, Plus, Search, ChevronDown, ArrowLeft } from "lucide-react";
  import { useNavigate, useLocation } from "@tanstack/react-router";
  import { useAuth } from "@/contexts/AuthContext";
+ import { NotificationBell } from "./NotificationBell";
 
 export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subtitle?: string; toggleSidebar?: () => void }) {
   const navigate = useNavigate();
@@ -51,10 +52,8 @@ export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subt
         <button className="sm:hidden h-10 w-10 grid place-items-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
           <Plus className="h-[18px] w-[18px]" />
         </button>
-        <button className="relative h-10 w-10 grid place-items-center rounded-xl hover:bg-muted">
-          <Bell className="h-[18px] w-[18px] text-foreground/70" />
-          <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-[10px] font-semibold text-destructive-foreground grid place-items-center">6</span>
-        </button>
+        <NotificationBell />
+
         <button className="hidden sm:grid relative h-10 w-10 place-items-center rounded-xl hover:bg-muted">
           <MessageCircle className="h-[18px] w-[18px] text-foreground/70" />
           <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-[10px] font-semibold text-primary-foreground grid place-items-center">3</span>
