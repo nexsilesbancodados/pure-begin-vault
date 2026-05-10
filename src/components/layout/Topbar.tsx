@@ -1,14 +1,16 @@
- import { MessageCircle, Plus, Search, ChevronDown, ArrowLeft, Globe } from "lucide-react";
- import { useNavigate, useLocation } from "@tanstack/react-router";
- import { useAuth } from "@/contexts/AuthContext";
- import { NotificationBell } from "./NotificationBell";
- import { useI18n, type Locale } from "@/lib/i18n";
+import { MessageCircle, Plus, Search, ChevronDown, ArrowLeft, Globe, Sun, Moon } from "lucide-react";
+import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useAuth } from "@/contexts/AuthContext";
+import { NotificationBell } from "./NotificationBell";
+import { useI18n, type Locale } from "@/lib/i18n";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
 export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subtitle?: string; toggleSidebar?: () => void }) {
   const navigate = useNavigate();
    const location = useLocation();
    const { user, profile } = useAuth();
    const { locale, setLocale } = useI18n();
+   const { theme, toggle } = useTheme();
    const isHome = location.pathname === "/";
 
   return (
@@ -53,6 +55,13 @@ export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subt
         </button>
         <button className="sm:hidden h-10 w-10 grid place-items-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
           <Plus className="h-[18px] w-[18px]" />
+        </button>
+        <button
+          onClick={toggle}
+          aria-label="Alternar tema"
+          className="hidden sm:grid h-10 w-10 place-items-center rounded-xl hover:bg-muted text-foreground/70"
+        >
+          {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
         </button>
         <NotificationBell />
 

@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { I18nProvider } from "@/lib/i18n";
+import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
 import appCss from "../styles.css?url";
 
@@ -48,7 +49,7 @@ export const Route = createRootRoute({
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/icon-192.png" },
       { rel: "icon", href: "/icon-192.png", type: "image/png" },
@@ -79,11 +80,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <I18nProvider>
-      <AuthProvider>
-        <Outlet />
-        <PwaInstallPrompt />
-      </AuthProvider>
-    </I18nProvider>
+    <ThemeProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <Outlet />
+          <PwaInstallPrompt />
+        </AuthProvider>
+      </I18nProvider>
+    </ThemeProvider>
   );
 }
