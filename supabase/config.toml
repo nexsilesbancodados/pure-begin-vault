@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.pipeline-qualifier]
 verify_jwt = false
+
+[functions.run-automations-setup]
+verify_jwt = false
