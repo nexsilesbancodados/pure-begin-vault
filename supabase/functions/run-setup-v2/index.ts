@@ -95,7 +95,9 @@ Deno.serve(async () => {
   try {
     await client.connect();
     // executa em transação tolerante (alter publication pode falhar se já existe)
-    const stmts = SQL.split(/;\s*\n(?=(?:create|alter|drop|insert|do)\b)/i);
+    // strip SQL comments to keep splitter reliable
+    const cleaned = SQL.replace(/^\s*--[^\n]*\n/gm, "").replace(/\n{2,}/g, "\n");
+    const stmts = cleaned.split(/;\s*\n(?=(?:create|alter|drop|insert|do)\b)/i);
     for (const s of stmts) {
       const sql = s.trim();
       if (!sql) continue;
