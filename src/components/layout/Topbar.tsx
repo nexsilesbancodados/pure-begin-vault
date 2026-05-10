@@ -1,7 +1,8 @@
- import { MessageCircle, Plus, Search, ChevronDown, ArrowLeft } from "lucide-react";
+ import { MessageCircle, Plus, Search, ChevronDown, ArrowLeft, Globe } from "lucide-react";
  import { useNavigate, useLocation } from "@tanstack/react-router";
  import { useAuth } from "@/contexts/AuthContext";
  import { NotificationBell } from "./NotificationBell";
+ import { useI18n, type Locale } from "@/lib/i18n";
 
 export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subtitle?: string; toggleSidebar?: () => void }) {
   const navigate = useNavigate();
