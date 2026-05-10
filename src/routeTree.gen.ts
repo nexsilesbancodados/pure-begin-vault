@@ -11,11 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WhatsappRouteImport } from './routes/whatsapp'
 import { Route as VendasRouteImport } from './routes/vendas'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as ServicosRouteImport } from './routes/servicos'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
 import { Route as RegistroRouteImport } from './routes/registro'
 import { Route as ProdutosRouteImport } from './routes/produtos'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as PlanosRouteImport } from './routes/planos'
 import { Route as PipelineRouteImport } from './routes/pipeline'
 import { Route as PdvRouteImport } from './routes/pdv'
@@ -29,6 +32,7 @@ import { Route as FunilRouteImport } from './routes/funil'
 import { Route as FiscalRouteImport } from './routes/fiscal'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as EstoqueRouteImport } from './routes/estoque'
+import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
 import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as CrmRouteImport } from './routes/crm'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
@@ -78,6 +82,11 @@ const VendasRoute = VendasRouteImport.update({
   path: '/vendas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TemplatesRoute = TemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
@@ -86,6 +95,11 @@ const TemplatesRoute = TemplatesRouteImport.update({
 const ServicosRoute = ServicosRouteImport.update({
   id: '/servicos',
   path: '/servicos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RelatoriosRoute = RelatoriosRouteImport.update({
@@ -101,6 +115,11 @@ const RegistroRoute = RegistroRouteImport.update({
 const ProdutosRoute = ProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlanosRoute = PlanosRouteImport.update({
@@ -166,6 +185,11 @@ const FinanceiroRoute = FinanceiroRouteImport.update({
 const EstoqueRoute = EstoqueRouteImport.update({
   id: '/estoque',
   path: '/estoque',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
+  id: '/esqueci-senha',
+  path: '/esqueci-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EquipeRoute = EquipeRouteImport.update({
@@ -370,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof ConfiguracoesRoute
   '/crm': typeof CrmRoute
   '/equipe': typeof EquipeRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/estoque': typeof EstoqueRouteWithChildren
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
@@ -383,11 +408,14 @@ export interface FileRoutesByFullPath {
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
   '/planos': typeof PlanosRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRoute
   '/registro': typeof RegistroRoute
   '/relatorios': typeof RelatoriosRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/servicos': typeof ServicosRouteWithChildren
   '/templates': typeof TemplatesRoute
+  '/termos': typeof TermosRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/crm/bot': typeof CrmBotRoute
@@ -430,6 +458,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof ConfiguracoesRoute
   '/crm': typeof CrmRoute
   '/equipe': typeof EquipeRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/estoque': typeof EstoqueRouteWithChildren
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
@@ -443,11 +472,14 @@ export interface FileRoutesByTo {
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
   '/planos': typeof PlanosRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRoute
   '/registro': typeof RegistroRoute
   '/relatorios': typeof RelatoriosRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/servicos': typeof ServicosRouteWithChildren
   '/templates': typeof TemplatesRoute
+  '/termos': typeof TermosRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/crm/bot': typeof CrmBotRoute
@@ -491,6 +523,7 @@ export interface FileRoutesById {
   '/configuracoes': typeof ConfiguracoesRoute
   '/crm': typeof CrmRoute
   '/equipe': typeof EquipeRoute
+  '/esqueci-senha': typeof EsqueciSenhaRoute
   '/estoque': typeof EstoqueRouteWithChildren
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
@@ -504,11 +537,14 @@ export interface FileRoutesById {
   '/pdv': typeof PdvRoute
   '/pipeline': typeof PipelineRoute
   '/planos': typeof PlanosRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/produtos': typeof ProdutosRoute
   '/registro': typeof RegistroRoute
   '/relatorios': typeof RelatoriosRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/servicos': typeof ServicosRouteWithChildren
   '/templates': typeof TemplatesRoute
+  '/termos': typeof TermosRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/crm_/bot': typeof CrmBotRoute
@@ -553,6 +589,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/crm'
     | '/equipe'
+    | '/esqueci-senha'
     | '/estoque'
     | '/financeiro'
     | '/fiscal'
@@ -566,11 +603,14 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/pipeline'
     | '/planos'
+    | '/privacidade'
     | '/produtos'
     | '/registro'
     | '/relatorios'
+    | '/reset-password'
     | '/servicos'
     | '/templates'
+    | '/termos'
     | '/vendas'
     | '/whatsapp'
     | '/crm/bot'
@@ -613,6 +653,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/crm'
     | '/equipe'
+    | '/esqueci-senha'
     | '/estoque'
     | '/financeiro'
     | '/fiscal'
@@ -626,11 +667,14 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/pipeline'
     | '/planos'
+    | '/privacidade'
     | '/produtos'
     | '/registro'
     | '/relatorios'
+    | '/reset-password'
     | '/servicos'
     | '/templates'
+    | '/termos'
     | '/vendas'
     | '/whatsapp'
     | '/crm/bot'
@@ -673,6 +717,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/crm'
     | '/equipe'
+    | '/esqueci-senha'
     | '/estoque'
     | '/financeiro'
     | '/fiscal'
@@ -686,11 +731,14 @@ export interface FileRouteTypes {
     | '/pdv'
     | '/pipeline'
     | '/planos'
+    | '/privacidade'
     | '/produtos'
     | '/registro'
     | '/relatorios'
+    | '/reset-password'
     | '/servicos'
     | '/templates'
+    | '/termos'
     | '/vendas'
     | '/whatsapp'
     | '/crm_/bot'
@@ -734,6 +782,7 @@ export interface RootRouteChildren {
   ConfiguracoesRoute: typeof ConfiguracoesRoute
   CrmRoute: typeof CrmRoute
   EquipeRoute: typeof EquipeRoute
+  EsqueciSenhaRoute: typeof EsqueciSenhaRoute
   EstoqueRoute: typeof EstoqueRouteWithChildren
   FinanceiroRoute: typeof FinanceiroRouteWithChildren
   FiscalRoute: typeof FiscalRoute
@@ -747,11 +796,14 @@ export interface RootRouteChildren {
   PdvRoute: typeof PdvRoute
   PipelineRoute: typeof PipelineRoute
   PlanosRoute: typeof PlanosRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   ProdutosRoute: typeof ProdutosRoute
   RegistroRoute: typeof RegistroRoute
   RelatoriosRoute: typeof RelatoriosRouteWithChildren
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ServicosRoute: typeof ServicosRouteWithChildren
   TemplatesRoute: typeof TemplatesRoute
+  TermosRoute: typeof TermosRoute
   VendasRoute: typeof VendasRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
   CrmBotRoute: typeof CrmBotRoute
@@ -776,6 +828,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VendasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/templates': {
       id: '/templates'
       path: '/templates'
@@ -788,6 +847,13 @@ declare module '@tanstack/react-router' {
       path: '/servicos'
       fullPath: '/servicos'
       preLoaderRoute: typeof ServicosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/relatorios': {
@@ -809,6 +875,13 @@ declare module '@tanstack/react-router' {
       path: '/produtos'
       fullPath: '/produtos'
       preLoaderRoute: typeof ProdutosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/planos': {
@@ -900,6 +973,13 @@ declare module '@tanstack/react-router' {
       path: '/estoque'
       fullPath: '/estoque'
       preLoaderRoute: typeof EstoqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/esqueci-senha': {
+      id: '/esqueci-senha'
+      path: '/esqueci-senha'
+      fullPath: '/esqueci-senha'
+      preLoaderRoute: typeof EsqueciSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/equipe': {
@@ -1278,6 +1358,7 @@ const rootRouteChildren: RootRouteChildren = {
   ConfiguracoesRoute: ConfiguracoesRoute,
   CrmRoute: CrmRoute,
   EquipeRoute: EquipeRoute,
+  EsqueciSenhaRoute: EsqueciSenhaRoute,
   EstoqueRoute: EstoqueRouteWithChildren,
   FinanceiroRoute: FinanceiroRouteWithChildren,
   FiscalRoute: FiscalRoute,
@@ -1291,11 +1372,14 @@ const rootRouteChildren: RootRouteChildren = {
   PdvRoute: PdvRoute,
   PipelineRoute: PipelineRoute,
   PlanosRoute: PlanosRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   ProdutosRoute: ProdutosRoute,
   RegistroRoute: RegistroRoute,
   RelatoriosRoute: RelatoriosRouteWithChildren,
+  ResetPasswordRoute: ResetPasswordRoute,
   ServicosRoute: ServicosRouteWithChildren,
   TemplatesRoute: TemplatesRoute,
+  TermosRoute: TermosRoute,
   VendasRoute: VendasRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
   CrmBotRoute: CrmBotRoute,
