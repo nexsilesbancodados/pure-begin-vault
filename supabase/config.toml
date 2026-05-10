@@ -34,3 +34,6 @@ verify_jwt = true
 
 [functions.mp-checkout-signup]
 verify_jwt = false
+
+[functions.cancel-subscription]
+verify_jwt = true
