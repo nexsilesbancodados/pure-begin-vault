@@ -27,7 +27,7 @@ export const Route = createFileRoute("/login")({
       setError("");
      setLoading(true);
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
@@ -38,6 +38,19 @@ export const Route = createFileRoute("/login")({
         return;
       }
 
+      // Verifica se já completou onboarding (tem display_name no perfil)
+      const uid = signInData.user?.id;
+      if (uid) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("display_name, organization_id")
+          .eq("id", uid)
+          .maybeSingle();
+        if (!prof?.display_name || !prof?.organization_id) {
+          navigate({ to: "/onboarding" });
+          return;
+        }
+      }
       navigate({ to: "/painel" });
    };
  
