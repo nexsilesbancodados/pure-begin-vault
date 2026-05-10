@@ -98,6 +98,56 @@ function AutomationPage() {
     load();
   };
 
+  const seedTemplates = async () => {
+    if (!user?.id) return;
+    const presets = [
+      {
+        name: "Boas-vindas WhatsApp em novo lead",
+        trigger_type: "new_lead",
+        action_type: "send_message",
+        config: { message: "Olá {{nome}}! 👋 Recebemos seu contato e em instantes um vendedor falará com você." },
+      },
+      {
+        name: "Resposta fora do horário",
+        trigger_type: "message_received",
+        action_type: "send_message",
+        config: {
+          message: "Olá! No momento estamos fora do nosso horário de atendimento (08h às 18h). Retornaremos pela manhã. 🙏",
+          condition: { outside_business_hours: true, start: "08:00", end: "18:00" },
+        },
+      },
+      {
+        name: "Follow-up 24h sem resposta",
+        trigger_type: "no_reply_24h",
+        action_type: "send_message",
+        config: {
+          message: "Oi {{nome}}, ainda posso te ajudar com algo? Fico no aguardo! 😊",
+          also_create_task: true,
+          task_title: "Retomar contato com {{nome}}",
+          task_description: "Lead sem resposta há mais de 24h.",
+          task_priority: "high",
+        },
+      },
+      {
+        name: "E-mail ao fechar venda",
+        trigger_type: "stage_changed",
+        action_type: "send_email",
+        config: {
+          subject: "Bem-vindo(a) à família, {{nome}}!",
+          email_body: "<p>Olá {{nome}},</p><p>Obrigado pela confiança! Já é nosso cliente. 🎉</p><p>Equipe ConectaCRM</p>",
+          condition: { target_stage_name: "Ganho" },
+        },
+      },
+    ];
+    const existing = new Set(items.map((i) => i.name));
+    const toInsert = presets.filter((p) => !existing.has(p.name)).map((p) => ({ ...p, user_id: user.id, is_active: true }));
+    if (toInsert.length === 0) { toast.info("Os 4 fluxos prontos já existem."); return; }
+    const { error } = await supabase.from("automations").insert(toInsert);
+    if (error) return toast.error(error.message);
+    toast.success(`${toInsert.length} fluxo(s) prontos adicionados!`);
+    load();
+  };
+
   const toggle = async (a: Automation) => {
     await supabase.from("automations").update({ is_active: !a.is_active }).eq("id", a.id);
     load();
