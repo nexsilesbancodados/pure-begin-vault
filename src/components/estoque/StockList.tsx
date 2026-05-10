@@ -165,12 +165,10 @@ import { toast } from "sonner";
   }, [searchTerm, filterCategory, viewTab, localProducts]);
 
   const handleAddProduct = async (data: any) => {
-    if (!user?.id) return;
-    const { data: profile } = await supabase.from('profiles').select('owner_id').eq('id', user.id).maybeSingle();
-    const ownerId = profile?.owner_id || user.id;
-
-    const payload = {
-      user_id: ownerId,
+    if (!user?.id || !orgId) return toast.error("Organização não encontrada");
+    const payload: any = {
+      user_id: user.id,
+      organization_id: orgId,
       ...data,
       price: Number(data.price || 0),
       cost_price: Number(data.cost_price || 0),
@@ -179,12 +177,12 @@ import { toast } from "sonner";
       wholesale_price: Number(data.wholesale_price || 0),
       weight: Number(data.weight || 0),
     };
-    delete payload.stock; // Remove virtual field
+    delete payload.stock;
 
     const { data: row, error } = await supabase.from("products").insert(payload).select().single();
     if (error) return toast.error("Erro ao criar: " + error.message);
     setLocalProducts((prev) => [{ ...row, stock: row.stock_quantity }, ...prev]);
-    fetchStats(); // Atualiza estatísticas após inserção
+    fetchStats();
     toast.success("Produto criado!");
   };
 
@@ -222,14 +220,13 @@ import { toast } from "sonner";
    };
 
     const handleQuickAdd = async () => {
-      if (!user?.id) return;
+      if (!user?.id || !orgId) return toast.error("Organização não encontrada");
       if (!quickProduct.name.trim()) { toast.error("Nome é obrigatório"); return; }
       setLoading(true);
-      const { data: profile } = await supabase.from('profiles').select('owner_id').eq('id', user.id).maybeSingle();
-      const ownerId = profile?.owner_id || user.id;
 
       const payload = {
-        user_id: ownerId,
+        user_id: user.id,
+        organization_id: orgId,
         name: quickProduct.name.trim(),
         cost_price: Number(quickProduct.cost_price || 0),
         price: Number(quickProduct.price || 0),
