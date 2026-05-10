@@ -88,6 +88,7 @@ export function LeadsTable() {
     if (error) { toast.error(error.message); return; }
     if (!editing.id && inserted?.id) {
       fireAutomation(user.id, "new_lead", { lead_id: inserted.id, phone: inserted.phone, email: inserted.email });
+      notify({ user_id: user.id, type: "lead_new", title: "Novo lead criado", body: inserted.name, link: "/leads" });
     }
     toast.success(editing.id ? "Lead atualizado" : "Lead criado");
     setEditing(null);
