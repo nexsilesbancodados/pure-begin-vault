@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { PipelineTabs } from "@/components/pipeline/PipelineTabs";
 import { fireAutomation } from "@/lib/automation-trigger";
+import { notify } from "@/lib/notify";
 
 type Lead = {
   id: string;
