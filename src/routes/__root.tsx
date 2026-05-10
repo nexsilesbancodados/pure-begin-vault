@@ -79,9 +79,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   return (
-    <AuthProvider>
-      <Outlet />
-      <PwaInstallPrompt />
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <Outlet />
+        <PwaInstallPrompt />
+      </AuthProvider>
+    </I18nProvider>
   );
 }
