@@ -25,6 +25,7 @@ import { Route as PdvRouteImport } from './routes/pdv'
 import { Route as PainelRouteImport } from './routes/painel'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NpsRouteImport } from './routes/nps'
+import { Route as MinhaContaRouteImport } from './routes/minha-conta'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as InstagramRouteImport } from './routes/instagram'
@@ -152,6 +153,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const NpsRoute = NpsRouteImport.update({
   id: '/nps',
   path: '/nps',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhaContaRoute = MinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -415,6 +421,7 @@ export interface FileRoutesByFullPath {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/minha-conta': typeof MinhaContaRoute
   '/nps': typeof NpsRoute
   '/onboarding': typeof OnboardingRoute
   '/painel': typeof PainelRoute
@@ -481,6 +488,7 @@ export interface FileRoutesByTo {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/minha-conta': typeof MinhaContaRoute
   '/nps': typeof NpsRoute
   '/onboarding': typeof OnboardingRoute
   '/painel': typeof PainelRoute
@@ -548,6 +556,7 @@ export interface FileRoutesById {
   '/instagram': typeof InstagramRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
+  '/minha-conta': typeof MinhaContaRoute
   '/nps': typeof NpsRoute
   '/onboarding': typeof OnboardingRoute
   '/painel': typeof PainelRoute
@@ -616,6 +625,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/minha-conta'
     | '/nps'
     | '/onboarding'
     | '/painel'
@@ -682,6 +692,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/minha-conta'
     | '/nps'
     | '/onboarding'
     | '/painel'
@@ -748,6 +759,7 @@ export interface FileRouteTypes {
     | '/instagram'
     | '/leads'
     | '/login'
+    | '/minha-conta'
     | '/nps'
     | '/onboarding'
     | '/painel'
@@ -815,6 +827,7 @@ export interface RootRouteChildren {
   InstagramRoute: typeof InstagramRoute
   LeadsRoute: typeof LeadsRoute
   LoginRoute: typeof LoginRoute
+  MinhaContaRoute: typeof MinhaContaRoute
   NpsRoute: typeof NpsRoute
   OnboardingRoute: typeof OnboardingRoute
   PainelRoute: typeof PainelRoute
@@ -950,6 +963,13 @@ declare module '@tanstack/react-router' {
       path: '/nps'
       fullPath: '/nps'
       preLoaderRoute: typeof NpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minha-conta': {
+      id: '/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/minha-conta'
+      preLoaderRoute: typeof MinhaContaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -1407,6 +1427,7 @@ const rootRouteChildren: RootRouteChildren = {
   InstagramRoute: InstagramRoute,
   LeadsRoute: LeadsRoute,
   LoginRoute: LoginRoute,
+  MinhaContaRoute: MinhaContaRoute,
   NpsRoute: NpsRoute,
   OnboardingRoute: OnboardingRoute,
   PainelRoute: PainelRoute,

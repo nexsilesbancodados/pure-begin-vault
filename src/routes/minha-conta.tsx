@@ -125,7 +125,7 @@ function MinhaContaPage() {
     <div className="flex h-screen bg-background">
       <AppSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar />
+        <Topbar title="Minha conta" />
         <main className="flex-1 overflow-auto p-6 space-y-6">
           <header>
             <h1 className="text-2xl font-bold tracking-tight">Minha conta</h1>
