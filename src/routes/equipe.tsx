@@ -16,24 +16,26 @@ export const Route = createFileRoute("/equipe")({
 function EquipePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
    const [team, setTeam] = useState<any[]>([]);
+   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
    const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, profile } = useAuth();
 
   useEffect(() => {
     fetchTeam();
-  }, []);
+  }, [profile?.organization_id]);
 
   const fetchTeam = async () => {
+    if (!profile?.organization_id) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('display_name', { ascending: true });
-      
-      if (error) throw error;
-      setTeam(data || []);
+      const [{ data: members, error: e1 }, { data: invites }] = await Promise.all([
+        supabase.from('profiles').select('*').eq('organization_id', profile.organization_id),
+        supabase.from('team_invitations').select('*').eq('organization_id', profile.organization_id).eq('status', 'pending').order('created_at', { ascending: false }),
+      ]);
+      if (e1) throw e1;
+      setTeam(members || []);
+      setPendingInvites(invites || []);
     } catch (error) {
       console.error('Error fetching team:', error);
       toast.error('Erro ao carregar equipe');
@@ -42,53 +44,51 @@ function EquipePage() {
     }
   };
 
+  const handleInvite = async (newMember: any) => {
+    if (!user?.id || !profile?.organization_id) return;
+    try {
+      const role = newMember.role.toLowerCase() === 'administrador' ? 'admin' :
+                   newMember.role.toLowerCase() === 'financeiro' ? 'financeiro' :
+                   newMember.role.toLowerCase() === 'vendedor' ? 'vendedor' : 'employee';
 
-    const handleInvite = async (newMember: any) => {
-      if (!user?.id) return;
-      
-      try {
-        // 1. Criar convite no banco (gera token automático)
-        const { data: invite, error: inviteErr } = await supabase
-          .from('team_invitations')
-          .insert({
-            user_id: user.id,
-            email: newMember.email,
-            role: newMember.role.toLowerCase() === 'administrador' ? 'admin' : 
-                  newMember.role.toLowerCase() === 'vendedor' ? 'vendedor' : 'vendedor'
-          })
-          .select()
-          .single();
+      const { data: invite, error: inviteErr } = await supabase
+        .from('team_invitations')
+        .insert({
+          organization_id: profile.organization_id,
+          invited_by: user.id,
+          email: newMember.email,
+          role,
+        })
+        .select()
+        .single();
 
-        if (inviteErr) throw inviteErr;
+      if (inviteErr) throw inviteErr;
 
-        // 2. Chamar Edge Function para enviar e-mail com template
-        const { error: emailErr } = await supabase.functions.invoke('send-email', {
-          body: {
-            to: newMember.email,
-            subject: `Você foi convidado para o ConectaCRM por ${user.email}`,
-            template: 'invite',
-            templateData: {
-              token: invite.token,
-              inviterEmail: user.email
-            }
-          }
-        });
+      const url = `${window.location.origin}/aceitar-convite/${invite.token}`;
+      try { await navigator.clipboard.writeText(url); } catch {}
+      toast.success(`Convite criado! Link copiado para a área de transferência.`, {
+        description: url,
+        duration: 8000,
+      });
+      fetchTeam();
+    } catch (error: any) {
+      console.error('Invite error:', error);
+      toast.error('Erro ao convidar: ' + (error.message || 'Erro interno'));
+    }
+  };
 
-        if (emailErr) throw emailErr;
-
-        toast.success(`Convite enviado para ${newMember.email}`);
-        fetchTeam();
-      } catch (error: any) {
-        console.error('Invite error:', error);
-        toast.error('Erro ao enviar convite: ' + (error.message || 'Erro interno'));
-      }
-    };
+  const handleRevokeInvite = async (id: string) => {
+    if (!confirm('Revogar este convite?')) return;
+    const { error } = await supabase.from('team_invitations').update({ status: 'revoked' }).eq('id', id);
+    if (error) return toast.error('Erro ao revogar');
+    toast.success('Convite revogado');
+    fetchTeam();
+  };
 
    const handleRemoveMember = async (id: string) => {
      if (!confirm("Tem certeza que deseja remover este membro?")) return;
-     
      try {
-       const { error } = await supabase.from('profiles').delete().eq('id', id);
+       const { error } = await supabase.from('profiles').update({ organization_id: null }).eq('id', id);
        if (error) throw error;
        toast.success("Membro removido");
        fetchTeam();
@@ -124,6 +124,27 @@ function EquipePage() {
                  </button>
                </div>
              </div>
+
+           {pendingInvites.length > 0 && (
+             <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+               <h3 className="text-sm font-bold text-slate-900 mb-3">Convites pendentes ({pendingInvites.length})</h3>
+               <div className="space-y-2">
+                 {pendingInvites.map((inv) => {
+                   const link = `${window.location.origin}/aceitar-convite/${inv.token}`;
+                   return (
+                     <div key={inv.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                       <div className="min-w-0 flex-1">
+                         <div className="text-sm font-semibold text-slate-900 truncate">{inv.email}</div>
+                         <div className="text-xs text-slate-500">{inv.role} · expira {new Date(inv.expires_at).toLocaleDateString('pt-BR')}</div>
+                       </div>
+                       <button onClick={() => { navigator.clipboard.writeText(link); toast.success('Link copiado'); }} className="text-xs font-semibold text-indigo-600 hover:underline">Copiar link</button>
+                       <button onClick={() => handleRevokeInvite(inv.id)} className="text-xs font-semibold text-red-500 hover:underline">Revogar</button>
+                     </div>
+                   );
+                 })}
+               </div>
+             </div>
+           )}
 
            {loading ? (
              <div className="flex justify-center p-20">

@@ -70,3 +70,13 @@ do $$ begin
       using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
   end if;
 end $$;
+
+-- 5) Allow org members to view each other's profiles (needed for /equipe)
+drop policy if exists "profiles org read" on public.profiles;
+create policy "profiles org read" on public.profiles for select
+  using (organization_id is not null and public.is_org_member(auth.uid(), organization_id));
+
+-- 6) Allow org admins to update member profiles (role changes)
+drop policy if exists "profiles org admin update" on public.profiles;
+create policy "profiles org admin update" on public.profiles for update
+  using (organization_id is not null and public.has_role(auth.uid(), organization_id, 'admin'::app_role));

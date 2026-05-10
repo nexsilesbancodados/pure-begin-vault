@@ -70,6 +70,7 @@ import { Route as EstoqueAtualRouteImport } from './routes/estoque.atual'
 import { Route as CrmConversasRouteImport } from './routes/crm_.conversas'
 import { Route as CrmCatalogoRouteImport } from './routes/crm_.catalogo'
 import { Route as CrmBotRouteImport } from './routes/crm_.bot'
+import { Route as AceitarConviteTokenRouteImport } from './routes/aceitar-convite.$token'
 import { Route as ApiEvolutionSplatRouteImport } from './routes/api/evolution/$'
 
 const WhatsappRoute = WhatsappRouteImport.update({
@@ -377,6 +378,11 @@ const CrmBotRoute = CrmBotRouteImport.update({
   path: '/crm/bot',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AceitarConviteTokenRoute = AceitarConviteTokenRouteImport.update({
+  id: '/aceitar-convite/$token',
+  path: '/aceitar-convite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiEvolutionSplatRoute = ApiEvolutionSplatRouteImport.update({
   id: '/api/evolution/$',
   path: '/api/evolution/$',
@@ -418,6 +424,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
+  '/aceitar-convite/$token': typeof AceitarConviteTokenRoute
   '/crm/bot': typeof CrmBotRoute
   '/crm/catalogo': typeof CrmCatalogoRoute
   '/crm/conversas': typeof CrmConversasRoute
@@ -482,6 +489,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
+  '/aceitar-convite/$token': typeof AceitarConviteTokenRoute
   '/crm/bot': typeof CrmBotRoute
   '/crm/catalogo': typeof CrmCatalogoRoute
   '/crm/conversas': typeof CrmConversasRoute
@@ -547,6 +555,7 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
+  '/aceitar-convite/$token': typeof AceitarConviteTokenRoute
   '/crm_/bot': typeof CrmBotRoute
   '/crm_/catalogo': typeof CrmCatalogoRoute
   '/crm_/conversas': typeof CrmConversasRoute
@@ -613,6 +622,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/vendas'
     | '/whatsapp'
+    | '/aceitar-convite/$token'
     | '/crm/bot'
     | '/crm/catalogo'
     | '/crm/conversas'
@@ -677,6 +687,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/vendas'
     | '/whatsapp'
+    | '/aceitar-convite/$token'
     | '/crm/bot'
     | '/crm/catalogo'
     | '/crm/conversas'
@@ -741,6 +752,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/vendas'
     | '/whatsapp'
+    | '/aceitar-convite/$token'
     | '/crm_/bot'
     | '/crm_/catalogo'
     | '/crm_/conversas'
@@ -806,6 +818,7 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   VendasRoute: typeof VendasRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
+  AceitarConviteTokenRoute: typeof AceitarConviteTokenRoute
   CrmBotRoute: typeof CrmBotRoute
   CrmCatalogoRoute: typeof CrmCatalogoRoute
   CrmConversasRoute: typeof CrmConversasRoute
@@ -1241,6 +1254,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmBotRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aceitar-convite/$token': {
+      id: '/aceitar-convite/$token'
+      path: '/aceitar-convite/$token'
+      fullPath: '/aceitar-convite/$token'
+      preLoaderRoute: typeof AceitarConviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/evolution/$': {
       id: '/api/evolution/$'
       path: '/api/evolution/$'
@@ -1382,6 +1402,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   VendasRoute: VendasRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
+  AceitarConviteTokenRoute: AceitarConviteTokenRoute,
   CrmBotRoute: CrmBotRoute,
   CrmCatalogoRoute: CrmCatalogoRoute,
   CrmConversasRoute: CrmConversasRoute,
