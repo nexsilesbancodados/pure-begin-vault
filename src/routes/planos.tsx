@@ -1,11 +1,13 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { MpPaymentBrick } from "@/components/billing/MpPaymentBrick";
 
 type Plan = {
   id: string;
@@ -19,14 +21,7 @@ type Plan = {
   sort_order: number;
 };
 
-type Search = { status?: "success" | "failure" | "pending" };
-
-export const Route = createFileRoute("/planos")({
-  component: PlanosPage,
-  validateSearch: (s: Record<string, unknown>): Search => ({
-    status: (s.status as Search["status"]) || undefined,
-  }),
-});
+export const Route = createFileRoute("/planos")({ component: PlanosPage });
 
 function formatBRL(cents: number) {
   return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -34,17 +29,11 @@ function formatBRL(cents: number) {
 
 function PlanosPage() {
   const navigate = useNavigate();
-  const { status } = useSearch({ from: "/planos" });
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState<string | null>(null);
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (status === "success") toast.success("Pagamento aprovado! Sua assinatura está ativa.");
-    if (status === "failure") toast.error("Pagamento recusado. Tente outro método.");
-    if (status === "pending") toast("Pagamento pendente — aguardando confirmação.");
-  }, [status]);
+  const [selected, setSelected] = useState<Plan | null>(null);
+  const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
     (async () => {
@@ -53,13 +42,12 @@ function PlanosPage() {
         .select("*")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
-      if (error) {
-        toast.error("Erro ao carregar planos: " + error.message);
-      } else {
-        setPlans((data || []) as Plan[]);
-      }
+      if (error) toast.error("Erro ao carregar planos: " + error.message);
+      else setPlans((data || []) as Plan[]);
+
       const { data: u } = await supabase.auth.getUser();
       if (u?.user) {
+        setUserEmail(u.user.email || "");
         const { data: sub } = await supabase
           .from("subscriptions")
           .select("status, plans:plan_id(slug)")
@@ -68,39 +56,21 @@ function PlanosPage() {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        // @ts-expect-error nested select
+        // @ts-expect-error nested
         if (sub?.plans?.slug) setCurrentSlug(sub.plans.slug);
       }
       setLoading(false);
     })();
   }, []);
 
-  async function subscribe(plan: Plan) {
-    try {
-      setPaying(plan.slug);
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
-        toast.error("Faça login para assinar.");
-        navigate({ to: "/login" });
-        return;
-      }
-      const { data, error } = await supabase.functions.invoke("mp-create-preference", {
-        body: {
-          plan_slug: plan.slug,
-          success_url: `${window.location.origin}/planos?status=success`,
-          failure_url: `${window.location.origin}/planos?status=failure`,
-          pending_url: `${window.location.origin}/planos?status=pending`,
-        },
-      });
-      if (error) throw error;
-      const url = (data as any)?.init_point || (data as any)?.sandbox_init_point;
-      if (!url) throw new Error("Mercado Pago não retornou URL de checkout");
-      window.location.href = url;
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao iniciar checkout");
-    } finally {
-      setPaying(null);
+  async function startCheckout(p: Plan) {
+    const { data: s } = await supabase.auth.getSession();
+    if (!s.session) {
+      toast.error("Faça login para assinar.");
+      navigate({ to: "/login" });
+      return;
     }
+    setSelected(p);
   }
 
   return (
@@ -111,7 +81,7 @@ function PlanosPage() {
             Escolha seu <span className="text-gradient-primary">plano</span>
           </h1>
           <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">
-            Pagamento seguro via Mercado Pago. Cartão, PIX ou boleto. Cancele quando quiser.
+            Pagamento seguro pelo nosso site via Mercado Pago — Cartão, PIX ou Boleto. Sem redirect.
           </p>
         </div>
 
@@ -154,12 +124,10 @@ function PlanosPage() {
                     <Button
                       className="mt-6 w-full"
                       variant={featured ? "default" : "outline"}
-                      disabled={paying !== null || isCurrent}
-                      onClick={() => subscribe(p)}
+                      disabled={isCurrent}
+                      onClick={() => startCheckout(p)}
                     >
-                      {isCurrent ? "Plano atual" : paying === p.slug ? (
-                        <><Loader2 className="h-4 w-4 animate-spin mr-2" />Redirecionando…</>
-                      ) : "Assinar"}
+                      {isCurrent ? "Plano atual" : "Assinar"}
                     </Button>
                   </CardContent>
                 </Card>
@@ -169,9 +137,31 @@ function PlanosPage() {
         )}
 
         <p className="text-center text-xs text-muted-foreground mt-10">
-          Pagamentos processados por Mercado Pago. Você será redirecionado para concluir a compra.
+          Pagamentos processados por Mercado Pago. Seus dados de cartão são criptografados e nunca passam pelos nossos servidores.
         </p>
       </div>
+
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Pagamento — {selected?.name}</DialogTitle>
+            <DialogDescription>
+              {selected && `${formatBRL(selected.price_cents)} / ${selected.interval === "month" ? "mês" : selected.interval}`}
+            </DialogDescription>
+          </DialogHeader>
+          {selected && (
+            <MpPaymentBrick
+              planSlug={selected.slug}
+              amount={Number((selected.price_cents / 100).toFixed(2))}
+              payerEmail={userEmail}
+              onSuccess={() => {
+                setCurrentSlug(selected.slug);
+                setTimeout(() => setSelected(null), 2500);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
