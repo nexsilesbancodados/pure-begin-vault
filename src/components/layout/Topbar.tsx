@@ -8,6 +8,7 @@ export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subt
   const navigate = useNavigate();
    const location = useLocation();
    const { user, profile } = useAuth();
+   const { locale, setLocale } = useI18n();
    const isHome = location.pathname === "/";
 
   return (
