@@ -60,9 +60,13 @@ type Ctx = { locale: Locale; setLocale: (l: Locale) => void; t: (k: string) => s
 const I18nContext = createContext<Ctx>({ locale: "pt", setLocale: () => {}, t: (k) => k });
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => (localStorage.getItem("locale") as Locale) || "pt");
-  useEffect(() => { document.documentElement.lang = locale; }, [locale]);
-  const setLocale = (l: Locale) => { localStorage.setItem("locale", l); setLocaleState(l); };
+  const [locale, setLocaleState] = useState<Locale>("pt");
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? (localStorage.getItem("locale") as Locale | null) : null;
+    if (saved) setLocaleState(saved);
+  }, []);
+  useEffect(() => { if (typeof document !== "undefined") document.documentElement.lang = locale; }, [locale]);
+  const setLocale = (l: Locale) => { if (typeof window !== "undefined") localStorage.setItem("locale", l); setLocaleState(l); };
   const t = (k: string) => dict[locale][k] ?? dict.pt[k] ?? k;
   return <I18nContext.Provider value={{ locale, setLocale, t }}>{children}</I18nContext.Provider>;
 }
