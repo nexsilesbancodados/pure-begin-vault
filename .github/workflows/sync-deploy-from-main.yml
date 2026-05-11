@@ -1,0 +1,49 @@
+name: Sync deploy/vps from main
+
+# Lovable pushes to main. This workflow rebases (merges) main into deploy/vps
+# so the VPS auto-deploy script picks up the changes.
+#
+# Conflicts will fail the workflow — that means the deploy/vps branch has
+# diverged in a way main can't be auto-merged (e.g. someone edited the same
+# file as a Lovable change). Open the workflow logs to see the conflict and
+# resolve manually with `git checkout deploy/vps && git merge origin/main`.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: sync-deploy-from-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout deploy/vps
+        uses: actions/checkout@v4
+        with:
+          ref: deploy/vps
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.email "lovable-sync@conectaphone.com"
+          git config user.name "Lovable Sync Bot"
+
+      - name: Merge main into deploy/vps
+        run: |
+          git fetch origin main
+          if git merge --no-edit origin/main; then
+            echo "Merged cleanly"
+          else
+            echo "::error::Merge conflict between main and deploy/vps. Resolve manually."
+            git merge --abort
+            exit 1
+          fi
+
+      - name: Push deploy/vps
+        run: git push origin deploy/vps
