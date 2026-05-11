@@ -112,10 +112,25 @@ async function sendWebResponse(webRes, res) {
 }
 
 const mod = await import(SERVER_ENTRY);
-const handler = mod.default || mod.handler || mod.fetch;
+// TanStack Start emits { default: { fetch }, createServerEntry }. Older builds may
+// expose a top-level fetch/handler or a callable default. Accept all shapes.
+function resolveHandler(m) {
+  const candidates = [
+    m.default,
+    m.default?.fetch,
+    m.handler,
+    m.fetch,
+    typeof m.createServerEntry === "function" ? m.createServerEntry()?.fetch : null,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "function") return c;
+  }
+  return null;
+}
+const handler = resolveHandler(mod);
 if (typeof handler !== "function") {
-  console.error("[server] dist/server/server.js does not export a callable default/handler/fetch.");
-  console.error("[server] Exports:", Object.keys(mod));
+  console.error("[server] dist/server/server.js has no callable handler. Module exports:", Object.keys(mod));
+  console.error("[server] default keys:", mod.default && typeof mod.default === "object" ? Object.keys(mod.default) : typeof mod.default);
   process.exit(1);
 }
 
