@@ -243,8 +243,64 @@ serve(async (req) => {
           ? `\n\n=== CATÁLOGO DISPONÍVEL ===\nUse APENAS itens deste catálogo ao oferecer produtos/serviços. Quando o cliente pedir algo (ex: "iPhone"), liste TODOS os itens compatíveis com nome, preço e (se houver) link da foto. Se não houver item compatível, diga honestamente que não tem disponível.\n\n${productLines ? `PRODUTOS:\n${productLines}` : ""}${productLines && serviceLines ? "\n\n" : ""}${serviceLines ? `SERVIÇOS:\n${serviceLines}` : ""}\n=== FIM DO CATÁLOGO ===`
           : "";
 
+        // Contexto de cliente — tenta achar pelo telefone
+        let customerBlock = "";
+        try {
+          const cleanPhone = phone.replace(/\D/g, "");
+          const { data: customer } = await supabase
+            .from("customers")
+            .select("id, name, created_at")
+            .eq("user_id", userId)
+            .ilike("phone", `%${cleanPhone.slice(-9)}%`)
+            .limit(1)
+            .maybeSingle();
+          if (customer) {
+            const [salesRes, osRes] = await Promise.all([
+              supabase
+                .from("sales_orders")
+                .select("created_at, total_amount, status")
+                .eq("customer_id", customer.id)
+                .order("created_at", { ascending: false })
+                .limit(10),
+              supabase
+                .from("service_orders")
+                .select("os_number, equipment, status, created_at")
+                .eq("customer_id", customer.id)
+                .order("created_at", { ascending: false })
+                .limit(5),
+            ]);
+            const sales = (salesRes.data ?? []) as any[];
+            const totalSpent = sales.filter((s) => s.status !== "cancelada").reduce((a, b) => a + Number(b.total_amount ?? 0), 0);
+            const lastSale = sales[0];
+            const daysSinceLast = lastSale
+              ? Math.floor((Date.now() - new Date(lastSale.created_at).getTime()) / 86400000)
+              : null;
+            const openOs = (osRes.data ?? []).filter(
+              (o: any) => o.status !== "entregue" && o.status !== "concluida" && o.status !== "cancelada"
+            );
+
+            const lines = [
+              `Nome cadastrado: ${customer.name}`,
+              `Cliente desde: ${new Date(customer.created_at).toLocaleDateString("pt-BR")}`,
+              `Compras: ${sales.length}${sales.length ? ` · total R$ ${totalSpent.toFixed(2)}` : ""}`,
+              daysSinceLast !== null ? `Última compra: há ${daysSinceLast} dias` : "Sem compras ainda",
+            ];
+            if (openOs.length > 0) {
+              lines.push(
+                `OS em aberto (${openOs.length}): ` +
+                  openOs
+                    .map((o: any) => `#${o.os_number ?? "?"} ${o.equipment} [${o.status}]`)
+                    .join("; ")
+              );
+            }
+            customerBlock = `\n\n=== HISTÓRICO DESTE CLIENTE ===\n${lines.join("\n")}\n\nUse essas informações pra personalizar o atendimento (chame pelo nome, mencione compras anteriores se relevante, ofereça reativação se inativo há +90 dias).\n=== FIM HISTÓRICO ===`;
+          }
+        } catch (e) {
+          console.warn("customer context failed:", e);
+        }
+
         const messages = [
-          { role: "system", content: (settings.system_prompt || "") + catalogBlock },
+          { role: "system", content: (settings.system_prompt || "") + catalogBlock + customerBlock },
           ...transcript.slice(-12).map((m) => ({ role: m.role, content: m.content })),
         ];
         const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

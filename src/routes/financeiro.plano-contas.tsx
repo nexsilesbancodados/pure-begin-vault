@@ -18,6 +18,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SeedDreButton } from "@/components/financeiro/SeedDreButton";
 
 function FinancePlanoContasPage() {
   const queryClient = useQueryClient();
@@ -233,7 +234,8 @@ function FinancePlanoContasPage() {
                     {seedMutation.isPending ? "Carregando..." : "Carregar Plano Padrão"}
                   </Button>
                 )}
-                <Button 
+                <SeedDreButton onDone={() => queryClient.invalidateQueries({ queryKey: ["chart_of_accounts"] })} />
+                <Button
                   onClick={() => setIsModalOpen(true)}
                   className="h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-6 shadow-lg shadow-blue-200"
                 >

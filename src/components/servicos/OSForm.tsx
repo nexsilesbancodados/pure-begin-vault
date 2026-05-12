@@ -11,6 +11,7 @@
  import { useNavigate } from "@tanstack/react-router";
  import { Search, UserPlus, Loader2, ArrowLeft, Wrench } from "lucide-react";
  import { useOrg } from "@/lib/useOrg";
+import { notifyOsStatusChange } from "@/lib/os-notify";
 
  export function OSForm() {
    const { user } = useAuth();
@@ -52,15 +53,23 @@
 
      setLoading(true);
      try {
-       const { error } = await supabase.from("service_orders").insert([{
-         ...formData,
-         user_id: user.id,
-         organization_id: orgId,
-         estimated_cost: parseFloat(formData.estimated_cost) || 0,
-       }]);
+       const { data: created, error } = await supabase
+         .from("service_orders")
+         .insert([{
+           ...formData,
+           user_id: user.id,
+           organization_id: orgId,
+           estimated_cost: parseFloat(formData.estimated_cost) || 0,
+         }])
+         .select()
+         .single();
 
        if (error) throw error;
        toast.success("Ordem de serviço aberta com sucesso!");
+       if (created?.id) {
+         const trackUrl = `${window.location.origin}/os-track/${created.id}`;
+         notifyOsStatusChange({ os_id: created.id, newStatus: "recebida", trackUrl }).catch(() => {});
+       }
        navigate({ to: "/servicos" });
      } catch (error: any) {
        toast.error("Erro ao criar OS: " + error.message);

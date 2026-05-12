@@ -2,6 +2,7 @@
  import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Banknote, QrCode, User, Package, ChevronRight, X, UserPlus, Info, Loader2, ArrowLeft, History, Calculator, Percent, Tag, ReceiptText, Printer, FileText, CheckCircle2, Eraser, ChevronDown } from "lucide-react";
 import { Product } from "@/lib/mock";
 import { ProductForm } from "@/components/estoque/ProductForm";
+import { PixCharge } from "@/components/vendas/PixCharge";
  import { toast } from "sonner";
  import { supabase } from "@/integrations/supabase/client";
  import { useAuth } from "@/contexts/AuthContext";
@@ -931,9 +932,9 @@ import { ProductForm } from "@/components/estoque/ProductForm";
                     </Label>
                     <div className="relative" ref={searchContainerRef}>
                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-xs">R$</span>
-                      <Input 
-                        type="number" 
-                        placeholder="0,00" 
+                      <Input
+                        type="number"
+                        placeholder="0,00"
                         className="pl-8 h-10 font-bold text-sm"
                         value={pixAmount}
                         onChange={(e) => setPixAmount(e.target.value)}
@@ -943,6 +944,14 @@ import { ProductForm } from "@/components/estoque/ProductForm";
                     </div>
                   </div>
                 </div>
+
+                {parseFloat(pixAmount) > 0 && (
+                  <PixCharge
+                    amount={parseFloat(pixAmount)}
+                    txId={`PDV${Date.now().toString().slice(-10)}`}
+                    description={selectedCustomer?.name ? `Venda ${selectedCustomer.name}` : "Venda PDV"}
+                  />
+                )}
 
                 <div className="bg-muted/50 p-4 rounded-xl space-y-2 border border-border">
                   <div className="flex flex-col gap-1">

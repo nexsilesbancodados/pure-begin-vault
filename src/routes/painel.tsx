@@ -5,6 +5,7 @@ import { KpiCard } from "@/components/dashboard/KpiCard";
 import { TasksCard, AutomationsCard, AgendaCard, DispatchCard } from "@/components/dashboard/SidePanels";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { HeroHeader } from "@/components/dashboard/HeroHeader";
+import { LowStockAlert } from "@/components/dashboard/LowStockAlert";
 import { GoalProgress } from "@/components/dashboard/GoalProgress";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
   import { useState, Suspense, lazy } from "react";
@@ -73,6 +74,8 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
            />
 
            <QuickActions />
+
+           <LowStockAlert />
 
              <div className="flex flex-col xl:flex-row gap-4 sm:gap-6">
              <div className="flex-1 flex flex-col gap-6 min-w-0">

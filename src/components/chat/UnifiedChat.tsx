@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { evolution } from "@/lib/evolution";
+import { CustomerSummary } from "@/components/chat/CustomerSummary";
 
 type Msg = { role: "user" | "assistant" | "agent"; content: string; at?: string; sent?: boolean };
 type Conversation = {
@@ -622,13 +623,16 @@ export function UnifiedChat() {
                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/60 grid place-items-center font-bold text-sm text-white shrink-0">
                     {(selected.contact_name ?? selected.contact_phone).slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h2 className="font-bold text-sm truncate">
                       {selected.contact_name ?? selected.contact_phone}
                     </h2>
                     <p className="text-[10px] text-muted-foreground">
                       {selected.contact_phone} · {selected.messages_count} mensagens
                     </p>
+                    <div className="mt-2 hidden md:block">
+                      <CustomerSummary phone={selected.contact_phone} />
+                    </div>
                   </div>
                 </div>
                 <button
