@@ -91,7 +91,7 @@ export function LeadsTable() {
     if (error) { toast.error(error.message); return; }
     if (!editing.id && inserted?.id) {
       fireAutomation(user.id, "new_lead", { lead_id: inserted.id, phone: inserted.phone, email: inserted.email });
-      notify({ user_id: user.id, type: "lead_new", title: "Novo lead criado", body: inserted.name, link: "/leads" });
+      notify({ user_id: user.id, organization_id: orgId, type: "lead_new", title: "Novo lead criado", body: inserted.name, link: "/leads" });
     }
     toast.success(editing.id ? "Lead atualizado" : "Lead criado");
     setEditing(null);
@@ -108,13 +108,14 @@ export function LeadsTable() {
       source: "manual",
       status: "new",
       user_id: user.id,
+      organization_id: orgId,
     };
     const { data: inserted, error } = await supabase.from("leads").insert(payload).select().maybeSingle();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     if (inserted?.id) {
       fireAutomation(user.id, "new_lead", { lead_id: inserted.id, phone: inserted.phone });
-      notify({ user_id: user.id, type: "lead_new", title: "Novo lead criado", body: inserted.name, link: "/leads" });
+      notify({ user_id: user.id, organization_id: orgId, type: "lead_new", title: "Novo lead criado", body: inserted.name, link: "/leads" });
     }
     toast.success("Lead cadastrado com sucesso!");
     setQuickLead({ name: "", phone: "" });

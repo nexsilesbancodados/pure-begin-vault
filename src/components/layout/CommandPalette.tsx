@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/useOrg";
 import { User as UserIcon, Box as ProductIcon } from "lucide-react";
 import {
   Search,
@@ -115,6 +116,7 @@ export function CommandPalette() {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [dataResults, setDataResults] = useState<Command[]>([]);
   const navigate = useNavigate();
+  const { orgId } = useOrg();
 
   useEffect(() => {
     const q = query.trim();
@@ -122,9 +124,11 @@ export function CommandPalette() {
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
+        const baseCust = (supabase as any).from("customers").select("id, name, phone").or(`name.ilike.%${q}%,phone.ilike.%${q}%`).limit(5);
+        const baseProd = (supabase as any).from("products").select("id, name").ilike("name", `%${q}%`).limit(5);
         const [customers, products] = await Promise.all([
-          (supabase as any).from("customers").select("id, name, phone").or(`name.ilike.%${q}%,phone.ilike.%${q}%`).limit(5),
-          (supabase as any).from("products").select("id, name").ilike("name", `%${q}%`).limit(5),
+          orgId ? baseCust.eq("organization_id", orgId) : baseCust,
+          orgId ? baseProd.eq("organization_id", orgId) : baseProd,
         ]);
         if (cancelled) return;
         const res: Command[] = [];
@@ -138,7 +142,7 @@ export function CommandPalette() {
       } catch {}
     }, 250);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [query]);
+  }, [query, orgId]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

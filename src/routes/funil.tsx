@@ -175,11 +175,8 @@ type Deal = {
         }
 
         if (resetPipeline) {
-          const { error: resetError } = await supabase
-            .from("pipeline_leads")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("instance_name", instance);
+          const baseDel = supabase.from("pipeline_leads").delete().eq("instance_name", instance);
+          const { error: resetError } = await (orgId ? baseDel.eq("organization_id", orgId) : baseDel.eq("user_id", user.id));
           
           if (resetError) {
             console.error("Erro ao resetar pipeline:", resetError);
@@ -194,8 +191,8 @@ type Deal = {
 
         let existingQuery = supabase
           .from("bot_conversations")
-          .select("id, contact_phone, contact_name, transcript, status, last_message_at, instance_name")
-          .eq("user_id", user.id);
+          .select("id, contact_phone, contact_name, transcript, status, last_message_at, instance_name");
+        existingQuery = orgId ? existingQuery.eq("organization_id", orgId) : existingQuery.eq("user_id", user.id);
         
         const { data: existingRows, error: existingError } = await existingQuery
           .order("last_message_at", { ascending: false });
@@ -419,14 +416,12 @@ type Deal = {
        // Normaliza: tira tudo que não é dígito
        const normalized = phone.replace(/\D/g, "");
        // Tenta exato primeiro, depois por sufixo (cobre variações com/sem DDI)
-       let { data, error } = await supabase
-         .from("bot_conversations")
-         .select("*")
-         .eq("user_id", user.id)
+       const baseConv = supabase.from("bot_conversations").select("*")
          .or(`contact_phone.eq.${normalized},contact_phone.eq.${phone},contact_phone.like.%${normalized.slice(-10)}`)
          .order("last_message_at", { ascending: false })
          .limit(1)
          .maybeSingle();
+       let { data, error } = await (orgId ? (baseConv as any).eq("organization_id", orgId) : (baseConv as any).eq("user_id", user.id));
 
        if (error) throw error;
        if (data) {

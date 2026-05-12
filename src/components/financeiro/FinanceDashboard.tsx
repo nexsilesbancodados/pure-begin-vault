@@ -37,10 +37,8 @@ export function FinanceDashboard() {
      if (!user?.id) return;
      setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from("finance_transactions")
-          .select("*")
-          .eq("user_id", user.id)
+        const baseF = supabase.from("finance_transactions").select("*");
+        const { data, error } = await (orgId ? baseF.eq("organization_id", orgId) : baseF.eq("user_id", user.id))
           .order('created_at', { ascending: false });
        if (error) throw error;
        setTransactions(data || []);

@@ -168,10 +168,8 @@ export function UnifiedChat() {
 
     setSyncing(true);
     try {
-      const { data: existing, error: existingError } = await supabase
-        .from("bot_conversations")
-        .select("*")
-        .eq("user_id", user.id);
+      const baseExist = supabase.from("bot_conversations").select("*");
+      const { data: existing, error: existingError } = await (orgId ? baseExist.eq("organization_id", orgId) : baseExist.eq("user_id", user.id));
 
       if (existingError) throw existingError;
 

@@ -83,7 +83,7 @@ function GrowthReports() {
         const { data: msgs } = await supabase
           .from("messages")
           .select("lead_id, direction, created_at")
-          .eq("user_id", user.id)
+          .eq("organization_id", profile.organization_id)
           .gte("created_at", since)
           .order("created_at");
         const byLead = new Map<string, any[]>();

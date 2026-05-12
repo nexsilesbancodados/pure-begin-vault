@@ -51,12 +51,8 @@ function CalendarPage() {
     setLoading(true);
     const start = startOfMonth(cursor).toISOString();
     const end = new Date(endOfMonth(cursor).getTime() + 86400000).toISOString();
-    const { data } = await supabase
-      .from("tasks")
-      .select("*")
-      .eq("user_id", user.id)
-      .gte("due_date", start)
-      .lte("due_date", end)
+    const baseT = supabase.from("tasks").select("*").gte("due_date", start).lte("due_date", end);
+    const { data } = await (orgId ? baseT.eq("organization_id", orgId) : baseT.eq("user_id", user.id))
       .order("due_date", { ascending: true });
     setTasks((data as any) || []);
     setLoading(false);

@@ -50,7 +50,7 @@ function MobileAtendimento() {
     const { data } = await supabase
       .from("bot_conversations")
       .select("id, contact_name, contact_phone, last_message_text, last_message_at, status, unread_count")
-      .eq("user_id", user.id)
+      .eq("organization_id", orgId)
       .order("last_message_at", { ascending: false })
       .limit(50);
     setConvs((data as Conv[]) ?? []);

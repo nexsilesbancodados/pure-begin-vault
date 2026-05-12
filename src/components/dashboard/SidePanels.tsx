@@ -3,12 +3,14 @@ import { useState, useEffect } from "react";
  import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export function TasksCard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [tasksList, setTasksList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,17 +19,13 @@ export function TasksCard() {
     (async () => {
       const today = new Date();
       today.setHours(0,0,0,0);
-      const { data } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("user_id", user.id)
-        .neq("status", "completed")
-        .limit(5);
-      
+      const baseT = supabase.from("tasks").select("*").neq("status", "completed").limit(5);
+      const { data } = await (orgId ? baseT.eq("organization_id", orgId) : baseT.eq("user_id", user.id));
+
       setTasksList(data || []);
       setLoading(false);
     })();
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   const toggleTask = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === "completed" ? "pending" : "completed";
@@ -215,6 +213,7 @@ export function TasksCard() {
  export function DispatchCard() {
    const navigate = useNavigate();
    const { user } = useAuth();
+   const { orgId } = useOrg();
    const [stats, setStats] = useState({ total: 0, sent: 0, received: 0 });
 
    useEffect(() => {
@@ -222,12 +221,13 @@ export function TasksCard() {
      (async () => {
        const today = new Date();
        today.setHours(0,0,0,0);
-       const { count: total, error: totalErr } = await supabase.from("messages").select("*", { count: 'exact', head: true }).eq("user_id", user.id).gte("created_at", today.toISOString());
-       const { count: sent } = await supabase.from("messages").select("*", { count: 'exact', head: true }).eq("user_id", user.id).eq("direction", "outgoing").gte("created_at", today.toISOString());
-       const { count: received, error: recvErr } = await supabase.from("messages").select("*", { count: 'exact', head: true }).eq("user_id", user.id).eq("direction", "incoming").gte("created_at", today.toISOString());
+       const filt = (q: any) => orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
+       const { count: total } = await filt(supabase.from("messages").select("*", { count: 'exact', head: true }).gte("created_at", today.toISOString()));
+       const { count: sent } = await filt(supabase.from("messages").select("*", { count: 'exact', head: true }).eq("direction", "outgoing").gte("created_at", today.toISOString()));
+       const { count: received } = await filt(supabase.from("messages").select("*", { count: 'exact', head: true }).eq("direction", "incoming").gte("created_at", today.toISOString()));
        setStats({ total: total || 0, sent: sent || 0, received: received || 0 });
      })();
-   }, [user?.id]);
+   }, [user?.id, orgId]);
 
    const items = [
      { icon: Send, label: "Total de hoje", value: String(stats.total), color: "var(--color-primary)" },

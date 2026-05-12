@@ -73,10 +73,8 @@ function InboxPage() {
         .order("updated_at", { ascending: false });
 
       // Pega últimas mensagens por lead
-      const { data: msgs } = await supabase
-        .from("messages")
-        .select("id, lead_id, content, direction, created_at, phone")
-        .eq("user_id", user.id)
+      const baseMsg = supabase.from("messages").select("id, lead_id, content, direction, created_at, phone");
+      const { data: msgs } = await (orgId ? baseMsg.eq("organization_id", orgId) : baseMsg.eq("user_id", user.id))
         .order("created_at", { ascending: false })
         .limit(500);
 
