@@ -82,6 +82,7 @@ export function LeadsTable() {
       source: editing.source || "manual",
       status: editing.status || "new",
       user_id: user.id,
+      organization_id: orgId,
     };
     const { data: inserted, error } = editing.id
       ? await supabase.from("leads").update(payload).eq("id", editing.id).select().maybeSingle()

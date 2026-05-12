@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, Circle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +38,7 @@ function sameDay(a: Date, b: Date) {
 
 function CalendarPage() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [cursor, setCursor] = useState(new Date());
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +94,7 @@ function CalendarPage() {
     const due = new Date(selected); due.setHours(9, 0, 0, 0);
     const { error } = await supabase.from("tasks").insert({
       user_id: user.id,
+      organization_id: orgId,
       title: form.title.trim(),
       description: form.description || null,
       priority: form.priority,

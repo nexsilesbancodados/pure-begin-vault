@@ -7,6 +7,7 @@ import { LayoutGrid, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 
 interface AddStageDialogProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface AddStageDialogProps {
 
 export function AddStageDialog({ open, onOpenChange, onSuccess, stagesCount }: AddStageDialogProps) {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [color, setColor] = useState("#8B5CF6");
@@ -42,6 +44,7 @@ export function AddStageDialog({ open, onOpenChange, onSuccess, stagesCount }: A
       const nextIndex = stagesCount;
       const { error } = await supabase.from("funnel_stages").insert({
         user_id: user.id,
+        organization_id: orgId,
         name,
         order_index: nextIndex,
         color

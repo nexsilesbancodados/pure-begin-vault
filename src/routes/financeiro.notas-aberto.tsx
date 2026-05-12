@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { format, isAfter, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -57,6 +58,7 @@ export const Route = createFileRoute("/financeiro/notas-aberto")({
 
 function NotasAbertoPage() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,11 +85,11 @@ function NotasAbertoPage() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const base = supabase
         .from("finance_transactions")
         .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "pending")
+        .eq("status", "pending");
+      const { data, error } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id))
         .order("due_date", { ascending: true });
 
       if (error) throw error;
@@ -98,7 +100,7 @@ function NotasAbertoPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   useEffect(() => {
     fetchTransactions();
@@ -150,6 +152,7 @@ function NotasAbertoPage() {
          .from("finance_transactions")
          .insert([{
            user_id: user.id,
+           organization_id: orgId,
            description: newNote.description,
            amount: Number(newNote.amount),
            due_date: newNote.due_date,

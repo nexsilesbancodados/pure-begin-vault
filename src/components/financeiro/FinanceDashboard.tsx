@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
  import { useState, useEffect, useMemo } from "react";
  import { supabase } from "@/integrations/supabase/client";
  import { useAuth } from "@/contexts/AuthContext";
+ import { useOrg } from "@/lib/useOrg";
  import { startOfMonth, endOfMonth, subMonths, format, isWithinInterval } from "date-fns";
  import { ptBR } from "date-fns/locale";
  import { TransactionForm } from "./TransactionForm";
@@ -26,6 +27,7 @@ import { Button } from "@/components/ui/button";
 export function FinanceDashboard() {
   const navigate = useNavigate();
    const { user } = useAuth();
+   const { orgId } = useOrg();
    const [transactions, setTransactions] = useState<any[]>([]);
    const [loading, setLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -138,7 +140,7 @@ export function FinanceDashboard() {
        } else {
          const { error } = await supabase
            .from("finance_transactions")
-           .insert([{ ...data, user_id: user.id }]);
+           .insert([{ ...data, user_id: user.id, organization_id: orgId }]);
          if (error) throw error;
          toast.success("Lançamento criado!");
        }

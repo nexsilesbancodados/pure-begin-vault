@@ -8,6 +8,7 @@ import { Plus, UserPlus, CreditCard, Phone, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 
 interface AddDealDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface AddDealDialogProps {
 
 export function AddDealDialog({ open, onOpenChange, initialStageId, leads, onSuccess }: AddDealDialogProps) {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"select" | "create">("select");
   const [selectedLeadId, setSelectedLeadId] = useState("");
@@ -44,6 +46,7 @@ export function AddDealDialog({ open, onOpenChange, initialStageId, leads, onSuc
           .from("leads")
           .insert({
             user_id: user.id,
+            organization_id: orgId,
             name: newName,
             phone: newPhone,
             source: "manual"
@@ -65,6 +68,7 @@ export function AddDealDialog({ open, onOpenChange, initialStageId, leads, onSuc
         .from("pipeline_leads")
         .insert({
           user_id: user.id,
+          organization_id: orgId,
           lead_id: leadId,
           stage_id: initialStageId,
           deal_value: Number(value || 0)

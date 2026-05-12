@@ -5,6 +5,7 @@ import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from "lucide-rea
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
  import * as XLSX from "xlsx";
 
 interface SalesImportModalProps {
@@ -15,6 +16,7 @@ interface SalesImportModalProps {
 
 export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImportModalProps) {
    const { user } = useAuth();
+   const { orgId } = useOrg();
   const [isImporting, setIsImporting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
    const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,6 +65,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
        // Esperamos colunas como: valor, metodo_pagamento, status, data
        const salesToInsert = data.map((row: any) => ({
          user_id: user.id,
+         organization_id: orgId,
          total_amount: parseFloat(row.valor || row.total || row.Amount || 0),
          payment_method: row.metodo_pagamento || row.payment_method || "Pix",
           status: row.status || "concluded",

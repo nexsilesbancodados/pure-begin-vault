@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
  import { Wallet, ArrowUpCircle, ArrowDownCircle, Search, Filter, MoreHorizontal, Plus, Download, Calendar, ArrowUpRight, ArrowDownLeft, Loader2, Trash2, Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/financeiro/caixa")({
 
 function FinanceCaixaPage() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,10 +32,8 @@ function FinanceCaixaPage() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("finance_transactions")
-        .select("*")
-        .eq("user_id", user.id)
+      const base = supabase.from("finance_transactions").select("*");
+      const { data, error } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id))
         .order("payment_date", { ascending: false });
 
       if (error) throw error;
@@ -44,7 +44,7 @@ function FinanceCaixaPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   useEffect(() => {
     fetchTransactions();
@@ -70,7 +70,8 @@ function FinanceCaixaPage() {
            .from("finance_transactions")
            .insert([{
              ...data,
-             user_id: user.id
+             user_id: user.id,
+             organization_id: orgId,
            }]);
          
          if (error) throw error;

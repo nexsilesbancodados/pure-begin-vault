@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -49,6 +50,7 @@ const channelMeta: Record<Channel, { icon: any; label: string; cls: string }> = 
 
 function InboxPage() {
   const { user, profile } = useAuth();
+  const { orgId } = useOrg();
   const [loading, setLoading] = useState(true);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [filter, setFilter] = useState<Channel | "all">("all");
@@ -148,6 +150,7 @@ function InboxPage() {
       } else {
         await supabase.from("messages").insert({
           user_id: user.id,
+          organization_id: orgId,
           lead_id: current.leadId,
           content: reply.trim(),
           direction: "outbound",

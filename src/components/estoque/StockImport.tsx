@@ -18,6 +18,7 @@
  import * as XLSX from "xlsx";
  import { supabase } from "@/integrations/supabase/client";
  import { useAuth } from "@/contexts/AuthContext";
+ import { useOrg } from "@/lib/useOrg";
  
  interface StockImportProps {
    onImported: (products: any[]) => void;
@@ -25,6 +26,7 @@
  
  export function StockImport({ onImported }: StockImportProps) {
    const { user } = useAuth();
+   const { orgId } = useOrg();
    const [isOpen, setIsOpen] = useState(false);
    const [loading, setLoading] = useState(false);
    const [progress, setProgress] = useState(0);
@@ -195,6 +197,7 @@
         for (let i = 0; i < totalItems; i += CHUNK_SIZE) {
           const chunk = previewData.slice(i, i + CHUNK_SIZE).map(p => ({
             user_id: user.id,
+            organization_id: orgId,
             import_id: history.id,
             name: String(p.name || "Produto sem nome"),
             price: Number(p.price || 0),
