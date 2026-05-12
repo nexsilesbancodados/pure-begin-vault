@@ -132,9 +132,12 @@ export function TasksCard() {
    const { user } = useAuth();
    const [events, setEvents] = useState<any[]>([]);
    const [loading, setLoading] = useState(true);
-   const [m] = useState(new Date());
+   const [m, setM] = useState(new Date());
+   const today = new Date();
   const days = ["D","S","T","Q","Q","S","S"];
   const monthName = m.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const prevMonth = () => { const d = new Date(m); d.setMonth(d.getMonth() - 1); setM(d); };
+  const nextMonth = () => { const d = new Date(m); d.setMonth(d.getMonth() + 1); setM(d); };
 
    useEffect(() => {
      if (!user?.id) return;
@@ -151,29 +154,36 @@ export function TasksCard() {
      })();
    }, [user?.id]);
 
-  const grid = Array.from({ length: 35 }, (_, i) => i - 3);
   return (
     <div className="rounded-2xl bg-card border border-border p-5 shadow-card">
       <h3 className="text-[15px] font-semibold mb-3">Compromissos</h3>
       <div className="flex items-center justify-between mb-2">
-        <button className="h-7 w-7 grid place-items-center rounded-md hover:bg-muted text-muted-foreground"><ChevronLeft className="h-4 w-4" /></button>
+        <button onClick={prevMonth} aria-label="Mês anterior" className="h-7 w-7 grid place-items-center rounded-md hover:bg-muted text-muted-foreground"><ChevronLeft className="h-4 w-4" /></button>
         <span className="text-[13px] font-semibold capitalize">{monthName}</span>
-        <button className="h-7 w-7 grid place-items-center rounded-md hover:bg-muted text-muted-foreground"><ChevronRight className="h-4 w-4" /></button>
+        <button onClick={nextMonth} aria-label="Próximo mês" className="h-7 w-7 grid place-items-center rounded-md hover:bg-muted text-muted-foreground"><ChevronRight className="h-4 w-4" /></button>
       </div>
       <div className="grid grid-cols-7 text-center text-[10px] text-muted-foreground mb-1">
         {days.map((d, i) => <span key={i}>{d}</span>)}
       </div>
       <div className="grid grid-cols-7 gap-y-1 text-center text-[11.5px]">
-        {grid.map((n) => {
-          const day = n;
-          const valid = day >= 1 && day <= 31;
-          const today = day === 24;
-          return (
-            <span key={n} className={`h-7 grid place-items-center rounded-md ${today ? "bg-primary text-primary-foreground font-bold" : valid ? "hover:bg-muted cursor-pointer" : "text-muted-foreground/40"}`}>
-              {valid ? day : ""}
-            </span>
-          );
-        })}
+        {(() => {
+          const first = new Date(m.getFullYear(), m.getMonth(), 1);
+          const offset = first.getDay();
+          const lastDay = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+          const cells: (number | null)[] = Array.from({ length: 42 }, (_, i) => {
+            const day = i - offset + 1;
+            return day >= 1 && day <= lastDay ? day : null;
+          });
+          const isCurrentMonth = today.getMonth() === m.getMonth() && today.getFullYear() === m.getFullYear();
+          return cells.map((day, i) => {
+            const isToday = isCurrentMonth && day === today.getDate();
+            return (
+              <span key={i} className={`h-7 grid place-items-center rounded-md ${isToday ? "bg-primary text-primary-foreground font-bold" : day ? "hover:bg-muted cursor-pointer" : "text-muted-foreground/40"}`}>
+                {day ?? ""}
+              </span>
+            );
+          });
+        })()}
       </div>
       <div className="mt-3 pt-3 border-t border-border min-h-[100px]">
         <div className="text-[12px] font-semibold mb-2">Próximos Compromissos</div>

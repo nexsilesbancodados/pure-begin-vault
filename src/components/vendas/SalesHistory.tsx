@@ -41,6 +41,8 @@ import {
    const [sales, setSales] = useState<any[]>([]);
    const [loading, setLoading] = useState(true);
    const [searchTerm, setSearchTerm] = useState("");
+   const [periodFilter, setPeriodFilter] = useState<string>("all");
+   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedSale, setSelectedSale] = useState<any | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
  
@@ -98,11 +100,23 @@ import {
  
    const filteredSales = sales.filter(sale => {
      const s = searchTerm.toLowerCase();
-     return (
+     const matchesSearch = !s || (
        sale.id.toLowerCase().includes(s) ||
        sale.customers?.full_name?.toLowerCase().includes(s) ||
        sale.payment_method?.toLowerCase().includes(s)
      );
+     if (!matchesSearch) return false;
+     if (statusFilter !== "all" && sale.status !== statusFilter) return false;
+     if (periodFilter !== "all") {
+       const d = new Date(sale.created_at);
+       const now = new Date();
+       const today = new Date(); today.setHours(0,0,0,0);
+       if (periodFilter === "today" && d < today) return false;
+       if (periodFilter === "7d" && d < new Date(now.getTime() - 7 * 86400000)) return false;
+       if (periodFilter === "30d" && d < new Date(now.getTime() - 30 * 86400000)) return false;
+       if (periodFilter === "month" && (d.getMonth() !== now.getMonth() || d.getFullYear() !== now.getFullYear())) return false;
+     }
+     return true;
    });
  
   const stats = useMemo(() => {
@@ -214,17 +228,43 @@ import {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
          </div>
-          <button className="h-11 px-4 rounded-xl border border-border/60 bg-background flex items-center gap-2 text-sm font-medium hover:bg-muted transition-colors">
-            <Calendar className="h-4 w-4 text-primary" /> 
-            <span className="hidden sm:inline">Filtrar Período</span>
-          </button>
-          <button className="h-11 w-11 sm:w-auto sm:px-4 rounded-xl border border-border/60 bg-background flex items-center justify-center gap-2 text-sm font-medium hover:bg-muted transition-colors">
-            <Filter className="h-4 w-4 text-primary" />
-            <span className="hidden sm:inline">Filtros</span>
-          </button>
+          <select
+            value={periodFilter}
+            onChange={(e) => setPeriodFilter(e.target.value)}
+            className="h-11 px-4 rounded-xl border border-border/60 bg-background text-sm font-medium hover:bg-muted transition-colors"
+          >
+            <option value="all">Todo período</option>
+            <option value="today">Hoje</option>
+            <option value="7d">Últimos 7 dias</option>
+            <option value="30d">Últimos 30 dias</option>
+            <option value="month">Este mês</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-11 px-4 rounded-xl border border-border/60 bg-background text-sm font-medium"
+          >
+            <option value="all">Todos status</option>
+            <option value="completed">Concluída</option>
+            <option value="pending">Pendente</option>
+            <option value="cancelled">Cancelada</option>
+          </select>
        </div>
         <div className="flex items-center gap-2">
-          <button className="h-11 px-5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+          <button
+            onClick={() => {
+              import("@/lib/exportCsv").then(({ exportToCsv }) => {
+                exportToCsv("vendas-historico.csv", filteredSales.map((s) => ({
+                  data: s.created_at,
+                  cliente: s.customer_name ?? s.customer?.name,
+                  total: s.total_amount,
+                  pagamento: s.payment_method,
+                  status: s.status,
+                })));
+              });
+            }}
+            className="h-11 px-5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
+          >
             <Download className="h-4 w-4" /> Exportar Relatório
           </button>
         </div>
