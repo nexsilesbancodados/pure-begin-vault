@@ -40,3 +40,6 @@ verify_jwt = true
 
 [functions.dispatch-scheduled-messages]
 verify_jwt = false
+
+[functions.daily-automations]
+verify_jwt = false

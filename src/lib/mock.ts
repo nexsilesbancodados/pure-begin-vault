@@ -24,6 +24,7 @@ export const sidebarItems = [
       { title: "Bot de Atendimento", url: "/crm/bot", icon: "Bot", badge: "IA" },
       { title: "Conversas", url: "/crm/conversas", icon: "MessageSquare" },
       { title: "Automações", url: "/automacao", icon: "Zap" },
+      { title: "Templates Automação", url: "/automacoes", icon: "Sparkles", badge: "25+" },
       { title: "Mensagens Agendadas", url: "/mensagens-agendadas", icon: "Clock", badge: "Novo" },
       { title: "Broadcast em massa", url: "/broadcast", icon: "Megaphone", badge: "Novo" },
       { title: "Atendimento Mobile", url: "/m/atendimento", icon: "Smartphone", badge: "Mobile" },
