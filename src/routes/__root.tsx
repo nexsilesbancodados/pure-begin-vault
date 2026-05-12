@@ -2,6 +2,7 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { CookieConsent } from "@/components/layout/CookieConsent";
+import { CommandPalette } from "@/components/layout/CommandPalette";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
@@ -88,6 +89,7 @@ function RootComponent() {
           <Outlet />
           <PwaInstallPrompt />
           <CookieConsent />
+          <CommandPalette />
         </AuthProvider>
       </I18nProvider>
     </ThemeProvider>

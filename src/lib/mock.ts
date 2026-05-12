@@ -110,6 +110,10 @@ export const sidebarItems = [
   { title: "Central de Ajuda", url: "/help", icon: "HelpCircle" as const },
   { title: "Status do sistema", url: "/status", icon: "Activity" as const },
   { title: "Privacidade (LGPD)", url: "/minha-conta/lgpd", icon: "Shield" as const },
+  { title: "Segurança / 2FA", url: "/minha-conta/seguranca", icon: "Lock" as const, badge: "2FA" },
+  { title: "Clientes VIP (RFM)", url: "/relatorios/vip", icon: "Award" as const, badge: "IA" },
+  { title: "Integrações externas", url: "/integracoes", icon: "Zap" as const },
+  { title: "Programa de Afiliados", url: "/afiliados", icon: "Award" as const, badge: "30%" },
   { title: "Admin SaaS (restrito)", url: "/admin", icon: "Lock" as const },
 ] as any;
 
