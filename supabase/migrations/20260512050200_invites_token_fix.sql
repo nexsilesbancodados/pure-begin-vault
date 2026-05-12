@@ -1,5 +1,5 @@
--- Habilita pgcrypto + recria função de token compatível
-create extension if not exists pgcrypto;
+-- Habilita pgcrypto se ainda não estiver
+create extension if not exists pgcrypto with schema extensions;
 
 -- Fix create_organization_for_user pra setar owner_id (NOT NULL na tabela organizations)
 create or replace function public.create_organization_for_user(_name text)
@@ -26,12 +26,15 @@ begin
 end;
 $$;
 
+-- Token aleatório sem depender de pgcrypto (usa md5 + random)
 create or replace function public.gen_invite_token()
 returns text
 language sql
 volatile
 as $$
-  select replace(replace(encode(gen_random_bytes(24), 'base64'), '/', '_'), '+', '-')
+  select replace(replace(replace(
+    md5(random()::text || clock_timestamp()::text || random()::text),
+    '/', '_'), '+', '-'), '=', '')
 $$;
 
 -- Cria tabela se ainda não foi criada (migration anterior pode ter falhado)
