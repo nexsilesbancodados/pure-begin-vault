@@ -22,25 +22,40 @@ export function SalesChart() {
     })();
   }, [user?.id]);
 
+  const [period, setPeriod] = useState<"month" | "7d" | "30d" | "90d">("month");
+
   const chartData = useMemo(() => {
-    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-    const data = Array.from({ length: daysInMonth }, (_, i) => ({
-      day: i + 1,
-      value: 0
-    }));
-
-    sales.forEach(sale => {
+    const now = new Date();
+    if (period === "month") {
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const data = Array.from({ length: daysInMonth }, (_, i) => ({ day: `${i + 1}`, value: 0 }));
+      sales.forEach((sale) => {
+        const date = new Date(sale.created_at!);
+        if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+          const dayIdx = date.getDate() - 1;
+          if (data[dayIdx]) data[dayIdx].value += (sale.total_amount || 0);
+        }
+      });
+      return data;
+    }
+    const ndays = period === "7d" ? 7 : period === "30d" ? 30 : 90;
+    const data: { day: string; value: number; date: Date }[] = [];
+    for (let i = ndays - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      data.push({ day: d.toISOString().slice(5, 10), value: 0, date: d });
+    }
+    sales.forEach((sale) => {
       const date = new Date(sale.created_at!);
-      if (date.getMonth() === new Date().getMonth()) {
-        const dayIdx = date.getDate() - 1;
-        if (data[dayIdx]) data[dayIdx].value += (sale.total_amount || 0);
-      }
+      const target = data.find((d) => date >= d.date && date < new Date(d.date.getTime() + 86400000));
+      if (target) target.value += (sale.total_amount || 0);
     });
-
     return data;
-  }, [sales]);
+  }, [sales, period]);
 
   const monthTotal = chartData.reduce((acc, curr) => acc + curr.value, 0);
+  const periodLabel = period === "month" ? "Este mês" : period === "7d" ? "7 dias" : period === "30d" ? "30 dias" : "90 dias";
 
   return (
     <div className="rounded-2xl bg-card border border-border p-5 shadow-card min-h-[340px] flex flex-col">
@@ -48,9 +63,16 @@ export function SalesChart() {
         <div>
           <h3 className="text-[15px] font-semibold">Desempenho de vendas</h3>
         </div>
-        <button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-lg px-2.5 py-1.5 hover:bg-muted transition-colors">
-          Este mês <ChevronDown className="h-3.5 w-3.5" />
-        </button>
+        <select
+          value={period}
+          onChange={(e) => setPeriod(e.target.value as any)}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-border rounded-lg px-2.5 py-1.5 hover:bg-muted bg-card cursor-pointer"
+        >
+          <option value="month">Este mês</option>
+          <option value="7d">Últimos 7 dias</option>
+          <option value="30d">Últimos 30 dias</option>
+          <option value="90d">Últimos 90 dias</option>
+        </select>
       </div>
       <div className="flex items-baseline gap-2 mb-3">
         {loading ? (

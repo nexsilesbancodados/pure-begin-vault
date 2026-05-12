@@ -1,5 +1,6 @@
 import { Trophy, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -7,6 +8,7 @@ const channelIcon = (c: string) => c === "WhatsApp" ? "💬" : "📷";
 
 export function Funnel() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stages, setStages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,7 +86,7 @@ export function Funnel() {
                 ))}
               </ul>
               {s.count > 3 && (
-                <button className="mt-3 w-full text-[11px] text-muted-foreground hover:text-primary transition">+ Ver mais {s.count - 3}</button>
+                <button onClick={() => navigate({ to: "/funil" })} className="mt-3 w-full text-[11px] text-muted-foreground hover:text-primary transition">+ Ver mais {s.count - 3}</button>
               )}
             </div>
           )) : (
