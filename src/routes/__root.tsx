@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
+import { CookieConsent } from "@/components/layout/CookieConsent";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 
@@ -86,6 +87,7 @@ function RootComponent() {
         <AuthProvider>
           <Outlet />
           <PwaInstallPrompt />
+          <CookieConsent />
         </AuthProvider>
       </I18nProvider>
     </ThemeProvider>

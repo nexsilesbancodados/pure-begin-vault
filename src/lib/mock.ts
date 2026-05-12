@@ -106,6 +106,11 @@ export const sidebarItems = [
   { title: "Config. Loja (Pix/PIN/Comissão)", url: "/configuracoes/loja", icon: "Settings" as const, badge: "Novo" },
   { title: "Auditoria", url: "/audit-log", icon: "Shield" as const },
   { title: "Parametrização", url: "/configuracoes", icon: "Settings" as const },
+  { title: "API Pública (chaves)", url: "/api-keys", icon: "Key" as const, badge: "Novo" },
+  { title: "Central de Ajuda", url: "/help", icon: "HelpCircle" as const },
+  { title: "Status do sistema", url: "/status", icon: "Activity" as const },
+  { title: "Privacidade (LGPD)", url: "/minha-conta/lgpd", icon: "Shield" as const },
+  { title: "Admin SaaS (restrito)", url: "/admin", icon: "Lock" as const },
 ] as any;
 
  export interface ServiceOrder {
