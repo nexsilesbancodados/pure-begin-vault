@@ -1,4 +1,5 @@
  import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+ import { useNavigate } from "@tanstack/react-router";
  import { Search, ShoppingCart, Trash2, Plus, Minus, CreditCard, Banknote, QrCode, User, Package, ChevronRight, X, UserPlus, Info, Loader2, ArrowLeft, History, Calculator, Percent, Tag, ReceiptText, Printer, FileText, CheckCircle2, Eraser, ChevronDown } from "lucide-react";
 import { Product } from "@/lib/mock";
 import { ProductForm } from "@/components/estoque/ProductForm";
@@ -32,6 +33,7 @@ import { PixCharge } from "@/components/vendas/PixCharge";
   export function PDVInterface() {
     const { user } = useAuth();
     const { orgId } = useOrg();
+    const navigate = useNavigate();
     const [cart, setCart] = useState<CartItem[]>([]);
    const [search, setSearch] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -847,7 +849,7 @@ import { PixCharge } from "@/components/vendas/PixCharge";
         {/* Header de Ações Rápidas */}
         <div className="flex items-center justify-between bg-card p-4 border border-border rounded-2xl shadow-sm">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="rounded-full xl:hidden">
+            <Button variant="ghost" size="icon" className="rounded-full xl:hidden" onClick={() => history.back()}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
@@ -859,10 +861,10 @@ import { PixCharge } from "@/components/vendas/PixCharge";
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="hidden sm:flex gap-2">
+            <Button variant="outline" size="sm" className="hidden sm:flex gap-2" onClick={() => navigate({ to: "/vendas/historico" })}>
               <History className="h-4 w-4" /> Histórico
             </Button>
-            <Button variant="outline" size="sm" className="hidden sm:flex gap-2">
+            <Button variant="outline" size="sm" className="hidden sm:flex gap-2" onClick={() => navigate({ to: "/vendas/calculadora" })}>
               <Calculator className="h-4 w-4" /> Calculadora
             </Button>
           </div>

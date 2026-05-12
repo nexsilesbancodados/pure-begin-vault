@@ -544,11 +544,14 @@ export function UnifiedChat() {
                       </button>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
-                      <button className="p-2.5 hover:bg-black/5 rounded-lg transition"><Crop className="h-5 w-5" /></button>
-                      <button className="p-2.5 hover:bg-black/5 rounded-lg transition"><Smile className="h-5 w-5" /></button>
-                      <button className="p-2.5 hover:bg-black/5 rounded-lg transition"><Pencil className="h-5 w-5" /></button>
-                      <button className="p-2.5 hover:bg-black/5 rounded-lg transition"><Type className="h-5 w-5" /></button>
-                      <button className="p-2.5 hover:bg-black/5 rounded-lg transition ml-2 border-l border-muted-foreground/20 pl-4"><Download className="h-5 w-5" /></button>
+                      <a
+                        href={imagePreview ?? "#"}
+                        download
+                        className="p-2.5 hover:bg-black/5 rounded-lg transition"
+                        title="Baixar imagem"
+                      >
+                        <Download className="h-5 w-5" />
+                      </a>
                     </div>
                   </div>
 
@@ -566,10 +569,7 @@ export function UnifiedChat() {
                     <div className="max-w-3xl mx-auto space-y-6">
                       {/* Caption Input */}
                       <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-black/5">
-                        <button className="text-muted-foreground hover:text-foreground transition">
-                          <Smile className="h-6 w-6" />
-                        </button>
-                        <input 
+                        <input
                           value={text}
                           onChange={(e) => setText(e.target.value)}
                           onKeyDown={(e) => {
@@ -590,9 +590,6 @@ export function UnifiedChat() {
                           <div className="h-14 w-14 rounded-lg border-2 border-[#00a884] overflow-hidden shrink-0 shadow-md">
                             <img src={imagePreview} className="h-full w-full object-cover" />
                           </div>
-                          <button className="h-14 w-14 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground hover:bg-black/5 transition hover:border-muted-foreground/50">
-                            <Plus className="h-6 w-6" />
-                          </button>
                         </div>
                         
                         <button 

@@ -157,8 +157,10 @@ function InventarioPage() {
           organization_id: orgId,
           user_id: user.id,
           product_id: r.product.id,
-          type: r.diff > 0 ? "adjustment_in" : "adjustment_out",
+          movement_type: r.diff > 0 ? "in" : "out",
           quantity: Math.abs(r.diff),
+          reason: "ajuste",
+          reference_type: "inventario",
           notes: `Inventário ${new Date().toLocaleDateString("pt-BR")}: ${r.product.stock_quantity} → ${r.counted}`,
         });
         ok += 1;
