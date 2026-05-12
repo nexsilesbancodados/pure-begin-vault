@@ -33,6 +33,7 @@ type Member = {
   user_id: string;
   role: string;
   is_default: boolean;
+  profile?: { id: string; nome: string | null; email: string | null } | null;
 };
 
 const ROLES = ["owner", "admin", "employee", "tecnico"];
@@ -59,7 +60,7 @@ export function InviteFlow() {
         .order("created_at", { ascending: false }),
       (supabase as any)
         .from("user_organizations")
-        .select("user_id, role, is_default")
+        .select("user_id, role, is_default, profile:profiles(id, nome, email)")
         .eq("organization_id", orgId),
     ]);
     setInvites((iRes.data as Invite[]) ?? []);
@@ -231,12 +232,15 @@ export function InviteFlow() {
           <div className="space-y-2">
             {members.map((m) => (
               <div key={m.user_id} className="flex items-center justify-between p-3 rounded-xl border border-border">
-                <div>
-                  <p className="font-bold text-sm font-mono">
-                    {m.user_id === userId ? "Você" : m.user_id.slice(0, 8)}...
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-sm truncate">
+                    {m.user_id === userId
+                      ? "Você"
+                      : m.profile?.nome || m.profile?.email || `Membro ${m.user_id.slice(0, 8)}`}
                   </p>
                   <p className="text-xs text-muted-foreground capitalize">
                     {m.role}{m.is_default && " · padrão"}
+                    {m.profile?.email && m.user_id !== userId && ` · ${m.profile.email}`}
                   </p>
                 </div>
                 {m.user_id !== userId && (

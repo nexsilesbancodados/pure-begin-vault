@@ -40,11 +40,13 @@ export function CustomerSummary({ customerId, phone }: CustomerSummaryProps) {
       let custId = customerId;
 
       if (!custId && phone) {
-        const cleanPhone = String(phone).replace(/\D/g, "");
+        let cleanPhone = String(phone).replace(/\D/g, "");
+        if (cleanPhone.length === 13 && cleanPhone.startsWith("55")) cleanPhone = cleanPhone.slice(2);
+        const last8 = cleanPhone.slice(-8);
         const { data: c } = await supabase
           .from("customers" as any)
           .select("id, name, phone, email")
-          .ilike("phone", `%${cleanPhone.slice(-9)}%`)
+          .ilike("phone", `%${last8}%`)
           .limit(1)
           .maybeSingle();
         if (c) custId = (c as any).id;

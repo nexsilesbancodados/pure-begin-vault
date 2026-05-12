@@ -140,6 +140,19 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "text/plain" });
       return res.end("ok");
     }
+    if (req.url === "/health/status") {
+      const status = {
+        ok: true,
+        service: "conectaphone-app",
+        timestamp: new Date().toISOString(),
+        uptime_seconds: Math.round(process.uptime()),
+        memory_mb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+        node: process.version,
+        pid: process.pid,
+      };
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify(status));
+    }
     if (tryServeStatic(req, res)) return;
     const webReq = await nodeToWebRequest(req);
     const webRes = await handler(webReq);

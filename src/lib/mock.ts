@@ -1,11 +1,14 @@
 export const sidebarItems = [
   { type: "header", title: "Painel Principal" },
   { title: "Dashboard", url: "/painel", icon: "LayoutDashboard" as const },
-   { title: "Relatórios", url: "/relatorios", icon: "BarChart3" as const },
-   { title: "Crescimento (CAC/LTV)", url: "/relatorios/crescimento", icon: "TrendingUp" as const, badge: "Novo" },
-   { title: "Calendário", url: "/calendario", icon: "Calendar" as const, badge: "Novo" },
-   { title: "NPS", url: "/nps", icon: "Smile" as const, badge: "Novo" },
-   { title: "Agentes", url: "/agentes", icon: "Headphones" as const },
+  { title: "Relatórios", url: "/relatorios", icon: "BarChart3" as const, children: [
+    { title: "Crescimento (CAC/LTV)", url: "/relatorios/crescimento", icon: "TrendingUp" },
+    { title: "Comissões", url: "/relatorios/comissoes", icon: "Award", badge: "Novo" },
+    { title: "Churn (clientes em risco)", url: "/relatorios/churn", icon: "AlertTriangle", badge: "Novo" },
+  ]},
+  { title: "Calendário", url: "/calendario", icon: "Calendar" as const },
+  { title: "NPS", url: "/nps", icon: "Smile" as const },
+  { title: "Agentes", url: "/agentes", icon: "Headphones" as const },
 
   { type: "header", title: "Atendimento & CRM" },
   {
@@ -15,12 +18,15 @@ export const sidebarItems = [
     flyout: true,
     children: [
       { title: "Visão Geral", url: "/crm", icon: "LayoutDashboard" },
-      { title: "Inbox unificada", url: "/inbox", icon: "Inbox", badge: "Novo" },
-      { title: "Modelos de Mensagem", url: "/templates", icon: "FileText", badge: "Novo" },
+      { title: "Inbox unificada", url: "/inbox", icon: "Inbox" },
+      { title: "Modelos de Mensagem", url: "/templates", icon: "FileText" },
       { title: "Pipeline de Vendas", url: "/funil", icon: "Trello" },
       { title: "Bot de Atendimento", url: "/crm/bot", icon: "Bot", badge: "IA" },
-      { title: "Conversas", url: "/crm/conversas", icon: "MessageSquare", badge: "Live" },
+      { title: "Conversas", url: "/crm/conversas", icon: "MessageSquare" },
       { title: "Automações", url: "/automacao", icon: "Zap" },
+      { title: "Mensagens Agendadas", url: "/mensagens-agendadas", icon: "Clock", badge: "Novo" },
+      { title: "Broadcast em massa", url: "/broadcast", icon: "Megaphone", badge: "Novo" },
+      { title: "Atendimento Mobile", url: "/m/atendimento", icon: "Smartphone", badge: "Mobile" },
       { title: "WhatsApp", url: "/whatsapp", icon: "MessageSquare" },
       { title: "Instagram", url: "/instagram", icon: "Instagram" },
     ]
@@ -34,9 +40,14 @@ export const sidebarItems = [
     icon: "ShoppingBag" as const,
     children: [
       { title: "Frente de Caixa (PDV)", url: "/pdv" },
+      { title: "Caixa PDV (sangria/reforço)", url: "/caixa-pdv" },
+      { title: "Cupons & Orçamentos", url: "/fiscal" },
       { title: "Orçamentos", url: "/vendas/orcamentos" },
       { title: "Histórico de Vendas", url: "/vendas/historico" },
       { title: "Simulador de Taxas", url: "/vendas/simulador" },
+      { title: "Calculadora de Usados", url: "/vendas/calculadora" },
+      { title: "Consulta Rápida Estoque", url: "/vendas/consulta-estoque" },
+      { title: "Garantias", url: "/vendas/garantias" },
       { title: "Gestão Delivery", url: "/vendas/delivery" },
     ]
   },
@@ -49,6 +60,7 @@ export const sidebarItems = [
       { title: "Nova Ordem", url: "/servicos/nova" },
       { title: "Técnicos", url: "/servicos/tecnicos" },
       { title: "Checklists", url: "/servicos/checklists" },
+      { title: "Termos de Garantia", url: "/servicos/termos" },
     ]
   },
    { title: "Base de Clientes", url: "/clientes", icon: "Users" as const },
@@ -60,6 +72,7 @@ export const sidebarItems = [
     icon: "Box" as const,
     children: [
       { title: "Estoque Atual", url: "/estoque/atual" },
+      { title: "Inventário (contagem)", url: "/inventario", icon: "ClipboardList", badge: "Novo" },
       { title: "Entrada de NF/Compras", url: "/estoque/compras" },
       { title: "Produtos Vendidos", url: "/estoque/vendidos" },
       { title: "Movimentações", url: "/estoque/movimentacoes" },
@@ -76,27 +89,22 @@ export const sidebarItems = [
      children: [
        { title: "Fluxo de Caixa", url: "/financeiro/caixa" },
        { title: "DRE Gerencial", url: "/financeiro/dre" },
+       { title: "Conciliação OFX", url: "/conciliacao", icon: "Banknote", badge: "Novo" },
        { title: "Fornecedores", url: "/financeiro/fornecedores" },
         { title: "Maquininhas POS", url: "/financeiro/maquininhas" },
         { title: "Plano de Contas", url: "/financeiro/plano-contas" },
         { title: "Notas em Aberto", url: "/financeiro/notas-aberto" },
      ]
    },
-  { title: "Fiscal (NF-e/NFC-e)", url: "/fiscal", icon: "FileText" as const },
+  { title: "Cupons & Recibos", url: "/fiscal", icon: "Receipt" as const },
 
   { type: "header", title: "Configurações" },
-  { title: "Equipe", url: "/equipe", icon: "ShieldCheck" as const },
-   { title: "Parametrização", url: "/configuracoes", icon: "Settings" as const, flyout: true, children: [
-     { title: "Perfil da Conta", url: "/configuracoes", icon: "User" },
-     { title: "Notificações", url: "/configuracoes", icon: "Bell" },
-     { title: "Aparência", url: "/configuracoes", icon: "Palette" },
-     { title: "Catálogo de Celulares", url: "/configuracoes", icon: "Smartphone" },
-     { title: "IA DeepSeek", url: "/configuracoes", icon: "Zap" },
-     { title: "Evolution API", url: "/configuracoes", icon: "Database" },
-     { title: "Equipe & Permissões", url: "/configuracoes", icon: "Shield" },
-     { title: "Segurança & Login", url: "/configuracoes", icon: "Lock" },
-     { title: "Webhooks", url: "/configuracoes", icon: "Globe" },
-   ]},
+  { title: "Minhas Lojas", url: "/lojas", icon: "Store" as const, badge: "Novo" },
+  { title: "Equipe da Loja", url: "/equipe-loja", icon: "UserPlus" as const, badge: "Novo" },
+  { title: "Equipe (legado)", url: "/equipe", icon: "ShieldCheck" as const },
+  { title: "Config. Loja (Pix/PIN/Comissão)", url: "/configuracoes/loja", icon: "Settings" as const, badge: "Novo" },
+  { title: "Auditoria", url: "/audit-log", icon: "Shield" as const },
+  { title: "Parametrização", url: "/configuracoes", icon: "Settings" as const },
 ] as any;
 
  export interface ServiceOrder {

@@ -243,15 +243,19 @@ serve(async (req) => {
           ? `\n\n=== CATÁLOGO DISPONÍVEL ===\nUse APENAS itens deste catálogo ao oferecer produtos/serviços. Quando o cliente pedir algo (ex: "iPhone"), liste TODOS os itens compatíveis com nome, preço e (se houver) link da foto. Se não houver item compatível, diga honestamente que não tem disponível.\n\n${productLines ? `PRODUTOS:\n${productLines}` : ""}${productLines && serviceLines ? "\n\n" : ""}${serviceLines ? `SERVIÇOS:\n${serviceLines}` : ""}\n=== FIM DO CATÁLOGO ===`
           : "";
 
-        // Contexto de cliente — tenta achar pelo telefone
+        // Contexto de cliente — tenta achar pelo telefone (normaliza BR: tira DDI 55 quando presente)
         let customerBlock = "";
         try {
-          const cleanPhone = phone.replace(/\D/g, "");
+          let cleanPhone = phone.replace(/\D/g, "");
+          // normaliza 55 (BR) prefixo se houver
+          if (cleanPhone.length === 13 && cleanPhone.startsWith("55")) cleanPhone = cleanPhone.slice(2);
+          // busca pelas ultimas 8 chars (DDD+5primeiros do número) — robusto a formatos
+          const last8 = cleanPhone.slice(-8);
           const { data: customer } = await supabase
             .from("customers")
             .select("id, name, created_at")
             .eq("user_id", userId)
-            .ilike("phone", `%${cleanPhone.slice(-9)}%`)
+            .ilike("phone", `%${last8}%`)
             .limit(1)
             .maybeSingle();
           if (customer) {

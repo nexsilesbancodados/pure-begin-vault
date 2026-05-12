@@ -21,7 +21,7 @@ function Termos() {
       </header>
       <main className="max-w-3xl mx-auto px-6 py-16 prose prose-slate">
         <h1>Termos de Uso</h1>
-        <p className="text-slate-500">Última atualização: 10 de maio de 2026</p>
+        <p className="text-slate-500">Última atualização: 12 de maio de 2026</p>
 
         <h2>1. Aceitação</h2>
         <p>Ao acessar ou usar o ConectaCRM, você concorda em ficar vinculado a estes Termos.
@@ -54,8 +54,12 @@ function Termos() {
         <h2>8. Alterações</h2>
         <p>Podemos atualizar estes Termos. Mudanças relevantes serão notificadas com 30 dias de antecedência.</p>
 
-        <h2>9. Contato</h2>
-        <p>Dúvidas: contato@conectacrm.com</p>
+        <h2>9. Não-emissão de NF-e</h2>
+        <p>O ConectaCRM emite cupons não-fiscais e orçamentos para uso interno e relacionamento com clientes.
+        Para emissão de NF-e/NFC-e formal você deve usar um sistema fiscal próprio integrado com SEFAZ.</p>
+
+        <h2>10. Contato</h2>
+        <p>Dúvidas: contato@conectaphone.com</p>
 
         <p className="mt-12">
           <Link to="/privacidade" className="text-indigo-600 underline">Ver Política de Privacidade →</Link>
