@@ -11,6 +11,7 @@ import {
   Box, FileSpreadsheet, Calculator, Contact2, Wallet, Users2, Building2, UserCircle, Briefcase, Facebook
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { useState, useEffect, useCallback, useLayoutEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardContent } from "@/components/reports/DashboardContent";
@@ -37,6 +38,7 @@ export const Route = createFileRoute("/relatorios")({
 
 function ReportsPage() {
   const { user, profile } = useAuth();
+  const { orgId } = useOrg();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>({
     revenue: 0,
@@ -128,28 +130,29 @@ function ReportsPage() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const { data: sales } = await supabase.from("sales_orders").select("total_amount, status, created_at, user_id").eq("user_id", user.id);
-      const concludedSales = (sales || []).filter(s => s.status === 'concluded');
-      const currentMonthSales = concludedSales.filter(s => new Date(s.created_at!) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-      const monthRevenue = currentMonthSales.reduce((acc, curr) => acc + (curr.total_amount || 0), 0);
-      
-      const { data: leads } = await supabase.from("leads").select("source, status, created_at").eq("user_id", user.id);
-      const currentLeads = (leads || []).filter(l => l.created_at && new Date(l.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-      const wonLeads = currentLeads.filter(l => l.status && ['won', 'concluded'].includes(l.status)).length;
-      
+      const filt = (q: any) => orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
+      const { data: sales } = await filt(supabase.from("sales_orders").select("total_amount, status, created_at, user_id"));
+      const concludedSales = (sales || []).filter((s: any) => s.status === 'concluded');
+      const currentMonthSales = concludedSales.filter((s: any) => new Date(s.created_at!) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+      const monthRevenue = currentMonthSales.reduce((acc: number, curr: any) => acc + (curr.total_amount || 0), 0);
+
+      const { data: leads } = await filt(supabase.from("leads").select("source, status, created_at"));
+      const currentLeads = (leads || []).filter((l: any) => l.created_at && new Date(l.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+      const wonLeads = currentLeads.filter((l: any) => l.status && ['won', 'concluded'].includes(l.status)).length;
+
       setStats({
         revenue: monthRevenue,
         leads: currentLeads.length,
         conversion: currentLeads.length > 0 ? (wonLeads / currentLeads.length) * 100 : 0,
         avgTicket: currentMonthSales.length > 0 ? monthRevenue / currentMonthSales.length : 0,
-        revenueTrend: { value: "+12%", isUp: true },
-        leadsTrend: { value: "+5%", isUp: true },
-        conversionTrend: { value: "+2%", isUp: true },
-        avgTicketTrend: { value: "+8%", isUp: true },
+        revenueTrend: { value: "—", isUp: true },
+        leadsTrend: { value: "—", isUp: true },
+        conversionTrend: { value: "—", isUp: true },
+        avgTicketTrend: { value: "—", isUp: true },
       });
 
-      const { data: stages } = await supabase.from("funnel_stages").select("name, color, id").eq("user_id", user.id).order("order_index");
-      const { data: pipeline } = await supabase.from("pipeline_leads").select("stage_id").eq("user_id", user.id);
+      const { data: stages } = await filt(supabase.from("funnel_stages").select("name, color, id")).order("order_index");
+      const { data: pipeline } = await filt(supabase.from("pipeline_leads").select("stage_id"));
       setFunnelData((stages || []).map(s => ({ name: s.name, value: (pipeline || []).filter(p => p.stage_id === s.id).length, color: s.color || "#64748b" })));
 
       const counts: Record<string, number> = {};
@@ -160,7 +163,7 @@ function ReportsPage() {
         setTopAgents([{ name: profile?.display_name || "Você", avatar: (profile?.display_name || "V")[0], sales: concludedSales.length, revenue: monthRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), trend: "+0%" }]);
       }
     } catch (err) { console.error(err); } finally { setLoading(false); }
-  }, [user?.id, profile?.display_name]);
+  }, [user?.id, orgId, profile?.display_name]);
 
   useEffect(() => { fetchReportsData(); }, [fetchReportsData]);
 

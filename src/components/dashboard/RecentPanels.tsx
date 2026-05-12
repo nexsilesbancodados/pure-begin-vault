@@ -3,32 +3,29 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export function RecentService() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [recentMessages, setRecentMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const { data } = await supabase
-        .from("messages")
-        .select(`
-          *,
-          leads (name)
-        `)
-        .eq("user_id", user.id)
+      const base = supabase.from("messages").select(`*, leads (name)`);
+      const { data } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id))
         .order("created_at", { ascending: false })
         .limit(2);
-      
+
       setRecentMessages(data || []);
       setLoading(false);
     })();
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   return (
     <div className="rounded-2xl bg-card border border-border p-5 shadow-card">
@@ -85,22 +82,17 @@ const etapaStyle = (e: string) => {
  export function RecentLeads() {
    const navigate = useNavigate();
    const { user } = useAuth();
+   const { orgId } = useOrg();
    const [leads, setLeads] = useState<any[]>([]);
    const [loading, setLoading] = useState(true);
 
    useEffect(() => {
      if (!user?.id) return;
      (async () => {
-       // Fetch leads join with pipeline_leads to get etapa
-       const { data } = await supabase
+       const base = supabase
          .from("leads")
-         .select(`
-           *,
-           pipeline_leads (
-             funnel_stages (name)
-           )
-         `)
-         .eq("user_id", user.id)
+         .select(`*, pipeline_leads (funnel_stages (name))`);
+       const { data } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id))
          .order("created_at", { ascending: false })
          .limit(5);
 
@@ -110,7 +102,7 @@ const etapaStyle = (e: string) => {
        })));
        setLoading(false);
      })();
-   }, [user?.id]);
+   }, [user?.id, orgId]);
 
   return (
     <div className="rounded-2xl bg-card border border-border p-5 shadow-card">

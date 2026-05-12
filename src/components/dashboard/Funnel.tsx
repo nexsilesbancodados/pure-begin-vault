@@ -3,11 +3,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 
 const channelIcon = (c: string) => c === "WhatsApp" ? "💬" : "📷";
 
 export function Funnel() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const navigate = useNavigate();
   const [stages, setStages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,19 +17,9 @@ export function Funnel() {
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const { data: stgs } = await supabase
-        .from("funnel_stages")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("order_index", { ascending: true });
-
-      const { data: deals } = await supabase
-        .from("pipeline_leads")
-        .select(`
-          *,
-          leads (name, source)
-        `)
-        .eq("user_id", user.id);
+      const filt = (q: any) => orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
+      const { data: stgs } = await filt(supabase.from("funnel_stages").select("*")).order("order_index", { ascending: true });
+      const { data: deals } = await filt(supabase.from("pipeline_leads").select(`*, leads (name, source)`));
 
       const formattedStages = (stgs || []).map(s => {
         const stageDeals = (deals || []).filter(d => d.stage_id === s.id);
@@ -49,7 +41,7 @@ export function Funnel() {
       setStages(formattedStages);
       setLoading(false);
     })();
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   return (
     <div className="rounded-2xl bg-card border border-border p-5 shadow-card">

@@ -12,6 +12,7 @@ import {
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 
 export const Route = createFileRoute("/crm")({
   head: () => ({
@@ -35,6 +36,7 @@ const modules = [
 
 function CrmHub() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ leads: 0, pipelineValue: 0, botConvs: 0, won: 0, activeConvs: 0 });
   const [recentLeads, setRecentLeads] = useState<any[]>([]);
@@ -53,16 +55,19 @@ function CrmHub() {
         const since = new Date();
         since.setDate(since.getDate() - 29);
 
+        // Helper: filtra por org se disponível, senão por user
+        const filt = <T extends any>(q: any) => orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
+
         // Run RPC + all queries fully in parallel — never block on any one failure
         const [rpcRes, activeRes, leadsRes, pipelineRes, botRes, stagesRes, latestRes, trendRes] = await Promise.all([
           supabase.rpc("ensure_default_funnel_stages", { _user_id: user.id }),
-          supabase.from("bot_conversations").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active"),
-          supabase.from("leads").select("*", { count: "exact", head: true }).eq("user_id", user.id),
-          supabase.from("pipeline_leads").select("deal_value, stage_id").eq("user_id", user.id),
-          supabase.from("bot_conversations").select("*", { count: "exact", head: true }).eq("user_id", user.id),
-          supabase.from("funnel_stages").select("id, name, order_index").eq("user_id", user.id).order("order_index"),
-          supabase.from("leads").select("id, name, phone, source, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
-          supabase.from("leads").select("created_at").eq("user_id", user.id).gte("created_at", since.toISOString()),
+          filt(supabase.from("bot_conversations").select("*", { count: "exact", head: true }).eq("status", "active")),
+          filt(supabase.from("leads").select("*", { count: "exact", head: true })),
+          filt(supabase.from("pipeline_leads").select("deal_value, stage_id")),
+          filt(supabase.from("bot_conversations").select("*", { count: "exact", head: true })),
+          filt(supabase.from("funnel_stages").select("id, name, order_index")).order("order_index"),
+          filt(supabase.from("leads").select("id, name, phone, source, status, created_at")).order("created_at", { ascending: false }).limit(5),
+          filt(supabase.from("leads").select("created_at")).gte("created_at", since.toISOString()),
         ]);
 
         if (cancelled) return;
@@ -114,7 +119,7 @@ function CrmHub() {
     })();
 
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   const greeting = useMemo(() => {
     const h = new Date().getHours();

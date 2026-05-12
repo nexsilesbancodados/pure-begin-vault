@@ -5,6 +5,7 @@ import { Search, Plus, MoreHorizontal, MessageSquare, Instagram, Trash2, Pencil,
 import { CsvImporter } from "@/components/leads/CsvImporter";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ const STATUS = [
 
 export function LeadsTable() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -50,17 +52,15 @@ export function LeadsTable() {
   const load = async () => {
     if (!user?.id) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("leads")
-      .select("*")
-      .eq("user_id", user.id)
+    const base = supabase.from("leads").select("*");
+    const { data, error } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id))
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setLeads((data as Lead[]) ?? []);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user?.id]);
+  useEffect(() => { load(); }, [user?.id, orgId]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
