@@ -37,3 +37,6 @@ verify_jwt = false
 
 [functions.cancel-subscription]
 verify_jwt = true
+
+[functions.dispatch-scheduled-messages]
+verify_jwt = false
