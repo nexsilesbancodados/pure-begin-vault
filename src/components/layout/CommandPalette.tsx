@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { User as UserIcon, Box as ProductIcon } from "lucide-react";
 import {
   Search,
   ShoppingCart,
@@ -111,7 +113,32 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [dataResults, setDataResults] = useState<Command[]>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) { setDataResults([]); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const [customers, products] = await Promise.all([
+          (supabase as any).from("customers").select("id, name, phone").or(`name.ilike.%${q}%,phone.ilike.%${q}%`).limit(5),
+          (supabase as any).from("products").select("id, name").ilike("name", `%${q}%`).limit(5),
+        ]);
+        if (cancelled) return;
+        const res: Command[] = [];
+        for (const c of customers.data ?? []) {
+          res.push({ id: `cust-${c.id}`, label: `${c.name} · ${c.phone ?? ""}`, icon: UserIcon, url: `/clientes?id=${c.id}`, group: "Clientes" });
+        }
+        for (const p of products.data ?? []) {
+          res.push({ id: `prod-${p.id}`, label: p.name, icon: ProductIcon, url: `/produtos?id=${p.id}`, group: "Produtos" });
+        }
+        setDataResults(res);
+      } catch {}
+    }, 250);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [query]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -129,11 +156,11 @@ export function CommandPalette() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return COMMANDS;
-    return COMMANDS.filter((c) =>
-      (c.label + " " + (c.keywords ?? "") + " " + c.group).toLowerCase().includes(q)
-    );
-  }, [query]);
+    const routeMatches = !q
+      ? COMMANDS
+      : COMMANDS.filter((c) => (c.label + " " + (c.keywords ?? "") + " " + c.group).toLowerCase().includes(q));
+    return [...dataResults, ...routeMatches];
+  }, [query, dataResults]);
 
   const grouped = useMemo(() => {
     const m: Record<string, Command[]> = {};

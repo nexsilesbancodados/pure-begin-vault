@@ -3,8 +3,10 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { CookieConsent } from "@/components/layout/CookieConsent";
 import { CommandPalette } from "@/components/layout/CommandPalette";
+import { KeyboardHelp } from "@/components/layout/KeyboardHelp";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 import appCss from "../styles.css?url";
 
@@ -86,10 +88,13 @@ function RootComponent() {
     <ThemeProvider>
       <I18nProvider>
         <AuthProvider>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
           <PwaInstallPrompt />
           <CookieConsent />
           <CommandPalette />
+          <KeyboardHelp />
         </AuthProvider>
       </I18nProvider>
     </ThemeProvider>

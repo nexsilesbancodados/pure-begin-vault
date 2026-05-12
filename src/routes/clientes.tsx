@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { ImportCsvDialog } from "@/components/customers/ImportCsvDialog";
  import { Users, Plus, MoreVertical, Search, Filter, Loader2, User, Trash2, Edit3, Phone, Mail, MapPin, DollarSign, Wrench, X } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +36,7 @@ function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any | null>(null);
    const [saving, setSaving] = useState(false);
    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -299,6 +301,8 @@ function CustomersPage() {
         </DialogContent>
       </Dialog>
 
+      <ImportCsvDialog open={isImportOpen} onOpenChange={setIsImportOpen} onImported={() => fetchCustomers()} />
+
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title="Base de Clientes" subtitle="Gestão centralizada de contatos" />
@@ -359,6 +363,12 @@ function CustomersPage() {
                 />
               </div>
             </div>
+            <button
+              onClick={() => setIsImportOpen(true)}
+              className="h-10 px-4 rounded-xl text-sm font-semibold border border-border bg-card hover:bg-muted transition flex items-center gap-2"
+            >
+              Importar CSV
+            </button>
             <button
               onClick={() => {
                 import("@/lib/exportCsv").then(({ exportToCsv }) => {

@@ -93,6 +93,24 @@ function OnboardingPage() {
 
   const finish = () => navigate({ to: "/painel" });
 
+  const [seeding, setSeeding] = useState(false);
+  const loadDemoData = async () => {
+    setSeeding(true);
+    try {
+      const { data: result, error } = await (supabase as any).rpc("seed_demo_data");
+      if (error) {
+        toast.error("Não foi possível carregar demo: " + error.message);
+      } else if (result?.error) {
+        toast.error("Erro: " + result.error);
+      } else {
+        toast.success(`✨ Demo carregado! ${result?.products ?? 0} produtos, ${result?.customers ?? 0} clientes, ${result?.leads ?? 0} leads`);
+        setTimeout(() => navigate({ to: "/painel" }), 1000);
+      }
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
@@ -177,9 +195,18 @@ function OnboardingPage() {
                 </div>
                 <h3 className="text-2xl font-bold">Tudo pronto, {data.display_name || "bem-vindo"}!</h3>
                 <p className="text-muted-foreground">Sua conta está configurada. Hora de explorar o painel.</p>
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-700/30 rounded-2xl p-4 my-4 text-left">
+                  <p className="text-sm font-bold mb-1">🎁 Carregar dados de exemplo?</p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    10 produtos · 4 clientes · 3 leads — pra você testar o PDV, o CRM e os relatórios agora mesmo. Pode remover depois em <strong>Configurações</strong>.
+                  </p>
+                  <Button onClick={loadDemoData} disabled={seeding} variant="outline" size="sm" className="bg-card">
+                    {seeding ? "Carregando..." : "✨ Carregar demo + ir para o painel"}
+                  </Button>
+                </div>
                 <div className="flex gap-3 justify-center pt-4">
                   <Link to="/equipe"><Button variant="outline">Convidar equipe</Button></Link>
-                  <Button onClick={finish} className="gap-2 bg-gradient-to-r from-indigo-500 to-violet-600">Ir para o painel <ArrowRight className="h-4 w-4" /></Button>
+                  <Button onClick={finish} className="gap-2 bg-gradient-to-r from-indigo-500 to-violet-600">Pular e ir para o painel <ArrowRight className="h-4 w-4" /></Button>
                 </div>
               </div>
             )}
