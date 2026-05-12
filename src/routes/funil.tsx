@@ -566,17 +566,18 @@ type Deal = {
     useEffect(() => {
       if (!user?.id) return;
 
+      const scopeFilter = orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}`;
       const ch = supabase
-        .channel(`funil_realtime_sync:${user.id}:${activeInstance || 'no-instance'}`)
+        .channel(`funil_realtime_sync:${orgId ?? user.id}:${activeInstance || 'no-instance'}`)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "bot_conversations", filter: `user_id=eq.${user.id}` },
+          { event: "*", schema: "public", table: "bot_conversations", filter: scopeFilter },
           (payload: any) => {
             if (payload.eventType === "DELETE") {
                load(true);
                return;
             }
-            
+
             const conv = payload.new as any;
             // Apenas reage se for da instância ativa (ou se não houver filtro de instância)
             if (!activeInstance || conv.instance_name === activeInstance) {
@@ -589,7 +590,7 @@ type Deal = {
         )
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "pipeline_leads", filter: `user_id=eq.${user.id}` },
+          { event: "*", schema: "public", table: "pipeline_leads", filter: scopeFilter },
           (payload: any) => {
             if (payload.eventType === "DELETE") {
                load(true);
@@ -603,12 +604,12 @@ type Deal = {
         )
         .on(
           "postgres_changes",
-          { event: "INSERT", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` },
+          { event: "INSERT", schema: "public", table: "messages", filter: scopeFilter },
           () => load(true)
         )
         .on(
           "postgres_changes",
-          { event: "UPDATE", schema: "public", table: "leads", filter: `user_id=eq.${user.id}` },
+          { event: "UPDATE", schema: "public", table: "leads", filter: scopeFilter },
           () => load(true)
         )
         .subscribe();

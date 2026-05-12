@@ -24,6 +24,7 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -112,6 +113,7 @@ const normalizeTranscript = (messages: any[]): Msg[] =>
 
 export function UnifiedChat() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [activeInstance, setActiveInstance] = useState<string | null>(null);
   const [items, setItems] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -129,10 +131,8 @@ export function UnifiedChat() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("bot_conversations")
-        .select("*")
-        .eq("user_id", user.id)
+      const base = supabase.from("bot_conversations").select("*");
+      const { data, error } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id))
         .order("last_message_at", { ascending: false });
 
       if (error) throw error;
@@ -145,7 +145,7 @@ export function UnifiedChat() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   const syncFromWhatsApp = useCallback(async (showToast = false, forcedInstance?: string) => {
     if (!user?.id || syncing) return;
@@ -237,10 +237,10 @@ export function UnifiedChat() {
     syncFromWhatsApp(false);
 
     const channel = supabase
-      .channel("uc:bot_conversations:" + user.id)
+      .channel("uc:bot_conversations:" + (orgId ?? user.id))
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "bot_conversations", filter: `user_id=eq.${user.id}` },
+        { event: "*", schema: "public", table: "bot_conversations", filter: orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}` },
         (payload) => {
           setItems((prev) => {
             if (payload.eventType === "DELETE") {
@@ -257,7 +257,7 @@ export function UnifiedChat() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, load]);
+  }, [user?.id, orgId, load]);
 
   // Monitor instance changes
   useEffect(() => {

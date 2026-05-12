@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { evolution } from "@/lib/evolution";
 import {
   MessageSquare,
@@ -188,6 +189,7 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
 
 function ConversasPage() {
   const { user, loading: authLoading } = useAuth();
+  const { orgId } = useOrg();
   const [items, setItems] = useState<Conversation[]>([]);
    const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -508,10 +510,8 @@ function ConversasPage() {
     setLoadError(null);
     try {
       const activeInstance = await resolveInstance();
-      let query = supabase
-        .from("bot_conversations")
-        .select("*")
-        .eq("user_id", user.id);
+      let query = supabase.from("bot_conversations").select("*");
+      query = orgId ? query.eq("organization_id", orgId) : query.eq("user_id", user.id);
 
       if (activeInstance) {
         query = query.eq("instance_name", activeInstance);
@@ -541,10 +541,8 @@ function ConversasPage() {
       let existing: Conversation[] = [];
 
       if (user?.id) {
-        const { data: existingRows, error: existingError } = await supabase
-          .from("bot_conversations")
-          .select("*")
-          .eq("user_id", user.id);
+        const baseQ = supabase.from("bot_conversations").select("*");
+        const { data: existingRows, error: existingError } = await (orgId ? baseQ.eq("organization_id", orgId) : baseQ.eq("user_id", user.id));
 
         if (existingError) throw existingError;
         existing = (existingRows ?? []) as any as Conversation[];
@@ -717,10 +715,10 @@ function ConversasPage() {
     fetchAvailableInstances().then(() => load());
     const ch = user?.id
       ? supabase
-          .channel("conv:bot_conversations:" + user.id)
+          .channel("conv:bot_conversations:" + (orgId ?? user.id))
           .on(
             "postgres_changes",
-            { event: "*", schema: "public", table: "bot_conversations", filter: `user_id=eq.${user.id}` },
+            { event: "*", schema: "public", table: "bot_conversations", filter: orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}` },
             (payload) => {
               console.log("[conversas] evento em tempo real recebido:", payload.eventType, payload.new);
               if (payload.eventType === "DELETE") {

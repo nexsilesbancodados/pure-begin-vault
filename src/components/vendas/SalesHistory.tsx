@@ -87,7 +87,7 @@ import {
            event: '*',
            schema: 'public',
            table: 'sales_orders',
-           filter: `user_id=eq.${user.id}`
+           filter: orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}`,
          },
          () => {
            fetchSales();
@@ -98,7 +98,7 @@ import {
      return () => {
        supabase.removeChannel(channel);
      };
-   }, [fetchSales, user?.id]);
+   }, [fetchSales, user?.id, orgId]);
  
    const filteredSales = sales.filter(sale => {
      const s = searchTerm.toLowerCase();
