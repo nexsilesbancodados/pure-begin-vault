@@ -1033,12 +1033,26 @@ import { PixCharge } from "@/components/vendas/PixCharge";
                A venda foi processada e registrada com sucesso no sistema.
              </p>
              <div className="grid grid-cols-1 gap-3">
-                <Button 
-                  className="w-full gap-2 h-12 font-bold" 
+                <Button
+                  className="w-full gap-2 h-12 font-bold"
                   onClick={() => handlePrintReceipt()}
                 >
                  <Printer className="h-4 w-4" /> Imprimir Recibo
                </Button>
+               {lastSaleId && (
+                 <Button
+                   variant="outline"
+                   className="w-full gap-2 h-12 font-bold"
+                   onClick={async () => {
+                     const url = `${window.location.origin}/recibo/${lastSaleId}`;
+                     await navigator.clipboard.writeText(url);
+                     toast.success("Link copiado", { description: url });
+                     window.open(url, "_blank");
+                   }}
+                 >
+                   <ReceiptText className="h-4 w-4" /> Cupom online (compartilhável)
+                 </Button>
+               )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
