@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Users, Building2, DollarSign, ShoppingCart, Wrench, TrendingUp, ShieldAlert } from "lucide-react";
+import { Lock, Users, Building2, DollarSign, ShoppingCart, Wrench, TrendingUp, ShieldAlert, Copy, CheckCircle2, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/admin")({
@@ -116,6 +116,8 @@ function AdminPage() {
                 )}
               </Card>
 
+              <SetupCard />
+
               <Card className="p-5">
                 <h3 className="font-black text-sm uppercase tracking-widest mb-3">
                   Últimas lojas criadas
@@ -139,6 +141,63 @@ function AdminPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+function SetupCard() {
+  const [copied, setCopied] = useState<string | null>(null);
+  const supaUrl = (import.meta as any).env?.VITE_SUPABASE_URL ?? "https://irjzfrhvjrvvwnxygufo.supabase.co";
+  const items = [
+    {
+      id: "mp-webhook",
+      title: "Webhook Mercado Pago",
+      desc: "Cole esta URL em mercadopago.com.br → Suas integrações → Webhooks → Adicionar nova → Eventos: payment + subscription",
+      url: `${supaUrl}/functions/v1/mp-webhook`,
+    },
+    {
+      id: "evo-webhook",
+      title: "Webhook Evolution API",
+      desc: "No painel da Evolution, configure este como webhook da sua instância (eventos messages.upsert + connection.update)",
+      url: `${supaUrl}/functions/v1/bot-webhook`,
+    },
+    {
+      id: "google-place",
+      title: "Google Place ID (para reviews)",
+      desc: "Pegue seu ID em developers.google.com/maps/documentation/places/web-service/place-id e cole em /google-reviews",
+      url: "https://developers.google.com/maps/documentation/places/web-service/place-id",
+    },
+  ];
+  const copy = (id: string, url: string) => {
+    navigator.clipboard?.writeText(url);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
+  return (
+    <Card className="p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <Settings className="h-4 w-4 text-primary" />
+        <h3 className="font-black text-sm uppercase tracking-widest">Setup de integrações</h3>
+      </div>
+      <p className="text-xs text-muted-foreground mb-4">URLs e tokens que você precisa cadastrar nos serviços externos.</p>
+      <div className="space-y-3">
+        {items.map((i) => (
+          <div key={i.id} className="p-3 rounded-xl border border-border">
+            <div className="flex items-center justify-between mb-1">
+              <p className="font-bold text-sm">{i.title}</p>
+              <button
+                onClick={() => copy(i.id, i.url)}
+                className="text-xs flex items-center gap-1 px-2 py-1 rounded-lg bg-muted hover:bg-muted/70 font-bold"
+              >
+                {copied === i.id ? <CheckCircle2 className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+                {copied === i.id ? "Copiado" : "Copiar"}
+              </button>
+            </div>
+            <code className="block text-[11px] font-mono bg-muted/40 p-2 rounded break-all">{i.url}</code>
+            <p className="text-[11px] text-muted-foreground mt-1.5">{i.desc}</p>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

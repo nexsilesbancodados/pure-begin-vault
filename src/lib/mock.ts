@@ -109,6 +109,8 @@ export const sidebarItems = [
   { title: "API Pública (chaves)", url: "/api-keys", icon: "Key" as const, badge: "Novo" },
   { title: "Central de Ajuda", url: "/help", icon: "HelpCircle" as const },
   { title: "Status do sistema", url: "/status", icon: "Activity" as const },
+  { title: "Hardware (Impressora/Scanner)", url: "/hardware", icon: "Printer" as const, badge: "Novo" },
+  { title: "Avaliações Google", url: "/google-reviews", icon: "Star" as const, badge: "Novo" },
   { title: "Privacidade (LGPD)", url: "/minha-conta/lgpd", icon: "Shield" as const },
   { title: "Segurança / 2FA", url: "/minha-conta/seguranca", icon: "Lock" as const, badge: "2FA" },
   { title: "Clientes VIP (RFM)", url: "/relatorios/vip", icon: "Award" as const, badge: "IA" },

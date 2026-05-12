@@ -104,6 +104,7 @@ const COMMANDS: Command[] = [
   { id: "lgpd", label: "Privacidade / LGPD", icon: Lock, url: "/minha-conta/lgpd", group: "Sistema" },
   { id: "admin", label: "Admin SaaS (super admin)", icon: Lock, url: "/admin", group: "Sistema" },
   { id: "mobile", label: "Atendimento Mobile", icon: Smartphone, url: "/m/atendimento", group: "Sistema" },
+  { id: "hardware", label: "Hardware (Impressora/Scanner)", icon: Smartphone, url: "/hardware", group: "Sistema", keywords: "usb bluetooth termica" },
 ];
 
 export function CommandPalette() {
