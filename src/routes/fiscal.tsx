@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { RequirePermission } from "@/components/layout/RequirePermission";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 
 export const Route = createFileRoute("/fiscal")({
-  component: FiscalPage,
+  component: () => (
+    <RequirePermission perm="fiscal">
+      <FiscalPage />
+    </RequirePermission>
+  ),
 });
 
 type Sale = {

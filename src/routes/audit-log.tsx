@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { RequirePermission } from "@/components/layout/RequirePermission";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 
 export const Route = createFileRoute("/audit-log")({
-  component: AuditLogPage,
+  component: () => (
+    <RequirePermission perm="configuracoes">
+      <AuditLogPage />
+    </RequirePermission>
+  ),
 });
 
 type Log = {
