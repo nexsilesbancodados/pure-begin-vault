@@ -163,7 +163,7 @@ function Landing() {
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link to="/registro">
                 <Button size="lg" className="rounded-full text-base px-8 h-12 w-full sm:w-auto">
-                  Começar grátis por 7 dias <ArrowRight className="h-4 w-4 ml-2" />
+                  Começar grátis por 3 dias <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
               <a href="#planos">
@@ -788,7 +788,7 @@ function Landing() {
         </div>
         <div className="space-y-4">
           {[
-            { q: "Posso testar antes de pagar?", a: "Sim. Você tem 7 dias grátis para testar todos os recursos do plano Pro Max, sem precisar de cartão." },
+            { q: "Posso testar antes de pagar?", a: "Sim. Você tem 3 dias grátis para testar todos os recursos do plano Pro Max, sem precisar de cartão." },
             { q: "Tem fidelidade?", a: "Não. Você pode cancelar quando quiser. O pacote anual oferece desconto, mas é opcional." },
             { q: "Meus dados ficam seguros?", a: "Sim. Usamos criptografia em repouso e em trânsito, com backups diários e isolamento total entre lojas." },
             { q: "Funciona offline?", a: "O sistema é cloud-first, mas o app mobile mantém ações essenciais em cache para continuar vendendo se a internet cair." },
