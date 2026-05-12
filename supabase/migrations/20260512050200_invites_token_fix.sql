@@ -1,6 +1,31 @@
 -- Habilita pgcrypto + recria função de token compatível
 create extension if not exists pgcrypto;
 
+-- Fix create_organization_for_user pra setar owner_id (NOT NULL na tabela organizations)
+create or replace function public.create_organization_for_user(_name text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_org_id uuid;
+begin
+  if _name is null or length(trim(_name)) = 0 then
+    raise exception 'nome obrigatório';
+  end if;
+
+  insert into public.organizations (name, owner_id)
+  values (trim(_name), auth.uid())
+  returning id into v_org_id;
+
+  insert into public.user_organizations (user_id, organization_id, role, is_default)
+  values (auth.uid(), v_org_id, 'owner', false);
+
+  return v_org_id;
+end;
+$$;
+
 create or replace function public.gen_invite_token()
 returns text
 language sql
