@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { NotificationBell } from "./NotificationBell";
 import { useI18n, type Locale } from "@/lib/i18n";
 import { useTheme } from "@/components/theme/ThemeProvider";
+import { OrgSwitcher } from "@/components/layout/OrgSwitcher";
 
 export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subtitle?: string; toggleSidebar?: () => void }) {
   const navigate = useNavigate();
@@ -64,6 +65,10 @@ export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subt
           {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
         </button>
         <NotificationBell />
+
+        <div className="hidden md:block">
+          <OrgSwitcher />
+        </div>
 
         <div className="hidden sm:flex items-center gap-1 h-10 px-2 rounded-xl hover:bg-muted">
           <Globe className="h-4 w-4 text-muted-foreground" />
