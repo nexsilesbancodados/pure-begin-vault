@@ -6,17 +6,21 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Store, Plus, Check, Building2, ArrowRightCircle } from "lucide-react";
+import { Store, Plus, Check, Building2, ArrowRightCircle, Edit2, LogOut } from "lucide-react";
 import { useUserOrgs } from "@/lib/useUserOrgs";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/lojas")({
   component: LojasPage,
 });
 
 function LojasPage() {
-  const { orgs, loading, activeOrgId, switchOrg, createOrg } = useUserOrgs();
+  const { orgs, loading, activeOrgId, switchOrg, createOrg, reload } = useUserOrgs();
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
   const create = async () => {
     if (!newName.trim()) return;
@@ -24,6 +28,30 @@ function LojasPage() {
     const id = await createOrg(newName.trim());
     setSaving(false);
     if (id) setNewName("");
+  };
+
+  const startEdit = (o: any) => {
+    setEditingId(o.organization_id);
+    setEditName(o.organization?.name ?? "");
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editName.trim()) return;
+    const { error } = await (supabase as any).rpc("update_organization_name", {
+      _org_id: editingId, _name: editName.trim(),
+    });
+    if (error) { toast.error("Erro: " + error.message); return; }
+    toast.success("Nome atualizado");
+    setEditingId(null);
+    reload();
+  };
+
+  const leave = async (orgId: string) => {
+    if (!confirm("Sair desta loja? Você perde acesso a todos os dados dela.")) return;
+    const { error } = await (supabase as any).rpc("leave_organization", { _org_id: orgId });
+    if (error) { toast.error("Erro: " + error.message); return; }
+    toast.success("Você saiu da loja");
+    setTimeout(() => window.location.reload(), 800);
   };
 
   return (
@@ -80,36 +108,74 @@ function LojasPage() {
                           : "border-border hover:border-primary/30 transition"
                       }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
-                          className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+                          className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
                             isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                           }`}
                         >
                           <Building2 className="h-5 w-5" />
                         </div>
-                        <div className="min-w-0">
-                          <p className="font-black truncate">
-                            {o.organization?.name ?? "Loja sem nome"}
-                          </p>
+                        <div className="min-w-0 flex-1">
+                          {editingId === o.organization_id ? (
+                            <Input
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingId(null); }}
+                              autoFocus
+                              className="text-sm h-8"
+                            />
+                          ) : (
+                            <p className="font-black truncate">
+                              {o.organization?.name ?? "Loja sem nome"}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground capitalize">
                             Papel: {o.role}{o.is_default && " · padrão"}
                           </p>
                         </div>
                       </div>
-                      {isActive ? (
-                        <Badge className="bg-success/15 text-success">
-                          <Check className="h-3 w-3 mr-1" /> Ativa
-                        </Badge>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => switchOrg(o.organization_id)}
-                        >
-                          <ArrowRightCircle className="h-4 w-4 mr-1" /> Acessar
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {editingId === o.organization_id ? (
+                          <>
+                            <Button size="sm" onClick={saveEdit}>Salvar</Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancelar</Button>
+                          </>
+                        ) : (
+                          <>
+                            {(o.role === "owner" || o.role === "admin") && (
+                              <button
+                                onClick={() => startEdit(o)}
+                                className="h-8 w-8 grid place-items-center rounded-lg hover:bg-muted text-muted-foreground"
+                                title="Editar nome"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => leave(o.organization_id)}
+                              className="h-8 w-8 grid place-items-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                              title="Sair da loja"
+                            >
+                              <LogOut className="h-3.5 w-3.5" />
+                            </button>
+                            {isActive ? (
+                              <Badge className="bg-success/15 text-success ml-1">
+                                <Check className="h-3 w-3 mr-1" /> Ativa
+                              </Badge>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => switchOrg(o.organization_id)}
+                                className="ml-1"
+                              >
+                                <ArrowRightCircle className="h-4 w-4 mr-1" /> Acessar
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
