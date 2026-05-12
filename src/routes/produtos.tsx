@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export const Route = createFileRoute("/produtos")({
 
 function ProductsPage() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,13 +51,13 @@ function ProductsPage() {
   });
 
   const fetchProducts = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -66,7 +68,7 @@ function ProductsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   useEffect(() => {
     fetchProducts();
@@ -88,6 +90,7 @@ function ProductsPage() {
     try {
        const payload = {
          user_id: user.id,
+         organization_id: orgId,
          ...dataToSave,
          price: parseFloat(dataToSave.price) || 0,
          stock_quantity: parseInt(dataToSave.stock || dataToSave.stock_quantity) || 0,

@@ -32,12 +32,14 @@ import {
  
  import { supabase } from "@/integrations/supabase/client";
  import { useAuth } from "@/contexts/AuthContext";
+ import { useOrg } from "@/lib/useOrg";
  import { toast } from "sonner";
  import { format } from "date-fns";
  import { ptBR } from "date-fns/locale";
  
  export function SalesHistory() {
    const { user } = useAuth();
+   const { orgId } = useOrg();
    const [sales, setSales] = useState<any[]>([]);
    const [loading, setLoading] = useState(true);
    const [searchTerm, setSearchTerm] = useState("");
@@ -47,7 +49,7 @@ import {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
  
    const fetchSales = useCallback(async () => {
-     if (!user?.id) return;
+     if (!user?.id || !orgId) return;
      setLoading(true);
      try {
        const { data, error } = await supabase
@@ -55,12 +57,12 @@ import {
          .select(`
            *,
            customers (
-             full_name
+             name
            )
          `)
-         .eq("user_id", user.id)
+         .eq("organization_id", orgId)
          .order("created_at", { ascending: false });
- 
+
        if (error) throw error;
        setSales(data || []);
      } catch (error) {
@@ -69,7 +71,7 @@ import {
      } finally {
        setLoading(false);
      }
-   }, [user?.id]);
+   }, [user?.id, orgId]);
  
    useEffect(() => {
      fetchSales();
@@ -102,7 +104,7 @@ import {
      const s = searchTerm.toLowerCase();
      const matchesSearch = !s || (
        sale.id.toLowerCase().includes(s) ||
-       sale.customers?.full_name?.toLowerCase().includes(s) ||
+       sale.customers?.name?.toLowerCase().includes(s) ||
        sale.payment_method?.toLowerCase().includes(s)
      );
      if (!matchesSearch) return false;
@@ -330,7 +332,7 @@ import {
                         <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
                           <User className="h-3 w-3 text-muted-foreground" />
                         </div>
-                        <span className="text-sm font-bold tracking-tight">{sale.customers?.full_name || 'Consumidor Final'}</span>
+                        <span className="text-sm font-bold tracking-tight">{sale.customers?.name || 'Consumidor Final'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-5">
@@ -586,7 +588,7 @@ import {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Cliente</span>
-                    <span className="font-bold text-base">{selectedSale.customers?.full_name || 'Consumidor Final'}</span>
+                    <span className="font-bold text-base">{selectedSale.customers?.name || 'Consumidor Final'}</span>
                   </div>
                 </div>
 

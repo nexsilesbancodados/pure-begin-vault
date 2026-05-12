@@ -4,6 +4,7 @@ import { Topbar } from "@/components/layout/Topbar";
  import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
     import { Loader2, Plus, Search, Filter, LayoutGrid, List, ArrowUpDown, TrendingUp, MessageSquare, MessageCircle, X, Send, Bot, User, UserCog, PauseCircle, PlayCircle, RefreshCw, ChevronRight, Sparkles, CreditCard, Users, Clock, Wifi, Image as ImageIcon, Smile, Type, Pencil, Download, Crop, Tag, FileText } from "lucide-react";
  import { formatDistanceToNow } from "date-fns";
  import { ptBR } from "date-fns/locale";
@@ -70,6 +71,7 @@ type Deal = {
  
  function FunnelPage() {
     const { user, loading: authLoading } = useAuth();
+    const { orgId } = useOrg();
     const navigate = useNavigate();
     const [syncing, setSyncing] = useState(false);
    const syncLockRef = useRef(false);
@@ -725,13 +727,18 @@ type Deal = {
       
       fetchAvailableInstances();
 
-         const stQuery = supabase.from("funnel_stages").select("*").eq("user_id", user.id).order("order_index");
-        const ldQuery = supabase.from("leads").select("id, name, phone, avatar_url").eq("user_id", user.id).order("created_at", { ascending: false });
-        
+         const stQuery = orgId
+           ? supabase.from("funnel_stages").select("*").eq("organization_id", orgId).order("order_index")
+           : supabase.from("funnel_stages").select("*").eq("user_id", user.id).order("order_index");
+        const ldQuery = orgId
+          ? supabase.from("leads").select("id, name, phone, avatar_url").eq("organization_id", orgId).order("created_at", { ascending: false })
+          : supabase.from("leads").select("id, name, phone, avatar_url").eq("user_id", user.id).order("created_at", { ascending: false });
+
          // Busca leads do pipeline filtrados estritamente pela instância ativa
          let dlQuery = supabase.from("pipeline_leads")
-           .select("*, lead:leads(name, phone, source, avatar_url)")
-           .eq("user_id", user.id);
+           .select("*, lead:leads(name, phone, source, avatar_url)");
+         if (orgId) dlQuery = dlQuery.eq("organization_id", orgId);
+         else dlQuery = dlQuery.eq("user_id", user.id);
  
           // Busca conversas filtradas estritamente pela instância ativa
           let convQuery = supabase.from("bot_conversations")

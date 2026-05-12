@@ -2,20 +2,20 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { Loader2 } from "lucide-react";
 
 export function OriginDonut() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const { data: leads } = await supabase
-        .from("leads")
-        .select("source")
-        .eq("user_id", user.id);
+      const base = supabase.from("leads").select("source");
+      const { data: leads } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id));
       
       const counts: Record<string, number> = {};
       (leads || []).forEach(l => {
@@ -41,7 +41,7 @@ export function OriginDonut() {
       setData(chartData);
       setLoading(false);
     })();
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   const total = useMemo(() => data.reduce((a, b) => a + (b.value || 0), 0), [data]);
 

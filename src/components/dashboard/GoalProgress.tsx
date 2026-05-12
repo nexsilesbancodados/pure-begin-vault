@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ interface GoalProgressProps {
 
 export function GoalProgress({ current, goal: initialGoal = 50000, onGoalUpdate }: GoalProgressProps) {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
    const initialGoalState = {
@@ -115,12 +117,14 @@ export function GoalProgress({ current, goal: initialGoal = 50000, onGoalUpdate 
       firstDayMonth.setDate(1);
       firstDayMonth.setHours(0, 0, 0, 0);
 
-      const { data: sales, error } = await supabase
+      const baseQuery = supabase
         .from("sales_orders")
         .select("total_amount, status, created_at")
-        .eq("user_id", user.id)
         .gte("created_at", firstDayMonth.toISOString())
         .eq("status", "concluded");
+      const { data: sales, error } = await (orgId
+        ? baseQuery.eq("organization_id", orgId)
+        : baseQuery.eq("user_id", user.id));
 
       if (error) return;
 

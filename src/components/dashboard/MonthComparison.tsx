@@ -3,6 +3,7 @@ import { ArrowDownRight, ArrowUpRight, Loader2, TrendingUp } from "lucide-react"
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 
 interface MonthData {
   label: string;
@@ -12,6 +13,7 @@ interface MonthData {
 
 export function MonthComparison() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [data, setData] = useState<MonthData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -23,12 +25,12 @@ export function MonthComparison() {
       sixMonthsAgo.setDate(1);
       sixMonthsAgo.setHours(0, 0, 0, 0);
 
-      const { data: sales } = await supabase
+      const base = supabase
         .from("sales_orders")
         .select("total_amount, created_at")
-        .eq("user_id", user.id)
         .eq("status", "concluded")
         .gte("created_at", sixMonthsAgo.toISOString());
+      const { data: sales } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id));
 
       const now = new Date();
       const buckets: MonthData[] = [];
@@ -50,7 +52,7 @@ export function MonthComparison() {
       setData(buckets);
       setLoading(false);
     })();
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   const current = data[5]?.value || 0;
   const previous = data[4]?.value || 0;

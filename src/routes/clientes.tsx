@@ -31,6 +31,7 @@ export const Route = createFileRoute("/clientes")({
 
 function CustomersPage() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,23 +45,24 @@ function CustomersPage() {
    const [loadingHistory, setLoadingHistory] = useState(false);
 
   const [formData, setFormData] = useState({
-    full_name: "",
+    name: "",
     email: "",
     phone: "",
     document: "",
-    address_street: "",
-    address_city: ""
+    address: "",
+    city: "",
+    state: "",
   });
 
   const fetchCustomers = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from("customers")
         .select("*")
-        .eq("user_id", user.id)
-        .order("full_name", { ascending: true });
+        .eq("organization_id", orgId)
+        .order("name", { ascending: true });
 
       if (error) throw error;
       setCustomers(data || []);
@@ -70,7 +72,7 @@ function CustomersPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   useEffect(() => {
     fetchCustomers();
@@ -80,33 +82,34 @@ function CustomersPage() {
     if (customer) {
       setEditingCustomer(customer);
       setFormData({
-        full_name: customer.full_name,
+        name: customer.name,
         email: customer.email || "",
         phone: customer.phone || "",
         document: customer.document || "",
-        address_street: customer.address_street || "",
-        address_city: customer.address_city || ""
+        address: customer.address || "",
+        city: customer.city || ""
       });
     } else {
       setEditingCustomer(null);
       setFormData({
-        full_name: "",
+        name: "",
         email: "",
         phone: "",
         document: "",
-        address_street: "",
-        address_city: ""
+        address: "",
+        city: ""
       });
     }
     setIsModalOpen(true);
   };
 
   const handleSave = async () => {
-    if (!user?.id || !formData.full_name) return;
+    if (!user?.id || !orgId || !formData.name) return;
     setSaving(true);
     try {
       const payload = {
         user_id: user.id,
+        organization_id: orgId,
         ...formData
       };
 
@@ -148,7 +151,7 @@ function CustomersPage() {
   };
 
    const filteredCustomers = customers.filter(c => 
-     c.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
      (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
      (c.phone && c.phone.includes(searchTerm))
    );
@@ -182,7 +185,7 @@ function CustomersPage() {
        <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
          <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
            <DialogHeader>
-             <DialogTitle>Histórico: {editingCustomer?.full_name}</DialogTitle>
+             <DialogTitle>Histórico: {editingCustomer?.name}</DialogTitle>
            </DialogHeader>
            <div className="space-y-6 py-4">
              {loadingHistory ? (
@@ -235,11 +238,11 @@ function CustomersPage() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="full_name">Nome Completo</Label>
+              <Label htmlFor="name">Nome Completo</Label>
               <Input 
-                id="full_name" 
-                value={formData.full_name} 
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} 
+                id="name" 
+                value={formData.name} 
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
                 placeholder="Ex: João da Silva"
               />
             </div>
@@ -278,16 +281,16 @@ function CustomersPage() {
                 <Label htmlFor="street">Endereço (Rua)</Label>
                 <Input 
                   id="street" 
-                  value={formData.address_street} 
-                  onChange={(e) => setFormData({ ...formData, address_street: e.target.value })} 
+                  value={formData.address} 
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })} 
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="city">Cidade</Label>
                 <Input 
                   id="city" 
-                  value={formData.address_city} 
-                  onChange={(e) => setFormData({ ...formData, address_city: e.target.value })} 
+                  value={formData.city} 
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })} 
                 />
               </div>
             </div>
@@ -324,8 +327,8 @@ function CustomersPage() {
                   <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Nome Completo</Label>
                   <Input 
                     placeholder="Nome do cliente..." 
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="bg-card h-11"
                   />
                 </div>
@@ -423,9 +426,9 @@ function CustomersPage() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="h-9 w-9 rounded-full bg-primary/10 text-primary grid place-items-center font-bold text-xs">
-                              {customer.full_name.slice(0, 2).toUpperCase()}
+                              {customer.name.slice(0, 2).toUpperCase()}
                             </div>
-                            <div className="font-semibold text-sm">{customer.full_name}</div>
+                            <div className="font-semibold text-sm">{customer.name}</div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -443,9 +446,9 @@ function CustomersPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          {customer.address_city && (
+                          {customer.city && (
                             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <MapPin className="h-3 w-3" /> {customer.address_city}
+                              <MapPin className="h-3 w-3" /> {customer.city}
                             </div>
                           )}
                         </td>

@@ -3,24 +3,23 @@ import { useState, useEffect, useMemo } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 
 export function SalesChart() {
   const { user } = useAuth();
+  const { orgId } = useOrg();
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const { data } = await supabase
-        .from("sales_orders")
-        .select("total_amount, created_at")
-        .eq("user_id", user.id)
-        .eq("status", "concluded");
+      const base = supabase.from("sales_orders").select("total_amount, created_at").eq("status", "concluded");
+      const { data } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id));
       setSales(data || []);
       setLoading(false);
     })();
-  }, [user?.id]);
+  }, [user?.id, orgId]);
 
   const [period, setPeriod] = useState<"month" | "7d" | "30d" | "90d">("month");
 

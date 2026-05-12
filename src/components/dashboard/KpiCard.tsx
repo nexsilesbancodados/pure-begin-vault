@@ -28,6 +28,7 @@ type Tone = "info" | "success" | "warning" | "primary" | "destructive";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { startOfDay, endOfDay, format as formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ export function KpiCard({
   const [isLoading, setIsLoading] = useState(false);
   const [salesData, setSalesData] = useState<any[]>([]);
   const { user } = useAuth();
+  const { orgId } = useOrg();
 
   const IconsMap: Record<string, any> = { ShoppingBag, Wrench, Box, DollarSign, Users, TrendingUp };
 
@@ -55,36 +57,40 @@ export function KpiCard({
         const end = endOfDay(date);
         const l = label.toLowerCase();
 
+        const filterFor = (q: any) => orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
         if (l.includes("vendas") || l.includes("faturamento")) {
-          const { data } = await supabase
-            .from("sales_orders")
-            .select("total_amount, items, created_at, id, customers(full_name)")
-            .eq("user_id", user.id)
-            .eq("status", "concluded")
-            .gte("created_at", start.toISOString())
-            .lte("created_at", end.toISOString())
-            .order("created_at", { ascending: false });
-          
+          const { data } = await filterFor(
+            supabase
+              .from("sales_orders")
+              .select("total_amount, items, created_at, id, customers(name)")
+              .eq("status", "concluded")
+              .gte("created_at", start.toISOString())
+              .lte("created_at", end.toISOString())
+              .order("created_at", { ascending: false })
+          );
+
           setSalesData(data || []);
-          const total = (data || []).reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
+          const total = (data || []).reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
           setDisplayValue(total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
         } else if (l.includes("leads")) {
-          const { count } = await supabase
-            .from("leads")
-            .select("*", { count: 'exact', head: true })
-            .eq("user_id", user.id)
-            .gte("created_at", start.toISOString())
-            .lte("created_at", end.toISOString());
-          
+          const { count } = await filterFor(
+            supabase
+              .from("leads")
+              .select("*", { count: 'exact', head: true })
+              .gte("created_at", start.toISOString())
+              .lte("created_at", end.toISOString())
+          );
+
           setDisplayValue(String(count || 0));
         } else if (l.includes("os")) {
-          const { count } = await supabase
-            .from("service_orders")
-            .select("*", { count: 'exact', head: true })
-            .eq("user_id", user.id)
-            .gte("created_at", start.toISOString())
-            .lte("created_at", end.toISOString());
-          
+          const { count } = await filterFor(
+            supabase
+              .from("service_orders")
+              .select("*", { count: 'exact', head: true })
+              .gte("created_at", start.toISOString())
+              .lte("created_at", end.toISOString())
+          );
+
           setDisplayValue(String(count || 0));
         }
       } catch (error) {
@@ -95,7 +101,7 @@ export function KpiCard({
     };
 
     fetchDayData();
-  }, [date, isModalOpen, user?.id, label]);
+  }, [date, isModalOpen, user?.id, orgId, label]);
 
   const Icon = IconsMap[icon] ?? Activity;
   const navigate = useNavigate();
@@ -225,7 +231,7 @@ export function KpiCard({
                               <UserIcon className="h-3.5 w-3.5 text-primary" />
                             </div>
                             <div>
-                              <p className="text-[11px] font-bold leading-none">{sale.customers?.full_name || 'Consumidor Final'}</p>
+                              <p className="text-[11px] font-bold leading-none">{sale.customers?.name || 'Consumidor Final'}</p>
                               <p className="text-[9px] text-muted-foreground mt-1">{formatDate(new Date(sale.created_at), "HH:mm", { locale: ptBR })} • #{sale.id.slice(0, 8)}</p>
                             </div>
                           </div>

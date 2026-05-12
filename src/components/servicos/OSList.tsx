@@ -12,6 +12,7 @@
  } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 
 type OSRow = {
@@ -22,7 +23,7 @@ type OSRow = {
   estimated_cost: number | null;
   created_at: string | null;
    customer_id: string;
-   customer?: { full_name: string | null, phone: string | null } | null;
+   customer?: { name: string | null, phone: string | null } | null;
  };
  
   const statusColors: Record<string, string> = {
@@ -54,6 +55,7 @@ type OSRow = {
  
  export function OSList() {
     const { user } = useAuth();
+    const { orgId } = useOrg();
      const [rows, setRows] = useState<OSRow[]>([]);
      const [loading, setLoading] = useState(false);
      const [search, setSearch] = useState("");
@@ -61,13 +63,13 @@ type OSRow = {
      const [isEditOpen, setIsEditOpen] = useState(false);
 
     useEffect(() => {
-      if (!user?.id) return;
+      if (!user?.id || !orgId) return;
       setLoading(true);
       (async () => {
          const { data, error } = await supabase
            .from("service_orders")
-           .select("id,status,problem_description,equipment,estimated_cost,created_at,customer_id,customer:customers(full_name, phone)")
-           .eq("user_id", user.id)
+           .select("id,status,problem_description,equipment,estimated_cost,created_at,customer_id,customer:customers(name, phone)")
+           .eq("organization_id", orgId)
            .order("created_at", { ascending: false });
         if (error) toast.error("Erro ao carregar OS: " + error.message);
         setRows((data as any) ?? []);
@@ -79,7 +81,7 @@ type OSRow = {
       const q = search.trim().toLowerCase();
       if (!q) return rows;
       return rows.filter((r) =>
-        (r.customer?.full_name ?? "").toLowerCase().includes(q) ||
+        (r.customer?.name ?? "").toLowerCase().includes(q) ||
         (r.equipment ?? "").toLowerCase().includes(q) ||
         (r.problem_description ?? "").toLowerCase().includes(q)
       );
@@ -139,7 +141,7 @@ type OSRow = {
                <h1>TERMO DE RECEBIMENTO</h1>
                <p>OS #${os.id.slice(0, 8)} - Data: ${new Date().toLocaleDateString('pt-BR')}</p>
              </div>
-             <div class="info"><strong>Cliente:</strong> ${os.customer?.full_name || '---'}</div>
+             <div class="info"><strong>Cliente:</strong> ${os.customer?.name || '---'}</div>
              <div class="info"><strong>Aparelho:</strong> ${os.equipment || '---'}</div>
              <div class="info"><strong>Problema Relatado:</strong> ${os.problem_description || '---'}</div>
              <div class="info"><strong>Orçamento Estimado:</strong> R$ ${(os.estimated_cost || 0).toFixed(2)}</div>
@@ -220,7 +222,7 @@ type OSRow = {
                       <span className="font-mono text-xs font-bold text-primary">{os.id.slice(0, 8)}</span>
                    </td>
                    <td className="px-6 py-4">
-                      <div className="font-semibold text-sm">{os.customer?.full_name ?? "—"}</div>
+                      <div className="font-semibold text-sm">{os.customer?.name ?? "—"}</div>
                       <div className="text-xs text-muted-foreground">{os.equipment ?? "—"}</div>
                    </td>
                    <td className="px-6 py-4 text-sm text-muted-foreground">
