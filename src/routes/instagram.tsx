@@ -1,110 +1,198 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
-import { Instagram, Plus, RefreshCw, Settings2, Trash2, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Instagram, Plus, Settings2, Trash2, ExternalLink, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/useOrg";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/instagram")({
-  head: () => ({ 
-    meta: [
-      { title: "Instagram — ConectaCRM" }, 
-      { name: "description", content: "Integração direta com Instagram Direct e Comentários" }
-    ] 
-  }),
+  head: () => ({ meta: [{ title: "Instagram · ConectaCRM" }] }),
   component: InstagramPage,
 });
 
+type Account = {
+  id: string;
+  username: string;
+  account_id?: string | null;
+  connected: boolean;
+  pending_messages: number;
+  comments_24h: number;
+  auto_reply_stories: boolean;
+  auto_reply_keywords: boolean;
+};
+
 function InstagramPage() {
+  const { orgId, userId } = useOrg();
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openAdd, setOpenAdd] = useState(false);
+  const [username, setUsername] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    if (!orgId) { setLoading(false); return; }
+    setLoading(true);
+    const { data } = await (supabase as any).from("instagram_accounts").select("*").eq("organization_id", orgId).order("created_at", { ascending: false });
+    setAccounts((data ?? []) as Account[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [orgId]);
+
+  const addAccount = async () => {
+    if (!username.trim() || !orgId || !userId) return;
+    setSaving(true);
+    const { error } = await (supabase as any).from("instagram_accounts").insert({
+      organization_id: orgId,
+      user_id: userId,
+      username: username.trim().replace(/^@/, ""),
+      connected: false,
+    });
+    setSaving(false);
+    if (error) return toast.error("Erro: " + error.message);
+    toast.success("Conta adicionada. Conecte via Facebook Business pra ativar.");
+    setUsername("");
+    setOpenAdd(false);
+    load();
+  };
+
+  const toggle = async (id: string, field: "auto_reply_stories" | "auto_reply_keywords", value: boolean) => {
+    const { error } = await (supabase as any).from("instagram_accounts").update({ [field]: value }).eq("id", id);
+    if (error) return toast.error("Erro ao salvar");
+    setAccounts((prev) => prev.map((a) => (a.id === id ? { ...a, [field]: value } : a)));
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Remover esta conta?")) return;
+    const { error } = await (supabase as any).from("instagram_accounts").delete().eq("id", id);
+    if (error) return toast.error("Erro ao remover");
+    toast.success("Removida");
+    load();
+  };
+
   return (
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar title="Conexões Instagram" subtitle="Gerencie seus perfis e directs" />
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold font-display">Perfis Conectados</h2>
-            <button className="h-9 px-4 rounded-xl bg-gradient-primary text-white text-sm font-semibold shadow-elegant hover:opacity-95 transition flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Nova Conta
-            </button>
+        <Topbar title="Conexões Instagram" subtitle="Gerencie perfis e Direct Messages" />
+        <main className="flex-1 overflow-y-auto p-6 space-y-4">
+
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black">Perfis ({accounts.length})</h2>
+            <Button onClick={() => setOpenAdd(true)} className="gap-2"><Plus className="h-4 w-4" /> Nova conta</Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="rounded-2xl bg-card border border-border p-5 shadow-card hover:shadow-elegant transition-all">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 grid place-items-center">
-                    <Instagram className="h-6 w-6 text-white" />
+          {loading ? (
+            <Card className="p-8 text-center text-sm text-muted-foreground">Carregando...</Card>
+          ) : accounts.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon={Instagram}
+                title="Nenhuma conta Instagram conectada"
+                description="Adicione a primeira conta. A conexão via Facebook Business requer aprovação do Meta (1-2 dias)."
+                action={{ label: "Adicionar conta", onClick: () => setOpenAdd(true) }}
+              />
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {accounts.map((a) => (
+                <Card key={a.id} className="p-5">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-xl bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 grid place-items-center">
+                        <Instagram className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm leading-tight">@{a.username}</h4>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className={`h-2 w-2 rounded-full ${a.connected ? "bg-success" : "bg-muted-foreground"}`} />
+                          <span className="text-[11px] font-medium text-muted-foreground uppercase">
+                            {a.connected ? "Conectado" : "Pendente"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={() => remove(a.id)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-sm leading-tight">loja_smartphones_br</h4>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <span className="h-2 w-2 rounded-full bg-success" />
-                      <span className="text-[11px] font-medium text-muted-foreground uppercase">Conectado</span>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Mensagens pendentes:</span>
+                      <span className="font-bold">{a.pending_messages}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Comentários (24h):</span>
+                      <span className="font-bold">{a.comments_24h}</span>
                     </div>
                   </div>
-                </div>
-                <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-muted text-muted-foreground"><Settings2 className="h-4 w-4" /></button>
-              </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Mensagens Pendentes:</span>
-                  <span className="font-bold text-primary">12</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Comentários (24h):</span>
-                  <span className="font-bold">48</span>
-                </div>
-              </div>
+                  <div className="space-y-2 pt-3 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Auto-reply Stories</Label>
+                      <Switch checked={a.auto_reply_stories} onCheckedChange={(v) => toggle(a.id, "auto_reply_stories", v)} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Auto-reply em "PREÇO"</Label>
+                      <Switch checked={a.auto_reply_keywords} onCheckedChange={(v) => toggle(a.id, "auto_reply_keywords", v)} />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-2 mt-5">
-                <button className="h-9 rounded-xl bg-muted text-foreground text-xs font-bold uppercase tracking-wide hover:bg-muted/80 transition flex items-center justify-center gap-2">
-                  <ExternalLink className="h-3.5 w-3.5" /> Ver Perfil
-                </button>
-                <button className="h-9 rounded-xl bg-destructive/10 text-destructive text-xs font-bold uppercase tracking-wide hover:bg-destructive/20 transition flex items-center justify-center gap-2">
-                  <Trash2 className="h-4 w-4" /> Desconectar
-                </button>
+                  <a href={`https://instagram.com/${a.username}`} target="_blank" rel="noopener noreferrer"
+                     className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+                    <ExternalLink className="h-3 w-3" /> Abrir perfil
+                  </a>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <Card className="p-5 bg-info/5 border-info/30">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-info shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-bold mb-1">Como ativar o Direct API</p>
+                <ol className="list-decimal list-inside text-muted-foreground space-y-1 text-xs">
+                  <li>Sua conta Instagram precisa ser <strong>Business</strong> ou <strong>Creator</strong></li>
+                  <li>Vincule a uma página Facebook em <a href="https://business.facebook.com" target="_blank" className="text-primary hover:underline">business.facebook.com</a></li>
+                  <li>No painel Meta, ative permissões de Instagram Messaging</li>
+                  <li>Adicione a URL de webhook do ConectaCRM nas configurações Meta</li>
+                  <li>Cole o token de acesso aqui (em breve via OAuth direto)</li>
+                </ol>
               </div>
             </div>
-
-            {/* Empty State / Add New */}
-            <button className="rounded-2xl border-2 border-dashed border-border p-5 flex flex-col items-center justify-center text-center hover:bg-muted/30 transition group">
-              <div className="h-12 w-12 rounded-xl bg-muted grid place-items-center mb-3 group-hover:scale-110 transition">
-                <Plus className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <span className="text-sm font-bold text-muted-foreground">Adicionar Conta</span>
-              <span className="text-[11px] text-muted-foreground/60 mt-1">Integre com Facebook Business</span>
-            </button>
-          </div>
-
-          <div className="mt-8 rounded-2xl bg-card border border-border p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 grid place-items-center text-primary">
-                <AlertCircle className="h-5 w-5" />
-              </div>
-              <h3 className="font-bold text-base">Configurações de Automação Direct</h3>
-            </div>
-            <p className="text-sm text-muted-foreground mb-6">
-              O ConectaCRM permite responder automaticamente a menções em Stories e palavras-chave em comentários usando a inteligência artificial do DeepSeek.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl border border-border bg-muted/30">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold">Auto-reply Stories</span>
-                  <div className="h-5 w-10 rounded-full bg-success relative"><div className="absolute right-1 top-1 h-3 w-3 rounded-full bg-white shadow-sm" /></div>
-                </div>
-                <p className="text-[11px] text-muted-foreground italic">Responde a qualquer menção em story com uma mensagem de agradecimento e qualificação.</p>
-              </div>
-              <div className="p-4 rounded-xl border border-border bg-muted/30">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold">Monitoramento de Comentários</span>
-                  <div className="h-5 w-10 rounded-full bg-success relative"><div className="absolute right-1 top-1 h-3 w-3 rounded-full bg-white shadow-sm" /></div>
-                </div>
-                <p className="text-[11px] text-muted-foreground italic">Envia direct automático quando alguém comenta "PREÇO" ou "VALOR" em seus posts.</p>
-              </div>
-            </div>
-          </div>
+          </Card>
         </main>
       </div>
+
+      <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova conta Instagram</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>Username (@)</Label>
+            <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="@minhaloja" autoFocus />
+            <p className="text-[11px] text-muted-foreground">
+              Salvamos o username pra você gerenciar. A conexão com a Meta requer setup adicional.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenAdd(false)}>Cancelar</Button>
+            <Button onClick={addAccount} disabled={!username.trim() || saving}>{saving ? "Adicionando..." : "Adicionar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

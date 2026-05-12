@@ -1,93 +1,166 @@
- import { createFileRoute } from "@tanstack/react-router";
- import { AppSidebar } from "@/components/layout/Sidebar";
- import { Topbar } from "@/components/layout/Topbar";
- import { Card } from "@/components/ui/card";
- import { Button } from "@/components/ui/button";
-  import { Building2, Plus, Phone, Mail, Globe, Search, MoreVertical, Filter, Download, MapPin, ExternalLink } from "lucide-react";
-  import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { AppSidebar } from "@/components/layout/Sidebar";
+import { Topbar } from "@/components/layout/Topbar";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Truck, Plus, Edit2, Trash2, Search } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/useOrg";
+import { toast } from "sonner";
 
- export const Route = createFileRoute("/financeiro/fornecedores")({
-   component: FinanceFornecedoresPage,
- });
+export const Route = createFileRoute("/financeiro/fornecedores")({
+  head: () => ({ meta: [{ title: "Fornecedores · ConectaCRM" }] }),
+  component: SuppliersPage,
+});
 
- function FinanceFornecedoresPage() {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-  const suppliers: any[] = [];
+type Supplier = {
+  id: string;
+  name: string;
+  cnpj?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  contact_name?: string | null;
+  city?: string | null;
+  state?: string | null;
+  notes?: string | null;
+  active: boolean;
+};
 
-   return (
-     <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-       <div className="flex-1 flex flex-col min-w-0">
-          <Topbar title="Gestão de Fornecedores" subtitle="Cadastro e controle de parceiros comerciais" toggleSidebar={() => setSidebarOpen(true)} />
-         <main className="flex-1 overflow-y-auto p-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-              <div className="flex items-center gap-3 flex-1">
-                <div className="relative flex-1 md:max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input placeholder="Buscar fornecedor por nome ou categoria..." className="w-full h-11 pl-10 pr-4 rounded-xl bg-card border border-slate-200 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 transition shadow-sm" />
-                </div>
-                <Button variant="outline" className="h-11 rounded-xl border-slate-200 font-bold px-5">
-                  <Filter className="h-4 w-4 mr-2" /> Filtros
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="h-11 rounded-xl border-slate-200 font-bold px-5">
-                  <Download className="h-4 w-4 mr-2" /> Exportar
-                </Button>
-                <Button className="h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-6 shadow-lg shadow-blue-200">
-                  <Plus className="h-4 w-4 mr-2" /> Novo Fornecedor
-                </Button>
-              </div>
+function SuppliersPage() {
+  const { orgId, userId } = useOrg();
+  const [items, setItems] = useState<Supplier[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Supplier | null>(null);
+  const [q, setQ] = useState("");
+  const [form, setForm] = useState<Partial<Supplier>>({});
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    if (!orgId) { setLoading(false); return; }
+    const { data } = await (supabase as any).from("suppliers").select("*").eq("organization_id", orgId).order("name");
+    setItems((data ?? []) as Supplier[]);
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, [orgId]);
+
+  const openNew = () => { setEditing(null); setForm({ active: true }); setOpen(true); };
+  const openEdit = (s: Supplier) => { setEditing(s); setForm(s); setOpen(true); };
+
+  const save = async () => {
+    if (!form.name?.trim() || !orgId || !userId) return toast.error("Nome obrigatório");
+    setSaving(true);
+    const payload = { ...form, organization_id: orgId, user_id: userId, updated_at: new Date().toISOString() };
+    const { error } = editing
+      ? await (supabase as any).from("suppliers").update(payload).eq("id", editing.id)
+      : await (supabase as any).from("suppliers").insert(payload);
+    setSaving(false);
+    if (error) return toast.error("Erro: " + error.message);
+    toast.success(editing ? "Atualizado" : "Criado");
+    setOpen(false);
+    load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Excluir este fornecedor?")) return;
+    const { error } = await (supabase as any).from("suppliers").delete().eq("id", id);
+    if (error) return toast.error("Erro ao excluir");
+    toast.success("Excluído");
+    load();
+  };
+
+  const filtered = items.filter((s) =>
+    !q ? true : (s.name + (s.cnpj ?? "") + (s.contact_name ?? "") + (s.city ?? "")).toLowerCase().includes(q.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-screen flex w-full bg-background">
+      <AppSidebar />
+      <div className="flex-1 flex flex-col min-w-0">
+        <Topbar title="Fornecedores" subtitle="Cadastro de fornecedores e contatos" />
+        <main className="flex-1 overflow-y-auto p-6 space-y-4">
+
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome, CNPJ, cidade..." className="pl-10 h-10" />
             </div>
+            <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Novo fornecedor</Button>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {suppliers.length > 0 ? suppliers.map(s => (
-                <Card key={s.id} className="p-0 border-border shadow-sm hover:shadow-md transition-all group overflow-hidden rounded-2xl flex flex-col">
-                  <div className="p-5 flex-1">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="h-11 w-11 rounded-xl bg-slate-50 border border-slate-100 grid place-items-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-                        <Building2 className="h-5 w-5" />
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    
-                    <h3 className="font-black text-slate-900 leading-tight mb-1 group-hover:text-blue-600 transition-colors">{s.name}</h3>
-                    <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-wider border border-blue-100">
-                      {s.category}
-                    </span>
+          {loading ? (
+            <Card className="p-8 text-center text-sm text-muted-foreground">Carregando...</Card>
+          ) : filtered.length === 0 ? (
+            <Card>
+              <EmptyState
+                icon={Truck}
+                title={q ? "Nenhum fornecedor encontrado" : "Nenhum fornecedor cadastrado"}
+                description={q ? "Tente outra busca." : "Cadastre fornecedores pra registrar entradas de NF e relatório de compras."}
+                action={!q ? { label: "Cadastrar primeiro", onClick: openNew } : undefined}
+              />
+            </Card>
+          ) : (
+            <Card className="overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/30 border-b border-border">
+                  <tr>
+                    <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Nome</th>
+                    <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">CNPJ</th>
+                    <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Contato</th>
+                    <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Cidade/UF</th>
+                    <th className="text-right p-3 text-[11px] font-bold uppercase tracking-widest">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((s) => (
+                    <tr key={s.id} className="border-b border-border hover:bg-muted/20">
+                      <td className="p-3 font-bold">{s.name}</td>
+                      <td className="p-3 font-mono text-xs">{s.cnpj}</td>
+                      <td className="p-3">{s.contact_name ?? s.email ?? s.phone}</td>
+                      <td className="p-3 text-muted-foreground">{[s.city, s.state].filter(Boolean).join("/")}</td>
+                      <td className="p-3 text-right">
+                        <button onClick={() => openEdit(s)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-muted inline-flex">
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => remove(s.id)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-destructive/10 hover:text-destructive inline-flex ml-1">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
+        </main>
+      </div>
 
-                    <div className="mt-5 space-y-2.5">
-                      <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                        <Phone className="h-3.5 w-3.5 text-slate-400" /> {s.contact}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                        <Mail className="h-3.5 w-3.5 text-slate-400" /> {s.email}
-                      </div>
-                      <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                        <MapPin className="h-3.5 w-3.5 text-slate-400" /> {s.city}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="px-5 py-4 bg-slate-50/50 border-t border-slate-100 flex gap-2 group-hover:bg-slate-50 transition-colors">
-                    <Button variant="outline" className="flex-1 h-9 text-[10px] font-black uppercase tracking-widest rounded-lg border-slate-200 bg-white hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
-                      Histórico
-                    </Button>
-                    <Button variant="outline" className="h-9 w-9 p-0 rounded-lg border-slate-200 bg-white hover:bg-slate-100 transition-colors">
-                      <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
-                    </Button>
-                  </div>
-                </Card>
-              )) : (
-                <div className="col-span-full py-16 text-center text-sm text-muted-foreground italic border border-dashed border-slate-200 rounded-2xl">
-                  Nenhum fornecedor cadastrado
-                </div>
-              )}
-            </div>
-         </main>
-       </div>
-     </div>
-   );
- }
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar fornecedor" : "Novo fornecedor"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2"><Label>Nome / Razão Social *</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} autoFocus /></div>
+            <div><Label>CNPJ</Label><Input value={form.cnpj ?? ""} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} placeholder="00.000.000/0001-00" /></div>
+            <div><Label>Contato</Label><Input value={form.contact_name ?? ""} onChange={(e) => setForm({ ...form, contact_name: e.target.value })} /></div>
+            <div><Label>Telefone</Label><Input value={form.phone ?? ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+            <div><Label>Email</Label><Input value={form.email ?? ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+            <div><Label>Cidade</Label><Input value={form.city ?? ""} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
+            <div><Label>UF</Label><Input value={form.state ?? ""} onChange={(e) => setForm({ ...form, state: e.target.value })} maxLength={2} /></div>
+            <div className="col-span-2"><Label>Observações</Label><Input value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={save} disabled={saving || !form.name?.trim()}>{saving ? "Salvando..." : "Salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
