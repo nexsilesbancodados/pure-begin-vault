@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { useTheme } from "@/components/theme/ThemeProvider";
    import { User, Shield, Bell, Zap, Database, Smartphone, Palette, HelpCircle, ChevronRight, Globe, Lock, Plus, Download, Upload, FileJson, AlertCircle, FileText, CheckCircle2, History } from "lucide-react";
 
 export const Route = createFileRoute("/configuracoes")({
@@ -22,6 +23,16 @@ export const Route = createFileRoute("/configuracoes")({
  
    function SettingsPage() {
      const { user, profile } = useAuth();
+     const { theme, toggle } = useTheme();
+     const [soundNotifications, setSoundNotifications] = useState<boolean>(() => {
+       if (typeof window === "undefined") return true;
+       return localStorage.getItem("sound_notifications") !== "off";
+     });
+     const handleToggleSound = (v: boolean) => {
+       setSoundNotifications(v);
+       try { localStorage.setItem("sound_notifications", v ? "on" : "off"); } catch {}
+       toast.success(v ? "Sons ativados" : "Sons silenciados");
+     };
 
     const handleExportBackup = async () => {
       try {
@@ -232,13 +243,9 @@ export const Route = createFileRoute("/configuracoes")({
                     <TabsTrigger value="seguranca" className="rounded-lg gap-2"><Shield className="h-4 w-4" /> Segurança</TabsTrigger>
                     <TabsTrigger value="backup" className="rounded-lg gap-2"><Database className="h-4 w-4" /> Backup</TabsTrigger>
                   </TabsList>
-                 {activeTab === "perfil" ? (
+                 {activeTab === "perfil" && (
                    <Button onClick={handleSaveProfile} className="bg-gradient-primary shadow-glow">
                      Salvar Perfil
-                   </Button>
-                 ) : (
-                   <Button onClick={() => toast.success("Configurações salvas!")} className="bg-gradient-primary shadow-glow">
-                     Salvar Alterações
                    </Button>
                  )}
                </div>
@@ -392,16 +399,16 @@ export const Route = createFileRoute("/configuracoes")({
                        <div className="flex items-center justify-between">
                          <div className="space-y-0.5">
                            <Label>Tema Escuro</Label>
-                           <p className="text-[11px] text-muted-foreground">Alternar entre claro e escuro</p>
+                           <p className="text-[11px] text-muted-foreground">Alternar entre claro e escuro (atalho: ícone na topbar)</p>
                          </div>
-                         <Switch defaultChecked />
+                         <Switch checked={theme === "dark"} onCheckedChange={toggle} />
                        </div>
                        <div className="flex items-center justify-between">
                          <div className="space-y-0.5">
                            <Label>Notificações de Som</Label>
-                           <p className="text-[11px] text-muted-foreground">Alertas de novas mensagens</p>
+                           <p className="text-[11px] text-muted-foreground">Alertas sonoros pra mensagens novas</p>
                          </div>
-                         <Switch defaultChecked />
+                         <Switch checked={soundNotifications} onCheckedChange={handleToggleSound} />
                        </div>
                      </CardContent>
                    </Card>

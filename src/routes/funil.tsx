@@ -1698,7 +1698,28 @@ type Deal = {
                   >
                     Templates
                   </button>
-                  <button className="text-[10px] font-black text-primary/70 uppercase tracking-widest hover:text-primary transition-colors" onClick={() => toast.info("Anexos em breve!")}>
+                  <button className="text-[10px] font-black text-primary/70 uppercase tracking-widest hover:text-primary transition-colors" onClick={() => {
+                    const input = document.createElement("input");
+                    input.type = "file";
+                    input.accept = "image/*,application/pdf";
+                    input.onchange = async (e: any) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 10 * 1024 * 1024) { toast.error("Arquivo > 10MB"); return; }
+                      try {
+                        toast.loading("Enviando anexo...");
+                        const path = `funil/${Date.now()}_${file.name}`;
+                        const { error: upErr } = await supabase.storage.from("attachments").upload(path, file, { upsert: false });
+                        if (upErr && !upErr.message.includes("already exists")) throw upErr;
+                        const { data: { publicUrl } } = supabase.storage.from("attachments").getPublicUrl(path);
+                        setMessageText((prev) => `${prev}\n${publicUrl}`);
+                        toast.success("Link colado na mensagem");
+                      } catch (err: any) {
+                        toast.error("Erro: " + (err.message ?? "upload falhou"));
+                      }
+                    };
+                    input.click();
+                  }}>
                     Anexar
                   </button>
                 </div>
