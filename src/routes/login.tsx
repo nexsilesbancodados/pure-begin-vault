@@ -38,15 +38,17 @@ export const Route = createFileRoute("/login")({
         return;
       }
 
-      // Verifica se já completou onboarding (tem display_name no perfil)
+      // Verifica se já completou onboarding (tem display_name + org)
+      // Mas pula onboarding se já é super_admin ou owner de organização
       const uid = signInData.user?.id;
       if (uid) {
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("display_name, organization_id")
-          .eq("id", uid)
-          .maybeSingle();
-        if (!prof?.display_name || !prof?.organization_id) {
+        const [{ data: prof }, { data: superAdmin }] = await Promise.all([
+          supabase.from("profiles").select("display_name, organization_id, role").eq("id", uid).maybeSingle(),
+          (supabase as any).from("super_admins").select("user_id").eq("user_id", uid).maybeSingle(),
+        ]);
+        const isOwner = prof?.role === "owner" || !!superAdmin;
+        const onboardingComplete = !!prof?.display_name && !!prof?.organization_id;
+        if (!isOwner && !onboardingComplete) {
           navigate({ to: "/onboarding" });
           return;
         }
