@@ -897,7 +897,7 @@ type Deal = {
         lead_id: (prevDeal as any)?.lead_id ?? dealId,
         from_stage_id: fromStageId,
         to_stage_id: newStageId,
-      });
+      }, orgId);
     }
   };
 

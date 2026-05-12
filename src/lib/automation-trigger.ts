@@ -14,6 +14,7 @@ export function fireAutomation(
   user_id: string,
   trigger_type: AutomationTrigger,
   payload: Record<string, any> = {},
+  organization_id?: string | null,
 ) {
   if (!user_id) return;
   // não-bloqueante; logado no console em caso de erro
@@ -24,12 +25,13 @@ export function fireAutomation(
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ user_id, trigger_type, payload }),
+    body: JSON.stringify({ user_id, organization_id, trigger_type, payload }),
   }).catch((e) => console.warn("[automation-trigger]", trigger_type, e));
   // Também grava em messages quando aplicável (para o cron 24h funcionar)
   if (trigger_type === "message_received" && payload?.content) {
     void supabase.from("messages").insert({
       user_id,
+      organization_id: organization_id ?? null,
       lead_id: payload.lead_id ?? null,
       phone: payload.phone ?? null,
       direction: "inbound",
