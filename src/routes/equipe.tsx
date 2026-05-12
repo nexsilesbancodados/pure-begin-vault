@@ -113,10 +113,7 @@ function EquipePage() {
                  />
                </div>
                <div className="flex items-center gap-3">
-                 <button className="h-11 px-4 rounded-xl border border-slate-200 bg-white text-slate-600 text-sm font-semibold hover:bg-slate-50 transition">
-                   Filtrar por cargo
-                 </button>
-                 <button 
+                 <button
                    onClick={() => setIsModalOpen(true)}
                    className="h-11 px-5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white text-sm font-bold shadow-lg shadow-indigo-500/20 hover:opacity-95 transition flex items-center gap-2"
                  >
@@ -167,9 +164,6 @@ function EquipePage() {
                        </div>
                        <div className={`absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-4 border-white ${member.id === user?.id ? "bg-emerald-500" : "bg-slate-300"}`} />
                     </div>
-                    <button className="h-9 w-9 grid place-items-center rounded-xl hover:bg-slate-50 text-slate-400 transition-colors">
-                      <MoreHorizontal className="h-5 w-5" />
-                    </button>
                   </div>
 
                   <div className="mb-6">
@@ -197,11 +191,8 @@ function EquipePage() {
                     </div>
                   </div>
                   
-                   <div className="grid grid-cols-2 gap-3">
-                     <button className="h-10 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">
-                       Configurar
-                     </button>
-                     <button 
+                   <div className="grid grid-cols-1 gap-3">
+                     <button
                        onClick={() => handleRemoveMember(member.id)}
                        disabled={member.id === user?.id}
                        className="h-10 rounded-xl border border-slate-200 text-xs font-bold text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors disabled:opacity-30"

@@ -152,9 +152,9 @@ function CrmHub() {
                 <Link to="/crm/conversas" className="flex items-center gap-2 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/30 transition border border-white/20">
                   <MessageSquare className="h-4 w-4" /> Ver Conversas
                 </Link>
-                <button className="flex items-center gap-2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/20 transition border border-white/10">
+                <Link to="/broadcast" className="flex items-center gap-2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/20 transition border border-white/10">
                   <Send className="h-4 w-4" /> Disparo em Massa
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -167,8 +167,8 @@ function CrmHub() {
               ))
             ) : (
               <>
-                <Kpi icon={Clock}         label="Tempo de Resposta"  value="< 2 min"                                color="text-success" bg="bg-success/10" />
-                <Kpi icon={CheckCircle2}  label="Taxa de Conversão" value="12.4%"                                  color="text-primary" bg="bg-primary/10" />
+                <Kpi icon={CheckCircle2}  label="Pipeline (R$)"     value={`R$ ${stats.pipelineValue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} color="text-primary" bg="bg-primary/10" />
+                <Kpi icon={Clock}         label="Vendas Ganhas"     value={`R$ ${stats.won.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}            color="text-success" bg="bg-success/10" />
                 <Kpi icon={Users}         label="Leads Ativos"      value={stats.leads.toLocaleString("pt-BR")}    color="text-info"    bg="bg-info/10" />
                 <Kpi icon={MessageSquare} label="Conversas Abertas" value={stats.activeConvs.toString()}            color="text-warning" bg="bg-warning/10" />
               </>
@@ -317,12 +317,19 @@ function CrmHub() {
                   <p className="text-xs text-muted-foreground">Engajamento dos clientes</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 h-2 bg-success/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-success w-[85%]" />
-                </div>
-                <span className="text-sm font-bold text-success">Excelente (85%)</span>
-              </div>
+              {(() => {
+                const conversionRate = stats.pipelineValue > 0 ? (stats.won / (stats.pipelineValue + stats.won)) * 100 : 0;
+                const label = conversionRate >= 30 ? "Excelente" : conversionRate >= 15 ? "Bom" : conversionRate >= 5 ? "Regular" : "Em construção";
+                const color = conversionRate >= 30 ? "text-success" : conversionRate >= 15 ? "text-info" : conversionRate >= 5 ? "text-warning" : "text-muted-foreground";
+                return (
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 h-2 bg-success/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-success" style={{ width: `${Math.min(conversionRate, 100)}%` }} />
+                    </div>
+                    <span className={`text-sm font-bold ${color}`}>{label} ({conversionRate.toFixed(1)}%)</span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </main>

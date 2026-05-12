@@ -28,6 +28,11 @@ export const Route = createFileRoute("/configuracoes")({
        if (typeof window === "undefined") return true;
        return localStorage.getItem("sound_notifications") !== "off";
      });
+     const [evoUrl, setEvoUrl] = useState<string>(() => (typeof window === "undefined" ? "" : localStorage.getItem("evo_url") ?? "https://evolution.conectaphone.com"));
+     const [evoKey, setEvoKey] = useState<string>(() => (typeof window === "undefined" ? "" : localStorage.getItem("evo_key") ?? ""));
+     useEffect(() => { try { localStorage.setItem("evo_url", evoUrl); } catch {} }, [evoUrl]);
+     useEffect(() => { try { localStorage.setItem("evo_key", evoKey); } catch {} }, [evoKey]);
+
      const handleToggleSound = (v: boolean) => {
        setSoundNotifications(v);
        try { localStorage.setItem("sound_notifications", v ? "on" : "off"); } catch {}
@@ -451,31 +456,46 @@ export const Route = createFileRoute("/configuracoes")({
                    <Card className="border-border shadow-card">
                      <CardHeader>
                        <CardTitle className="flex items-center gap-2"><Database className="h-5 w-5 text-blue-500" /> Evolution API</CardTitle>
-                       <CardDescription>Conecte suas instâncias de WhatsApp.</CardDescription>
+                       <CardDescription>Conecte sua instância de WhatsApp via Evolution API.</CardDescription>
                      </CardHeader>
                      <CardContent className="space-y-4">
                        <div className="space-y-2">
                          <Label>URL da API</Label>
-                         <Input defaultValue="https://evolution.seuservidor.com" />
+                         <Input value={evoUrl} onChange={(e) => setEvoUrl(e.target.value)} placeholder="https://evo.conectaphone.com" />
                        </div>
                        <div className="space-y-2">
-                         <Label>Global API Key</Label>
-                         <Input type="password" value="••••••••••••••••••••" />
+                         <Label>API Key</Label>
+                         <Input type="password" value={evoKey} onChange={(e) => setEvoKey(e.target.value)} placeholder="cole sua key aqui" />
                        </div>
-                       <Button variant="outline" className="w-full">Testar Conexão</Button>
+                       <Button variant="outline" className="w-full" onClick={async () => {
+                         if (!evoUrl) return toast.error("Informe a URL");
+                         try {
+                           toast.loading("Testando...");
+                           const r = await fetch(evoUrl.replace(/\/$/, "") + "/instance/fetchInstances", { headers: evoKey ? { apikey: evoKey } : {} });
+                           toast.dismiss();
+                           if (r.ok) toast.success("Conectado! Status " + r.status);
+                           else toast.error("Falhou: HTTP " + r.status);
+                         } catch (e: any) {
+                           toast.dismiss();
+                           toast.error("Erro: " + e.message);
+                         }
+                       }}>Testar Conexão</Button>
                      </CardContent>
                    </Card>
- 
+
                    <Card className="border-border shadow-card">
                      <CardHeader>
                        <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5 text-emerald-500" /> Webhooks de Entrada</CardTitle>
-                       <CardDescription>Receba leads de sites externos ou Typeform.</CardDescription>
+                       <CardDescription>URL pública pra receber leads de sites externos ou formulários.</CardDescription>
                      </CardHeader>
                      <CardContent className="space-y-4">
                        <div className="p-3 bg-muted rounded-lg border border-border">
-                         <code className="text-[10px] break-all">https://api.conectacrm.app/webhook/v1/987654321</code>
+                         <code className="text-[10px] break-all">{import.meta.env.VITE_SUPABASE_URL}/functions/v1/bot-webhook</code>
                        </div>
-                       <Button variant="secondary" size="sm" className="w-full gap-2"><Plus className="h-4 w-4" /> Criar Novo Webhook</Button>
+                       <Button variant="secondary" size="sm" className="w-full gap-2" onClick={() => {
+                         navigator.clipboard?.writeText(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bot-webhook`);
+                         toast.success("URL copiada");
+                       }}><Plus className="h-4 w-4" /> Copiar URL do webhook</Button>
                      </CardContent>
                    </Card>
                  </div>
@@ -491,8 +511,8 @@ export const Route = createFileRoute("/configuracoes")({
                  <h4 className="font-bold text-base mb-1">Precisa de ajuda com a configuração?</h4>
                  <p className="text-sm text-muted-foreground mb-4">Acesse nossa Central de Ajuda para tutoriais completos sobre como conectar o WhatsApp e treinar sua IA.</p>
                  <div className="flex gap-3">
-                   <Button size="sm">Acessar Documentação</Button>
-                   <Button variant="outline" size="sm">Falar com Suporte</Button>
+                   <Button size="sm" onClick={() => (window.location.href = "/help")}>Acessar Documentação</Button>
+                   <Button variant="outline" size="sm" onClick={() => window.open("https://wa.me/5511999999999?text=Preciso%20de%20ajuda%20com%20o%20ConectaCRM", "_blank")}>Falar com Suporte</Button>
                  </div>
                </div>
              </div>

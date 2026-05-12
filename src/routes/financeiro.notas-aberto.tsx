@@ -252,9 +252,6 @@ function NotasAbertoPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button variant="outline" className="h-11 rounded-xl border-slate-200">
-                <Filter className="h-4 w-4 mr-2" /> Filtros
-              </Button>
             </div>
             <div className="flex gap-2">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -396,7 +393,14 @@ function NotasAbertoPage() {
                   </form>
                 </DialogContent>
               </Dialog>
-              <Button variant="outline" className="h-11 rounded-xl border-slate-200 font-bold px-6">
+              <Button variant="outline" className="h-11 rounded-xl border-slate-200 font-bold px-6" onClick={() => {
+                import("@/lib/exportCsv").then(({ exportToCsv }) => {
+                  exportToCsv("notas-abertas.csv", (transactions ?? []).map((t: any) => ({
+                    descricao: t.description, fornecedor: t.supplier_name, valor: t.amount,
+                    vencimento: t.due_date, status: t.status, criado_em: t.created_at,
+                  })));
+                });
+              }}>
                 <Download className="h-4 w-4 mr-2" /> Exportar
               </Button>
             </div>
