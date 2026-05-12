@@ -737,9 +737,8 @@ type Deal = {
          else dlQuery = dlQuery.eq("user_id", user.id);
  
           // Busca conversas filtradas estritamente pela instância ativa
-          let convQuery = supabase.from("bot_conversations")
-            .select("*")
-            .eq("user_id", user.id);
+          let convQuery = supabase.from("bot_conversations").select("*");
+          convQuery = orgId ? convQuery.eq("organization_id", orgId) : convQuery.eq("user_id", user.id);
   
           // Always filter by instance to keep view consistency, unless "none" is selected explicitly
           if (currentInstance && currentInstance !== "none") {
@@ -1009,8 +1008,10 @@ type Deal = {
                          if (!confirm("Tem certeza que deseja apagar todos os cards (negociações) deste pipeline?")) return;
                          setLoading(true);
                          try {
-                           let dealQuery = supabase.from("pipeline_leads").delete().eq("user_id", user.id);
-                           let convQuery = supabase.from("bot_conversations").delete().eq("user_id", user.id);
+                           let dealQuery = supabase.from("pipeline_leads").delete();
+                           let convQuery = supabase.from("bot_conversations").delete();
+                           dealQuery = orgId ? dealQuery.eq("organization_id", orgId) : dealQuery.eq("user_id", user.id);
+                           convQuery = orgId ? convQuery.eq("organization_id", orgId) : convQuery.eq("user_id", user.id);
                            
                            if (activeInstance) {
                              dealQuery = dealQuery.eq("instance_name", activeInstance);
