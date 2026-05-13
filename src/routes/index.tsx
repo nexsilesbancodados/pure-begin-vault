@@ -5,7 +5,7 @@ import {
   CreditCard, Tag, MessageCircle, Zap, ShieldCheck, Sparkles, ArrowRight,
   Star, Globe, Calendar, Bell, Crown, TrendingUp, ShieldCheck as ShieldIcon,
 } from "lucide-react";
-import heroDashboard from "@/assets/hero-dashboard.png";
+import heroDashboard from "@/assets/hero-dashboard.webp";
 import ownerStore from "@/assets/owner-store.jpg";
 import customerHappy from "@/assets/customer-happy.jpg";
 import attendantLaptop from "@/assets/attendant-laptop.jpg";
