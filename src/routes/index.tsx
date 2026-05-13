@@ -31,6 +31,7 @@ export const Route = createFileRoute("/")({
     ],
     links: [
       { rel: "canonical", href: "https://pure-begin-vault.lovable.app/" },
+      { rel: "preload", as: "image", href: heroDashboard, fetchpriority: "high" },
     ],
     scripts: [
       {
