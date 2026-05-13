@@ -85,7 +85,7 @@ export function AppSidebar({ open, setOpen }: { open?: boolean; setOpen?: (val: 
         <div className="px-3 pb-3 mt-auto shrink-0">
           <div className={cn("pt-2 border-t border-sidebar-border/40 flex flex-col gap-1", isSmall ? "items-center" : "")}>
             <button onClick={logout} aria-label="Sair da conta" className="h-10 w-full flex items-center gap-3 px-3 py-2 rounded-lg text-destructive/70 hover:bg-destructive/10 transition">
-              <Icons.LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4" />
               {!isSmall && <span className="text-sm font-bold">Sair</span>}
             </button>
           </div>
@@ -98,7 +98,7 @@ export function AppSidebar({ open, setOpen }: { open?: boolean; setOpen?: (val: 
               <div className="flex items-center gap-2.5">
                 <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
                   {(() => {
-                    const FIcon = (Icons as any)[flyout.icon] || Icons.HelpCircle;
+                    const FIcon = iconMap[flyout.icon] || iconMap.HelpCircle;
                     return <FIcon className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />;
                   })()}
                 </div>
