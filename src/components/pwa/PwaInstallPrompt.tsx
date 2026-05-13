@@ -8,8 +8,17 @@ export function PwaInstallPrompt() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // Register service worker
-    if ("serviceWorker" in navigator) {
+
+    const isPreviewHost = window.location.hostname.includes("lovableproject.com");
+
+    if (isPreviewHost) {
+      navigator.serviceWorker?.getRegistrations?.().then((registrations) => {
+        registrations.forEach((registration) => registration.unregister());
+      }).catch(() => {});
+      return;
+    }
+
+    if ("serviceWorker" in navigator && import.meta.env.PROD) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
     if (localStorage.getItem("pwa_install_dismissed")) return;
