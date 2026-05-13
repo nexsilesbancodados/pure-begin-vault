@@ -124,7 +124,7 @@ function AssinarPage() {
         {step === "info" && plan && (
           <Card className="max-w-md mx-auto">
             <CardHeader>
-              <CardTitle>Seus dados</CardTitle>
+              <h1 className="text-2xl font-semibold tracking-tight">Seus dados</h1>
               <CardDescription>
                 Plano <strong>{plan.name}</strong> — {brl(plan.price_cents)}/{plan.interval === "month" ? "mês" : plan.interval}
               </CardDescription>
@@ -155,7 +155,7 @@ function AssinarPage() {
         {step === "pay" && plan && (
           <Card className="max-w-lg mx-auto">
             <CardHeader>
-              <CardTitle>Pagamento</CardTitle>
+              <h1 className="text-2xl font-semibold tracking-tight">Pagamento</h1>
               <CardDescription>
                 {plan.name} — {brl(plan.price_cents)} • {form.email}
               </CardDescription>
@@ -173,7 +173,10 @@ function AssinarPage() {
 
         {step === "result" && (
           <Card className="max-w-lg mx-auto">
-            <CardContent className="pt-8">
+            <CardHeader>
+              <h1 className="text-2xl font-semibold tracking-tight">Resultado do pagamento</h1>
+            </CardHeader>
+            <CardContent className="pt-2">
               <ResultView result={result} email={form.email} onRetry={() => setStep("pay")} navigateLogin={() => navigate({ to: "/login" })} />
             </CardContent>
           </Card>
