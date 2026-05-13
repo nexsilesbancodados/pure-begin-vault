@@ -82,11 +82,16 @@ export function FeatureCard({
 
   const content = (
     <>
+      {/* Top highlight line */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent"
+      />
       {/* Curved gradient swoosh — bottom-right */}
       <div
         aria-hidden
         className={cn(
-          "pointer-events-none absolute -bottom-16 -right-16 h-48 w-48 rounded-full bg-gradient-to-tr blur-2xl opacity-80",
+          "pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-gradient-to-tr blur-3xl opacity-70 transition-all duration-500 group-hover:opacity-100 group-hover:scale-110",
           t.swoosh,
         )}
       />
@@ -97,11 +102,16 @@ export function FeatureCard({
           t.swoosh,
         )}
       />
+      {/* Shine sweep on hover */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms] ease-out bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
+      />
 
       <div className="relative flex items-start justify-between mb-5">
         <div
           className={cn(
-            "h-12 w-12 rounded-2xl grid place-items-center ring-1 ring-inset ring-current/10 transition-transform group-hover:scale-105",
+            "h-12 w-12 rounded-2xl grid place-items-center ring-1 ring-inset ring-current/15 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-4deg] group-hover:shadow-md",
             t.iconBg,
             t.icon,
           )}
@@ -111,18 +121,18 @@ export function FeatureCard({
         {showArrow && (
           <div
             className={cn(
-              "h-9 w-9 rounded-full grid place-items-center transition-all",
+              "h-9 w-9 rounded-full grid place-items-center transition-all duration-300 ring-1 ring-inset ring-current/10 group-hover:ring-current/25 group-hover:scale-105",
               t.arrowBg,
               t.arrow,
             )}
           >
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-0.5" />
           </div>
         )}
       </div>
 
       <div className="relative">
-        <h3 className="font-bold font-display text-base mb-1 text-foreground">{title}</h3>
+        <h3 className="font-bold font-display text-base mb-1 text-foreground tracking-tight">{title}</h3>
         {description && (
           <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
         )}
@@ -132,7 +142,7 @@ export function FeatureCard({
   );
 
   const baseClass = cn(
-    "group relative overflow-hidden rounded-2xl bg-card border border-border p-5 shadow-card transition-all hover:shadow-elegant hover:border-primary/30 hover:-translate-y-0.5",
+    "group relative overflow-hidden rounded-2xl bg-card border border-border p-5 shadow-card transition-all duration-300 hover:shadow-elegant hover:border-primary/40 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     className,
   );
 
