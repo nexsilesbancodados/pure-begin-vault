@@ -167,7 +167,7 @@ function RootComponent() {
           </ErrorBoundary>
           <PwaInstallPrompt />
           <CookieConsent />
-          <CommandPalette />
+          <Suspense fallback={null}><CommandPalette /></Suspense>
           <KeyboardHelp />
         </AuthProvider>
       </I18nProvider>
