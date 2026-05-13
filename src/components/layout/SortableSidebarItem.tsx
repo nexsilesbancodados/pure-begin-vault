@@ -1,9 +1,7 @@
 import React from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { Link, useLocation } from "@tanstack/react-router";
 import * as Icons from "lucide-react";
-import { GripVertical, HelpCircle, ChevronRight, ChevronDown } from "lucide-react";
+import { HelpCircle, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -17,7 +15,6 @@ interface SortableSidebarItemProps {
   flyout: any;
   setFlyout: (val: any) => void;
   depth?: number;
-  isOver?: boolean;
 }
 
 export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
@@ -26,42 +23,20 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
   flyout,
   setFlyout,
   depth = 0,
-  isOver = false
 }) => {
   const location = useLocation();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ 
-    id: item.url || item.title,
-    data: {
-      type: item.type || 'item',
-      item
-    }
-  });
 
   const style = {
-    transform: CSS.Translate.toString(transform),
-    transition,
-    opacity: isDragging ? 0.4 : 1,
-    zIndex: isDragging ? 100 : 1,
     marginLeft: !isSmall ? `${depth * 12}px` : 0
   };
 
   if (item.type === "header") {
     return (
-      <div ref={setNodeRef} style={style} className="group/item">
+      <div style={style} className="group/item">
         {isSmall ? (
           <div className="h-px bg-sidebar-border/30 my-4 mx-2" />
         ) : (
           <div className="px-3 pt-4 pb-2 text-[10px] font-black uppercase tracking-widest text-sidebar-foreground/30 flex items-center gap-2">
-            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing opacity-0 group-hover/item:opacity-100 transition-opacity">
-               <GripVertical className="h-3 w-3" />
-            </div>
             {item.title}
           </div>
         )}
@@ -74,20 +49,9 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
 
   const NavItem = (
     <div 
-      ref={setNodeRef} 
       style={style} 
-      className={cn(
-        "space-y-1 group/item relative transition-all duration-200",
-        isDragging && "z-50",
-        isOver && !isDragging && "ring-2 ring-primary/40 bg-primary/5 rounded-lg scale-[1.02]"
-      )}
+      className="space-y-1 group/item relative transition-all duration-200"
     >
-      {!isSmall && (
-        <div {...attributes} {...listeners} className="absolute -left-1 top-2.5 cursor-grab active:cursor-grabbing text-sidebar-foreground/20 hover:text-sidebar-foreground/40 opacity-0 group-hover/item:opacity-100 transition-opacity z-10">
-          <GripVertical className="h-3.5 w-3.5" />
-        </div>
-      )}
-      
       {item.flyout ? (
         isSmall ? (
           <button

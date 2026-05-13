@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, CheckCircle2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ensureMercadoPagoSdk } from "@/lib/mercadoPagoSdk";
 
 // Public key (publishable, ok no frontend)
 const MP_PUBLIC_KEY = "APP_USR-c09d032c-d0b8-424a-ae0e-5054cf8fd581";
@@ -41,15 +42,13 @@ export function MpPaymentBrick({ planSlug, amount, payerEmail, onSuccess }: Prop
 
     let cancelled = false;
     const tryInit = async () => {
-      // Espera o SDK
-      for (let i = 0; i < 50; i++) {
-        if (window.MercadoPago) break;
-        await new Promise((r) => setTimeout(r, 100));
-      }
-      if (cancelled || !window.MercadoPago) {
-        toast.error("Não foi possível carregar o Mercado Pago.");
+      try {
+        await ensureMercadoPagoSdk();
+      } catch (error: any) {
+        toast.error(error?.message || "Não foi possível carregar o Mercado Pago.");
         return;
       }
+      if (cancelled || !window.MercadoPago) return;
 
       const mp = new window.MercadoPago(MP_PUBLIC_KEY, { locale: "pt-BR" });
       const bricks = mp.bricks();

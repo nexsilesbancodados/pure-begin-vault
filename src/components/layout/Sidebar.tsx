@@ -1,6 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import * as Icons from "lucide-react";
-import { Sparkles, X, Search, PanelLeftClose, PanelLeftOpen, LogOut, HelpCircle, ChevronDown } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { sidebarItems } from "@/lib/mock";
@@ -11,34 +10,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Input } from "@/components/ui/input";
-import { 
-  DndContext, 
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
 import { SortableSidebarItem } from "./SortableSidebarItem";
 
 export function AppSidebar({ open, setOpen }: { open?: boolean; setOpen?: (val: boolean) => void }) {
   const location = useLocation();
-  const { user, profile, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const [flyout, setFlyout] = useState<any | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isForcedCollapsed, setIsForcedCollapsed] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [items, setItems] = useState<any[]>(sidebarItems);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [overId, setOverId] = useState<string | null>(null);
 
   useEffect(() => { setFlyout(null); }, [location.pathname]);
 
@@ -54,105 +33,13 @@ export function AppSidebar({ open, setOpen }: { open?: boolean; setOpen?: (val: 
     return () => window.removeEventListener('force-sidebar-collapse', handleForceCollapse);
   }, []);
 
-  useEffect(() => {
-    // bump version to invalidate stale saved orders with duplicates/old links
-    try { localStorage.removeItem('sidebar-menu-order-v8'); } catch {}
-    const savedOrder = localStorage.getItem('sidebar-menu-order-v9');
-    if (savedOrder) {
-      try {
-        setItems(JSON.parse(savedOrder));
-      } catch (e) {
-        console.error("Error parsing sidebar order", e);
-      }
-    }
-  }, []);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id);
-  };
-
-  const handleDragOver = (event: any) => {
-    setOverId(event.over?.id || null);
-  };
-
-  const handleDragEnd = (event: any) => {
-    const { active, over } = event;
-    setActiveId(null);
-    setOverId(null);
-
-    if (active && over && active.id !== over.id) {
-      setItems((prev) => {
-        // Encontra o item em qualquer nível da árvore
-        const findAndRemove = (list: any[], id: string): [any | null, any[]] => {
-          let foundItem: any = null;
-          const newList = list.filter(item => {
-            if ((item.url || item.title) === id) {
-              foundItem = item;
-              return false;
-            }
-            if (item.children) {
-              const [found, subList] = findAndRemove(item.children, id);
-              if (found) {
-                foundItem = found;
-                item.children = subList;
-              }
-            }
-            return true;
-          });
-          return [foundItem, newList];
-        };
-
-        const [movedItem, itemsWithoutMoved] = findAndRemove([...prev], active.id);
-        if (!movedItem) return prev;
-
-        // Encontra a posição de destino no nível raiz
-        const targetIndex = itemsWithoutMoved.findIndex((i) => (i.url || i.title) === over.id);
-        
-        if (targetIndex !== -1) {
-          const targetItem = itemsWithoutMoved[targetIndex];
-
-          // Se soltar sobre um item que não é header, aninhamos e garantimos que ele saia da raiz
-          if (targetItem.type !== "header") {
-            if (!targetItem.children) targetItem.children = [];
-            
-            // Evita duplicatas no novo pai
-            const alreadyExists = targetItem.children.some((c: any) => (c.url || c.title) === (movedItem.url || movedItem.title));
-            if (!alreadyExists) {
-              targetItem.children.push(movedItem);
-            }
-            
-            localStorage.setItem('sidebar-menu-order-v9', JSON.stringify(itemsWithoutMoved));
-            return itemsWithoutMoved;
-          }
-        }
-
-        // Se for apenas reordenamento na raiz
-        const finalOrder = arrayMove(prev, prev.findIndex(i => (i.url || i.title) === active.id), prev.findIndex(i => (i.url || i.title) === over.id));
-        localStorage.setItem('sidebar-menu-order-v9', JSON.stringify(finalOrder));
-        return finalOrder;
-      });
-    }
-  };
-
   const filteredItems = useMemo(() => {
-    return items.filter((item: any) => {
+    return sidebarItems.filter((item: any) => {
       if (item.type === "header") return true;
       if (item.roleRestriction === "super_admin" && profile?.role !== 'super_admin') return false;
-      if (!searchQuery) return true;
-      return item.title.toLowerCase().includes(searchQuery.toLowerCase());
+      return true;
     });
-  }, [items, searchQuery, profile]);
+  }, [profile]);
 
   const isSmall = isCollapsed || !!flyout || isForcedCollapsed;
 
@@ -177,42 +64,15 @@ export function AppSidebar({ open, setOpen }: { open?: boolean; setOpen?: (val: 
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
-            <SortableContext items={filteredItems.map(i => i.url || i.title)} strategy={verticalListSortingStrategy}>
-              {filteredItems.map((item: any) => (
-                <SortableSidebarItem 
-                  key={item.url || item.title} 
-                  item={item} 
-                  isSmall={isSmall} 
-                  flyout={flyout} 
-                  setFlyout={setFlyout}
-                  isOver={overId === (item.url || item.title)}
-                />
-              ))}
-            </SortableContext>
-            <DragOverlay dropAnimation={null}>
-              {activeId ? (
-                <div className="opacity-90 scale-105 pointer-events-none w-[240px] bg-sidebar rounded-lg shadow-2xl border-2 border-primary ring-8 ring-primary/5 overflow-hidden">
-                  <div className="bg-sidebar p-1">
-                    {(() => {
-                      const findItem = (list: any[], id: string): any => {
-                        for (const item of list) {
-                          if ((item.url || item.title) === id) return item;
-                          if (item.children) {
-                            const sub = findItem(item.children, id);
-                            if (sub) return sub;
-                          }
-                        }
-                        return null;
-                      };
-                      const item = findItem(items, activeId);
-                      return item ? <SortableSidebarItem item={item} isSmall={false} flyout={null} setFlyout={() => {}} /> : null;
-                    })()}
-                  </div>
-                </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+          {filteredItems.map((item: any) => (
+            <SortableSidebarItem
+              key={item.url || item.title}
+              item={item}
+              isSmall={isSmall}
+              flyout={flyout}
+              setFlyout={setFlyout}
+            />
+          ))}
         </nav>
 
         <div className="px-3 pb-3 mt-auto shrink-0">
