@@ -9,7 +9,8 @@ import {
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { CookieConsent } from "@/components/layout/CookieConsent";
-import { CommandPalette } from "@/components/layout/CommandPalette";
+import { lazy, Suspense } from "react";
+const CommandPalette = lazy(() => import("@/components/layout/CommandPalette").then(m => ({ default: m.CommandPalette })));
 import { KeyboardHelp } from "@/components/layout/KeyboardHelp";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
