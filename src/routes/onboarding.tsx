@@ -114,7 +114,7 @@ function OnboardingPage() {
 
         <Card className="border-border shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-2xl">{STEPS[step].title}</CardTitle>
+            <h1 className="text-2xl font-semibold tracking-tight leading-none">{STEPS[step].title}</h1>
             <CardDescription>Passo {step + 1} de {STEPS.length}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

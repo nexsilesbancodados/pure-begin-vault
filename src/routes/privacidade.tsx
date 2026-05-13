@@ -4,7 +4,9 @@ export const Route = createFileRoute("/privacidade")({
   head: () => ({
     meta: [
       { title: "Política de Privacidade — ConectaCRM" },
-      { name: "description", content: "Como tratamos seus dados conforme a LGPD." },
+      { name: "description", content: "Saiba como o ConectaCRM coleta, armazena e protege seus dados conforme a LGPD, e quais são seus direitos como titular." },
+      { property: "og:title", content: "Política de Privacidade — ConectaCRM" },
+      { property: "og:description", content: "Como o ConectaCRM trata seus dados pessoais conforme a LGPD." },
     ],
   }),
   component: Privacidade,
