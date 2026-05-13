@@ -38,8 +38,7 @@ export function exportCsv<T>(filename: string, rows: T[], cols: ColumnDef<T>[]) 
 
 // XLSX-compatível: tabela HTML com MIME do Excel. O Excel abre direto e salva como .xlsx
 export function exportExcel<T>(filename: string, rows: T[], cols: ColumnDef<T>[]) {
-  const esc = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
 <head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>${esc(filename)}</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>
 <body><table border="1">
@@ -56,8 +55,7 @@ export function exportJson<T>(filename: string, rows: T[]) {
 }
 
 export function exportPdf<T>(title: string, rows: T[], cols: ColumnDef<T>[]) {
-  const esc = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const html = `<!DOCTYPE html><html><head><title>${esc(title)}</title>
 <style>
   body{font-family:system-ui,Arial;padding:24px;font-size:12px;color:#0f172a}

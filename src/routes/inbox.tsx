@@ -8,7 +8,16 @@ import { useOrg } from "@/lib/useOrg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { MessageSquare, Instagram, Mail, Phone, Loader2, Send, Sparkles, Search } from "lucide-react";
+import {
+  MessageSquare,
+  Instagram,
+  Mail,
+  Phone,
+  Loader2,
+  Send,
+  Sparkles,
+  Search,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -43,8 +52,16 @@ function detectChannel(source: string | null, phone: string | null, email: strin
 }
 
 const channelMeta: Record<Channel, { icon: any; label: string; cls: string }> = {
-  whatsapp: { icon: MessageSquare, label: "WhatsApp", cls: "bg-green-500/10 text-green-600 border-green-500/20" },
-  instagram: { icon: Instagram, label: "Instagram", cls: "bg-pink-500/10 text-pink-600 border-pink-500/20" },
+  whatsapp: {
+    icon: MessageSquare,
+    label: "WhatsApp",
+    cls: "bg-green-500/10 text-green-600 border-green-500/20",
+  },
+  instagram: {
+    icon: Instagram,
+    label: "Instagram",
+    cls: "bg-pink-500/10 text-pink-600 border-pink-500/20",
+  },
   email: { icon: Mail, label: "Email", cls: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
 };
 
@@ -73,8 +90,12 @@ function InboxPage() {
         .order("updated_at", { ascending: false });
 
       // Pega últimas mensagens por lead
-      const baseMsg = supabase.from("messages").select("id, lead_id, content, direction, created_at, phone");
-      const { data: msgs } = await (orgId ? baseMsg.eq("organization_id", orgId) : baseMsg.eq("user_id", user.id))
+      const baseMsg = supabase
+        .from("messages")
+        .select("id, lead_id, content, direction, created_at, phone");
+      const { data: msgs } = await (
+        orgId ? baseMsg.eq("organization_id", orgId) : baseMsg.eq("user_id", user.id)
+      )
         .order("created_at", { ascending: false })
         .limit(500);
 
@@ -112,10 +133,15 @@ function InboxPage() {
     }
   };
 
-  useEffect(() => { load(); }, [user?.id, profile?.organization_id]);
+  useEffect(() => {
+    load();
+  }, [user?.id, profile?.organization_id]);
 
   useEffect(() => {
-    if (!selected) { setMessages([]); return; }
+    if (!selected) {
+      setMessages([]);
+      return;
+    }
     (async () => {
       const { data } = await supabase
         .from("messages")
@@ -156,7 +182,11 @@ function InboxPage() {
         });
       }
       setReply("");
-      const { data } = await supabase.from("messages").select("*").eq("lead_id", current.leadId!).order("created_at");
+      const { data } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("lead_id", current.leadId!)
+        .order("created_at");
       setMessages(data ?? []);
     } catch (e: any) {
       toast.error(e.message);
@@ -194,7 +224,12 @@ function InboxPage() {
             <div className="p-4 border-b border-border space-y-3">
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+                <Input
+                  placeholder="Buscar..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
               </div>
               <div className="flex gap-1">
                 {(["all", "whatsapp", "instagram", "email"] as const).map((f) => (
@@ -210,63 +245,110 @@ function InboxPage() {
             </div>
             <div className="flex-1 overflow-y-auto">
               {loading ? (
-                <div className="h-full grid place-items-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+                <div className="h-full grid place-items-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
               ) : filtered.length === 0 ? (
-                <div className="p-10 text-center text-sm text-muted-foreground">Nenhuma conversa</div>
-              ) : filtered.map((t) => {
-                const Icon = channelMeta[t.channel].icon;
-                return (
-                  <button
-                    key={t.key}
-                    onClick={() => setSelected(t.key)}
-                    className={`w-full text-left p-3 border-b border-border/50 hover:bg-muted/30 transition ${selected === t.key ? "bg-primary/5" : ""}`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${channelMeta[t.channel].cls} flex items-center gap-1`}>
-                        <Icon className="h-2.5 w-2.5" /> {channelMeta[t.channel].label}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground ml-auto">{formatDistanceToNow(new Date(t.lastAt), { locale: ptBR, addSuffix: true })}</span>
-                    </div>
-                    <div className="font-bold text-sm truncate">{t.contactName}</div>
-                    <div className="text-xs text-muted-foreground truncate mt-0.5">{t.lastMessage}</div>
-                  </button>
-                );
-              })}
+                <div className="p-10 text-center text-sm text-muted-foreground">
+                  Nenhuma conversa
+                </div>
+              ) : (
+                filtered.map((t) => {
+                  const Icon = channelMeta[t.channel].icon;
+                  return (
+                    <button
+                      key={t.key}
+                      onClick={() => setSelected(t.key)}
+                      className={`w-full text-left p-3 border-b border-border/50 hover:bg-muted/30 transition ${selected === t.key ? "bg-primary/5" : ""}`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded border ${channelMeta[t.channel].cls} flex items-center gap-1`}
+                        >
+                          <Icon className="h-2.5 w-2.5" /> {channelMeta[t.channel].label}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground ml-auto">
+                          {formatDistanceToNow(new Date(t.lastAt), {
+                            locale: ptBR,
+                            addSuffix: true,
+                          })}
+                        </span>
+                      </div>
+                      <div className="font-bold text-sm truncate">{t.contactName}</div>
+                      <div className="text-xs text-muted-foreground truncate mt-0.5">
+                        {t.lastMessage}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </aside>
 
           {/* Conversa */}
           <section className="flex-1 flex flex-col bg-muted/10">
             {!current ? (
-              <div className="flex-1 grid place-items-center text-muted-foreground text-sm">Selecione uma conversa</div>
+              <div className="flex-1 grid place-items-center text-muted-foreground text-sm">
+                Selecione uma conversa
+              </div>
             ) : (
               <>
                 <div className="px-6 py-4 border-b border-border bg-card flex items-center justify-between">
                   <div>
                     <div className="font-bold">{current.contactName}</div>
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <Phone className="h-3 w-3" /> {current.contactKey} · {channelMeta[current.channel].label}
+                      <Phone className="h-3 w-3" /> {current.contactKey} ·{" "}
+                      {channelMeta[current.channel].label}
                     </div>
                   </div>
-                  <Button onClick={qualify} disabled={qualifying} variant="outline" className="gap-2">
-                    {qualifying ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-primary" />}
+                  <Button
+                    onClick={qualify}
+                    disabled={qualifying}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {qualifying ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 text-primary" />
+                    )}
                     Qualificar com IA
                   </Button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-6 space-y-3">
                   {messages.map((m) => (
-                    <div key={m.id} className={`flex ${m.direction === "outbound" ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${m.direction === "outbound" ? "bg-primary text-primary-foreground" : "bg-card border border-border"}`}>
+                    <div
+                      key={m.id}
+                      className={`flex ${m.direction === "outbound" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${m.direction === "outbound" ? "bg-primary text-primary-foreground" : "bg-card border border-border"}`}
+                      >
                         {m.content}
-                        <div className="text-[10px] opacity-70 mt-1">{formatDistanceToNow(new Date(m.created_at), { locale: ptBR, addSuffix: true })}</div>
+                        <div className="text-[10px] opacity-70 mt-1">
+                          {formatDistanceToNow(new Date(m.created_at), {
+                            locale: ptBR,
+                            addSuffix: true,
+                          })}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="p-4 border-t border-border bg-card flex gap-2">
-                  <Input placeholder="Digite uma resposta..." value={reply} onChange={(e) => setReply(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} />
+                  <Input
+                    placeholder="Digite uma resposta..."
+                    value={reply}
+                    onChange={(e) => setReply(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && send()}
+                  />
                   <Button onClick={send} disabled={sending || !reply.trim()} className="gap-2">
-                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Enviar
+                    {sending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}{" "}
+                    Enviar
                   </Button>
                 </div>
               </>

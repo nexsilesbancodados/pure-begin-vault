@@ -30,7 +30,9 @@ export function MonthComparison() {
         .select("total_amount, created_at")
         .eq("status", "concluded")
         .gte("created_at", sixMonthsAgo.toISOString());
-      const { data: sales } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id));
+      const { data: sales } = await (orgId
+        ? base.eq("organization_id", orgId)
+        : base.eq("user_id", user.id));
 
       const now = new Date();
       const buckets: MonthData[] = [];
@@ -44,7 +46,8 @@ export function MonthComparison() {
       }
       (sales || []).forEach((s: any) => {
         const d = new Date(s.created_at);
-        const monthsDiff = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+        const monthsDiff =
+          (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
         const idx = 5 - monthsDiff;
         if (idx >= 0 && idx < 6) buckets[idx].value += Number(s.total_amount || 0);
       });
@@ -70,8 +73,14 @@ export function MonthComparison() {
           <p className="text-[11px] text-muted-foreground mt-0.5">Faturamento mensal</p>
         </div>
         {!loading && (
-          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold ${positive ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
-            {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          <div
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold ${positive ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}
+          >
+            {positive ? (
+              <ArrowUpRight className="h-3 w-3" />
+            ) : (
+              <ArrowDownRight className="h-3 w-3" />
+            )}
             {Math.abs(diff).toFixed(1)}%
           </div>
         )}
@@ -95,11 +104,22 @@ export function MonthComparison() {
                   <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0.6} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="label" stroke="var(--color-muted-foreground)" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey="label"
+                stroke="var(--color-muted-foreground)"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 11 }}
+              />
               <YAxis hide />
               <Tooltip
                 cursor={{ fill: "var(--color-muted)", opacity: 0.4 }}
-                contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12, fontSize: 12 }}
+                contentStyle={{
+                  background: "var(--color-card)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 12,
+                  fontSize: 12,
+                }}
                 formatter={(v: number) => [`R$ ${v.toLocaleString("pt-BR")}`, "Faturamento"]}
               />
               <Bar dataKey="value" radius={[8, 8, 0, 0]}>

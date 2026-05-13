@@ -70,7 +70,7 @@ function AuditLogPage() {
       .then(({ data, error: err }: any) => {
         if (err) {
           setError(
-            "Tabela audit_logs não encontrada. Aplique a migration 20260512020000_features_extras.sql via Supabase Studio."
+            "Tabela audit_logs não encontrada. Aplique a migration 20260512020000_features_extras.sql via Supabase Studio.",
           );
           setLoading(false);
           return;
@@ -122,9 +122,7 @@ function AuditLogPage() {
 
               <Card className="p-4">
                 {loading ? (
-                  <p className="text-sm text-muted-foreground py-8 text-center">
-                    Carregando...
-                  </p>
+                  <p className="text-sm text-muted-foreground py-8 text-center">Carregando...</p>
                 ) : filtered.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-8 text-center">
                     Nenhum log encontrado.

@@ -4,7 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { MpPaymentBrick } from "@/components/billing/MpPaymentBrick";
@@ -25,9 +31,16 @@ export const Route = createFileRoute("/planos")({
   head: () => ({
     meta: [
       { title: "Planos e preços — ConectaCRM" },
-      { name: "description", content: "Compare os planos do ConectaCRM e escolha o ideal para sua loja: estoque IMEI, OS, vendas, fiscal, CRM e IA." },
+      {
+        name: "description",
+        content:
+          "Compare os planos do ConectaCRM e escolha o ideal para sua loja: estoque IMEI, OS, vendas, fiscal, CRM e IA.",
+      },
       { property: "og:title", content: "Planos ConectaCRM" },
-      { property: "og:description", content: "Starter, Professional e Business — escolha seu plano e comece hoje." },
+      {
+        property: "og:description",
+        content: "Starter, Professional e Business — escolha seu plano e comece hoje.",
+      },
     ],
   }),
   component: PlanosPage,
@@ -119,7 +132,9 @@ function PlanosPage() {
                     <CardDescription>{p.description}</CardDescription>
                     <div className="pt-4">
                       <span className="text-4xl font-bold">{formatBRL(p.price_cents)}</span>
-                      <span className="text-muted-foreground">/{p.interval === "month" ? "mês" : p.interval}</span>
+                      <span className="text-muted-foreground">
+                        /{p.interval === "month" ? "mês" : p.interval}
+                      </span>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 flex flex-col">
@@ -147,7 +162,8 @@ function PlanosPage() {
         )}
 
         <p className="text-center text-xs text-muted-foreground mt-10">
-          Pagamentos processados por Mercado Pago. Seus dados de cartão são criptografados e nunca passam pelos nossos servidores.
+          Pagamentos processados por Mercado Pago. Seus dados de cartão são criptografados e nunca
+          passam pelos nossos servidores.
         </p>
       </div>
 
@@ -156,7 +172,8 @@ function PlanosPage() {
           <DialogHeader>
             <DialogTitle>Pagamento — {selected?.name}</DialogTitle>
             <DialogDescription>
-              {selected && `${formatBRL(selected.price_cents)} / ${selected.interval === "month" ? "mês" : selected.interval}`}
+              {selected &&
+                `${formatBRL(selected.price_cents)} / ${selected.interval === "month" ? "mês" : selected.interval}`}
             </DialogDescription>
           </DialogHeader>
           {selected && (

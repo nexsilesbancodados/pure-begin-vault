@@ -31,12 +31,18 @@ export function AutomationLogs() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user?.id]);
+  useEffect(() => {
+    load();
+  }, [user?.id]);
 
   const icon = (s: string) =>
-    s === "success" ? <CheckCircle2 className="h-4 w-4 text-success" /> :
-    s === "error" ? <XCircle className="h-4 w-4 text-destructive" /> :
-    <Clock className="h-4 w-4 text-warning" />;
+    s === "success" ? (
+      <CheckCircle2 className="h-4 w-4 text-success" />
+    ) : s === "error" ? (
+      <XCircle className="h-4 w-4 text-destructive" />
+    ) : (
+      <Clock className="h-4 w-4 text-warning" />
+    );
 
   return (
     <div className="bg-card border border-border rounded-2xl shadow-card overflow-hidden">
@@ -45,10 +51,14 @@ export function AutomationLogs() {
           <Activity className="h-5 w-5 text-primary" />
           <h3 className="font-bold">Últimas execuções</h3>
         </div>
-        <button onClick={load} className="text-xs text-muted-foreground hover:text-foreground">Atualizar</button>
+        <button onClick={load} className="text-xs text-muted-foreground hover:text-foreground">
+          Atualizar
+        </button>
       </div>
       {loading ? (
-        <div className="grid place-items-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+        <div className="grid place-items-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </div>
       ) : runs.length === 0 ? (
         <div className="p-8 text-center text-sm text-muted-foreground">Nenhuma execução ainda</div>
       ) : (
@@ -60,14 +70,24 @@ export function AutomationLogs() {
                 <div className="font-semibold text-xs">
                   <span className="text-muted-foreground">{r.trigger_type}</span> → {r.action_type}
                 </div>
-                {r.error && <div className="text-[11px] text-destructive mt-0.5 truncate">{r.error}</div>}
-                <div className="text-[10px] text-muted-foreground mt-0.5">{new Date(r.created_at).toLocaleString("pt-BR")}</div>
+                {r.error && (
+                  <div className="text-[11px] text-destructive mt-0.5 truncate">{r.error}</div>
+                )}
+                <div className="text-[10px] text-muted-foreground mt-0.5">
+                  {new Date(r.created_at).toLocaleString("pt-BR")}
+                </div>
               </div>
-              <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${
-                r.status === "success" ? "bg-success/10 text-success" :
-                r.status === "error" ? "bg-destructive/10 text-destructive" :
-                "bg-warning/10 text-warning"
-              }`}>{r.status}</span>
+              <span
+                className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${
+                  r.status === "success"
+                    ? "bg-success/10 text-success"
+                    : r.status === "error"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-warning/10 text-warning"
+                }`}
+              >
+                {r.status}
+              </span>
             </div>
           ))}
         </div>

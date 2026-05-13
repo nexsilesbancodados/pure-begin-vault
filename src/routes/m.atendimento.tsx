@@ -10,7 +10,10 @@ export const Route = createFileRoute("/m/atendimento")({
   head: () => ({
     meta: [
       { title: "Atendimento Mobile — ConectaCRM" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+      },
     ],
   }),
   component: MobileAtendimento,
@@ -49,7 +52,9 @@ function MobileAtendimento() {
     setLoading(true);
     const { data } = await supabase
       .from("bot_conversations")
-      .select("id, contact_name, contact_phone, last_message_text, last_message_at, status, unread_count")
+      .select(
+        "id, contact_name, contact_phone, last_message_text, last_message_at, status, unread_count",
+      )
       .eq("organization_id", orgId)
       .order("last_message_at", { ascending: false })
       .limit(50);
@@ -57,7 +62,9 @@ function MobileAtendimento() {
     setLoading(false);
   };
 
-  useEffect(() => { loadConvs(); }, [user?.id, orgId]);
+  useEffect(() => {
+    loadConvs();
+  }, [user?.id, orgId]);
 
   const loadMessages = async (conv: Conv) => {
     setSelected(conv);
@@ -125,7 +132,10 @@ function MobileAtendimento() {
                 >
                   <p className="whitespace-pre-wrap">{m.content}</p>
                   <p className="text-[9px] opacity-60 mt-0.5">
-                    {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(m.created_at).toLocaleTimeString("pt-BR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </p>
                 </div>
               );
@@ -201,12 +211,13 @@ function MobileAtendimento() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-bold text-sm truncate">
-                    {c.contact_name ?? c.contact_phone}
-                  </p>
+                  <p className="font-bold text-sm truncate">{c.contact_name ?? c.contact_phone}</p>
                   {c.last_message_at && (
                     <span className="text-[10px] text-muted-foreground shrink-0">
-                      {new Date(c.last_message_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                      {new Date(c.last_message_at).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "2-digit",
+                      })}
                     </span>
                   )}
                 </div>

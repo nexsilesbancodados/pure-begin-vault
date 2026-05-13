@@ -11,7 +11,10 @@ interface Opts {
   enabled?: boolean;
 }
 
-export function useRealtime<T = any>(opts: Opts, onChange: (payload: { event: Event; new: T; old: T }) => void) {
+export function useRealtime<T = any>(
+  opts: Opts,
+  onChange: (payload: { event: Event; new: T; old: T }) => void,
+) {
   const cbRef = useRef(onChange);
   cbRef.current = onChange;
 
@@ -34,7 +37,7 @@ export function useRealtime<T = any>(opts: Opts, onChange: (payload: { event: Ev
             new: payload.new as T,
             old: payload.old as T,
           });
-        }
+        },
       )
       .subscribe();
 

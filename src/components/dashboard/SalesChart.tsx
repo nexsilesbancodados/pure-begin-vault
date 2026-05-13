@@ -1,4 +1,12 @@
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 import { useState, useEffect, useMemo } from "react";
 import { Loader2, TrendingUp, TrendingDown, Minus, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,12 +44,16 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
         .from("sales_orders")
         .select("total_amount, created_at")
         .eq("status", "concluded");
-      const { data } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id));
+      const { data } = await (orgId
+        ? base.eq("organization_id", orgId)
+        : base.eq("user_id", user.id));
       if (cancelled) return;
       setSales((data as any) ?? []);
       setLoading(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id, orgId]);
 
   const { chartData, total, prevTotal, growthPct, avgPerDay, peak } = useMemo(() => {
@@ -106,13 +118,16 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
     };
   }, [sales, period]);
 
-  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  const fmt = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
   const fmtFull = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const trendTone =
-    growthPct > 0 ? "text-success bg-success/10 border-success/20"
-    : growthPct < 0 ? "text-destructive bg-destructive/10 border-destructive/20"
-    : "text-muted-foreground bg-muted border-border";
+    growthPct > 0
+      ? "text-success bg-success/10 border-success/20"
+      : growthPct < 0
+        ? "text-destructive bg-destructive/10 border-destructive/20"
+        : "text-muted-foreground bg-muted border-border";
   const TrendIcon = growthPct > 0 ? TrendingUp : growthPct < 0 ? TrendingDown : Minus;
 
   const wrapperClass = embedded
@@ -127,13 +142,21 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-display font-bold text-lg leading-tight">Desempenho de vendas</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{PERIOD_LABEL[period]} · faturamento concluído</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {PERIOD_LABEL[period]} · faturamento concluído
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {!loading && !isEmpty && (
-            <span className={cn("hidden sm:inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border", trendTone)}>
+            <span
+              className={cn(
+                "hidden sm:inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border",
+                trendTone,
+              )}
+            >
               <TrendIcon className="h-3 w-3" />
-              {growthPct > 0 ? "+" : ""}{growthPct.toFixed(1)}%
+              {growthPct > 0 ? "+" : ""}
+              {growthPct.toFixed(1)}%
             </span>
           )}
           <select
@@ -142,7 +165,9 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
             className="text-xs font-medium border border-border rounded-lg px-2.5 py-1.5 hover:bg-muted bg-card cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             {Object.entries(PERIOD_LABEL).map(([k, l]) => (
-              <option key={k} value={k}>{l}</option>
+              <option key={k} value={k}>
+                {l}
+              </option>
             ))}
           </select>
         </div>
@@ -150,19 +175,9 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
 
       {/* KPI row */}
       <div className="grid grid-cols-3 gap-4">
-        <Stat
-          label="Total"
-          value={loading ? null : fmt(total)}
-          big
-        />
-        <Stat
-          label="Média/dia"
-          value={loading ? null : fmt(avgPerDay)}
-        />
-        <Stat
-          label="Pico do período"
-          value={loading ? null : fmt(peak)}
-        />
+        <Stat label="Total" value={loading ? null : fmt(total)} big />
+        <Stat label="Média/dia" value={loading ? null : fmt(avgPerDay)} />
+        <Stat label="Pico do período" value={loading ? null : fmt(peak)} />
       </div>
 
       {/* Chart / empty */}
@@ -206,7 +221,7 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
                 axisLine={false}
                 tick={{ fontSize: 10 }}
                 width={50}
-                tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`}
+                tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : `${v}`)}
               />
               <Tooltip
                 contentStyle={{
@@ -238,11 +253,18 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
 function Stat({ label, value, big }: { label: string; value: string | null; big?: boolean }) {
   return (
     <div>
-      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{label}</div>
+      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+        {label}
+      </div>
       {value === null ? (
         <div className={cn("bg-muted animate-pulse rounded-md", big ? "h-7 w-28" : "h-5 w-20")} />
       ) : (
-        <div className={cn("font-bold font-display tabular-nums tracking-tight", big ? "text-2xl" : "text-base text-muted-foreground")}>
+        <div
+          className={cn(
+            "font-bold font-display tabular-nums tracking-tight",
+            big ? "text-2xl" : "text-base text-muted-foreground",
+          )}
+        >
           {value}
         </div>
       )}

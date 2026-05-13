@@ -10,7 +10,16 @@ interface Props {
   compact?: boolean;
 }
 
-const SUGGESTIONS = ["quente", "frio", "morno", "novo", "vip", "interessado iPhone", "interessado Android", "promoção"];
+const SUGGESTIONS = [
+  "quente",
+  "frio",
+  "morno",
+  "novo",
+  "vip",
+  "interessado iPhone",
+  "interessado Android",
+  "promoção",
+];
 
 export function TagsEditor({ leadId, tags, onChange, compact }: Props) {
   const [current, setCurrent] = useState<string[]>(tags ?? []);
@@ -19,10 +28,7 @@ export function TagsEditor({ leadId, tags, onChange, compact }: Props) {
 
   const persist = async (next: string[]) => {
     setSaving(true);
-    const { error } = await (supabase as any)
-      .from("leads")
-      .update({ tags: next })
-      .eq("id", leadId);
+    const { error } = await (supabase as any).from("leads").update({ tags: next }).eq("id", leadId);
     setSaving(false);
     if (error) {
       toast.error("Falhou: " + error.message);
@@ -83,17 +89,21 @@ export function TagsEditor({ leadId, tags, onChange, compact }: Props) {
       </div>
       {!compact && SUGGESTIONS.filter((s) => !current.includes(s)).length > 0 && (
         <div className="flex items-center gap-1 flex-wrap">
-          <span className="text-[9px] uppercase tracking-wider text-muted-foreground">sugestões:</span>
-          {SUGGESTIONS.filter((s) => !current.includes(s)).slice(0, 5).map((s) => (
-            <button
-              key={s}
-              onClick={() => add(s)}
-              disabled={saving}
-              className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted hover:bg-primary/10 text-muted-foreground hover:text-primary transition"
-            >
-              + {s}
-            </button>
-          ))}
+          <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
+            sugestões:
+          </span>
+          {SUGGESTIONS.filter((s) => !current.includes(s))
+            .slice(0, 5)
+            .map((s) => (
+              <button
+                key={s}
+                onClick={() => add(s)}
+                disabled={saving}
+                className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted hover:bg-primary/10 text-muted-foreground hover:text-primary transition"
+              >
+                + {s}
+              </button>
+            ))}
         </div>
       )}
     </div>

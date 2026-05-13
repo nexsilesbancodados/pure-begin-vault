@@ -4,15 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Copy,
-  Check,
-  UserPlus,
-  Mail,
-  Trash2,
-  Clock,
-  CheckCircle2,
-} from "lucide-react";
+import { Copy, Check, UserPlus, Mail, Trash2, Clock, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { useAuth } from "@/contexts/AuthContext";
@@ -68,7 +60,9 @@ export function InviteFlow() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [orgId]);
+  useEffect(() => {
+    load();
+  }, [orgId]);
 
   const createInvite = async () => {
     if (!orgId || !userId) return;
@@ -84,7 +78,10 @@ export function InviteFlow() {
       .select()
       .single();
     setSaving(false);
-    if (error) { toast.error("Erro: " + error.message); return; }
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
 
     const url = `${window.location.origin}/aceitar-convite/${data.token}`;
     await navigator.clipboard.writeText(url);
@@ -112,7 +109,10 @@ export function InviteFlow() {
       _org_id: orgId,
       _user_id: memberId,
     });
-    if (error) { toast.error("Erro: " + error.message); return; }
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
     toast.success("Membro removido");
     load();
   };
@@ -150,7 +150,11 @@ export function InviteFlow() {
               onChange={(e) => setRole(e.target.value)}
               className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm"
             >
-              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
             </select>
           </div>
           <div className="md:col-span-3">
@@ -164,9 +168,7 @@ export function InviteFlow() {
 
       <Card className="p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-black text-sm uppercase tracking-widest">
-            Convites pendentes
-          </h3>
+          <h3 className="font-black text-sm uppercase tracking-widest">Convites pendentes</h3>
           <Badge variant="outline">{invites.filter((i) => i.status === "pending").length}</Badge>
         </div>
         {loading ? (
@@ -178,37 +180,51 @@ export function InviteFlow() {
         ) : (
           <div className="space-y-2">
             {invites.map((i) => {
-              const sb = i.status === "accepted"
-                ? { class: "bg-success/15 text-success", icon: CheckCircle2, label: "Aceito" }
-                : i.status === "revoked"
-                ? { class: "bg-muted text-muted-foreground", icon: Trash2, label: "Revogado" }
-                : { class: "bg-warning/15 text-warning", icon: Clock, label: "Pendente" };
+              const sb =
+                i.status === "accepted"
+                  ? { class: "bg-success/15 text-success", icon: CheckCircle2, label: "Aceito" }
+                  : i.status === "revoked"
+                    ? { class: "bg-muted text-muted-foreground", icon: Trash2, label: "Revogado" }
+                    : { class: "bg-warning/15 text-warning", icon: Clock, label: "Pendente" };
               const isPending = i.status === "pending";
               return (
-                <div key={i.id} className="flex items-center gap-3 p-3 rounded-xl border border-border">
+                <div
+                  key={i.id}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border"
+                >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge className={sb.class}>
                         <sb.icon className="h-3 w-3 mr-1" /> {sb.label}
                       </Badge>
                       <span className="text-sm font-bold capitalize">{i.role}</span>
-                      {i.email && <span className="text-xs text-muted-foreground">· {i.email}</span>}
+                      {i.email && (
+                        <span className="text-xs text-muted-foreground">· {i.email}</span>
+                      )}
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-0.5">
                       Criado: {new Date(i.created_at).toLocaleDateString("pt-BR")}
-                      {i.expires_at && ` · expira: ${new Date(i.expires_at).toLocaleDateString("pt-BR")}`}
+                      {i.expires_at &&
+                        ` · expira: ${new Date(i.expires_at).toLocaleDateString("pt-BR")}`}
                     </p>
                   </div>
                   {isPending && (
                     <>
                       <Button size="sm" variant="outline" onClick={() => copyLink(i.token)}>
                         {copiedToken === i.token ? (
-                          <><Check className="h-3 w-3 mr-1" /> Copiado</>
+                          <>
+                            <Check className="h-3 w-3 mr-1" /> Copiado
+                          </>
                         ) : (
-                          <><Copy className="h-3 w-3 mr-1" /> Link</>
+                          <>
+                            <Copy className="h-3 w-3 mr-1" /> Link
+                          </>
                         )}
                       </Button>
-                      <button onClick={() => revoke(i.id)} className="text-muted-foreground hover:text-destructive p-1">
+                      <button
+                        onClick={() => revoke(i.id)}
+                        className="text-muted-foreground hover:text-destructive p-1"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </>
@@ -225,13 +241,14 @@ export function InviteFlow() {
           Equipe atual ({members.length})
         </h3>
         {members.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4 text-center">
-            Nenhum membro.
-          </p>
+          <p className="text-sm text-muted-foreground py-4 text-center">Nenhum membro.</p>
         ) : (
           <div className="space-y-2">
             {members.map((m) => (
-              <div key={m.user_id} className="flex items-center justify-between p-3 rounded-xl border border-border">
+              <div
+                key={m.user_id}
+                className="flex items-center justify-between p-3 rounded-xl border border-border"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-sm truncate">
                     {m.user_id === userId
@@ -239,7 +256,8 @@ export function InviteFlow() {
                       : m.profile?.nome || m.profile?.email || `Membro ${m.user_id.slice(0, 8)}`}
                   </p>
                   <p className="text-xs text-muted-foreground capitalize">
-                    {m.role}{m.is_default && " · padrão"}
+                    {m.role}
+                    {m.is_default && " · padrão"}
                     {m.profile?.email && m.user_id !== userId && ` · ${m.profile.email}`}
                   </p>
                 </div>

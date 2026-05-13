@@ -30,10 +30,12 @@ export function CookieConsent() {
           <div className="flex-1">
             <p className="font-black mb-1">Cookies & dados</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Usamos cookies essenciais pra autenticação e preferências, e dados anonimizados de uso pra melhorar o serviço. Leia nossa{" "}
+              Usamos cookies essenciais pra autenticação e preferências, e dados anonimizados de uso
+              pra melhorar o serviço. Leia nossa{" "}
               <Link to="/privacidade" className="text-primary font-bold hover:underline">
                 Política de Privacidade
-              </Link>.
+              </Link>
+              .
             </p>
           </div>
           <button

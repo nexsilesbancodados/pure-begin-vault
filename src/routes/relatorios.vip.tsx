@@ -32,16 +32,66 @@ type RFM = {
 };
 
 const SEGMENTS: Record<string, { label: string; color: string; icon: any; description: string }> = {
-  champions: { label: "Campeões", color: "bg-success/15 text-success border-success/30", icon: Award, description: "Topo: compra recente, frequente e alto valor" },
-  loyal: { label: "Leais", color: "bg-primary/15 text-primary border-primary/30", icon: Heart, description: "Frequentes e recentes" },
-  big_spender: { label: "Grandes Gastadores", color: "bg-warning/15 text-warning border-warning/30", icon: TrendingUp, description: "Compra alto valor, recente" },
-  new_customer: { label: "Novos", color: "bg-blue-500/15 text-blue-600 border-blue-500/30", icon: TrendingUp, description: "Comprou pela 1ª vez recentemente" },
-  potential_loyal: { label: "Potencialmente Leais", color: "bg-primary/15 text-primary border-primary/30", icon: Heart, description: "Bons sinais — nurturing" },
-  at_risk: { label: "Em Risco", color: "bg-warning/15 text-warning border-warning/30", icon: AlertTriangle, description: "Compraram bastante mas não voltam" },
-  cant_lose: { label: "Não Perder", color: "bg-destructive/15 text-destructive border-destructive/30", icon: AlertTriangle, description: "Alto valor mas inativos — recuperar" },
-  lost: { label: "Perdidos", color: "bg-muted text-muted-foreground border-border", icon: TrendingDown, description: "Provavelmente já churnaram" },
-  regular: { label: "Regulares", color: "bg-card border-border", icon: Heart, description: "Comportamento mediano" },
-  never_bought: { label: "Nunca compraram", color: "bg-muted text-muted-foreground border-border", icon: TrendingDown, description: "Cadastrados mas sem compras" },
+  champions: {
+    label: "Campeões",
+    color: "bg-success/15 text-success border-success/30",
+    icon: Award,
+    description: "Topo: compra recente, frequente e alto valor",
+  },
+  loyal: {
+    label: "Leais",
+    color: "bg-primary/15 text-primary border-primary/30",
+    icon: Heart,
+    description: "Frequentes e recentes",
+  },
+  big_spender: {
+    label: "Grandes Gastadores",
+    color: "bg-warning/15 text-warning border-warning/30",
+    icon: TrendingUp,
+    description: "Compra alto valor, recente",
+  },
+  new_customer: {
+    label: "Novos",
+    color: "bg-blue-500/15 text-blue-600 border-blue-500/30",
+    icon: TrendingUp,
+    description: "Comprou pela 1ª vez recentemente",
+  },
+  potential_loyal: {
+    label: "Potencialmente Leais",
+    color: "bg-primary/15 text-primary border-primary/30",
+    icon: Heart,
+    description: "Bons sinais — nurturing",
+  },
+  at_risk: {
+    label: "Em Risco",
+    color: "bg-warning/15 text-warning border-warning/30",
+    icon: AlertTriangle,
+    description: "Compraram bastante mas não voltam",
+  },
+  cant_lose: {
+    label: "Não Perder",
+    color: "bg-destructive/15 text-destructive border-destructive/30",
+    icon: AlertTriangle,
+    description: "Alto valor mas inativos — recuperar",
+  },
+  lost: {
+    label: "Perdidos",
+    color: "bg-muted text-muted-foreground border-border",
+    icon: TrendingDown,
+    description: "Provavelmente já churnaram",
+  },
+  regular: {
+    label: "Regulares",
+    color: "bg-card border-border",
+    icon: Heart,
+    description: "Comportamento mediano",
+  },
+  never_bought: {
+    label: "Nunca compraram",
+    color: "bg-muted text-muted-foreground border-border",
+    icon: TrendingDown,
+    description: "Cadastrados mas sem compras",
+  },
 };
 
 function VipPage() {
@@ -86,7 +136,10 @@ function VipPage() {
   const totalRevenue = useMemo(() => rfm.reduce((a, b) => a + Number(b.monetary), 0), [rfm]);
 
   const message = async (r: RFM) => {
-    if (!r.phone) { toast.error("Cliente sem telefone"); return; }
+    if (!r.phone) {
+      toast.error("Cliente sem telefone");
+      return;
+    }
     const segmentMsg: Record<string, string> = {
       champions: `Oi ${r.name.split(" ")[0]}! Você é um dos nossos clientes especiais. Temos uma oferta exclusiva pra você 🎁`,
       loyal: `Oi ${r.name.split(" ")[0]}, obrigado por sempre voltar! Que tal conferir nossas novidades?`,
@@ -94,7 +147,8 @@ function VipPage() {
       cant_lose: `Oi ${r.name.split(" ")[0]}, sentimos sua falta! Cupom especial: 15% OFF na sua próxima compra.`,
       new_customer: `Oi ${r.name.split(" ")[0]}, bem-vindo! Qualquer dúvida estamos aqui.`,
     };
-    const text = segmentMsg[r.segment] ?? `Oi ${r.name.split(" ")[0]}, dá uma olhada nas nossas novidades!`;
+    const text =
+      segmentMsg[r.segment] ?? `Oi ${r.name.split(" ")[0]}, dá uma olhada nas nossas novidades!`;
     setSending(r.customer_id);
     try {
       const { error } = await supabase.functions.invoke("send-whatsapp", {
@@ -109,19 +163,33 @@ function VipPage() {
     }
   };
 
-  const segmentOrder = ["champions", "loyal", "big_spender", "potential_loyal", "new_customer", "at_risk", "cant_lose", "regular", "lost", "never_bought"];
+  const segmentOrder = [
+    "champions",
+    "loyal",
+    "big_spender",
+    "potential_loyal",
+    "new_customer",
+    "at_risk",
+    "cant_lose",
+    "regular",
+    "lost",
+    "never_bought",
+  ];
 
   return (
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar title="Clientes VIP (RFM)" subtitle="Segmentação automática: Recency · Frequency · Monetary" />
+        <Topbar
+          title="Clientes VIP (RFM)"
+          subtitle="Segmentação automática: Recency · Frequency · Monetary"
+        />
         <main className="flex-1 overflow-y-auto p-6 space-y-4">
           <Card className="p-4">
             <p className="text-xs text-muted-foreground">
               <strong>RFM Score</strong> classifica clientes em 10 segmentos com base em:
-              <strong> R</strong>ecência (última compra), <strong>F</strong>requência (qtd compras) e
-              <strong> M</strong>onetário (total gasto). Use pra priorizar ofertas e reativações.
+              <strong> R</strong>ecência (última compra), <strong>F</strong>requência (qtd compras)
+              e<strong> M</strong>onetário (total gasto). Use pra priorizar ofertas e reativações.
             </p>
           </Card>
 
@@ -141,7 +209,9 @@ function VipPage() {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Icon className="h-3.5 w-3.5" />
-                    <span className="text-[10px] uppercase tracking-wider font-black">{cfg.label}</span>
+                    <span className="text-[10px] uppercase tracking-wider font-black">
+                      {cfg.label}
+                    </span>
                   </div>
                   <p className="text-xl font-black">{count}</p>
                 </button>
@@ -174,7 +244,10 @@ function VipPage() {
                 Clientes ({filtered.length})
               </h3>
               <p className="text-xs text-muted-foreground">
-                Receita total: <strong>R$ {totalRevenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}</strong>
+                Receita total:{" "}
+                <strong>
+                  R$ {totalRevenue.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+                </strong>
               </p>
             </div>
 
@@ -182,14 +255,19 @@ function VipPage() {
               <SkeletonList rows={5} />
             ) : filtered.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">
-                {rfm.length === 0 ? "Sem clientes ainda. Cadastre em /clientes." : "Nenhum cliente no filtro."}
+                {rfm.length === 0
+                  ? "Sem clientes ainda. Cadastre em /clientes."
+                  : "Nenhum cliente no filtro."}
               </p>
             ) : (
               <div className="space-y-2">
                 {filtered.slice(0, 100).map((r) => {
                   const cfg = SEGMENTS[r.segment] ?? SEGMENTS.regular;
                   return (
-                    <div key={r.customer_id} className="flex items-center gap-3 p-3 rounded-xl border border-border">
+                    <div
+                      key={r.customer_id}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-border"
+                    >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-bold truncate">{r.name}</p>
@@ -200,12 +278,19 @@ function VipPage() {
                         </div>
                         <p className="text-xs text-muted-foreground">
                           {r.freq} compra(s) · R$ {Number(r.monetary).toFixed(0)}
-                          {r.last_purchase && ` · última ${new Date(r.last_purchase).toLocaleDateString("pt-BR")}`}
+                          {r.last_purchase &&
+                            ` · última ${new Date(r.last_purchase).toLocaleDateString("pt-BR")}`}
                         </p>
                       </div>
                       {r.phone && (
-                        <Button size="sm" variant="outline" onClick={() => message(r)} disabled={sending === r.customer_id}>
-                          <Send className="h-3 w-3 mr-1" /> {sending === r.customer_id ? "..." : "Mensagem"}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => message(r)}
+                          disabled={sending === r.customer_id}
+                        >
+                          <Send className="h-3 w-3 mr-1" />{" "}
+                          {sending === r.customer_id ? "..." : "Mensagem"}
                         </Button>
                       )}
                     </div>

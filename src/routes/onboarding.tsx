@@ -10,7 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Check, Building2, User, Package, ArrowRight, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/onboarding")({
-  head: () => ({ meta: [{ title: "Bem-vindo — ConectaCRM" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Bem-vindo — ConectaCRM" }, { name: "robots", content: "noindex" }],
+  }),
   component: OnboardingPage,
 });
 
@@ -53,30 +55,45 @@ function OnboardingPage() {
   const saveProfile = async () => {
     if (!user?.id) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({
-      display_name: data.display_name,
-      role: data.role,
-    }).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        display_name: data.display_name,
+        role: data.role,
+      })
+      .eq("id", user.id);
     setSaving(false);
     if (error) return toast.error("Erro ao salvar");
     next();
   };
 
   const saveCompany = async () => {
-    if (!profile?.organization_id) { next(); return; }
+    if (!profile?.organization_id) {
+      next();
+      return;
+    }
     if (!data.company_name.trim()) return toast.error("Informe o nome");
     setSaving(true);
-    const { error } = await supabase.from("organizations").update({
-      name: data.company_name,
-    }).eq("id", profile.organization_id);
+    const { error } = await supabase
+      .from("organizations")
+      .update({
+        name: data.company_name,
+      })
+      .eq("id", profile.organization_id);
     setSaving(false);
     if (error) return toast.error("Erro ao salvar empresa");
     next();
   };
 
   const saveProduct = async () => {
-    if (!data.product_name.trim()) { next(); return; }
-    if (!user?.id || !profile?.organization_id) { next(); return; }
+    if (!data.product_name.trim()) {
+      next();
+      return;
+    }
+    if (!user?.id || !profile?.organization_id) {
+      next();
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from("products").insert({
       organization_id: profile.organization_id,
@@ -103,7 +120,9 @@ function OnboardingPage() {
       } else if (result?.error) {
         toast.error("Erro: " + result.error);
       } else {
-        toast.success(`✨ Demo carregado! ${result?.products ?? 0} produtos, ${result?.customers ?? 0} clientes, ${result?.leads ?? 0} leads`);
+        toast.success(
+          `✨ Demo carregado! ${result?.products ?? 0} produtos, ${result?.customers ?? 0} clientes, ${result?.leads ?? 0} leads`,
+        );
         setTimeout(() => navigate({ to: "/painel" }), 1000);
       }
     } finally {
@@ -121,10 +140,16 @@ function OnboardingPage() {
             const done = i < step;
             return (
               <div key={s.key} className="flex items-center flex-1">
-                <div className={`h-10 w-10 rounded-full grid place-items-center transition-all ${done ? "bg-emerald-500 text-white" : active ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30" : "bg-slate-100 text-slate-400"}`}>
+                <div
+                  className={`h-10 w-10 rounded-full grid place-items-center transition-all ${done ? "bg-emerald-500 text-white" : active ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30" : "bg-slate-100 text-slate-400"}`}
+                >
                   {done ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
                 </div>
-                {i < STEPS.length - 1 && <div className={`flex-1 h-1 mx-2 rounded ${done ? "bg-emerald-500" : "bg-slate-100"}`} />}
+                {i < STEPS.length - 1 && (
+                  <div
+                    className={`flex-1 h-1 mx-2 rounded ${done ? "bg-emerald-500" : "bg-slate-100"}`}
+                  />
+                )}
               </div>
             );
           })}
@@ -132,22 +157,38 @@ function OnboardingPage() {
 
         <Card className="border-border shadow-2xl">
           <CardHeader>
-            <h1 className="text-2xl font-semibold tracking-tight leading-none">{STEPS[step].title}</h1>
-            <CardDescription>Passo {step + 1} de {STEPS.length}</CardDescription>
+            <h1 className="text-2xl font-semibold tracking-tight leading-none">
+              {STEPS[step].title}
+            </h1>
+            <CardDescription>
+              Passo {step + 1} de {STEPS.length}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {step === 0 && (
               <>
                 <div className="space-y-2">
                   <Label>Como podemos te chamar?</Label>
-                  <Input value={data.display_name} onChange={(e) => setData({ ...data, display_name: e.target.value })} placeholder="Seu nome" />
+                  <Input
+                    value={data.display_name}
+                    onChange={(e) => setData({ ...data, display_name: e.target.value })}
+                    placeholder="Seu nome"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Seu cargo</Label>
-                  <Input value={data.role} onChange={(e) => setData({ ...data, role: e.target.value })} placeholder="Ex: Dono, Gerente..." />
+                  <Input
+                    value={data.role}
+                    onChange={(e) => setData({ ...data, role: e.target.value })}
+                    placeholder="Ex: Dono, Gerente..."
+                  />
                 </div>
                 <div className="flex justify-end pt-2">
-                  <Button onClick={saveProfile} disabled={saving || !data.display_name.trim()} className="gap-2">
+                  <Button
+                    onClick={saveProfile}
+                    disabled={saving || !data.display_name.trim()}
+                    className="gap-2"
+                  >
                     Continuar <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
@@ -158,31 +199,57 @@ function OnboardingPage() {
               <>
                 <div className="space-y-2">
                   <Label>Nome da sua empresa</Label>
-                  <Input value={data.company_name} onChange={(e) => setData({ ...data, company_name: e.target.value })} placeholder="Ex: Loja do João" />
+                  <Input
+                    value={data.company_name}
+                    onChange={(e) => setData({ ...data, company_name: e.target.value })}
+                    placeholder="Ex: Loja do João"
+                  />
                 </div>
                 <div className="flex justify-between pt-2">
-                  <Button variant="ghost" onClick={back}>Voltar</Button>
-                  <Button onClick={saveCompany} disabled={saving} className="gap-2">Continuar <ArrowRight className="h-4 w-4" /></Button>
+                  <Button variant="ghost" onClick={back}>
+                    Voltar
+                  </Button>
+                  <Button onClick={saveCompany} disabled={saving} className="gap-2">
+                    Continuar <ArrowRight className="h-4 w-4" />
+                  </Button>
                 </div>
               </>
             )}
 
             {step === 2 && (
               <>
-                <p className="text-sm text-muted-foreground">Cadastre um produto para já testar o PDV (opcional).</p>
+                <p className="text-sm text-muted-foreground">
+                  Cadastre um produto para já testar o PDV (opcional).
+                </p>
                 <div className="space-y-2">
                   <Label>Nome do produto</Label>
-                  <Input value={data.product_name} onChange={(e) => setData({ ...data, product_name: e.target.value })} placeholder="Ex: Cabo USB" />
+                  <Input
+                    value={data.product_name}
+                    onChange={(e) => setData({ ...data, product_name: e.target.value })}
+                    placeholder="Ex: Cabo USB"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Preço de venda (R$)</Label>
-                  <Input type="number" step="0.01" value={data.product_price} onChange={(e) => setData({ ...data, product_price: e.target.value })} placeholder="0,00" />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={data.product_price}
+                    onChange={(e) => setData({ ...data, product_price: e.target.value })}
+                    placeholder="0,00"
+                  />
                 </div>
                 <div className="flex justify-between pt-2">
-                  <Button variant="ghost" onClick={back}>Voltar</Button>
+                  <Button variant="ghost" onClick={back}>
+                    Voltar
+                  </Button>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={next}>Pular</Button>
-                    <Button onClick={saveProduct} disabled={saving} className="gap-2">Continuar <ArrowRight className="h-4 w-4" /></Button>
+                    <Button variant="outline" onClick={next}>
+                      Pular
+                    </Button>
+                    <Button onClick={saveProduct} disabled={saving} className="gap-2">
+                      Continuar <ArrowRight className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </>
@@ -193,20 +260,38 @@ function OnboardingPage() {
                 <div className="h-16 w-16 rounded-full bg-emerald-100 grid place-items-center mx-auto">
                   <Sparkles className="h-8 w-8 text-emerald-600" />
                 </div>
-                <h3 className="text-2xl font-bold">Tudo pronto, {data.display_name || "bem-vindo"}!</h3>
-                <p className="text-muted-foreground">Sua conta está configurada. Hora de explorar o painel.</p>
+                <h3 className="text-2xl font-bold">
+                  Tudo pronto, {data.display_name || "bem-vindo"}!
+                </h3>
+                <p className="text-muted-foreground">
+                  Sua conta está configurada. Hora de explorar o painel.
+                </p>
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-700/30 rounded-2xl p-4 my-4 text-left">
                   <p className="text-sm font-bold mb-1">🎁 Carregar dados de exemplo?</p>
                   <p className="text-xs text-muted-foreground mb-3">
-                    10 produtos · 4 clientes · 3 leads — pra você testar o PDV, o CRM e os relatórios agora mesmo. Pode remover depois em <strong>Configurações</strong>.
+                    10 produtos · 4 clientes · 3 leads — pra você testar o PDV, o CRM e os
+                    relatórios agora mesmo. Pode remover depois em <strong>Configurações</strong>.
                   </p>
-                  <Button onClick={loadDemoData} disabled={seeding} variant="outline" size="sm" className="bg-card">
+                  <Button
+                    onClick={loadDemoData}
+                    disabled={seeding}
+                    variant="outline"
+                    size="sm"
+                    className="bg-card"
+                  >
                     {seeding ? "Carregando..." : "✨ Carregar demo + ir para o painel"}
                   </Button>
                 </div>
                 <div className="flex gap-3 justify-center pt-4">
-                  <Link to="/equipe"><Button variant="outline">Convidar equipe</Button></Link>
-                  <Button onClick={finish} className="gap-2 bg-gradient-to-r from-indigo-500 to-violet-600">Pular e ir para o painel <ArrowRight className="h-4 w-4" /></Button>
+                  <Link to="/equipe">
+                    <Button variant="outline">Convidar equipe</Button>
+                  </Link>
+                  <Button
+                    onClick={finish}
+                    className="gap-2 bg-gradient-to-r from-indigo-500 to-violet-600"
+                  >
+                    Pular e ir para o painel <ArrowRight className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             )}

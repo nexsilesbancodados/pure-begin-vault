@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X, Shield, Mail, User, Check, AlertCircle } from "lucide-react";
- import { UserPermissions, Role } from "@/contexts/AuthContext";
+import { UserPermissions, Role } from "@/contexts/AuthContext";
 import { DEFAULT_EMPLOYEE_PERMISSIONS } from "@/types/permissions";
 
 interface InviteMemberModalProps {
@@ -12,33 +12,38 @@ interface InviteMemberModalProps {
 export function InviteMemberModal({ isOpen, onClose, onInvite }: InviteMemberModalProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-   const [role, setRole] = useState<Role>("employee");
+  const [role, setRole] = useState<Role>("employee");
   const [permissions, setPermissions] = useState<UserPermissions>(DEFAULT_EMPLOYEE_PERMISSIONS);
 
   if (!isOpen) return null;
 
-   const handleSubmit = (e: React.FormEvent) => {
-     e.preventDefault();
-     const roleLabels: Record<string, string> = {
-       owner: "Proprietário",
-       admin: "Administrador",
-       financeiro: "Financeiro",
-       vendedor: "Vendedor",
-       employee: "Funcionário",
-     };
-     onInvite({
-       name,
-       email,
-       role: roleLabels[role] || "Membro",
-       permissions,
-       status: "offline",
-       avatar: name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2)
-     });
-     onClose();
-   };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const roleLabels: Record<string, string> = {
+      owner: "Proprietário",
+      admin: "Administrador",
+      financeiro: "Financeiro",
+      vendedor: "Vendedor",
+      employee: "Funcionário",
+    };
+    onInvite({
+      name,
+      email,
+      role: roleLabels[role] || "Membro",
+      permissions,
+      status: "offline",
+      avatar: name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .substring(0, 2),
+    });
+    onClose();
+  };
 
   const togglePermission = (key: keyof UserPermissions) => {
-    setPermissions(prev => ({ ...prev, [key]: !prev[key] }));
+    setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const permissionLabels: Record<keyof UserPermissions, string> = {
@@ -62,7 +67,9 @@ export function InviteMemberModal({ isOpen, onClose, onInvite }: InviteMemberMod
         <div className="flex items-center justify-between p-6 border-b border-border bg-muted/30">
           <div>
             <h2 className="text-xl font-bold">Convidar Novo Membro</h2>
-            <p className="text-sm text-muted-foreground mt-1">Envie um convite e defina o que ele pode acessar</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Envie um convite e defina o que ele pode acessar
+            </p>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-muted transition-colors">
             <X className="h-5 w-5" />
@@ -102,31 +109,35 @@ export function InviteMemberModal({ isOpen, onClose, onInvite }: InviteMemberMod
 
           <div className="space-y-3">
             <label className="text-sm font-bold ml-1">Nível de Acesso</label>
-             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-               {[
-                 { id: "employee", label: "Funcionário", icon: User },
-                 { id: "vendedor", label: "Vendedor", icon: User },
-                 { id: "financeiro", label: "Financeiro", icon: Shield },
-                 { id: "admin", label: "Administrador", icon: Shield },
-               ].map((r) => (
-                 <button
-                   key={r.id}
-                   type="button"
-                   onClick={() => setRole(r.id as Role)}
-                   className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${role === r.id ? "border-primary bg-primary/5" : "border-border hover:border-border/80"}`}
-                 >
-                   <r.icon className={`h-4 w-4 mb-1 ${role === r.id ? "text-primary" : "text-muted-foreground"}`} />
-                   <span className="font-bold text-[10px] text-center">{r.label}</span>
-                 </button>
-               ))}
-             </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { id: "employee", label: "Funcionário", icon: User },
+                { id: "vendedor", label: "Vendedor", icon: User },
+                { id: "financeiro", label: "Financeiro", icon: Shield },
+                { id: "admin", label: "Administrador", icon: Shield },
+              ].map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setRole(r.id as Role)}
+                  className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${role === r.id ? "border-primary bg-primary/5" : "border-border hover:border-border/80"}`}
+                >
+                  <r.icon
+                    className={`h-4 w-4 mb-1 ${role === r.id ? "text-primary" : "text-muted-foreground"}`}
+                  />
+                  <span className="font-bold text-[10px] text-center">{r.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {role === "employee" && (
             <div className="space-y-3">
               <div className="flex items-center justify-between ml-1">
                 <label className="text-sm font-bold">Permissões Específicas</label>
-                <span className="text-[10px] uppercase font-bold text-primary tracking-widest bg-primary/10 px-2 py-0.5 rounded">Customizável</span>
+                <span className="text-[10px] uppercase font-bold text-primary tracking-widest bg-primary/10 px-2 py-0.5 rounded">
+                  Customizável
+                </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {Object.keys(permissionLabels).map((key) => {
@@ -139,7 +150,9 @@ export function InviteMemberModal({ isOpen, onClose, onInvite }: InviteMemberMod
                       onClick={() => togglePermission(k)}
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[11px] font-bold transition-all ${active ? "bg-primary text-white border-primary shadow-glow-sm" : "bg-muted/30 border-border text-muted-foreground hover:border-primary/50"}`}
                     >
-                      <div className={`h-4 w-4 rounded flex items-center justify-center ${active ? "bg-white/20" : "bg-muted"}`}>
+                      <div
+                        className={`h-4 w-4 rounded flex items-center justify-center ${active ? "bg-white/20" : "bg-muted"}`}
+                      >
                         {active && <Check className="h-2.5 w-2.5" strokeWidth={4} />}
                       </div>
                       {permissionLabels[k]}
@@ -156,7 +169,8 @@ export function InviteMemberModal({ isOpen, onClose, onInvite }: InviteMemberMod
               <div>
                 <h4 className="text-xs font-bold text-amber-600">Atenção com Administradores</h4>
                 <p className="text-[11px] text-amber-600/80 leading-relaxed mt-0.5">
-                  Administradores podem gerenciar outros membros, visualizar relatórios financeiros e alterar configurações críticas do CRM.
+                  Administradores podem gerenciar outros membros, visualizar relatórios financeiros
+                  e alterar configurações críticas do CRM.
                 </p>
               </div>
             </div>

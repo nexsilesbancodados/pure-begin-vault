@@ -43,8 +43,8 @@ export const NetworkBackground = () => {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
-         gradient.addColorStop(0, "rgba(114, 227, 173, 0.8)");
-         gradient.addColorStop(1, "rgba(114, 227, 173, 0)");
+        gradient.addColorStop(0, "rgba(114, 227, 173, 0.8)");
+        gradient.addColorStop(1, "rgba(114, 227, 173, 0)");
         ctx.fillStyle = gradient;
         ctx.fill();
       }
@@ -80,8 +80,8 @@ export const NetworkBackground = () => {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
-             const opacity = (1 - dist / connectionDistance) * 0.3;
-             ctx.strokeStyle = `rgba(114, 227, 173, ${opacity})`;
+            const opacity = (1 - dist / connectionDistance) * 0.3;
+            ctx.strokeStyle = `rgba(114, 227, 173, ${opacity})`;
             ctx.lineWidth = 0.8;
             ctx.stroke();
           }
@@ -95,7 +95,7 @@ export const NetworkBackground = () => {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(mouse.x, mouse.y);
-             ctx.strokeStyle = `rgba(114, 227, 173, ${(1 - dist / 200) * 0.5})`;
+            ctx.strokeStyle = `rgba(114, 227, 173, ${(1 - dist / 200) * 0.5})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -118,7 +118,7 @@ export const NetworkBackground = () => {
     window.addEventListener("resize", resize);
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseleave", handleMouseLeave);
-    
+
     resize();
     animate();
 
@@ -130,10 +130,5 @@ export const NetworkBackground = () => {
     };
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0 opacity-40"
-    />
-  );
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0 opacity-40" />;
 };

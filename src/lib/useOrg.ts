@@ -13,6 +13,10 @@ export function useOrg() {
 // Helper assíncrono (usado em código fora de hooks)
 export async function getOrgId(userId: string): Promise<string | null> {
   const { supabase } = await import("@/integrations/supabase/client");
-  const { data } = await supabase.from("profiles").select("organization_id").eq("id", userId).maybeSingle();
+  const { data } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", userId)
+    .maybeSingle();
   return (data as any)?.organization_id ?? null;
 }

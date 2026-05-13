@@ -4,7 +4,15 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Printer, Bluetooth, Usb, ScanLine, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import {
+  Printer,
+  Bluetooth,
+  Usb,
+  ScanLine,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+} from "lucide-react";
 import {
   hardwareSupport,
   connectUsbPrinter,
@@ -90,9 +98,10 @@ function HardwarePage() {
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title="Hardware" subtitle="Impressora térmica, leitor de código, gaveta" />
         <main className="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl">
-
           <Card className="p-5">
-            <h3 className="font-black text-sm uppercase tracking-widest mb-4">Suporte do navegador</h3>
+            <h3 className="font-black text-sm uppercase tracking-widest mb-4">
+              Suporte do navegador
+            </h3>
             <div className="grid grid-cols-3 gap-3">
               <SupportBadge icon={Usb} label="WebUSB" ok={hardwareSupport.webusb} />
               <SupportBadge icon={Bluetooth} label="Web Bluetooth" ok={hardwareSupport.bluetooth} />
@@ -110,7 +119,9 @@ function HardwarePage() {
               </div>
               <div className="flex-1">
                 <h3 className="font-black text-base">Impressora térmica USB</h3>
-                <p className="text-xs text-muted-foreground">Epson, Bematech, Daruma, Elgin (58mm ou 80mm) via ESC/POS</p>
+                <p className="text-xs text-muted-foreground">
+                  Epson, Bematech, Daruma, Elgin (58mm ou 80mm) via ESC/POS
+                </p>
               </div>
               {printer ? (
                 <span className="text-xs font-bold text-success flex items-center gap-1">
@@ -135,7 +146,9 @@ function HardwarePage() {
               </div>
               <div className="flex-1">
                 <h3 className="font-black text-base">Leitor de código de barras</h3>
-                <p className="text-xs text-muted-foreground">USB/Bluetooth modo HID-keyboard (auto-detecta)</p>
+                <p className="text-xs text-muted-foreground">
+                  USB/Bluetooth modo HID-keyboard (auto-detecta)
+                </p>
               </div>
               {scannerActive ? (
                 <span className="text-xs font-bold text-success flex items-center gap-1">
@@ -147,7 +160,11 @@ function HardwarePage() {
               <Button onClick={handleToggleScanner}>
                 {scannerActive ? "Desativar" : "Ativar scanner HID"}
               </Button>
-              <Button variant="outline" onClick={handleBleScanner} disabled={!hardwareSupport.bluetooth}>
+              <Button
+                variant="outline"
+                onClick={handleBleScanner}
+                disabled={!hardwareSupport.bluetooth}
+              >
                 <Bluetooth className="h-4 w-4 mr-2" /> Conectar BLE
               </Button>
             </div>
@@ -165,13 +182,15 @@ function HardwarePage() {
               <div className="text-sm">
                 <p className="font-bold mb-1">Dica de instalação</p>
                 <p className="text-muted-foreground">
-                  Use <strong>Chrome 89+ ou Edge 89+</strong>. No Linux, dê acesso ao dispositivo:<br/>
-                  <code className="text-[11px] font-mono bg-muted px-1.5 py-0.5 rounded">sudo usermod -a -G dialout $USER</code>
+                  Use <strong>Chrome 89+ ou Edge 89+</strong>. No Linux, dê acesso ao dispositivo:
+                  <br />
+                  <code className="text-[11px] font-mono bg-muted px-1.5 py-0.5 rounded">
+                    sudo usermod -a -G dialout $USER
+                  </code>
                 </p>
               </div>
             </div>
           </Card>
-
         </main>
       </div>
     </div>
@@ -180,7 +199,9 @@ function HardwarePage() {
 
 function SupportBadge({ icon: Icon, label, ok }: { icon: any; label: string; ok: boolean }) {
   return (
-    <div className={`p-3 rounded-xl border ${ok ? "bg-success/10 border-success/30" : "bg-destructive/10 border-destructive/30"}`}>
+    <div
+      className={`p-3 rounded-xl border ${ok ? "bg-success/10 border-success/30" : "bg-destructive/10 border-destructive/30"}`}
+    >
       <div className="flex items-center gap-2 mb-1">
         <Icon className={`h-4 w-4 ${ok ? "text-success" : "text-destructive"}`} />
         <span className="text-xs font-bold">{label}</span>

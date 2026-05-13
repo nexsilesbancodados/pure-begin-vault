@@ -34,7 +34,10 @@ function ForgotPassword() {
   return (
     <div className="min-h-screen grid place-items-center bg-slate-50 px-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
-        <Link to="/login" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6">
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6"
+        >
           <ArrowLeft className="h-4 w-4" /> Voltar ao login
         </Link>
         <div className="flex items-center gap-3 mb-6">
@@ -44,7 +47,9 @@ function ForgotPassword() {
           <span className="font-bold text-xl text-slate-900">ConectaCRM</span>
         </div>
         <h1 className="text-2xl font-bold text-slate-900 mb-2">Recuperar senha</h1>
-        <p className="text-slate-500 text-sm mb-6">Enviaremos um link de redefinição para o seu e-mail.</p>
+        <p className="text-slate-500 text-sm mb-6">
+          Enviaremos um link de redefinição para o seu e-mail.
+        </p>
 
         {sent ? (
           <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700">

@@ -30,10 +30,20 @@ function AcceptOrgInvite() {
         .select("*, organization:organizations(id, name)")
         .eq("token", token)
         .maybeSingle();
-      if (err || !data) { setError("Convite inválido"); setLoading(false); return; }
-      if (data.status !== "pending") { setError("Convite já utilizado ou revogado"); setLoading(false); return; }
+      if (err || !data) {
+        setError("Convite inválido");
+        setLoading(false);
+        return;
+      }
+      if (data.status !== "pending") {
+        setError("Convite já utilizado ou revogado");
+        setLoading(false);
+        return;
+      }
       if (data.expires_at && new Date(data.expires_at) < new Date()) {
-        setError("Convite expirado"); setLoading(false); return;
+        setError("Convite expirado");
+        setLoading(false);
+        return;
       }
       setInvite(data);
       setOrg(data.organization);
@@ -48,9 +58,14 @@ function AcceptOrgInvite() {
       return;
     }
     setAccepting(true);
-    const { error: err } = await (supabase as any).rpc("accept_organization_invite", { _token: token });
+    const { error: err } = await (supabase as any).rpc("accept_organization_invite", {
+      _token: token,
+    });
     setAccepting(false);
-    if (err) { toast.error("Erro: " + err.message); return; }
+    if (err) {
+      toast.error("Erro: " + err.message);
+      return;
+    }
     toast.success("Bem-vindo à loja!");
     setTimeout(() => navigate({ to: "/lojas" }), 800);
   };
@@ -86,15 +101,9 @@ function AcceptOrgInvite() {
         </div>
         <div>
           <h1 className="text-2xl font-black">Você foi convidado!</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Para entrar na loja
-          </p>
-          <p className="text-lg font-black text-primary mt-1">
-            {org?.name ?? "Loja"}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2 capitalize">
-            Como: {invite.role}
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Para entrar na loja</p>
+          <p className="text-lg font-black text-primary mt-1">{org?.name ?? "Loja"}</p>
+          <p className="text-xs text-muted-foreground mt-2 capitalize">Como: {invite.role}</p>
         </div>
 
         {!authLoading && !user ? (

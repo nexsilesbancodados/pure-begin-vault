@@ -9,7 +9,7 @@ function crc16(payload: string): string {
       crc = (crc & 0x8000) !== 0 ? (crc << 1) ^ 0x1021 : crc << 1;
     }
   }
-  return ((crc & 0xffff).toString(16).toUpperCase().padStart(4, "0"));
+  return (crc & 0xffff).toString(16).toUpperCase().padStart(4, "0");
 }
 
 function tlv(id: string, value: string): string {
@@ -48,16 +48,12 @@ export function buildPixPayload(p: PixParams): string {
 
   const merchantCategoryCode = tlv("52", "0000");
   const transactionCurrency = tlv("53", "986"); // BRL
-  const transactionAmount =
-    p.amount && p.amount > 0 ? tlv("54", p.amount.toFixed(2)) : "";
+  const transactionAmount = p.amount && p.amount > 0 ? tlv("54", p.amount.toFixed(2)) : "";
   const countryCode = tlv("58", "BR");
   const merchantName = tlv("59", sanitize(p.merchantName, 25));
   const merchantCity = tlv("60", sanitize(p.merchantCity, 15));
 
-  const additional = tlv(
-    "62",
-    tlv("05", sanitize(p.txId || "***", 25))
-  );
+  const additional = tlv("62", tlv("05", sanitize(p.txId || "***", 25)));
 
   const partial =
     payloadFormat +

@@ -5,10 +5,26 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, CreditCard, CheckCircle2, XCircle, Clock, AlertTriangle, Download, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CreditCard,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  Download,
+  Loader2,
+} from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Export } from "@/lib/exportUniversal";
 
@@ -39,12 +55,32 @@ const BRL = (cents: number) =>
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { color: string; icon: any; label: string }> = {
-    approved: { color: "bg-success/10 text-success border-success/30", icon: CheckCircle2, label: "Aprovado" },
-    pending: { color: "bg-warning/10 text-warning border-warning/30", icon: Clock, label: "Pendente" },
-    in_process: { color: "bg-warning/10 text-warning border-warning/30", icon: Clock, label: "Processando" },
-    rejected: { color: "bg-destructive/10 text-destructive border-destructive/30", icon: XCircle, label: "Recusado" },
+    approved: {
+      color: "bg-success/10 text-success border-success/30",
+      icon: CheckCircle2,
+      label: "Aprovado",
+    },
+    pending: {
+      color: "bg-warning/10 text-warning border-warning/30",
+      icon: Clock,
+      label: "Pendente",
+    },
+    in_process: {
+      color: "bg-warning/10 text-warning border-warning/30",
+      icon: Clock,
+      label: "Processando",
+    },
+    rejected: {
+      color: "bg-destructive/10 text-destructive border-destructive/30",
+      icon: XCircle,
+      label: "Recusado",
+    },
     cancelled: { color: "bg-muted text-muted-foreground", icon: XCircle, label: "Cancelado" },
-    refunded: { color: "bg-info/10 text-info border-info/30", icon: AlertTriangle, label: "Estornado" },
+    refunded: {
+      color: "bg-info/10 text-info border-info/30",
+      icon: AlertTriangle,
+      label: "Estornado",
+    },
   };
   const cfg = map[status] ?? { color: "bg-muted", icon: AlertTriangle, label: status };
   const Icon = cfg.icon;
@@ -67,7 +103,9 @@ function CobrancasPage() {
       setLoading(true);
       const { data } = await (supabase as any)
         .from("payments")
-        .select("id, mp_payment_id, provider, status, status_detail, amount_cents, currency, payment_method, created_at, plan_id")
+        .select(
+          "id, mp_payment_id, provider, status, status_detail, amount_cents, currency, payment_method, created_at, plan_id",
+        )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -75,7 +113,9 @@ function CobrancasPage() {
       const list = (data ?? []) as Payment[];
       setPayments(list);
 
-      const total = list.filter((p) => p.status === "approved").reduce((s, p) => s + p.amount_cents, 0);
+      const total = list
+        .filter((p) => p.status === "approved")
+        .reduce((s, p) => s + p.amount_cents, 0);
       setStats({
         total,
         approved: list.filter((p) => p.status === "approved").length,
@@ -104,43 +144,61 @@ function CobrancasPage() {
         <main className="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl">
           <div className="flex items-center gap-3 mb-2">
             <Link to="/minha-conta">
-              <Button variant="ghost" size="sm" className="gap-1.5"><ArrowLeft className="h-4 w-4" /> Voltar</Button>
+              <Button variant="ghost" size="sm" className="gap-1.5">
+                <ArrowLeft className="h-4 w-4" /> Voltar
+              </Button>
             </Link>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card variant="gradient" className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center"><CreditCard className="h-5 w-5 text-primary" /></div>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Total pago</p>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+                    Total pago
+                  </p>
                   <p className="text-xl font-black">{BRL(stats.total)}</p>
                 </div>
               </div>
             </Card>
             <Card variant="gradient" className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-success/10 grid place-items-center"><CheckCircle2 className="h-5 w-5 text-success" /></div>
+                <div className="h-10 w-10 rounded-xl bg-success/10 grid place-items-center">
+                  <CheckCircle2 className="h-5 w-5 text-success" />
+                </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Aprovados</p>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+                    Aprovados
+                  </p>
                   <p className="text-xl font-black">{stats.approved}</p>
                 </div>
               </div>
             </Card>
             <Card variant="gradient" className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-warning/10 grid place-items-center"><Clock className="h-5 w-5 text-warning" /></div>
+                <div className="h-10 w-10 rounded-xl bg-warning/10 grid place-items-center">
+                  <Clock className="h-5 w-5 text-warning" />
+                </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Pendentes</p>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+                    Pendentes
+                  </p>
                   <p className="text-xl font-black">{stats.pending}</p>
                 </div>
               </div>
             </Card>
             <Card variant="gradient" className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-destructive/10 grid place-items-center"><XCircle className="h-5 w-5 text-destructive" /></div>
+                <div className="h-10 w-10 rounded-xl bg-destructive/10 grid place-items-center">
+                  <XCircle className="h-5 w-5 text-destructive" />
+                </div>
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Recusados</p>
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+                    Recusados
+                  </p>
                   <p className="text-xl font-black">{stats.failed}</p>
                 </div>
               </div>
@@ -158,13 +216,18 @@ function CobrancasPage() {
             </CardHeader>
             <CardContent className="p-0">
               {loading ? (
-                <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                <div className="p-12 flex justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
               ) : payments.length === 0 ? (
                 <EmptyState
                   icon={CreditCard}
                   title="Nenhuma cobrança ainda"
                   description="As cobranças aparecerão aqui assim que você assinar um plano ou pagar uma renovação."
-                  action={{ label: "Ver planos", onClick: () => (window.location.href = "/assinar") }}
+                  action={{
+                    label: "Ver planos",
+                    onClick: () => (window.location.href = "/assinar"),
+                  }}
                 />
               ) : (
                 <Table>
@@ -180,11 +243,19 @@ function CobrancasPage() {
                   <TableBody>
                     {payments.map((p) => (
                       <TableRow key={p.id} className="hover:bg-muted/30">
-                        <TableCell className="text-xs">{new Date(p.created_at).toLocaleString("pt-BR")}</TableCell>
+                        <TableCell className="text-xs">
+                          {new Date(p.created_at).toLocaleString("pt-BR")}
+                        </TableCell>
                         <TableCell className="capitalize">{p.payment_method ?? "—"}</TableCell>
-                        <TableCell><StatusBadge status={p.status} /></TableCell>
-                        <TableCell className="text-right font-bold">{BRL(p.amount_cents)}</TableCell>
-                        <TableCell className="font-mono text-[11px] text-muted-foreground">{p.mp_payment_id ?? "—"}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={p.status} />
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {BRL(p.amount_cents)}
+                        </TableCell>
+                        <TableCell className="font-mono text-[11px] text-muted-foreground">
+                          {p.mp_payment_id ?? "—"}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

@@ -15,28 +15,32 @@ export function OriginDonut() {
     if (!user?.id) return;
     (async () => {
       const base = supabase.from("leads").select("source");
-      const { data: leads } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id));
-      
+      const { data: leads } = await (orgId
+        ? base.eq("organization_id", orgId)
+        : base.eq("user_id", user.id));
+
       const counts: Record<string, number> = {};
-      (leads || []).forEach(l => {
+      (leads || []).forEach((l) => {
         const src = l.source || "Direto";
         counts[src] = (counts[src] || 0) + 1;
       });
 
       const colors: Record<string, string> = {
-        "WhatsApp": "#25D366",
-        "Instagram": "#E1306C",
-        "Facebook": "#1877F2",
-        "Google": "#4285F4",
-        "Direto": "#64748b",
-        "Site": "#8b5cf6"
+        WhatsApp: "#25D366",
+        Instagram: "#E1306C",
+        Facebook: "#1877F2",
+        Google: "#4285F4",
+        Direto: "#64748b",
+        Site: "#8b5cf6",
       };
 
-      const chartData = Object.entries(counts).map(([name, value]) => ({
-        name,
-        value,
-        color: colors[name] || "#" + Math.floor(Math.random()*16777215).toString(16)
-      })).sort((a, b) => b.value - a.value);
+      const chartData = Object.entries(counts)
+        .map(([name, value]) => ({
+          name,
+          value,
+          color: colors[name] || "#" + Math.floor(Math.random() * 16777215).toString(16),
+        }))
+        .sort((a, b) => b.value - a.value);
 
       setData(chartData);
       setLoading(false);
@@ -57,33 +61,51 @@ export function OriginDonut() {
           <div className="relative h-[180px] w-[180px] shrink-0">
             <ResponsiveContainer>
               <PieChart>
-                <Pie data={data} dataKey="value" innerRadius={55} outerRadius={80} paddingAngle={2} stroke="none">
-                  {data.map((d) => <Cell key={d.name} fill={d.color} />)}
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  innerRadius={55}
+                  outerRadius={80}
+                  paddingAngle={2}
+                  stroke="none"
+                >
+                  {data.map((d) => (
+                    <Cell key={d.name} fill={d.color} />
+                  ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 12, fontSize: 12 }}
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 grid place-items-center pointer-events-none">
               <div className="text-center">
                 <div className="text-[11px] text-muted-foreground">Total</div>
-                <div className="text-xl font-bold font-display">{total.toLocaleString("pt-BR")}</div>
+                <div className="text-xl font-bold font-display">
+                  {total.toLocaleString("pt-BR")}
+                </div>
               </div>
             </div>
           </div>
           <ul className="flex-1 space-y-2">
-            {data.length > 0 ? data.map((d) => {
-              const pct = total > 0 ? Math.round((d.value / total) * 100) : 0;
-              return (
-                <li key={d.name} className="flex items-center gap-2.5 text-xs">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: d.color }} />
-                  <span className="flex-1 text-foreground/80">{d.name}</span>
-                  <span className="font-semibold">{pct}%</span>
-                  <span className="text-muted-foreground">({d.value})</span>
-                </li>
-              );
-            }) : (
+            {data.length > 0 ? (
+              data.map((d) => {
+                const pct = total > 0 ? Math.round((d.value / total) * 100) : 0;
+                return (
+                  <li key={d.name} className="flex items-center gap-2.5 text-xs">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: d.color }} />
+                    <span className="flex-1 text-foreground/80">{d.name}</span>
+                    <span className="font-semibold">{pct}%</span>
+                    <span className="text-muted-foreground">({d.value})</span>
+                  </li>
+                );
+              })
+            ) : (
               <li className="text-xs text-muted-foreground italic">Sem dados de origem</li>
             )}
           </ul>

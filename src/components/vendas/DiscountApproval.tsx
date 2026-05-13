@@ -109,14 +109,18 @@ export function DiscountApprovalDialog({
               placeholder="****"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submit();
+              }}
               autoFocus
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
           <Button onClick={submit}>Autorizar</Button>
         </DialogFooter>
       </DialogContent>

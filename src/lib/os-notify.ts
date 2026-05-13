@@ -48,9 +48,7 @@ export async function notifyOsStatusChange({ os_id, newStatus, trackUrl }: Notif
       ? `Oi ${(customer as any).name.split(" ")[0]}!`
       : "Olá!";
 
-    const trackLine = trackUrl
-      ? `\n\nAcompanhe em tempo real: ${trackUrl}`
-      : "";
+    const trackLine = trackUrl ? `\n\nAcompanhe em tempo real: ${trackUrl}` : "";
 
     const text = `${greeting} ${message}\n\n${osLabel} · ${equipment}${trackLine}`;
 

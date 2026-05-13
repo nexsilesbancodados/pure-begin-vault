@@ -1,5 +1,17 @@
 import { kanbanStages as initialStages, KanbanStage, KanbanLead } from "@/lib/kanban-mock";
-import { Plus, Search, Filter, MoreHorizontal, Settings2, Sparkles, MessageSquare, Instagram, Clock, Phone, GripVertical } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Filter,
+  MoreHorizontal,
+  Settings2,
+  Sparkles,
+  MessageSquare,
+  Instagram,
+  Clock,
+  Phone,
+  GripVertical,
+} from "lucide-react";
 import { useState, useMemo } from "react";
 import {
   DndContext,
@@ -30,14 +42,7 @@ interface LeadCardProps {
 }
 
 function LeadCard({ lead, isOverlay }: LeadCardProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: lead.id,
     data: {
       type: "Lead",
@@ -63,7 +68,7 @@ function LeadCard({ lead, isOverlay }: LeadCardProps) {
       className={cn(
         "bg-card border border-border rounded-xl p-3.5 shadow-card hover:shadow-elegant hover:border-primary/30 transition cursor-grab group/card relative active:cursor-grabbing",
         isDragging && "opacity-30",
-        isOverlay && "shadow-2xl border-primary/50 cursor-grabbing rotate-2 scale-105"
+        isOverlay && "shadow-2xl border-primary/50 cursor-grabbing rotate-2 scale-105",
       )}
       {...attributes}
       {...listeners}
@@ -77,18 +82,18 @@ function LeadCard({ lead, isOverlay }: LeadCardProps) {
       <p className="text-[11.5px] text-muted-foreground line-clamp-2 leading-tight mb-3">
         {lead.snippet}
       </p>
-      
+
       <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/60">
         <div className="flex items-center gap-2">
           <div className="h-6 w-6 rounded-full bg-muted grid place-items-center text-[9px] font-bold text-muted-foreground uppercase">
             {lead.name.slice(0, 2)}
           </div>
-          <div className="text-[10px] text-muted-foreground">
-            {lead.time || lead.date}
-          </div>
+          <div className="text-[10px] text-muted-foreground">{lead.time || lead.date}</div>
         </div>
         {lead.task === "Sem Tarefas" ? (
-          <span className="text-[9px] font-bold uppercase tracking-wide text-destructive/80 bg-destructive/5 px-1.5 py-0.5 rounded">Sem Tarefas</span>
+          <span className="text-[9px] font-bold uppercase tracking-wide text-destructive/80 bg-destructive/5 px-1.5 py-0.5 rounded">
+            Sem Tarefas
+          </span>
         ) : (
           <Clock className="h-3 w-3 text-muted-foreground" />
         )}
@@ -110,10 +115,13 @@ export function KanbanBoard() {
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
-  const totalLeads = useMemo(() => stages.reduce((acc, stage) => acc + stage.leads.length, 0), [stages]);
+  const totalLeads = useMemo(
+    () => stages.reduce((acc, stage) => acc + stage.leads.length, 0),
+    [stages],
+  );
 
   function onDragStart(event: DragStartEvent) {
     if (event.active.data.current?.type === "Lead") {
@@ -147,12 +155,12 @@ export function KanbanBoard() {
           const overIndex = overStage.leads.findIndex((l) => l.id === overId);
 
           const newStages = [...prev];
-          const activeStageIdx = newStages.findIndex(s => s.id === activeStage.id);
-          const overStageIdx = newStages.findIndex(s => s.id === overStage.id);
+          const activeStageIdx = newStages.findIndex((s) => s.id === activeStage.id);
+          const overStageIdx = newStages.findIndex((s) => s.id === overStage.id);
 
           const [movedLead] = newStages[activeStageIdx].leads.splice(activeIndex, 1);
           newStages[overStageIdx].leads.splice(overIndex, 0, movedLead);
-          
+
           newStages[activeStageIdx].count = newStages[activeStageIdx].leads.length;
           newStages[overStageIdx].count = newStages[overStageIdx].leads.length;
 
@@ -173,8 +181,8 @@ export function KanbanBoard() {
 
         const activeIndex = activeStage.leads.findIndex((l) => l.id === activeId);
         const newStages = [...prev];
-        const activeStageIdx = newStages.findIndex(s => s.id === activeStage.id);
-        const overStageIdx = newStages.findIndex(s => s.id === overStageId);
+        const activeStageIdx = newStages.findIndex((s) => s.id === activeStage.id);
+        const overStageIdx = newStages.findIndex((s) => s.id === overStageId);
 
         const [movedLead] = newStages[activeStageIdx].leads.splice(activeIndex, 1);
         newStages[overStageIdx].leads.push(movedLead);
@@ -216,7 +224,7 @@ export function KanbanBoard() {
         const overIndex = overStage.leads.findIndex((l) => l.id === overId);
 
         const newStages = [...prev];
-        const stageIdx = newStages.findIndex(s => s.id === activeStage.id);
+        const stageIdx = newStages.findIndex((s) => s.id === activeStage.id);
         newStages[stageIdx].leads = arrayMove(newStages[stageIdx].leads, activeIndex, overIndex);
 
         return newStages;
@@ -232,7 +240,9 @@ export function KanbanBoard() {
       <div className="h-14 shrink-0 flex items-center justify-between px-6 bg-card border-b border-border">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-foreground uppercase tracking-wider">Venda Direta</span>
+            <span className="text-sm font-semibold text-foreground uppercase tracking-wider">
+              Venda Direta
+            </span>
             <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
             <span className="text-sm font-medium text-primary">Leads ativos</span>
           </div>
@@ -293,7 +303,9 @@ export function KanbanBoard() {
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="h-2 w-2 rounded-full" style={{ backgroundColor: stage.color }} />
-                  <h3 className="text-[13px] font-bold uppercase tracking-wider truncate flex-1">{stage.title}</h3>
+                  <h3 className="text-[13px] font-bold uppercase tracking-wider truncate flex-1">
+                    {stage.title}
+                  </h3>
                   <MoreHorizontal className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 cursor-pointer" />
                 </div>
                 <div className="flex items-baseline justify-between text-[11px] text-muted-foreground">
@@ -301,12 +313,18 @@ export function KanbanBoard() {
                   <span className="font-semibold text-foreground/80">{stage.value}</span>
                 </div>
                 <div className="h-0.5 w-full bg-muted mt-2 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: "100%", backgroundColor: stage.color }} />
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: "100%", backgroundColor: stage.color }}
+                  />
                 </div>
               </div>
 
-              <SortableContext items={stage.leads.map(l => l.id)} strategy={verticalListSortingStrategy}>
-                <div 
+              <SortableContext
+                items={stage.leads.map((l) => l.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div
                   className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar min-h-[100px]"
                   id={stage.id}
                   {...({ "data-type": "Stage" } as any)}
@@ -316,7 +334,7 @@ export function KanbanBoard() {
                       <Plus className="h-3.5 w-3.5" /> Adição rápida
                     </button>
                   )}
-                  
+
                   {stage.leads.map((lead) => (
                     <LeadCard key={lead.id} lead={lead} />
                   ))}
@@ -326,18 +344,18 @@ export function KanbanBoard() {
           ))}
         </div>
 
-        <DragOverlay dropAnimation={{
-          sideEffects: defaultDropAnimationSideEffects({
-            styles: {
-              active: {
-                opacity: '0.5',
+        <DragOverlay
+          dropAnimation={{
+            sideEffects: defaultDropAnimationSideEffects({
+              styles: {
+                active: {
+                  opacity: "0.5",
+                },
               },
-            },
-          }),
-        }}>
-          {activeLead ? (
-            <LeadCard lead={activeLead} isOverlay />
-          ) : null}
+            }),
+          }}
+        >
+          {activeLead ? <LeadCard lead={activeLead} isOverlay /> : null}
         </DragOverlay>
       </DndContext>
     </div>

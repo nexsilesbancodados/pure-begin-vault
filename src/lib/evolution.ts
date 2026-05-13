@@ -22,7 +22,11 @@ const parseResponse = async (res: Response) => {
 
   if (!res.ok) {
     const message =
-      (typeof data === "object" && data && "message" in data && typeof data.message === "string" && data.message) ||
+      (typeof data === "object" &&
+        data &&
+        "message" in data &&
+        typeof data.message === "string" &&
+        data.message) ||
       text ||
       `Erro ${res.status} na Evolution API`;
     throw new Error(message);
@@ -50,12 +54,17 @@ export const evolution = {
     const raw = await res.json();
     // A Evolution API pode retornar array direto OU { instances: [...] }
     // e em v2 cada item vem como { instance: {...} } ou achatado.
-    const list: any[] = Array.isArray(raw) ? raw : Array.isArray(raw?.instances) ? raw.instances : [];
+    const list: any[] = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.instances)
+        ? raw.instances
+        : [];
     return list.map((item: any): Instance => {
       const i = item.instance ?? item;
       return {
         instanceName: i.instanceName ?? i.name ?? i.instance_name ?? "sem-nome",
-        instanceId: i.instanceId ?? i.id ?? i.instance_id ?? String(i.instanceName ?? Math.random()),
+        instanceId:
+          i.instanceId ?? i.id ?? i.instance_id ?? String(i.instanceName ?? Math.random()),
         status: (i.status ?? i.connectionStatus ?? i.state ?? "close") as Instance["status"],
         owner: i.owner ?? i.ownerJid ?? i.number,
         profileName: i.profileName,
@@ -64,88 +73,86 @@ export const evolution = {
     });
   },
 
-   async createInstance(instanceName: string, webhookUrl?: string) {
-     // Payload mínimo compatível com Evolution API v2.
-     // Webhook e eventos podem ser configurados depois com setWebhook se necessário.
-     const body: any = {
-       instanceName,
-       qrcode: true,
-       integration: "WHATSAPP-BAILEYS",
-     };
-     if (webhookUrl) {
-       body.webhook = { url: webhookUrl, enabled: true };
-     }
-     const res = await fetch(`${API_URL}/instance/create`, {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify(body),
-     });
-     const data = await res.json();
-     if (!res.ok) {
-       const msg =
-         data?.response?.message?.[0] ||
-         data?.message ||
-         `Erro ${res.status} ao criar instância`;
-       console.error("createInstance falhou:", data);
-       throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
-     }
-     return data;
-   },
- 
-   async setWebhook(instanceName: string, url: string) {
-     const res = await fetch(`${API_URL}/webhook/set/${instanceName}`, {
-       method: "POST",
-       headers: {
-         "Content-Type": "application/json",
-       },
-       body: JSON.stringify({
-         enabled: true,
-         url: url,
-         webhook_by_events: false,
-         events: [
-           "MESSAGES_UPSERT",
-           "MESSAGES_UPDATE",
-           "MESSAGES_DELETE",
-           "SEND_MESSAGE",
-           "CONTACTS_UPSERT",
-           "CONTACTS_UPDATE",
-           "PRESENCE_UPDATE",
-           "CHATS_UPSERT",
-           "CHATS_UPDATE",
-           "CHATS_DELETE",
-           "GROUPS_UPSERT",
-           "GROUPS_UPDATE",
-           "GROUP_PARTICIPANTS_UPDATE",
-           "CONNECTION_UPDATE",
-           "CALL"
-         ]
-       }),
-     });
-     return res.json();
-   },
+  async createInstance(instanceName: string, webhookUrl?: string) {
+    // Payload mínimo compatível com Evolution API v2.
+    // Webhook e eventos podem ser configurados depois com setWebhook se necessário.
+    const body: any = {
+      instanceName,
+      qrcode: true,
+      integration: "WHATSAPP-BAILEYS",
+    };
+    if (webhookUrl) {
+      body.webhook = { url: webhookUrl, enabled: true };
+    }
+    const res = await fetch(`${API_URL}/instance/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const msg =
+        data?.response?.message?.[0] || data?.message || `Erro ${res.status} ao criar instância`;
+      console.error("createInstance falhou:", data);
+      throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    }
+    return data;
+  },
 
-   async getWebhook(instanceName: string) {
-     try {
-       const res = await fetch(`${API_URL}/webhook/find/${instanceName}`);
-       if (!res.ok) return null;
-       return await res.json();
-     } catch {
-       return null;
-     }
-   },
+  async setWebhook(instanceName: string, url: string) {
+    const res = await fetch(`${API_URL}/webhook/set/${instanceName}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        enabled: true,
+        url: url,
+        webhook_by_events: false,
+        events: [
+          "MESSAGES_UPSERT",
+          "MESSAGES_UPDATE",
+          "MESSAGES_DELETE",
+          "SEND_MESSAGE",
+          "CONTACTS_UPSERT",
+          "CONTACTS_UPDATE",
+          "PRESENCE_UPDATE",
+          "CHATS_UPSERT",
+          "CHATS_UPDATE",
+          "CHATS_DELETE",
+          "GROUPS_UPSERT",
+          "GROUPS_UPDATE",
+          "GROUP_PARTICIPANTS_UPDATE",
+          "CONNECTION_UPDATE",
+          "CALL",
+        ],
+      }),
+    });
+    return res.json();
+  },
 
-   async getQrCode(instanceName: string) {
-     try {
-       console.log(`Buscando QR Code para: ${instanceName}`);
-        const res = await fetch(`${API_URL}/instance/connect/${instanceName}`);
-       const data = await res.json();
-       console.log("Resposta getQrCode:", data);
-       return data;
-     } catch (error) {
-       console.error("Erro em getQrCode:", error);
-       throw error;
-     }
-   },
+  async getWebhook(instanceName: string) {
+    try {
+      const res = await fetch(`${API_URL}/webhook/find/${instanceName}`);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  },
+
+  async getQrCode(instanceName: string) {
+    try {
+      console.log(`Buscando QR Code para: ${instanceName}`);
+      const res = await fetch(`${API_URL}/instance/connect/${instanceName}`);
+      const data = await res.json();
+      console.log("Resposta getQrCode:", data);
+      return data;
+    } catch (error) {
+      console.error("Erro em getQrCode:", error);
+      throw error;
+    }
+  },
 
   async findChats(instanceName: string) {
     const res = await fetch(`${API_URL}/chat/findChats/${instanceName}`, {
@@ -203,22 +210,25 @@ export const evolution = {
     return res.json();
   },
 
-   async deleteInstance(instanceName: string) {
-     const res = await fetch(`${API_URL}/instance/delete/${instanceName}`, {
-       method: "DELETE",
-     });
-     return res.json();
-   },
+  async deleteInstance(instanceName: string) {
+    const res = await fetch(`${API_URL}/instance/delete/${instanceName}`, {
+      method: "DELETE",
+    });
+    return res.json();
+  },
 
-   async getConnectionState(instanceName: string) {
-     try {
-       const res = await fetch(`${API_URL}/instance/connectionState/${instanceName}`);
-       if (!res.ok) return "disconnected";
-       const data = await res.json();
-       return (data?.instance?.state || data?.state || "disconnected") as "open" | "close" | "connecting" | "disconnected";
-     } catch {
-       return "disconnected";
-     }
-   }
+  async getConnectionState(instanceName: string) {
+    try {
+      const res = await fetch(`${API_URL}/instance/connectionState/${instanceName}`);
+      if (!res.ok) return "disconnected";
+      const data = await res.json();
+      return (data?.instance?.state || data?.state || "disconnected") as
+        | "open"
+        | "close"
+        | "connecting"
+        | "disconnected";
+    } catch {
+      return "disconnected";
+    }
+  },
 };
-

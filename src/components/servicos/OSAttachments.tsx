@@ -49,7 +49,9 @@ export function OSAttachments({ serviceOrderId }: Props) {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [serviceOrderId]);
+  useEffect(() => {
+    load();
+  }, [serviceOrderId]);
 
   const onFile = async (file: File) => {
     if (!orgId || !user?.id) return;
@@ -73,17 +75,15 @@ export function OSAttachments({ serviceOrderId }: Props) {
 
       const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
 
-      const { error: insErr } = await (supabase as any)
-        .from("service_order_attachments")
-        .insert({
-          organization_id: orgId,
-          service_order_id: serviceOrderId,
-          user_id: user.id,
-          storage_path: path,
-          public_url: pub?.publicUrl ?? null,
-          kind: file.type.startsWith("video/") ? "video" : "photo",
-          category,
-        });
+      const { error: insErr } = await (supabase as any).from("service_order_attachments").insert({
+        organization_id: orgId,
+        service_order_id: serviceOrderId,
+        user_id: user.id,
+        storage_path: path,
+        public_url: pub?.publicUrl ?? null,
+        kind: file.type.startsWith("video/") ? "video" : "photo",
+        category,
+      });
       if (insErr) throw insErr;
       toast.success("Anexo adicionado");
       load();
@@ -105,9 +105,7 @@ export function OSAttachments({ serviceOrderId }: Props) {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm">
-        {error}
-      </div>
+      <div className="rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm">{error}</div>
     );
   }
 
@@ -181,7 +179,13 @@ export function OSAttachments({ serviceOrderId }: Props) {
                     >
                       {it.public_url ? (
                         it.kind === "video" ? (
-                          <video src={it.public_url} className="w-full h-full object-cover" controls={false} muted playsInline />
+                          <video
+                            src={it.public_url}
+                            className="w-full h-full object-cover"
+                            controls={false}
+                            muted
+                            playsInline
+                          />
                         ) : (
                           <img src={it.public_url} className="w-full h-full object-cover" alt="" />
                         )
@@ -200,7 +204,7 @@ export function OSAttachments({ serviceOrderId }: Props) {
                   ))}
                 </div>
               </div>
-            )
+            ),
           )}
         </div>
       )}

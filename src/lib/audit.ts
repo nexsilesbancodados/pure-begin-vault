@@ -27,7 +27,9 @@ interface AuditParams {
  */
 export async function audit(params: AuditParams) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const { data: profile } = await supabase

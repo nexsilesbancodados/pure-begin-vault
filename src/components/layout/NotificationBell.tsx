@@ -7,7 +7,15 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
-type N = { id: string; type: string; title: string; body: string | null; link: string | null; is_read: boolean; created_at: string };
+type N = {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+};
 
 export function NotificationBell() {
   const { user } = useAuth();
@@ -31,14 +39,24 @@ export function NotificationBell() {
     if (!user?.id) return;
     const ch = supabase
       .channel(`notif-${user.id}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
         (p) => {
           const n = p.new as N;
           setItems((prev) => [n, ...prev].slice(0, 20));
           toast(n.title, { description: n.body ?? undefined });
-        })
+        },
+      )
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+    };
   }, [user?.id]);
 
   const markRead = async (id: string) => {
@@ -47,7 +65,11 @@ export function NotificationBell() {
   };
   const markAll = async () => {
     if (!user?.id) return;
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", user.id)
+      .eq("is_read", false);
     setItems((p) => p.map((i) => ({ ...i, is_read: true })));
   };
 
@@ -75,21 +97,34 @@ export function NotificationBell() {
         <div className="max-h-[420px] overflow-y-auto">
           {items.length === 0 ? (
             <div className="p-8 text-center text-sm text-muted-foreground">Nenhuma notificação</div>
-          ) : items.map((n) => (
-            <button
-              key={n.id}
-              onClick={() => { markRead(n.id); if (n.link) navigate({ to: n.link as any }); }}
-              className={`w-full text-left p-3 border-b hover:bg-muted/50 transition flex gap-2 ${!n.is_read ? "bg-primary/5" : ""}`}
-            >
-              <div className={`h-2 w-2 rounded-full mt-1.5 shrink-0 ${!n.is_read ? "bg-primary" : "bg-transparent"}`} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold truncate">{n.title}</div>
-                {n.body && <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.body}</div>}
-                <div className="text-[10px] text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString("pt-BR")}</div>
-              </div>
-              {!n.is_read && <Check className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-            </button>
-          ))}
+          ) : (
+            items.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => {
+                  markRead(n.id);
+                  if (n.link) navigate({ to: n.link as any });
+                }}
+                className={`w-full text-left p-3 border-b hover:bg-muted/50 transition flex gap-2 ${!n.is_read ? "bg-primary/5" : ""}`}
+              >
+                <div
+                  className={`h-2 w-2 rounded-full mt-1.5 shrink-0 ${!n.is_read ? "bg-primary" : "bg-transparent"}`}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold truncate">{n.title}</div>
+                  {n.body && (
+                    <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      {n.body}
+                    </div>
+                  )}
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    {new Date(n.created_at).toLocaleString("pt-BR")}
+                  </div>
+                </div>
+                {!n.is_read && <Check className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+              </button>
+            ))
+          )}
         </div>
       </PopoverContent>
     </Popover>

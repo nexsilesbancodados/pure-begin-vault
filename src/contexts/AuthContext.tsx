@@ -2,20 +2,31 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
- export type Role = "super_admin" | "owner" | "admin" | "financeiro" | "vendedor" | "employee" | "user";
+export type Role =
+  | "super_admin"
+  | "owner"
+  | "admin"
+  | "financeiro"
+  | "vendedor"
+  | "employee"
+  | "user";
 
-import { AppPermissions, DEFAULT_ADMIN_PERMISSIONS, DEFAULT_EMPLOYEE_PERMISSIONS } from "@/types/permissions";
+import {
+  AppPermissions,
+  DEFAULT_ADMIN_PERMISSIONS,
+  DEFAULT_EMPLOYEE_PERMISSIONS,
+} from "@/types/permissions";
 
 export type { AppPermissions as UserPermissions };
 
- interface AuthContextType {
-   session: any;
-   user: User | null;
-   profile: any;
-   permissions: AppPermissions | null;
-   loading: boolean;
-   logout: () => Promise<void>;
- }
+interface AuthContextType {
+  session: any;
+  user: User | null;
+  profile: any;
+  permissions: AppPermissions | null;
+  loading: boolean;
+  logout: () => Promise<void>;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -34,7 +45,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) fetchProfile(session.user.id);
@@ -46,15 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
     if (data) {
       setProfile(data);
       // Atribuir permissões baseadas no cargo
-      if (data.role === 'super_admin' || data.role === 'owner' || data.role === 'admin') {
+      if (data.role === "super_admin" || data.role === "owner" || data.role === "admin") {
         setPermissions(DEFAULT_ADMIN_PERMISSIONS);
-      } else if (data.role === 'financeiro') {
+      } else if (data.role === "financeiro") {
         setPermissions({ ...DEFAULT_EMPLOYEE_PERMISSIONS, financeiro: true, relatorios: true });
-      } else if (data.role === 'vendedor') {
+      } else if (data.role === "vendedor") {
         setPermissions({ ...DEFAULT_EMPLOYEE_PERMISSIONS, vendas: true, pdv: true, crm: true });
       } else {
         setPermissions(DEFAULT_EMPLOYEE_PERMISSIONS);

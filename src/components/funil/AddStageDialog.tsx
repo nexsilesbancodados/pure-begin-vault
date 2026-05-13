@@ -2,7 +2,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { LayoutGrid, Palette } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +23,12 @@ interface AddStageDialogProps {
   stagesCount: number;
 }
 
-export function AddStageDialog({ open, onOpenChange, onSuccess, stagesCount }: AddStageDialogProps) {
+export function AddStageDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+  stagesCount,
+}: AddStageDialogProps) {
   const { user } = useAuth();
   const { orgId } = useOrg();
   const [loading, setLoading] = useState(false);
@@ -38,7 +50,7 @@ export function AddStageDialog({ open, onOpenChange, onSuccess, stagesCount }: A
       toast.error("Nome da etapa é obrigatório");
       return;
     }
-    
+
     setLoading(true);
     try {
       const nextIndex = stagesCount;
@@ -47,7 +59,7 @@ export function AddStageDialog({ open, onOpenChange, onSuccess, stagesCount }: A
         organization_id: orgId,
         name,
         order_index: nextIndex,
-        color
+        color,
       });
 
       if (error) throw error;
@@ -78,9 +90,11 @@ export function AddStageDialog({ open, onOpenChange, onSuccess, stagesCount }: A
 
         <div className="space-y-6 py-4">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Nome da Etapa</Label>
-            <Input 
-              placeholder="Ex: Reunião de Diagnóstico" 
+            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              Nome da Etapa
+            </Label>
+            <Input
+              placeholder="Ex: Reunião de Diagnóstico"
               className="h-11 rounded-xl bg-muted/30 border-none focus:ring-1 focus:ring-primary/20"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -90,7 +104,9 @@ export function AddStageDialog({ open, onOpenChange, onSuccess, stagesCount }: A
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Palette className="h-3.5 w-3.5 text-muted-foreground" />
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cor de Destaque</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                Cor de Destaque
+              </Label>
             </div>
             <div className="flex flex-wrap gap-2">
               {colors.map((c) => (
@@ -108,14 +124,14 @@ export function AddStageDialog({ open, onOpenChange, onSuccess, stagesCount }: A
         </div>
 
         <DialogFooter className="gap-2">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="flex-1 h-11 text-xs font-black uppercase tracking-widest rounded-xl"
             onClick={() => onOpenChange(false)}
           >
             Cancelar
           </Button>
-          <Button 
+          <Button
             className="flex-1 h-11 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20"
             onClick={handleAdd}
             disabled={loading}

@@ -12,9 +12,7 @@ async function fetchReceipt(id: string) {
   const isUuid = /^[0-9a-f-]{36}$/i.test(id);
   const isNumber = /^\d+$/.test(id);
 
-  let query: any = (supabaseAdmin as any)
-    .from("sales_orders")
-    .select(`
+  let query: any = (supabaseAdmin as any).from("sales_orders").select(`
       id, sale_number, created_at, status, channel, payment_method,
       subtotal, discount, addition, total_amount,
       customer_id, organization_id, seller_id
@@ -27,14 +25,23 @@ async function fetchReceipt(id: string) {
   const { data: sale, error } = await query.maybeSingle();
   if (error || !sale) return { error: "not_found", status: 404 };
 
-  const [{ data: items }, { data: payments }, { data: org }, { data: customer }] = await Promise.all([
-    (supabaseAdmin as any).from("sale_items").select("*").eq("sale_id", sale.id),
-    (supabaseAdmin as any).from("sale_payments").select("*").eq("sale_id", sale.id),
-    (supabaseAdmin as any).from("organizations").select("name").eq("id", sale.organization_id).maybeSingle(),
-    sale.customer_id
-      ? (supabaseAdmin as any).from("customers").select("name, document, phone").eq("id", sale.customer_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
+  const [{ data: items }, { data: payments }, { data: org }, { data: customer }] =
+    await Promise.all([
+      (supabaseAdmin as any).from("sale_items").select("*").eq("sale_id", sale.id),
+      (supabaseAdmin as any).from("sale_payments").select("*").eq("sale_id", sale.id),
+      (supabaseAdmin as any)
+        .from("organizations")
+        .select("name")
+        .eq("id", sale.organization_id)
+        .maybeSingle(),
+      sale.customer_id
+        ? (supabaseAdmin as any)
+            .from("customers")
+            .select("name, document, phone")
+            .eq("id", sale.customer_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
 
   return {
     status: 200,
@@ -53,7 +60,10 @@ export const Route = createFileRoute("/api/receipt/$id")({
       GET: async ({ params }) => {
         const r = await fetchReceipt(String(params.id ?? ""));
         if (r.error) {
-          return new Response(JSON.stringify({ error: r.error }), { status: r.status, headers: corsHeaders });
+          return new Response(JSON.stringify({ error: r.error }), {
+            status: r.status,
+            headers: corsHeaders,
+          });
         }
         return new Response(JSON.stringify(r), {
           status: 200,

@@ -17,9 +17,10 @@ export function useUserOrgs() {
   const profileOrgId = (profile as any)?.organization_id ?? null;
   // Fallback: se profile.organization_id está vazio ou aponta pra uma org que o user
   // já não pertence, usa a primeira org de user_organizations como ativa.
-  const activeOrgId = profileOrgId && orgs.some((o) => o.organization_id === profileOrgId)
-    ? profileOrgId
-    : (orgs.find((o) => o.is_default)?.organization_id ?? orgs[0]?.organization_id ?? null);
+  const activeOrgId =
+    profileOrgId && orgs.some((o) => o.organization_id === profileOrgId)
+      ? profileOrgId
+      : (orgs.find((o) => o.is_default)?.organization_id ?? orgs[0]?.organization_id ?? null);
 
   const load = useCallback(async () => {
     if (!user?.id) {
@@ -36,7 +37,9 @@ export function useUserOrgs() {
     setLoading(false);
   }, [user?.id]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const switchOrg = async (orgId: string) => {
     const { error } = await (supabase as any).rpc("switch_organization", { _org_id: orgId });
@@ -51,7 +54,9 @@ export function useUserOrgs() {
   };
 
   const createOrg = async (name: string) => {
-    const { data, error } = await (supabase as any).rpc("create_organization_for_user", { _name: name });
+    const { data, error } = await (supabase as any).rpc("create_organization_for_user", {
+      _name: name,
+    });
     if (error) {
       toast.error("Erro ao criar loja: " + error.message);
       return null;

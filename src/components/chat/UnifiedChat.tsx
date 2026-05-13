@@ -1,4 +1,4 @@
- import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   MessageSquare,
   Search,
@@ -9,16 +9,16 @@ import {
   UserCog,
   PauseCircle,
   PlayCircle,
-   RefreshCw,
-   Image as ImageIcon,
-   X,
-   Crop,
-   Smile,
-   Type,
-   Pencil,
-   Download,
-    Plus,
-    ArrowLeft,
+  RefreshCw,
+  Image as ImageIcon,
+  X,
+  Crop,
+  Smile,
+  Type,
+  Pencil,
+  Download,
+  Plus,
+  ArrowLeft,
 } from "lucide-react";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
@@ -73,11 +73,17 @@ const getMessageText = (message: any) => {
     msg?.videoMessage?.caption ||
     msg?.text ||
     msg?.body ||
-    (msg?.imageMessage ? "🖼️ Imagem" : 
-     msg?.videoMessage ? "🎥 Vídeo" : 
-     msg?.audioMessage ? "🎤 Áudio" : 
-     msg?.stickerMessage ? "🟦 Figurinha" : 
-     msg?.documentMessage ? "📄 Documento" : "")
+    (msg?.imageMessage
+      ? "🖼️ Imagem"
+      : msg?.videoMessage
+        ? "🎥 Vídeo"
+        : msg?.audioMessage
+          ? "🎤 Áudio"
+          : msg?.stickerMessage
+            ? "🟦 Figurinha"
+            : msg?.documentMessage
+              ? "📄 Documento"
+              : "")
   );
 };
 
@@ -105,7 +111,9 @@ const normalizeTranscript = (messages: any[]): Msg[] =>
       return {
         role: fromMe ? (message?.status === "ERROR" ? "agent" : "assistant") : "user",
         content,
-        at: normalizeTimestamp(message?.messageTimestamp ?? message?.timestamp ?? message?.createdAt),
+        at: normalizeTimestamp(
+          message?.messageTimestamp ?? message?.timestamp ?? message?.createdAt,
+        ),
         sent: fromMe ? message?.status !== "ERROR" : undefined,
       } satisfies Msg;
     })
@@ -132,8 +140,9 @@ export function UnifiedChat() {
     setLoading(true);
     try {
       const base = supabase.from("bot_conversations").select("*");
-      const { data, error } = await (orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id))
-        .order("last_message_at", { ascending: false });
+      const { data, error } = await (
+        orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id)
+      ).order("last_message_at", { ascending: false });
 
       if (error) throw error;
 
@@ -147,90 +156,108 @@ export function UnifiedChat() {
     }
   }, [user?.id, orgId]);
 
-  const syncFromWhatsApp = useCallback(async (showToast = false, forcedInstance?: string) => {
-    if (!user?.id || syncing) return;
+  const syncFromWhatsApp = useCallback(
+    async (showToast = false, forcedInstance?: string) => {
+      if (!user?.id || syncing) return;
 
-    const instanceToUse = forcedInstance || activeInstance;
-    if (!instanceToUse && !forcedInstance) {
-      const { data: settings } = await supabase
-        .from("bot_settings")
-        .select("whatsapp_instance")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      
-      if (settings?.whatsapp_instance) {
-        setActiveInstance(settings.whatsapp_instance);
-      } else {
-        if (showToast) toast.error("Selecione a instância do WhatsApp em CRM > Bot.");
-        return;
-      }
-    }
+      const instanceToUse = forcedInstance || activeInstance;
+      if (!instanceToUse && !forcedInstance) {
+        const { data: settings } = await supabase
+          .from("bot_settings")
+          .select("whatsapp_instance")
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-    setSyncing(true);
-    try {
-      const baseExist = supabase.from("bot_conversations").select("*");
-      const { data: existing, error: existingError } = await (orgId ? baseExist.eq("organization_id", orgId) : baseExist.eq("user_id", user.id));
-
-      if (existingError) throw existingError;
-
-      const rawChats = await evolution.findChats(instanceToUse || forcedInstance!);
-      const chats = asArray<EvolutionChat>(rawChats)
-        .filter((chat) => !!chat?.remoteJid && !String(chat.remoteJid).endsWith("@g.us"));
-
-      if (chats.length === 0) {
-        if (showToast) toast.info("Nenhuma conversa encontrada na instância.");
-        return;
+        if (settings?.whatsapp_instance) {
+          setActiveInstance(settings.whatsapp_instance);
+        } else {
+          if (showToast) toast.error("Selecione a instância do WhatsApp em CRM > Bot.");
+          return;
+        }
       }
 
-      const existingByPhone = new Map(
-        ((existing ?? []) as any as Conversation[]).map((conversation) => [conversation.contact_phone, conversation])
-      );
+      setSyncing(true);
+      try {
+        const baseExist = supabase.from("bot_conversations").select("*");
+        const { data: existing, error: existingError } = await (orgId
+          ? baseExist.eq("organization_id", orgId)
+          : baseExist.eq("user_id", user.id));
 
-      const rows = await Promise.all(
-        chats.slice(0, 50).map(async (chat) => {
-          const phone = String(chat.remoteJid).split("@")[0];
-          const remoteJid = chat.remoteJid!;
-          const existingConversation = existingByPhone.get(phone);
-          const rawMessages = await evolution.findMessages(instanceToUse || forcedInstance!, remoteJid);
-          const transcript = normalizeTranscript(asArray<any>(rawMessages));
-          const lastAt = transcript[transcript.length - 1]?.at
-            ?? normalizeTimestamp(chat.lastMessageTime ?? chat.conversationTimestamp);
+        if (existingError) throw existingError;
 
-          return {
-            id: existingConversation?.id,
-            user_id: user.id,
-            contact_phone: phone,
-            contact_name: chat.name ?? chat.pushName ?? chat.profileName ?? existingConversation?.contact_name ?? null,
-            transcript,
-            status: existingConversation?.status ?? "active",
-            messages_count: transcript.length,
-            last_message_at: lastAt,
-          };
-        })
-      );
+        const rawChats = await evolution.findChats(instanceToUse || forcedInstance!);
+        const chats = asArray<EvolutionChat>(rawChats).filter(
+          (chat) => !!chat?.remoteJid && !String(chat.remoteJid).endsWith("@g.us"),
+        );
 
-      const validRows = rows.filter((row) => row.transcript.length > 0);
-      if (validRows.length > 0) {
-        const { error: upsertError } = await supabase
-          .from("bot_conversations")
-          .upsert(validRows, { onConflict: "user_id,contact_phone" });
+        if (chats.length === 0) {
+          if (showToast) toast.info("Nenhuma conversa encontrada na instância.");
+          return;
+        }
 
-        if (upsertError) throw upsertError;
+        const existingByPhone = new Map(
+          ((existing ?? []) as any as Conversation[]).map((conversation) => [
+            conversation.contact_phone,
+            conversation,
+          ]),
+        );
+
+        const rows = await Promise.all(
+          chats.slice(0, 50).map(async (chat) => {
+            const phone = String(chat.remoteJid).split("@")[0];
+            const remoteJid = chat.remoteJid!;
+            const existingConversation = existingByPhone.get(phone);
+            const rawMessages = await evolution.findMessages(
+              instanceToUse || forcedInstance!,
+              remoteJid,
+            );
+            const transcript = normalizeTranscript(asArray<any>(rawMessages));
+            const lastAt =
+              transcript[transcript.length - 1]?.at ??
+              normalizeTimestamp(chat.lastMessageTime ?? chat.conversationTimestamp);
+
+            return {
+              id: existingConversation?.id,
+              user_id: user.id,
+              contact_phone: phone,
+              contact_name:
+                chat.name ??
+                chat.pushName ??
+                chat.profileName ??
+                existingConversation?.contact_name ??
+                null,
+              transcript,
+              status: existingConversation?.status ?? "active",
+              messages_count: transcript.length,
+              last_message_at: lastAt,
+            };
+          }),
+        );
+
+        const validRows = rows.filter((row) => row.transcript.length > 0);
+        if (validRows.length > 0) {
+          const { error: upsertError } = await supabase
+            .from("bot_conversations")
+            .upsert(validRows, { onConflict: "user_id,contact_phone" });
+
+          if (upsertError) throw upsertError;
+        }
+
+        await load();
+        if (showToast) toast.success("Conversas sincronizadas com o WhatsApp.");
+      } catch (error: any) {
+        toast.error(error?.message ?? "Não foi possível sincronizar as conversas do WhatsApp.");
+      } finally {
+        setSyncing(false);
       }
-
-      await load();
-      if (showToast) toast.success("Conversas sincronizadas com o WhatsApp.");
-    } catch (error: any) {
-      toast.error(error?.message ?? "Não foi possível sincronizar as conversas do WhatsApp.");
-    } finally {
-      setSyncing(false);
-    }
-  }, [user?.id, activeInstance, load, syncing]);
+    },
+    [user?.id, activeInstance, load, syncing],
+  );
 
   useEffect(() => {
     if (!user?.id) return;
     load();
-    
+
     // Auto-sync on mount
     syncFromWhatsApp(false);
 
@@ -238,7 +265,12 @@ export function UnifiedChat() {
       .channel("uc:bot_conversations:" + (orgId ?? user.id))
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "bot_conversations", filter: orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "bot_conversations",
+          filter: orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}`,
+        },
         (payload) => {
           setItems((prev) => {
             if (payload.eventType === "DELETE") {
@@ -249,7 +281,7 @@ export function UnifiedChat() {
             next.sort((a, b) => +new Date(b.last_message_at) - +new Date(a.last_message_at));
             return next;
           });
-        }
+        },
       )
       .subscribe();
     return () => {
@@ -260,16 +292,16 @@ export function UnifiedChat() {
   // Monitor instance changes
   useEffect(() => {
     if (!user?.id) return;
-    
+
     const channel = supabase
       .channel("uc:bot_settings:" + user.id)
       .on(
         "postgres_changes",
-        { 
-          event: "UPDATE", 
-          schema: "public", 
-          table: "bot_settings", 
-          filter: `user_id=eq.${user.id}` 
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "bot_settings",
+          filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
           const newInstance = (payload.new as any).whatsapp_instance;
@@ -277,7 +309,7 @@ export function UnifiedChat() {
             setActiveInstance(newInstance);
             syncFromWhatsApp(false, newInstance);
           }
-        }
+        },
       )
       .subscribe();
 
@@ -292,17 +324,14 @@ export function UnifiedChat() {
         if (filter !== "all" && c.status !== filter) return false;
         if (!search) return true;
         const q = search.toLowerCase();
-        return (
-          (c.contact_name ?? "").toLowerCase().includes(q) ||
-          c.contact_phone.includes(search)
-        );
+        return (c.contact_name ?? "").toLowerCase().includes(q) || c.contact_phone.includes(search);
       }),
-    [items, search, filter]
+    [items, search, filter],
   );
 
   const selected = useMemo(
     () => items.find((c) => c.id === selectedId) ?? null,
-    [items, selectedId]
+    [items, selectedId],
   );
 
   useEffect(() => {
@@ -329,7 +358,7 @@ export function UnifiedChat() {
   const send = async () => {
     if (!selected || sending) return;
     if (!text.trim() && !selectedImage) return;
-    
+
     setSending(true);
     try {
       let body: any = {
@@ -359,7 +388,7 @@ export function UnifiedChat() {
       }
 
       const { data, error } = await supabase.functions.invoke("send-whatsapp", { body });
-      
+
       if (error) throw error;
       if (data?.error) {
         toast.error("Mensagem registrada, mas Evolution falhou: " + data.error);
@@ -397,7 +426,7 @@ export function UnifiedChat() {
         <div className="lg:hidden h-[68px]">
           <Topbar title="Atendimento" />
         </div>
-        
+
         <div className="hidden lg:flex h-[68px] items-center px-6 border-b border-border bg-card justify-between">
           <div>
             <h1 className="text-xl font-bold font-display tracking-tight">Atendimento</h1>
@@ -453,7 +482,8 @@ export function UnifiedChat() {
                   onClick={() => syncFromWhatsApp(true)}
                   className="w-full py-2 text-xs font-bold rounded-xl bg-primary text-primary-foreground shadow-sm flex items-center justify-center gap-2"
                 >
-                  <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} /> {syncing ? "Sincronizando..." : "Atualizar"}
+                  <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />{" "}
+                  {syncing ? "Sincronizando..." : "Atualizar"}
                 </button>
               </div>
             </div>
@@ -468,7 +498,9 @@ export function UnifiedChat() {
                   <div className="h-16 w-16 rounded-2xl bg-muted/50 mx-auto grid place-items-center text-muted-foreground/30">
                     <MessageSquare className="h-8 w-8" />
                   </div>
-                  <p className="text-xs text-muted-foreground px-4">Nenhuma conversa encontrada na instância selecionada.</p>
+                  <p className="text-xs text-muted-foreground px-4">
+                    Nenhuma conversa encontrada na instância selecionada.
+                  </p>
                 </div>
               ) : (
                 filtered.map((c) => {
@@ -528,13 +560,15 @@ export function UnifiedChat() {
           </div>
 
           {selected ? (
-            <div className={`flex-1 flex flex-col bg-card min-w-0 relative ${!selectedId ? 'hidden sm:flex' : 'flex'}`}>
+            <div
+              className={`flex-1 flex flex-col bg-card min-w-0 relative ${!selectedId ? "hidden sm:flex" : "flex"}`}
+            >
               {imagePreview && (
                 <div className="absolute inset-0 z-[60] bg-[#f0f2f5] flex flex-col animate-in fade-in duration-200">
                   {/* Header */}
                   <div className="h-16 px-6 flex items-center justify-between bg-[#f0f2f5]">
                     <div className="flex items-center gap-4">
-                      <button 
+                      <button
                         onClick={clearImage}
                         className="p-2 hover:bg-black/5 rounded-full transition"
                       >
@@ -555,9 +589,9 @@ export function UnifiedChat() {
 
                   {/* Main Preview */}
                   <div className="flex-1 flex items-center justify-center p-4 md:p-12 overflow-hidden bg-[#e9edef]">
-                    <img 
-                      src={imagePreview} 
-                      alt="Preview" 
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
                       className="max-h-full max-w-full object-contain shadow-2xl rounded-sm transition-transform duration-300"
                     />
                   </div>
@@ -589,8 +623,8 @@ export function UnifiedChat() {
                             <img src={imagePreview} className="h-full w-full object-cover" />
                           </div>
                         </div>
-                        
-                        <button 
+
+                        <button
                           onClick={send}
                           disabled={sending}
                           className="h-14 w-14 rounded-full bg-[#00a884] text-white flex items-center justify-center shadow-lg hover:brightness-105 active:scale-95 transition disabled:opacity-50 disabled:scale-100"
@@ -608,7 +642,7 @@ export function UnifiedChat() {
               )}
 
               <div className="h-[68px] px-4 sm:px-6 border-b border-border flex items-center justify-between bg-card shadow-sm z-10">
-                <button 
+                <button
                   onClick={() => setSelectedId(null)}
                   className="sm:hidden p-2 -ml-2 hover:bg-muted rounded-full transition"
                 >
@@ -646,7 +680,10 @@ export function UnifiedChat() {
                 </button>
               </div>
 
-              <div ref={scrollRef} className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-[#e5ddd5]/30">
+              <div
+                ref={scrollRef}
+                className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-[#e5ddd5]/30"
+              >
                 {(selected.transcript ?? []).length === 0 ? (
                   <div className="text-xs text-center text-muted-foreground py-10">
                     Sem mensagens registradas.
@@ -704,37 +741,39 @@ export function UnifiedChat() {
               <div className="p-3 sm:p-4 bg-card border-t border-border shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
                 <div className="relative">
                   <div className="flex items-end gap-3">
-                   <div className="relative">
-                     <input
-                       type="file"
-                       accept="image/*"
-                       id="image-upload"
-                       className="hidden"
-                       onChange={handleImageSelect}
-                     />
-                     <label
-                       htmlFor="image-upload"
-                       className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-xl bg-muted/40 border border-border/50 flex items-center justify-center hover:bg-muted transition cursor-pointer"
-                     >
-                       <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                     </label>
-                   </div>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        id="image-upload"
+                        className="hidden"
+                        onChange={handleImageSelect}
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 rounded-xl bg-muted/40 border border-border/50 flex items-center justify-center hover:bg-muted transition cursor-pointer"
+                      >
+                        <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                      </label>
+                    </div>
 
-                   <textarea
-                     value={text}
-                     onChange={(e) => setText(e.target.value)}
-                     onKeyDown={(e) => {
+                    <textarea
+                      value={text}
+                      onChange={(e) => setText(e.target.value)}
+                      onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey && !selectedImage) {
                           e.preventDefault();
                           send();
                         } else if (e.key === "Enter" && !e.shiftKey && selectedImage) {
                           e.preventDefault();
                         }
-                     }}
-                     placeholder={selectedImage ? "Adicione uma legenda..." : "Digite sua mensagem..."}
-                     className="flex-1 bg-muted/40 rounded-2xl border border-border/50 focus:border-primary/20 focus:bg-muted/60 outline-none p-3 text-sm min-h-[44px] sm:min-h-[48px] max-h-32 resize-none transition"
-                     rows={1}
-                   />
+                      }}
+                      placeholder={
+                        selectedImage ? "Adicione uma legenda..." : "Digite sua mensagem..."
+                      }
+                      className="flex-1 bg-muted/40 rounded-2xl border border-border/50 focus:border-primary/20 focus:bg-muted/60 outline-none p-3 text-sm min-h-[44px] sm:min-h-[48px] max-h-32 resize-none transition"
+                      rows={1}
+                    />
                     {!selectedImage && (
                       <button
                         onClick={send}
@@ -748,20 +787,22 @@ export function UnifiedChat() {
                         )}
                       </button>
                     )}
-                   </div>
-                 </div>
-               </div>
-             </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="hidden sm:grid flex-1 place-items-center bg-muted/5">
               <div className="text-center space-y-3 max-w-sm px-6">
                 <div className="h-20 w-20 rounded-3xl bg-card border border-border shadow-elegant mx-auto grid place-items-center text-primary/20">
                   <MessageSquare className="h-10 w-10" />
                 </div>
-                <h3 className="text-xl font-bold font-display tracking-tight">Selecione uma conversa</h3>
+                <h3 className="text-xl font-bold font-display tracking-tight">
+                  Selecione uma conversa
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   As mensagens recebidas no WhatsApp aparecem aqui em tempo real.
-                 </p>
+                </p>
               </div>
             </div>
           )}

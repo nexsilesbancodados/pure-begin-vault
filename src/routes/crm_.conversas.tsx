@@ -21,8 +21,8 @@ import {
   Settings2,
   PlayCircle,
   Image as ImageIcon,
-   Trash2,
-   ChevronDown,
+  Trash2,
+  ChevronDown,
   X,
   Users,
   Info,
@@ -53,7 +53,10 @@ export const Route = createFileRoute("/crm_/conversas")({
   head: () => ({
     meta: [
       { title: "Conversas WhatsApp — CRM" },
-      { name: "description", content: "Atenda clientes do WhatsApp direto pelo CRM: texto, áudio e figurinhas." },
+      {
+        name: "description",
+        content: "Atenda clientes do WhatsApp direto pelo CRM: texto, áudio e figurinhas.",
+      },
     ],
   }),
   component: ConversasPage,
@@ -65,7 +68,8 @@ type Msg = {
   at?: string;
   sent?: boolean;
   kind?: "text" | "audio" | "sticker" | "image";
-  media?: string; sender?: string | null; // url ou data url para preview local
+  media?: string;
+  sender?: string | null; // url ou data url para preview local
 };
 type Conversation = {
   id: string;
@@ -76,7 +80,8 @@ type Conversation = {
   last_message_at: string;
   transcript: Msg[];
   profile_pic_url: string | null;
-  is_group: boolean; remote_jid: string | null;
+  is_group: boolean;
+  remote_jid: string | null;
 };
 
 type EvolutionChat = {
@@ -95,8 +100,26 @@ type EvolutionChat = {
 };
 
 const STICKERS = [
-  "👍", "❤️", "🔥", "👏", "🙏", "😂", "😍", "😎", "🥳", "🤝",
-  "✅", "🚀", "💯", "🎉", "👌", "💪", "🤔", "😢", "😡", "🙌",
+  "👍",
+  "❤️",
+  "🔥",
+  "👏",
+  "🙏",
+  "😂",
+  "😍",
+  "😎",
+  "🥳",
+  "🤝",
+  "✅",
+  "🚀",
+  "💯",
+  "🎉",
+  "👌",
+  "💪",
+  "🤔",
+  "😢",
+  "😡",
+  "🙌",
 ];
 
 const asArray = <T,>(value: unknown): T[] => {
@@ -162,7 +185,13 @@ const normalizeTranscript = (messages: any[]): Msg[] =>
       const text = String(getMessageText(m) ?? "").trim();
       const fromMe = !!(m?.key?.fromMe ?? m?.fromMe);
       const placeholder =
-        kind === "audio" ? "🎤 Áudio" : kind === "sticker" ? "🟦 Figurinha" : kind === "image" ? "🖼️ Imagem" : "";
+        kind === "audio"
+          ? "🎤 Áudio"
+          : kind === "sticker"
+            ? "🟦 Figurinha"
+            : kind === "image"
+              ? "🖼️ Imagem"
+              : "";
       const content = text || placeholder;
       if (!content) return null;
       return {
@@ -170,7 +199,8 @@ const normalizeTranscript = (messages: any[]): Msg[] =>
         kind,
         content,
         at: normTs(m?.messageTimestamp ?? m?.timestamp ?? m?.createdAt),
-        sent: fromMe ? m?.status !== "ERROR" : undefined, sender: m?.pushName || m?.verifiedName || m?.name || m?.verifiedName || null,
+        sent: fromMe ? m?.status !== "ERROR" : undefined,
+        sender: m?.pushName || m?.verifiedName || m?.name || m?.verifiedName || null,
       } as Msg;
     })
     .filter(Boolean) as Msg[];
@@ -191,7 +221,7 @@ function ConversasPage() {
   const { user, loading: authLoading } = useAuth();
   const { orgId } = useOrg();
   const [items, setItems] = useState<Conversation[]>([]);
-   const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -217,24 +247,30 @@ function ConversasPage() {
   const [readState, setReadState] = useState<Record<string, number>>({});
   const [sideInfoOpen, setSideInfoOpen] = useState(true);
   const [localNotes, setLocalNotes] = useState("");
-   const [forwardMsg, setForwardMsg] = useState<Msg | null>(null);
-   const [isForwarding, setIsForwarding] = useState(false);
-   const [quickRepliesOpen, setQuickRepliesOpen] = useState(false);
+  const [forwardMsg, setForwardMsg] = useState<Msg | null>(null);
+  const [isForwarding, setIsForwarding] = useState(false);
+  const [quickRepliesOpen, setQuickRepliesOpen] = useState(false);
 
-   const QUICK_REPLIES = [
-     { shortcut: "/oi", text: "Olá! Tudo bem? Como posso ajudar você hoje?" },
-     { shortcut: "/pix", text: "Segue nossa chave PIX para pagamento: (Chave aqui). Por favor, envie o comprovante após realizar a transferência." },
-     { shortcut: "/obrigado", text: "De nada! Qualquer dúvida, estamos à disposição." },
-     { shortcut: "/endereco", text: "Estamos localizados na (Rua, Número, Bairro, Cidade). Horário de funcionamento: 09h às 18h." },
-   ];
+  const QUICK_REPLIES = [
+    { shortcut: "/oi", text: "Olá! Tudo bem? Como posso ajudar você hoje?" },
+    {
+      shortcut: "/pix",
+      text: "Segue nossa chave PIX para pagamento: (Chave aqui). Por favor, envie o comprovante após realizar a transferência.",
+    },
+    { shortcut: "/obrigado", text: "De nada! Qualquer dúvida, estamos à disposição." },
+    {
+      shortcut: "/endereco",
+      text: "Estamos localizados na (Rua, Número, Bairro, Cidade). Horário de funcionamento: 09h às 18h.",
+    },
+  ];
   const [userFilter, setUserFilter] = useState<"all" | "mine">("all");
-   const [tagInput, setTagInput] = useState("");
-   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
 
-   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-     setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 300);
-   };
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 300);
+  };
 
   const unreadCount = (c: Conversation) => {
     const seen = readState[c.id] ?? 0;
@@ -255,7 +291,12 @@ function ConversasPage() {
 
     if (!lastIncoming) return null;
 
-    return [conversation.contact_phone, lastIncoming.at ?? "", lastIncoming.kind ?? "text", lastIncoming.content]
+    return [
+      conversation.contact_phone,
+      lastIncoming.at ?? "",
+      lastIncoming.kind ?? "text",
+      lastIncoming.content,
+    ]
       .join("|")
       .trim();
   };
@@ -292,50 +333,50 @@ function ConversasPage() {
     }
   };
 
-   const applyConversations = (list: Conversation[], notify = false, forceReplace = false) => {
-     setItems((prev) => {
-       if (forceReplace) {
-         const sorted = [...list].sort(
-           (a, b) => +new Date(b.last_message_at) - +new Date(a.last_message_at)
-         );
-         if (notify) sorted.forEach(maybeNotifyIncoming);
-         else sorted.forEach(rememberConversation);
-         return sorted;
-       }
- 
-       const dedupMap = new Map<string, Conversation>();
-       let changed = false;
-       
-       for (const c of prev) {
-         dedupMap.set(c.contact_phone, c);
-       }
-       
-       for (const conversation of list) {
-         const key = conversation.contact_phone;
-         const previous = dedupMap.get(key);
-         if (!previous) {
-           dedupMap.set(key, conversation);
-           changed = true;
-           continue;
-         }
-         const previousAt = +new Date(previous.last_message_at);
-         const currentAt = +new Date(conversation.last_message_at);
-         const previousLen = previous.transcript?.length ?? 0;
-         const currentLen = conversation.transcript?.length ?? 0;
-         
-         if (currentAt > previousAt || currentLen > previousLen) {
-           changed = true;
-           dedupMap.set(key, {
-             ...previous,
-             ...conversation,
-             transcript: currentLen >= previousLen ? conversation.transcript : previous.transcript
-           });
-         }
-       }
-       
-       const sorted = [...dedupMap.values()].sort(
-         (a, b) => +new Date(b.last_message_at) - +new Date(a.last_message_at)
-       );
+  const applyConversations = (list: Conversation[], notify = false, forceReplace = false) => {
+    setItems((prev) => {
+      if (forceReplace) {
+        const sorted = [...list].sort(
+          (a, b) => +new Date(b.last_message_at) - +new Date(a.last_message_at),
+        );
+        if (notify) sorted.forEach(maybeNotifyIncoming);
+        else sorted.forEach(rememberConversation);
+        return sorted;
+      }
+
+      const dedupMap = new Map<string, Conversation>();
+      let changed = false;
+
+      for (const c of prev) {
+        dedupMap.set(c.contact_phone, c);
+      }
+
+      for (const conversation of list) {
+        const key = conversation.contact_phone;
+        const previous = dedupMap.get(key);
+        if (!previous) {
+          dedupMap.set(key, conversation);
+          changed = true;
+          continue;
+        }
+        const previousAt = +new Date(previous.last_message_at);
+        const currentAt = +new Date(conversation.last_message_at);
+        const previousLen = previous.transcript?.length ?? 0;
+        const currentLen = conversation.transcript?.length ?? 0;
+
+        if (currentAt > previousAt || currentLen > previousLen) {
+          changed = true;
+          dedupMap.set(key, {
+            ...previous,
+            ...conversation,
+            transcript: currentLen >= previousLen ? conversation.transcript : previous.transcript,
+          });
+        }
+      }
+
+      const sorted = [...dedupMap.values()].sort(
+        (a, b) => +new Date(b.last_message_at) - +new Date(a.last_message_at),
+      );
 
       if (notify) {
         sorted.forEach(maybeNotifyIncoming);
@@ -346,17 +387,17 @@ function ConversasPage() {
       // Update selected ID based on contact_phone to avoid jumping
       setSelectedId((currentId) => {
         if (!currentId) return sorted[0]?.id ?? null;
-        
+
         // Find current selected item in old items
-        const currentItem = prev.find(i => i.id === currentId);
+        const currentItem = prev.find((i) => i.id === currentId);
         if (!currentItem) {
           // If not in prev, check if it's already in sorted
-          if (sorted.some(c => c.id === currentId)) return currentId;
+          if (sorted.some((c) => c.id === currentId)) return currentId;
           return sorted[0]?.id ?? null;
         }
-        
+
         // Find matching item by phone in new sorted list
-        const match = sorted.find(c => c.contact_phone === currentItem.contact_phone);
+        const match = sorted.find((c) => c.contact_phone === currentItem.contact_phone);
         return match?.id ?? currentId;
       });
 
@@ -368,7 +409,9 @@ function ConversasPage() {
     try {
       const activeStatus = ["open", "connected", "active", "online"];
       const instances = await evolution.getInstances();
-      const active = instances.filter(i => activeStatus.includes(String(i.status ?? "").toLowerCase()));
+      const active = instances.filter((i) =>
+        activeStatus.includes(String(i.status ?? "").toLowerCase()),
+      );
       setAvailableInstances(active);
       return active;
     } catch (e) {
@@ -404,7 +447,7 @@ function ConversasPage() {
     if (configured) {
       setResolvedInstance(configured);
       const instances = await fetchAvailableInstances();
-      const details = instances.find(i => i.instanceName === configured);
+      const details = instances.find((i) => i.instanceName === configured);
       if (details) setInstanceDetails(details);
       return configured;
     }
@@ -416,10 +459,12 @@ function ConversasPage() {
     if (remoteCandidate) {
       setResolvedInstance(remoteCandidate);
       setInstanceDetails(remoteCandidateObj);
-      await supabase.from("bot_settings").upsert(
-        { user_id: user.id, whatsapp_instance: remoteCandidate },
-        { onConflict: "user_id" }
-      );
+      await supabase
+        .from("bot_settings")
+        .upsert(
+          { user_id: user.id, whatsapp_instance: remoteCandidate },
+          { onConflict: "user_id" },
+        );
     } else if (!settings) {
       await supabase.from("bot_settings").insert({ user_id: user.id });
     }
@@ -430,24 +475,23 @@ function ConversasPage() {
   const handleInstanceChange = async (newInstance: string) => {
     if (!user?.id) return;
     setResolvedInstance(newInstance);
-    const details = availableInstances.find(i => i.instanceName === newInstance);
+    const details = availableInstances.find((i) => i.instanceName === newInstance);
     if (details) setInstanceDetails(details);
-    
-     setLoading(true);
-     setSelectedId(null);
-     // Clean up local items for the old instance immediately
-     setItems([]);
+
+    setLoading(true);
+    setSelectedId(null);
+    // Clean up local items for the old instance immediately
+    setItems([]);
 
     try {
-      await supabase.from("bot_settings").upsert(
-        { user_id: user.id, whatsapp_instance: newInstance },
-        { onConflict: "user_id" }
-      );
-      
-       toast.success(`Instância alterada para ${newInstance}`);
-       // Load from DB first, then sync from WhatsApp replacing old data
-       await load(false);
-       await syncFromWhatsApp(false, true);
+      await supabase
+        .from("bot_settings")
+        .upsert({ user_id: user.id, whatsapp_instance: newInstance }, { onConflict: "user_id" });
+
+      toast.success(`Instância alterada para ${newInstance}`);
+      // Load from DB first, then sync from WhatsApp replacing old data
+      await load(false);
+      await syncFromWhatsApp(false, true);
     } catch (e) {
       toast.error("Erro ao trocar de instância");
     } finally {
@@ -474,7 +518,7 @@ function ConversasPage() {
           .insert({ user_id: user.id, whatsapp_instance: instance })
           .select()
           .single();
-        
+
         if (insertError) throw insertError;
         settings = newSettings;
       }
@@ -532,7 +576,7 @@ function ConversasPage() {
     }
   };
 
-   const syncFromWhatsApp = async (showToast = false, forceReplace = false) => {
+  const syncFromWhatsApp = async (showToast = false, forceReplace = false) => {
     if (syncLockRef.current) return;
     syncLockRef.current = true;
     setSyncing(true);
@@ -542,13 +586,18 @@ function ConversasPage() {
 
       if (user?.id) {
         const baseQ = supabase.from("bot_conversations").select("*");
-        const { data: existingRows, error: existingError } = await (orgId ? baseQ.eq("organization_id", orgId) : baseQ.eq("user_id", user.id));
+        const { data: existingRows, error: existingError } = await (orgId
+          ? baseQ.eq("organization_id", orgId)
+          : baseQ.eq("user_id", user.id));
 
         if (existingError) throw existingError;
         existing = (existingRows ?? []) as any as Conversation[];
       }
 
-      if (!instance) { setLoading(false); setSyncing(false); syncLockRef.current = false;
+      if (!instance) {
+        setLoading(false);
+        setSyncing(false);
+        syncLockRef.current = false;
         if (showToast) toast.error("Conecte ou selecione sua instância do WhatsApp primeiro.");
         return;
       }
@@ -562,9 +611,7 @@ function ConversasPage() {
         if (showToast) toast.info("Nenhuma conversa na instância.");
         return;
       }
-      const byPhone = new Map(
-        existing.map((c) => [c.contact_phone, c])
-      );
+      const byPhone = new Map(existing.map((c) => [c.contact_phone, c]));
       const previewRows = chats
         .map((chat) => {
           const phone = getContactPhone(chat);
@@ -592,7 +639,12 @@ function ConversasPage() {
             messages_count: previewTranscript.length,
             last_message_at:
               previewTranscript[previewTranscript.length - 1]?.at ??
-              normTs(chat.updatedAt ?? chat.lastMessageTime ?? chat.conversationTimestamp ?? chat.lastMessage?.messageTimestamp),
+              normTs(
+                chat.updatedAt ??
+                  chat.lastMessageTime ??
+                  chat.conversationTimestamp ??
+                  chat.lastMessage?.messageTimestamp,
+              ),
             profile_pic_url:
               chat.profilePicUrl ??
               chat.profilePictureUrl ??
@@ -604,10 +656,10 @@ function ConversasPage() {
         })
         .filter((row): row is Conversation => !!row);
 
-       if (previewRows.length > 0) {
-         applyConversations(previewRows, lastIncomingMessageRef.current.size > 0, forceReplace);
-         setLoading(false);
-       }
+      if (previewRows.length > 0) {
+        applyConversations(previewRows, lastIncomingMessageRef.current.size > 0, forceReplace);
+        setLoading(false);
+      }
 
       // Limite aumentado e processamento em lotes para evitar sobrecarga
       const MAX_CHATS = 60;
@@ -618,22 +670,30 @@ function ConversasPage() {
           const isGroup = String(chat.remoteJid ?? "").endsWith("@g.us");
 
           const ex = byPhone.get(phone);
-           // Só busca o histórico completo se for a conversa selecionada (para performance)
-           const isSelected = chat.remoteJid === selected?.remote_jid || (selectedId?.split(':')[1] === phone);
-           const hasNoTranscript = !ex?.transcript?.length;
-           const raw = (isSelected || hasNoTranscript) ? await evolution.findMessages(instance, chat.remoteJid!).catch(() => []) : [];
-           const transcript = normalizeTranscript(asArray<any>(raw));
-           const mergedTranscript = transcript.length > 0 ? transcript : (ex?.transcript ?? normalizeTranscript(chat.lastMessage ? [chat.lastMessage] : [])); 
-           mergedTranscript.sort((a, b) => +new Date(a.at || 0) - +new Date(b.at || 0));
+          // Só busca o histórico completo se for a conversa selecionada (para performance)
+          const isSelected =
+            chat.remoteJid === selected?.remote_jid || selectedId?.split(":")[1] === phone;
+          const hasNoTranscript = !ex?.transcript?.length;
+          const raw =
+            isSelected || hasNoTranscript
+              ? await evolution.findMessages(instance, chat.remoteJid!).catch(() => [])
+              : [];
+          const transcript = normalizeTranscript(asArray<any>(raw));
+          const mergedTranscript =
+            transcript.length > 0
+              ? transcript
+              : (ex?.transcript ?? normalizeTranscript(chat.lastMessage ? [chat.lastMessage] : []));
+          mergedTranscript.sort((a, b) => +new Date(a.at || 0) - +new Date(b.at || 0));
           const lastAt =
             mergedTranscript[mergedTranscript.length - 1]?.at ??
-            normTs(chat.updatedAt ?? chat.lastMessageTime ?? chat.conversationTimestamp ?? chat.lastMessage?.messageTimestamp);
+            normTs(
+              chat.updatedAt ??
+                chat.lastMessageTime ??
+                chat.conversationTimestamp ??
+                chat.lastMessage?.messageTimestamp,
+            );
 
-          let picUrl =
-            chat.profilePicUrl ??
-            chat.profilePictureUrl ??
-            ex?.profile_pic_url ??
-            null;
+          let picUrl = chat.profilePicUrl ?? chat.profilePictureUrl ?? ex?.profile_pic_url ?? null;
           let displayName =
             chat.subject ??
             chat.name ??
@@ -671,9 +731,11 @@ function ConversasPage() {
             remote_jid: chat.remoteJid || null,
             instance_name: instance,
           } as any as Conversation;
-        })
+        }),
       );
-      const valid = rows.filter((row): row is Conversation => !!row && (row as any).transcript.length > 0) as Conversation[];
+      const valid = rows.filter(
+        (row): row is Conversation => !!row && (row as any).transcript.length > 0,
+      ) as Conversation[];
       if (user?.id && valid.length > 0) {
         const upsertRows = valid.map((row) => ({
           ...(String(row.id).includes(":") ? {} : { id: row.id }),
@@ -694,12 +756,12 @@ function ConversasPage() {
         if (upsertError) throw upsertError;
       }
 
-       if (user?.id) {
-         await load(true);
-       } else {
-         applyConversations(valid, lastIncomingMessageRef.current.size > 0, forceReplace);
-         setLoading(false);
-       }
+      if (user?.id) {
+        await load(true);
+      } else {
+        applyConversations(valid, lastIncomingMessageRef.current.size > 0, forceReplace);
+        setLoading(false);
+      }
 
       if (showToast) toast.success("Conversas sincronizadas.");
     } catch (e: any) {
@@ -718,29 +780,43 @@ function ConversasPage() {
           .channel("conv:bot_conversations:" + (orgId ?? user.id))
           .on(
             "postgres_changes",
-            { event: "*", schema: "public", table: "bot_conversations", filter: orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}` },
+            {
+              event: "*",
+              schema: "public",
+              table: "bot_conversations",
+              filter: orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}`,
+            },
             (payload) => {
-              console.log("[conversas] evento em tempo real recebido:", payload.eventType, payload.new);
+              console.log(
+                "[conversas] evento em tempo real recebido:",
+                payload.eventType,
+                payload.new,
+              );
               if (payload.eventType === "DELETE") {
                 setItems((prev) => prev.filter((c) => c.id !== (payload.old as any).id));
                 return;
               }
 
-               const row = { ...(payload.new as any), transcript: (payload.new as any).transcript || [] } as any as Conversation & { instance_name?: string };
-               
-               // Ignore real-time updates for conversations not belonging to the resolved instance
-               if (resolvedInstance && row.instance_name && row.instance_name !== resolvedInstance) {
-                 return;
-               }
- 
-        setItems((prev) => {
-          const next = [row, ...prev.filter((c) => c.id !== row.id)].filter((c, i, a) => a.findIndex(t => t.contact_phone === c.contact_phone) === i);
-          next.sort((a, b) => +new Date(b.last_message_at) - +new Date(a.last_message_at));
-          return next;
-        });
+              const row = {
+                ...(payload.new as any),
+                transcript: (payload.new as any).transcript || [],
+              } as any as Conversation & { instance_name?: string };
+
+              // Ignore real-time updates for conversations not belonging to the resolved instance
+              if (resolvedInstance && row.instance_name && row.instance_name !== resolvedInstance) {
+                return;
+              }
+
+              setItems((prev) => {
+                const next = [row, ...prev.filter((c) => c.id !== row.id)].filter(
+                  (c, i, a) => a.findIndex((t) => t.contact_phone === c.contact_phone) === i,
+                );
+                next.sort((a, b) => +new Date(b.last_message_at) - +new Date(a.last_message_at));
+                return next;
+              });
 
               maybeNotifyIncoming(row);
-            }
+            },
           )
           .subscribe((status) => {
             if (status === "SUBSCRIBED") readyForNotificationsRef.current = true;
@@ -751,8 +827,8 @@ function ConversasPage() {
     // syncFromWhatsApp(false) já é chamado pelo Realtime e visibilitychange
     const initialTimer = window.setTimeout(() => syncFromWhatsApp(false), 300);
 
-     // Sincronização automática em background a cada 30s para evitar excesso de requisições
-     const poller = window.setInterval(() => syncFromWhatsApp(false), 30000);
+    // Sincronização automática em background a cada 30s para evitar excesso de requisições
+    const poller = window.setInterval(() => syncFromWhatsApp(false), 30000);
 
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
@@ -761,7 +837,11 @@ function ConversasPage() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
-    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+    if (
+      typeof window !== "undefined" &&
+      "Notification" in window &&
+      Notification.permission === "default"
+    ) {
       Notification.requestPermission().catch(() => undefined);
     }
 
@@ -777,12 +857,12 @@ function ConversasPage() {
 
   const filtered = useMemo(
     () =>
-       items.filter((c: any) => {
-         // Filter by active instance
-         if (resolvedInstance && c.instance_name && c.instance_name !== resolvedInstance) {
-           return false;
-         }
- 
+      items.filter((c: any) => {
+        // Filter by active instance
+        if (resolvedInstance && c.instance_name && c.instance_name !== resolvedInstance) {
+          return false;
+        }
+
         const matchSearch =
           !search ||
           (c.contact_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
@@ -793,12 +873,12 @@ function ConversasPage() {
         if (statusFilter === "unread") return unreadCount(c) > 0;
         return true;
       }),
-    [items, search, statusFilter, readState, resolvedInstance]
+    [items, search, statusFilter, readState, resolvedInstance],
   );
 
   const selected = useMemo(
     () => items.find((c) => c.id === selectedId) ?? null,
-    [items, selectedId]
+    [items, selectedId],
   );
 
   useEffect(() => {
@@ -814,7 +894,7 @@ function ConversasPage() {
 
   const totalUnread = useMemo(
     () => items.reduce((acc, c) => acc + unreadCount(c), 0),
-    [items, readState]
+    [items, readState],
   );
 
   const formatDateLabel = (iso: string) => {
@@ -841,10 +921,22 @@ function ConversasPage() {
 
       if (payload.kind === "text") {
         endpoint = `/api/evolution/message/sendText/${instance}`;
-        body = { number: jid, text: payload.text, delay: 1200, linkPreview: false, presence: "composing" };
+        body = {
+          number: jid,
+          text: payload.text,
+          delay: 1200,
+          linkPreview: false,
+          presence: "composing",
+        };
       } else if (payload.kind === "audio") {
         endpoint = `/api/evolution/message/sendWhatsAppAudio/${instance}`;
-        body = { number: jid, audio: payload.media, delay: 1200, encoding: true, presence: "composing" };
+        body = {
+          number: jid,
+          audio: payload.media,
+          delay: 1200,
+          encoding: true,
+          presence: "composing",
+        };
       } else if (payload.kind === "sticker") {
         endpoint = `/api/evolution/message/sendSticker/${instance}`;
         body = { number: jid, sticker: payload.media, delay: 1200, presence: "composing" };
@@ -858,7 +950,7 @@ function ConversasPage() {
           caption: payload.text || "",
           delay: 1200,
           fileName: payload.fileName || "image.png",
-          presence: "composing"
+          presence: "composing",
         };
       }
 
@@ -872,50 +964,69 @@ function ConversasPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        const errorDetail = data?.message || data?.error || (typeof data === 'string' ? data : `Erro ${res.status}`);
+        const errorDetail =
+          data?.message || data?.error || (typeof data === "string" ? data : `Erro ${res.status}`);
         throw new Error(`Falha no envio Evolution: ${errorDetail}`);
       }
 
-       // Grava localmente no banco para manter o histórico
-           const localConv = items.find(c => c.id === selected.id);
-           const transcript = Array.isArray(localConv?.transcript) ? localConv.transcript : [];
-           const placeholder = payload.kind === "audio" ? "🎤 Áudio" : payload.kind === "sticker" ? "🟦 Figurinha" : payload.kind === "image" ? "🖼️ Imagem" : payload.text;
-           
-           const newMsg: Msg = {
-             role: "agent",
-             kind: payload.kind as any,
-             content: String(payload.text || placeholder),
-             at: new Date().toISOString(),
-             sent: true,
-           };
+      // Grava localmente no banco para manter o histórico
+      const localConv = items.find((c) => c.id === selected.id);
+      const transcript = Array.isArray(localConv?.transcript) ? localConv.transcript : [];
+      const placeholder =
+        payload.kind === "audio"
+          ? "🎤 Áudio"
+          : payload.kind === "sticker"
+            ? "🟦 Figurinha"
+            : payload.kind === "image"
+              ? "🖼️ Imagem"
+              : payload.text;
 
-            // Buscamos o registro mais atualizado do banco antes de salvar
-            const { data: currentConv } = await supabase
-              .from("bot_conversations")
-              .select("transcript")
-              .eq("id", selected.id)
-              .single();
+      const newMsg: Msg = {
+        role: "agent",
+        kind: payload.kind as any,
+        content: String(payload.text || placeholder),
+        at: new Date().toISOString(),
+        sent: true,
+      };
 
-            const latestTranscript = (Array.isArray(currentConv?.transcript) ? currentConv.transcript : transcript) as Msg[];
-            const updatedTranscript = [...latestTranscript, newMsg];
-            
-            // Update local state first for instant feedback
-            setItems(prev => prev.map(c => c.id === selected.id ? { 
-              ...c, 
-              transcript: updatedTranscript, 
-              messages_count: updatedTranscript.length,
-              last_message_at: newMsg.at!
-            } : c));
- 
-            // Then update DB
-            const { error: upsertError } = await supabase.from("bot_conversations").update({
-              transcript: updatedTranscript as any,
-              messages_count: updatedTranscript.length,
-              last_message_at: newMsg.at!,
-            }).eq("id", selected.id);
+      // Buscamos o registro mais atualizado do banco antes de salvar
+      const { data: currentConv } = await supabase
+        .from("bot_conversations")
+        .select("transcript")
+        .eq("id", selected.id)
+        .single();
 
-           if (upsertError) console.error("Erro ao atualizar transcript:", upsertError);
-       toast.success("Enviada!");
+      const latestTranscript = (
+        Array.isArray(currentConv?.transcript) ? currentConv.transcript : transcript
+      ) as Msg[];
+      const updatedTranscript = [...latestTranscript, newMsg];
+
+      // Update local state first for instant feedback
+      setItems((prev) =>
+        prev.map((c) =>
+          c.id === selected.id
+            ? {
+                ...c,
+                transcript: updatedTranscript,
+                messages_count: updatedTranscript.length,
+                last_message_at: newMsg.at!,
+              }
+            : c,
+        ),
+      );
+
+      // Then update DB
+      const { error: upsertError } = await supabase
+        .from("bot_conversations")
+        .update({
+          transcript: updatedTranscript as any,
+          messages_count: updatedTranscript.length,
+          last_message_at: newMsg.at!,
+        })
+        .eq("id", selected.id);
+
+      if (upsertError) console.error("Erro ao atualizar transcript:", upsertError);
+      toast.success("Enviada!");
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao enviar");
     } finally {
@@ -931,7 +1042,7 @@ function ConversasPage() {
   };
 
   const sendSticker = async (emoji: string) => {
-    setStickerOpen(false); 
+    setStickerOpen(false);
     // Envia como texto (emoji grande). Evolution sendSticker requer .webp;
     // como atalho usamos texto — visualmente vira figurinha no chat do cliente.
     await sendPayload({ kind: "text", text: emoji });
@@ -957,9 +1068,9 @@ function ConversasPage() {
       rec.ondataavailable = (e) => e.data.size > 0 && chunksRef.current.push(e.data);
       rec.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-         const blob = new Blob(chunksRef.current, { type: "audio/ogg; codecs=opus" });
-         const b64 = await blobToBase64(blob);
-         await sendPayload({ kind: "audio", media: b64, mimetype: "audio/ogg" });
+        const blob = new Blob(chunksRef.current, { type: "audio/ogg; codecs=opus" });
+        const b64 = await blobToBase64(blob);
+        await sendPayload({ kind: "audio", media: b64, mimetype: "audio/ogg" });
       };
       rec.start();
       recorderRef.current = rec;
@@ -988,7 +1099,10 @@ function ConversasPage() {
   const toggleHandoff = async () => {
     if (!selected) return;
     const ns = selected.status === "handed_off" ? "active" : "handed_off";
-    const { error } = await supabase.from("bot_conversations").update({ status: ns }).eq("id", selected.id);
+    const { error } = await supabase
+      .from("bot_conversations")
+      .update({ status: ns })
+      .eq("id", selected.id);
     if (error) toast.error(error.message);
     else toast.success(ns === "handed_off" ? "Bot pausado nesta conversa" : "Bot reativado");
   };
@@ -997,21 +1111,28 @@ function ConversasPage() {
     <div className="flex h-screen w-full bg-background overflow-hidden">
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar title="Conversas" subtitle="Gerencie seus atendimentos do WhatsApp em um só lugar" />
+        <Topbar
+          title="Conversas"
+          subtitle="Gerencie seus atendimentos do WhatsApp em um só lugar"
+        />
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar conversas */}
           <div className="w-[380px] border-r border-border/20 flex flex-col bg-card/50 backdrop-blur-xl">
             <div className="p-4 border-b border-border/20 space-y-4">
-               <div className="flex items-center justify-between px-1 mb-1">
-                 <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between px-1 mb-1">
+                <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
                     <MessageSquare className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex flex-col">
                     <h3 className="text-base font-bold tracking-tight">Conversas</h3>
                     <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <span className={`h-1 w-1 rounded-full ${instanceDetails?.status === 'open' || instanceDetails?.status === 'connected' ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-                      {instanceDetails?.status === 'open' || instanceDetails?.status === 'connected' ? 'Conectado' : 'Conectando...'}
+                      <span
+                        className={`h-1 w-1 rounded-full ${instanceDetails?.status === "open" || instanceDetails?.status === "connected" ? "bg-emerald-400" : "bg-amber-400 animate-pulse"}`}
+                      />
+                      {instanceDetails?.status === "open" || instanceDetails?.status === "connected"
+                        ? "Conectado"
+                        : "Conectando..."}
                     </span>
                   </div>
                   {totalUnread > 0 && (
@@ -1021,8 +1142,11 @@ function ConversasPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => { fetchAvailableInstances(); syncFromWhatsApp(true); }}
+                  <button
+                    onClick={() => {
+                      fetchAvailableInstances();
+                      syncFromWhatsApp(true);
+                    }}
                     className="h-8 w-8 rounded-full hover:bg-muted/80 transition-colors flex items-center justify-center text-muted-foreground"
                     title="Sincronizar"
                   >
@@ -1030,40 +1154,41 @@ function ConversasPage() {
                   </button>
                 </div>
               </div>
-              
-               <div className="px-1">
-                 <Select
-                   value={resolvedInstance || ""}
-                   onValueChange={handleInstanceChange}
-                 >
-                   <SelectTrigger className="h-9 bg-primary/5 border-primary/10 text-primary hover:bg-primary/10 transition-all rounded-lg px-3">
-                     <div className="flex items-center gap-2 overflow-hidden mr-2">
-                       <Phone className="h-3.5 w-3.5 shrink-0" />
-                       <SelectValue placeholder="Selecionar instância" />
-                     </div>
-                   </SelectTrigger>
-                   <SelectContent>
-                     {availableInstances.length === 0 ? (
-                       <div className="p-2 text-xs text-muted-foreground text-center">
-                         Nenhuma instância ativa
-                       </div>
-                     ) : (
-                       availableInstances.map((ins) => (
-                         <SelectItem key={ins.instanceName} value={ins.instanceName} className="text-xs">
-                           <div className="flex items-center justify-between w-full gap-4">
-                             <span className="font-medium">{ins.instanceName}</span>
-                             {ins.owner && (
-                               <span className="text-[9px] opacity-60">
-                                 ({ins.owner.split('@')[0]})
-                               </span>
-                             )}
-                           </div>
-                         </SelectItem>
-                       ))
-                     )}
-                   </SelectContent>
-                 </Select>
-               </div>
+
+              <div className="px-1">
+                <Select value={resolvedInstance || ""} onValueChange={handleInstanceChange}>
+                  <SelectTrigger className="h-9 bg-primary/5 border-primary/10 text-primary hover:bg-primary/10 transition-all rounded-lg px-3">
+                    <div className="flex items-center gap-2 overflow-hidden mr-2">
+                      <Phone className="h-3.5 w-3.5 shrink-0" />
+                      <SelectValue placeholder="Selecionar instância" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableInstances.length === 0 ? (
+                      <div className="p-2 text-xs text-muted-foreground text-center">
+                        Nenhuma instância ativa
+                      </div>
+                    ) : (
+                      availableInstances.map((ins) => (
+                        <SelectItem
+                          key={ins.instanceName}
+                          value={ins.instanceName}
+                          className="text-xs"
+                        >
+                          <div className="flex items-center justify-between w-full gap-4">
+                            <span className="font-medium">{ins.instanceName}</span>
+                            {ins.owner && (
+                              <span className="text-[9px] opacity-60">
+                                ({ins.owner.split("@")[0]})
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="relative group">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" />
@@ -1087,8 +1212,8 @@ function ConversasPage() {
                     onClick={() => setStatusFilter(f.id as typeof statusFilter)}
                     className={`flex-1 text-[11px] font-semibold py-1.5 rounded-lg transition-all duration-200 ${
                       statusFilter === f.id
-                         ? "bg-background text-foreground shadow-sm"
-                         : "text-muted-foreground hover:text-foreground"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {f.label}
@@ -1138,15 +1263,22 @@ function ConversasPage() {
                   return (
                     <button
                       key={c.id}
-                       onClick={() => { if (selectedId !== c.id) { setSelectedId(c.id); markAsRead(c); } }}
-                       className={`w-full flex items-center gap-3.5 p-3.5 rounded-xl transition-all duration-300 relative text-left group border border-transparent ${
-                        isSelected 
-                          ? "bg-primary/[0.08] shadow-[0_4px_20px_-4px_rgba(var(--primary-rgb),0.1)] ring-1 ring-primary/20" 
+                      onClick={() => {
+                        if (selectedId !== c.id) {
+                          setSelectedId(c.id);
+                          markAsRead(c);
+                        }
+                      }}
+                      className={`w-full flex items-center gap-3.5 p-3.5 rounded-xl transition-all duration-300 relative text-left group border border-transparent ${
+                        isSelected
+                          ? "bg-primary/[0.08] shadow-[0_4px_20px_-4px_rgba(var(--primary-rgb),0.1)] ring-1 ring-primary/20"
                           : "hover:bg-muted/50 border-transparent"
                       }`}
                     >
                       <div className="relative shrink-0">
-                        <Avatar className={`h-12 w-12 ring-2 ring-offset-2 ring-transparent transition-all duration-500 group-hover:shadow-lg ${isSelected ? "scale-105 ring-primary/60 ring-offset-background" : "group-hover:scale-105"}`}>
+                        <Avatar
+                          className={`h-12 w-12 ring-2 ring-offset-2 ring-transparent transition-all duration-500 group-hover:shadow-lg ${isSelected ? "scale-105 ring-primary/60 ring-offset-background" : "group-hover:scale-105"}`}
+                        >
                           {c.profile_pic_url ? (
                             <AvatarImage src={c.profile_pic_url} alt={displayName} />
                           ) : null}
@@ -1159,26 +1291,39 @@ function ConversasPage() {
                             <Users className="h-3 w-3" />
                           </span>
                         )}
-                        <div className={`absolute -left-1.5 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-full transition-all duration-300 ${isSelected ? "opacity-100" : "opacity-0 scale-y-0"}`} />
+                        <div
+                          className={`absolute -left-1.5 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-full transition-all duration-300 ${isSelected ? "opacity-100" : "opacity-0 scale-y-0"}`}
+                        />
                       </div>
 
                       <div className="flex-1 min-w-0 py-0.5">
                         <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className={`text-sm truncate flex items-center gap-1.5 ${unread > 0 || isSelected ? "text-foreground font-bold" : "text-foreground/80 font-semibold"}`}>
+                          <span
+                            className={`text-sm truncate flex items-center gap-1.5 ${unread > 0 || isSelected ? "text-foreground font-bold" : "text-foreground/80 font-semibold"}`}
+                          >
                             {displayName}
                             {c.is_group && (
-                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground/80 tracking-tighter uppercase">GP</span>
+                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground/80 tracking-tighter uppercase">
+                                GP
+                              </span>
                             )}
                           </span>
                           <span className="text-[10px] text-muted-foreground/70 font-medium shrink-0">
-                            {formatDistanceToNow(new Date(c.last_message_at), { addSuffix: false, locale: ptBR })}
+                            {formatDistanceToNow(new Date(c.last_message_at), {
+                              addSuffix: false,
+                              locale: ptBR,
+                            })}
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-3.5">
-                          <p className={`text-xs truncate transition-colors ${unread > 0 ? "text-foreground font-semibold" : "text-muted-foreground/80"}`}>
+                          <p
+                            className={`text-xs truncate transition-colors ${unread > 0 ? "text-foreground font-semibold" : "text-muted-foreground/80"}`}
+                          >
                             {last?.role === "assistant" || last?.role === "agent" ? (
                               <span className="text-primary/70 font-medium mr-1">Você:</span>
-                            ) : ""}
+                            ) : (
+                              ""
+                            )}
                             {last?.content ?? "—"}
                           </p>
                           <div className="flex items-center gap-1.5 shrink-0">
@@ -1187,9 +1332,11 @@ function ConversasPage() {
                                 {unread > 99 ? "99+" : unread}
                               </span>
                             )}
-                            <div 
+                            <div
                               className={`h-2 w-2 rounded-full ring-4 ring-background ${
-                                c.status === "handed_off" ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                                c.status === "handed_off"
+                                  ? "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+                                  : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
                               }`}
                               title={c.status === "handed_off" ? "Manual" : "Bot Ativo"}
                             />
@@ -1210,17 +1357,26 @@ function ConversasPage() {
                 <div className="flex items-center gap-3.5 min-w-0">
                   <Avatar className="h-10 w-10 shrink-0">
                     {selected.profile_pic_url ? (
-                      <AvatarImage src={selected.profile_pic_url} alt={selected.contact_name ?? selected.contact_phone} />
+                      <AvatarImage
+                        src={selected.profile_pic_url}
+                        alt={selected.contact_name ?? selected.contact_phone}
+                      />
                     ) : null}
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 font-bold text-sm text-white">
-                      {selected.is_group ? <Users className="h-5 w-5" /> : (selected.contact_name ?? selected.contact_phone).slice(0, 2).toUpperCase()}
+                      {selected.is_group ? (
+                        <Users className="h-5 w-5" />
+                      ) : (
+                        (selected.contact_name ?? selected.contact_phone).slice(0, 2).toUpperCase()
+                      )}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0">
                     <h2 className="font-bold text-sm truncate flex items-center gap-1.5">
                       {selected.contact_name ?? selected.contact_phone}
                       {selected.is_group && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">GRUPO</span>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                          GRUPO
+                        </span>
                       )}
                     </h2>
                     <p className="text-[10px] text-muted-foreground">
@@ -1233,127 +1389,177 @@ function ConversasPage() {
                   className="h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 transition text-xs font-bold flex items-center gap-1.5"
                 >
                   {selected.status === "handed_off" ? (
-                    <><PlayCircle className="h-4 w-4 text-success" /> Reativar bot</>
+                    <>
+                      <PlayCircle className="h-4 w-4 text-success" /> Reativar bot
+                    </>
                   ) : (
-                    <><PauseCircle className="h-4 w-4 text-warning" /> Pausar bot</>
+                    <>
+                      <PauseCircle className="h-4 w-4 text-warning" /> Pausar bot
+                    </>
                   )}
                 </button>
               </div>
 
-               <div 
-                 ref={scrollRef} 
-                 onScroll={handleScroll}
-                 className="flex-1 p-6 overflow-y-auto space-y-4 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed bg-opacity-5 scroll-smooth custom-scrollbar relative"
-               >
-                   {showScrollBottom && (
-                     <button
-                       onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })}
-                       className="fixed bottom-24 right-8 z-50 h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center animate-in zoom-in-50 duration-300 hover:scale-110 active:scale-95"
-                     >
-                       <ChevronDown className="h-5 w-5" />
-                     </button>
-                   )}
+              <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="flex-1 p-6 overflow-y-auto space-y-4 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed bg-opacity-5 scroll-smooth custom-scrollbar relative"
+              >
+                {showScrollBottom && (
+                  <button
+                    onClick={() =>
+                      scrollRef.current?.scrollTo({
+                        top: scrollRef.current.scrollHeight,
+                        behavior: "smooth",
+                      })
+                    }
+                    className="fixed bottom-24 right-8 z-50 h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center animate-in zoom-in-50 duration-300 hover:scale-110 active:scale-95"
+                  >
+                    <ChevronDown className="h-5 w-5" />
+                  </button>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-transparent to-background/80 pointer-events-none" />
                 {(selected.transcript ?? []).length === 0 ? (
-                  <div className="text-xs text-center text-muted-foreground py-10">Sem mensagens registradas.</div>
+                  <div className="text-xs text-center text-muted-foreground py-10">
+                    Sem mensagens registradas.
+                  </div>
                 ) : (
-                  [...selected.transcript].sort((a, b) => +new Date(a.at || 0) - +new Date(b.at || 0)).map((m, i, arr) => {
-                    const isUser = m.role === "user";
-                    const older = arr[i - 1];
-                    const showDate =
-                      !older ||
-                      (m.at && older.at && new Date(m.at).toDateString() !== new Date(older.at).toDateString());
-                    return (
-                      <div key={i} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        {showDate && m.at && (
-                          <div className="flex justify-center my-8">
-                            <span className="text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl bg-muted/60 text-muted-foreground/80 border border-border/20 backdrop-blur-sm shadow-sm">
-                              {formatDateLabel(m.at)}
-                            </span>
-                          </div>
-                        )}
-                        <div className={`flex gap-2 items-end ${isUser ? "justify-start" : "justify-end"} group`}>
-                          {isUser && (
-                            <div className="flex flex-col items-center gap-1 shrink-0 mb-1">
-                              <div className="h-8 w-8 rounded-full bg-muted border border-border/20 grid place-items-center shadow-sm overflow-hidden">
-                                {selected.profile_pic_url ? (
-                                  <img src={selected.profile_pic_url} className="h-full w-full object-cover" alt="" />
-                                ) : (
-                                  <User className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </div>
+                  [...selected.transcript]
+                    .sort((a, b) => +new Date(a.at || 0) - +new Date(b.at || 0))
+                    .map((m, i, arr) => {
+                      const isUser = m.role === "user";
+                      const older = arr[i - 1];
+                      const showDate =
+                        !older ||
+                        (m.at &&
+                          older.at &&
+                          new Date(m.at).toDateString() !== new Date(older.at).toDateString());
+                      return (
+                        <div
+                          key={i}
+                          className="animate-in fade-in slide-in-from-bottom-2 duration-300"
+                        >
+                          {showDate && m.at && (
+                            <div className="flex justify-center my-8">
+                              <span className="text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-xl bg-muted/60 text-muted-foreground/80 border border-border/20 backdrop-blur-sm shadow-sm">
+                                {formatDateLabel(m.at)}
+                              </span>
                             </div>
                           )}
                           <div
-                            className={`max-w-[85%] px-4 py-3 rounded-xl text-[13.5px] leading-relaxed shadow-sm transition-all duration-200 ${
-                              isUser
-                                 ? "bg-card text-foreground rounded-bl-none border border-border/20 hover:shadow-md"
-                                 : "bg-primary text-primary-foreground rounded-br-none shadow-lg shadow-primary/15 hover:shadow-primary/25"
-                            } ${m.kind === "sticker" ? "text-4xl bg-transparent shadow-none !px-1 !py-0" : ""}`}
+                            className={`flex gap-2 items-end ${isUser ? "justify-start" : "justify-end"} group`}
                           >
-                            {m.kind === "audio" ? (
-                              <span className="flex items-center gap-3.5 py-1 font-medium">
-                                <span className="h-8 w-8 rounded-full bg-background/10 inline-flex items-center justify-center">
-                                  <Mic className="h-4 w-4" />
-                                </span>
-                                <span>Áudio do WhatsApp</span>
-                              </span>
-                            ) : m.kind === "image" ? (
-                              <div className="space-y-2">
-                                <img
-                                  src={m.media || (typeof m.content === "string" && m.content.startsWith("http") ? m.content : "")}
-                                  className="rounded-xl max-w-full h-auto cursor-pointer transition hover:brightness-110 shadow-sm"
-                                  alt=""
-                                  onClick={() => m.media && window.open(m.media, "_blank")}
-                                />
-                                {m.content && typeof m.content === "string" && !m.content.startsWith("🖼️") && (
-                                  <p className="opacity-90">{m.content}</p>
-                                )}
+                            {isUser && (
+                              <div className="flex flex-col items-center gap-1 shrink-0 mb-1">
+                                <div className="h-8 w-8 rounded-full bg-muted border border-border/20 grid place-items-center shadow-sm overflow-hidden">
+                                  {selected.profile_pic_url ? (
+                                    <img
+                                      src={selected.profile_pic_url}
+                                      className="h-full w-full object-cover"
+                                      alt=""
+                                    />
+                                  ) : (
+                                    <User className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                </div>
                               </div>
-                            ) : (
-                              <>
-                                {selected.is_group && isUser && m.sender && (
-                                  <p className="text-[10px] font-black text-primary mb-1.5 opacity-90 uppercase tracking-widest flex items-center gap-1.5">
-                                    <span className="h-1 w-1 rounded-full bg-primary" />
-                                    {m.sender}
-                                  </p>
-                                )}
-                                <span className="whitespace-pre-wrap break-words">{m.content}</span>
-                              </>
                             )}
+                            <div
+                              className={`max-w-[85%] px-4 py-3 rounded-xl text-[13.5px] leading-relaxed shadow-sm transition-all duration-200 ${
+                                isUser
+                                  ? "bg-card text-foreground rounded-bl-none border border-border/20 hover:shadow-md"
+                                  : "bg-primary text-primary-foreground rounded-br-none shadow-lg shadow-primary/15 hover:shadow-primary/25"
+                              } ${m.kind === "sticker" ? "text-4xl bg-transparent shadow-none !px-1 !py-0" : ""}`}
+                            >
+                              {m.kind === "audio" ? (
+                                <span className="flex items-center gap-3.5 py-1 font-medium">
+                                  <span className="h-8 w-8 rounded-full bg-background/10 inline-flex items-center justify-center">
+                                    <Mic className="h-4 w-4" />
+                                  </span>
+                                  <span>Áudio do WhatsApp</span>
+                                </span>
+                              ) : m.kind === "image" ? (
+                                <div className="space-y-2">
+                                  <img
+                                    src={
+                                      m.media ||
+                                      (typeof m.content === "string" && m.content.startsWith("http")
+                                        ? m.content
+                                        : "")
+                                    }
+                                    className="rounded-xl max-w-full h-auto cursor-pointer transition hover:brightness-110 shadow-sm"
+                                    alt=""
+                                    onClick={() => m.media && window.open(m.media, "_blank")}
+                                  />
+                                  {m.content &&
+                                    typeof m.content === "string" &&
+                                    !m.content.startsWith("🖼️") && (
+                                      <p className="opacity-90">{m.content}</p>
+                                    )}
+                                </div>
+                              ) : (
+                                <>
+                                  {selected.is_group && isUser && m.sender && (
+                                    <p className="text-[10px] font-black text-primary mb-1.5 opacity-90 uppercase tracking-widest flex items-center gap-1.5">
+                                      <span className="h-1 w-1 rounded-full bg-primary" />
+                                      {m.sender}
+                                    </p>
+                                  )}
+                                  <span className="whitespace-pre-wrap break-words">
+                                    {m.content}
+                                  </span>
+                                </>
+                              )}
 
-                             <div className={`flex items-center gap-2 mt-1.5 ${isUser ? "justify-start ml-1" : "justify-end mr-1"}`}>
-                               {m.at && m.kind !== "sticker" && (
-                                 <div className={`text-[9px] font-bold opacity-30 uppercase tracking-tighter ${isUser ? "text-muted-foreground" : "text-primary-foreground/80"}`}>
-                                   {format(new Date(m.at), "HH:mm")}
-                                   {!isUser && (
-                                     <span className="ml-1 text-primary animate-in fade-in slide-in-from-left-1 duration-700 inline-block">
-                                       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3.5">
-                                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                       </svg>
-                                     </span>
-                                   )}
-                                 </div>
-                               )}
-                               <button
-                                 onClick={() => { setForwardMsg(m); setIsForwarding(true); }}
-                                 className="opacity-0 group-hover:opacity-40 transition-opacity hover:opacity-100 p-1 hover:bg-muted rounded-lg"
-                                 title="Encaminhar"
-                               >
-                                 <Forward className="h-3 w-3" />
-                               </button>
-                             </div>
-                           </div>
+                              <div
+                                className={`flex items-center gap-2 mt-1.5 ${isUser ? "justify-start ml-1" : "justify-end mr-1"}`}
+                              >
+                                {m.at && m.kind !== "sticker" && (
+                                  <div
+                                    className={`text-[9px] font-bold opacity-30 uppercase tracking-tighter ${isUser ? "text-muted-foreground" : "text-primary-foreground/80"}`}
+                                  >
+                                    {format(new Date(m.at), "HH:mm")}
+                                    {!isUser && (
+                                      <span className="ml-1 text-primary animate-in fade-in slide-in-from-left-1 duration-700 inline-block">
+                                        <svg
+                                          className="h-3 w-3"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                          strokeWidth="3.5"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M5 13l4 4L19 7"
+                                          />
+                                        </svg>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    setForwardMsg(m);
+                                    setIsForwarding(true);
+                                  }}
+                                  className="opacity-0 group-hover:opacity-40 transition-opacity hover:opacity-100 p-1 hover:bg-muted rounded-lg"
+                                  title="Encaminhar"
+                                >
+                                  <Forward className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
 
-                           {!isUser && (
-                             <div className="h-8 w-8 rounded-full bg-primary/10 text-primary border border-primary/20 grid place-items-center shrink-0 shadow-sm mb-1">
-                               <Bot className="h-4 w-4" />
-                             </div>
-                           )}
-                         </div>
-                       </div>
-                     );
-                  })
+                            {!isUser && (
+                              <div className="h-8 w-8 rounded-full bg-primary/10 text-primary border border-primary/20 grid place-items-center shrink-0 shadow-sm mb-1">
+                                <Bot className="h-4 w-4" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
                 )}
               </div>
 
@@ -1375,20 +1581,25 @@ function ConversasPage() {
                         <ImageIcon className="h-5 w-5" />
                       </button>
                     </div>
-                    
+
                     <textarea
-                      rows={1} style={{ overflow: "hidden" }} onInput={(e) => { e.currentTarget.style.height = "auto"; e.currentTarget.style.height = e.currentTarget.scrollHeight + "px"; }}
+                      rows={1}
+                      style={{ overflow: "hidden" }}
+                      onInput={(e) => {
+                        e.currentTarget.style.height = "auto";
+                        e.currentTarget.style.height = e.currentTarget.scrollHeight + "px";
+                      }}
                       placeholder={recording ? "Gravando áudio..." : "Digite uma mensagem..."}
                       value={text}
-                       onChange={(e) => {
-                         const val = e.target.value;
-                         setText(val);
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setText(val);
                         if (val.endsWith("/")) {
                           setQuickRepliesOpen(true);
                         } else if (quickRepliesOpen && !val.includes("/")) {
                           setQuickRepliesOpen(false);
                         }
-                       }}
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey && !sending) {
                           e.preventDefault();
@@ -1405,8 +1616,8 @@ function ConversasPage() {
                           <span className="text-[11px] font-black text-destructive animate-pulse font-mono tracking-tighter bg-destructive/10 px-2 py-1 rounded-lg">
                             {format(recordSecs * 1000, "mm:ss")}
                           </span>
-                          <button 
-                            onClick={() => stopRecording(true)} 
+                          <button
+                            onClick={() => stopRecording(true)}
                             className="h-9 w-9 rounded-xl bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center text-destructive transition-colors shadow-sm"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -1444,7 +1655,13 @@ function ConversasPage() {
                         <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                           <Forward className="h-4 w-4 text-primary" /> Encaminhar Mensagem
                         </h3>
-                        <button onClick={() => { setIsForwarding(false); setForwardMsg(null); }} className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors">
+                        <button
+                          onClick={() => {
+                            setIsForwarding(false);
+                            setForwardMsg(null);
+                          }}
+                          className="h-8 w-8 rounded-full hover:bg-muted flex items-center justify-center transition-colors"
+                        >
                           <X className="h-4 w-4" />
                         </button>
                       </div>
@@ -1452,79 +1669,105 @@ function ConversasPage() {
                         "{forwardMsg.content}"
                       </div>
                       <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-3 ml-1">Selecione o destino</p>
-                        {items.filter(c => c.id !== selected.id).map(c => (
+                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-3 ml-1">
+                          Selecione o destino
+                        </p>
+                        {items
+                          .filter((c) => c.id !== selected.id)
+                          .map((c) => (
+                            <button
+                              key={c.id}
+                              onClick={async () => {
+                                const target = c;
+                                setIsForwarding(false);
+                                setForwardMsg(null);
+                                toast.promise(
+                                  (async () => {
+                                    // Re-use existing logic but for target
+                                    let jid = target.remote_jid || target.contact_phone;
+                                    if (!jid.includes("@")) {
+                                      jid = target.is_group
+                                        ? `${jid}@g.us`
+                                        : `${jid}@s.whatsapp.net`;
+                                    }
+                                    const res = await fetch(
+                                      `/api/evolution/message/sendText/${resolvedInstance}`,
+                                      {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                          number: jid,
+                                          text: forwardMsg.content,
+                                          delay: 1200,
+                                          presence: "composing",
+                                          linkPreview: true,
+                                        }),
+                                      },
+                                    );
+                                    if (!res.ok) throw new Error("Erro ao encaminhar");
+                                    syncFromWhatsApp(false);
+                                  })(),
+                                  {
+                                    loading: "Encaminhando...",
+                                    success: "Encaminhado com sucesso!",
+                                    error: "Erro ao encaminhar",
+                                  },
+                                );
+                              }}
+                              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 border border-transparent hover:border-border/10 transition-all text-left"
+                            >
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-[10px] bg-primary text-white">
+                                  {(c.contact_name || c.contact_phone).slice(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-xs font-bold truncate">
+                                {c.contact_name || c.contact_phone}
+                              </span>
+                              <Plus className="h-3 w-3 ml-auto text-muted-foreground/30" />
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Respostas Rápidas */}
+                  {quickRepliesOpen && (
+                    <div className="absolute bottom-[calc(100%+12px)] left-0 z-50 bg-popover/95 backdrop-blur-xl border border-border/20 rounded-2xl shadow-2xl p-2 w-[300px] animate-in slide-in-from-bottom-2 duration-200">
+                      <div className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-2 px-2 py-1">
+                        Respostas Rápidas
+                      </div>
+                      <div className="space-y-1">
+                        {QUICK_REPLIES.map((r) => (
                           <button
-                            key={c.id}
-                            onClick={async () => {
-                              const target = c;
-                              setIsForwarding(false);
-                              setForwardMsg(null);
-                              toast.promise(
-                                (async () => {
-                                  // Re-use existing logic but for target
-                                  let jid = target.remote_jid || target.contact_phone;
-                                  if (!jid.includes("@")) {
-                                    jid = target.is_group ? `${jid}@g.us` : `${jid}@s.whatsapp.net`;
-                                  }
-                                  const res = await fetch(`/api/evolution/message/sendText/${resolvedInstance}`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({
-                                      number: jid,
-                                      text: forwardMsg.content,
-                                      delay: 1200,
-                                      presence: "composing",
-                                      linkPreview: true
-                                    }),
-                                  });
-                                  if (!res.ok) throw new Error("Erro ao encaminhar");
-                                  syncFromWhatsApp(false);
-                                })(),
-                                { loading: "Encaminhando...", success: "Encaminhado com sucesso!", error: "Erro ao encaminhar" }
-                              );
+                            key={r.shortcut}
+                            onClick={() => {
+                              setText(r.text);
+                              setQuickRepliesOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-muted/50 border border-transparent hover:border-border/10 transition-all text-left"
+                            className="w-full text-left p-2 rounded-lg hover:bg-muted/50 transition-colors group"
                           >
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="text-[10px] bg-primary text-white">{(c.contact_name || c.contact_phone).slice(0, 2).toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-xs font-bold truncate">{c.contact_name || c.contact_phone}</span>
-                            <Plus className="h-3 w-3 ml-auto text-muted-foreground/30" />
+                            <div className="text-[11px] font-bold text-primary">{r.shortcut}</div>
+                            <div className="text-[12px] text-muted-foreground truncate">
+                              {r.text}
+                            </div>
                           </button>
                         ))}
                       </div>
                     </div>
                   )}
 
-                   {/* Respostas Rápidas */}
-                   {quickRepliesOpen && (
-                     <div className="absolute bottom-[calc(100%+12px)] left-0 z-50 bg-popover/95 backdrop-blur-xl border border-border/20 rounded-2xl shadow-2xl p-2 w-[300px] animate-in slide-in-from-bottom-2 duration-200">
-                       <div className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-2 px-2 py-1">Respostas Rápidas</div>
-                       <div className="space-y-1">
-                         {QUICK_REPLIES.map((r) => (
-                           <button
-                             key={r.shortcut}
-                             onClick={() => {
-                               setText(r.text);
-                               setQuickRepliesOpen(false);
-                             }}
-                             className="w-full text-left p-2 rounded-lg hover:bg-muted/50 transition-colors group"
-                           >
-                             <div className="text-[11px] font-bold text-primary">{r.shortcut}</div>
-                             <div className="text-[12px] text-muted-foreground truncate">{r.text}</div>
-                           </button>
-                         ))}
-                       </div>
-                     </div>
-                   )}
-
-                    {/* Stickers Popover Estilizado */}
-                    {stickerOpen && (
-                      <div className="absolute bottom-[calc(100%+12px)] left-0 z-50 bg-popover/95 backdrop-blur-xl border border-border/20 rounded-[24px] shadow-2xl p-4 w-[320px] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                  {/* Stickers Popover Estilizado */}
+                  {stickerOpen && (
+                    <div className="absolute bottom-[calc(100%+12px)] left-0 z-50 bg-popover/95 backdrop-blur-xl border border-border/20 rounded-[24px] shadow-2xl p-4 w-[320px] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
                       <div className="flex items-center justify-between mb-3 px-1">
-                        <span className="text-[11px] font-black text-muted-foreground/60 uppercase tracking-widest">Emojis & Stickers</span>
-                        <button onClick={() => setStickerOpen(false)} className="h-6 w-6 rounded-full hover:bg-muted transition-colors flex items-center justify-center">
+                        <span className="text-[11px] font-black text-muted-foreground/60 uppercase tracking-widest">
+                          Emojis & Stickers
+                        </span>
+                        <button
+                          onClick={() => setStickerOpen(false)}
+                          className="h-6 w-6 rounded-full hover:bg-muted transition-colors flex items-center justify-center"
+                        >
                           <X className="h-3.5 w-3.5 text-muted-foreground" />
                         </button>
                       </div>
@@ -1542,7 +1785,7 @@ function ConversasPage() {
                     </div>
                   )}
                 </div>
-                
+
                 <input
                   ref={fileInputRef}
                   type="file"

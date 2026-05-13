@@ -30,10 +30,18 @@ type Task = {
 
 const WEEK = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1); }
-function endOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+function endOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+}
 function sameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
 }
 
 function CalendarPage() {
@@ -52,20 +60,24 @@ function CalendarPage() {
     const start = startOfMonth(cursor).toISOString();
     const end = new Date(endOfMonth(cursor).getTime() + 86400000).toISOString();
     const baseT = supabase.from("tasks").select("*").gte("due_date", start).lte("due_date", end);
-    const { data } = await (orgId ? baseT.eq("organization_id", orgId) : baseT.eq("user_id", user.id))
-      .order("due_date", { ascending: true });
+    const { data } = await (
+      orgId ? baseT.eq("organization_id", orgId) : baseT.eq("user_id", user.id)
+    ).order("due_date", { ascending: true });
     setTasks((data as any) || []);
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user?.id, cursor]);
+  useEffect(() => {
+    load(); /* eslint-disable-next-line */
+  }, [user?.id, cursor]);
 
   const days = useMemo(() => {
     const start = startOfMonth(cursor);
     const end = endOfMonth(cursor);
     const arr: (Date | null)[] = [];
     for (let i = 0; i < start.getDay(); i++) arr.push(null);
-    for (let d = 1; d <= end.getDate(); d++) arr.push(new Date(cursor.getFullYear(), cursor.getMonth(), d));
+    for (let d = 1; d <= end.getDate(); d++)
+      arr.push(new Date(cursor.getFullYear(), cursor.getMonth(), d));
     while (arr.length % 7 !== 0) arr.push(null);
     return arr;
   }, [cursor]);
@@ -87,7 +99,8 @@ function CalendarPage() {
 
   const createTask = async () => {
     if (!form.title.trim() || !user?.id) return;
-    const due = new Date(selected); due.setHours(9, 0, 0, 0);
+    const due = new Date(selected);
+    due.setHours(9, 0, 0, 0);
     const { error } = await supabase.from("tasks").insert({
       user_id: user.id,
       organization_id: orgId,
@@ -124,18 +137,43 @@ function CalendarPage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display font-bold text-xl capitalize">{monthLabel}</h2>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} className="h-9 w-9 grid place-items-center rounded-lg border border-border hover:bg-muted"><ChevronLeft className="h-4 w-4" /></button>
-                  <button onClick={() => setCursor(new Date())} className="h-9 px-3 rounded-lg border border-border text-sm font-bold hover:bg-muted">Hoje</button>
-                  <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className="h-9 w-9 grid place-items-center rounded-lg border border-border hover:bg-muted"><ChevronRight className="h-4 w-4" /></button>
+                  <button
+                    onClick={() =>
+                      setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
+                    }
+                    className="h-9 w-9 grid place-items-center rounded-lg border border-border hover:bg-muted"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setCursor(new Date())}
+                    className="h-9 px-3 rounded-lg border border-border text-sm font-bold hover:bg-muted"
+                  >
+                    Hoje
+                  </button>
+                  <button
+                    onClick={() =>
+                      setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))
+                    }
+                    className="h-9 w-9 grid place-items-center rounded-lg border border-border hover:bg-muted"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
 
               <div className="grid grid-cols-7 gap-1 text-center text-[11px] uppercase font-bold text-muted-foreground mb-2">
-                {WEEK.map((w) => <div key={w} className="py-1">{w}</div>)}
+                {WEEK.map((w) => (
+                  <div key={w} className="py-1">
+                    {w}
+                  </div>
+                ))}
               </div>
 
               {loading ? (
-                <div className="grid place-items-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                <div className="grid place-items-center py-20">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
               ) : (
                 <div className="grid grid-cols-7 gap-1">
                   {days.map((d, i) => {
@@ -149,14 +187,23 @@ function CalendarPage() {
                         onClick={() => setSelected(d)}
                         className={`aspect-square rounded-lg border text-left p-1.5 hover:border-primary transition ${isSelected ? "border-primary bg-primary/5" : "border-border"}`}
                       >
-                        <div className={`text-xs font-bold ${isToday ? "text-primary" : ""}`}>{d.getDate()}</div>
+                        <div className={`text-xs font-bold ${isToday ? "text-primary" : ""}`}>
+                          {d.getDate()}
+                        </div>
                         <div className="mt-0.5 space-y-0.5">
                           {list.slice(0, 2).map((t) => (
-                            <div key={t.id} className={`text-[10px] truncate px-1 rounded ${t.status === "done" ? "bg-success/15 text-success line-through" : "bg-primary/15 text-primary"}`}>
+                            <div
+                              key={t.id}
+                              className={`text-[10px] truncate px-1 rounded ${t.status === "done" ? "bg-success/15 text-success line-through" : "bg-primary/15 text-primary"}`}
+                            >
                               {t.title}
                             </div>
                           ))}
-                          {list.length > 2 && <div className="text-[10px] text-muted-foreground">+{list.length - 2}</div>}
+                          {list.length > 2 && (
+                            <div className="text-[10px] text-muted-foreground">
+                              +{list.length - 2}
+                            </div>
+                          )}
                         </div>
                       </button>
                     );
@@ -169,24 +216,56 @@ function CalendarPage() {
             <div className="bg-card border border-border rounded-2xl p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="text-[11px] uppercase font-bold text-muted-foreground">Dia selecionado</div>
-                  <div className="font-display font-bold text-lg capitalize">{selected.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</div>
+                  <div className="text-[11px] uppercase font-bold text-muted-foreground">
+                    Dia selecionado
+                  </div>
+                  <div className="font-display font-bold text-lg capitalize">
+                    {selected.toLocaleDateString("pt-BR", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                    })}
+                  </div>
                 </div>
-                <button onClick={() => setModalOpen(true)} className="h-9 w-9 grid place-items-center rounded-lg bg-primary text-primary-foreground hover:opacity-90"><Plus className="h-4 w-4" /></button>
+                <button
+                  onClick={() => setModalOpen(true)}
+                  className="h-9 w-9 grid place-items-center rounded-lg bg-primary text-primary-foreground hover:opacity-90"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
               </div>
 
               <div className="space-y-2">
-                {selectedTasks.length === 0 && <div className="text-sm text-muted-foreground py-8 text-center">Sem tarefas neste dia</div>}
+                {selectedTasks.length === 0 && (
+                  <div className="text-sm text-muted-foreground py-8 text-center">
+                    Sem tarefas neste dia
+                  </div>
+                )}
                 {selectedTasks.map((t) => (
-                  <div key={t.id} className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-muted/50">
+                  <div
+                    key={t.id}
+                    className="flex items-start gap-2 p-3 rounded-lg border border-border hover:bg-muted/50"
+                  >
                     <button onClick={() => toggleTask(t)} className="mt-0.5">
-                      {t.status === "done" ? <CheckCircle2 className="h-5 w-5 text-success" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
+                      {t.status === "done" ? (
+                        <CheckCircle2 className="h-5 w-5 text-success" />
+                      ) : (
+                        <Circle className="h-5 w-5 text-muted-foreground" />
+                      )}
                     </button>
                     <div className="flex-1 min-w-0">
-                      <div className={`font-bold text-sm ${t.status === "done" ? "line-through text-muted-foreground" : ""}`}>{t.title}</div>
-                      {t.description && <div className="text-xs text-muted-foreground mt-0.5">{t.description}</div>}
+                      <div
+                        className={`font-bold text-sm ${t.status === "done" ? "line-through text-muted-foreground" : ""}`}
+                      >
+                        {t.title}
+                      </div>
+                      {t.description && (
+                        <div className="text-xs text-muted-foreground mt-0.5">{t.description}</div>
+                      )}
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${t.priority === "high" ? "bg-destructive/15 text-destructive" : t.priority === "low" ? "bg-muted text-muted-foreground" : "bg-warning/15 text-warning"}`}>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${t.priority === "high" ? "bg-destructive/15 text-destructive" : t.priority === "low" ? "bg-muted text-muted-foreground" : "bg-warning/15 text-warning"}`}
+                    >
                       {t.priority === "high" ? "Alta" : t.priority === "low" ? "Baixa" : "Média"}
                     </span>
                   </div>
@@ -198,9 +277,17 @@ function CalendarPage() {
       </div>
 
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 grid place-items-center z-50 p-4" onClick={() => setModalOpen(false)}>
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-display font-bold text-lg">Nova tarefa — {selected.toLocaleDateString("pt-BR")}</h3>
+        <div
+          className="fixed inset-0 bg-black/50 grid place-items-center z-50 p-4"
+          onClick={() => setModalOpen(false)}
+        >
+          <div
+            className="bg-card border border-border rounded-2xl p-6 w-full max-w-md space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-display font-bold text-lg">
+              Nova tarefa — {selected.toLocaleDateString("pt-BR")}
+            </h3>
             <input
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -224,8 +311,18 @@ function CalendarPage() {
               <option value="high">Alta</option>
             </select>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setModalOpen(false)} className="h-10 px-4 rounded-lg border border-border text-sm font-bold">Cancelar</button>
-              <button onClick={createTask} className="h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-bold">Criar</button>
+              <button
+                onClick={() => setModalOpen(false)}
+                className="h-10 px-4 rounded-lg border border-border text-sm font-bold"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={createTask}
+                className="h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-bold"
+              >
+                Criar
+              </button>
             </div>
           </div>
         </div>

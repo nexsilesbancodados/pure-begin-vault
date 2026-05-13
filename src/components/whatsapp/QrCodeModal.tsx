@@ -14,27 +14,27 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
- interface QrCodeModalProps {
-   open: boolean;
-   onOpenChange: (open: boolean) => void;
-   initialInstanceName?: string;
- }
- 
- const QR_LIFETIME = 40;
- 
- export function QrCodeModal({ open, onOpenChange, initialInstanceName }: QrCodeModalProps) {
-   const [instanceName, setInstanceName] = useState(initialInstanceName || "");
-   const [step, setStep] = useState(initialInstanceName ? "qr" : "name");
- 
-   useEffect(() => {
-     if (initialInstanceName) {
-       setInstanceName(initialInstanceName);
-       setStep("qr");
-     }
-   }, [initialInstanceName]);
- 
-   const onClose = () => onOpenChange(false);
-   const onSuccess = () => onOpenChange(false);
+interface QrCodeModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialInstanceName?: string;
+}
+
+const QR_LIFETIME = 40;
+
+export function QrCodeModal({ open, onOpenChange, initialInstanceName }: QrCodeModalProps) {
+  const [instanceName, setInstanceName] = useState(initialInstanceName || "");
+  const [step, setStep] = useState(initialInstanceName ? "qr" : "name");
+
+  useEffect(() => {
+    if (initialInstanceName) {
+      setInstanceName(initialInstanceName);
+      setStep("qr");
+    }
+  }, [initialInstanceName]);
+
+  const onClose = () => onOpenChange(false);
+  const onSuccess = () => onOpenChange(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -149,9 +149,21 @@ import { toast } from "sonner";
   const progress = Math.max(0, (countdown / QR_LIFETIME) * 100);
 
   const steps = [
-    { icon: Smartphone, title: "Abra o WhatsApp", desc: "No seu celular, toque em Menu (⋮) ou Configurações." },
-    { icon: Wifi, title: "Dispositivos conectados", desc: 'Toque em "Dispositivos conectados" → "Conectar um dispositivo".' },
-    { icon: QrCodeIcon, title: "Aponte para o QR", desc: "Aponte a câmera do celular para o código ao lado." },
+    {
+      icon: Smartphone,
+      title: "Abra o WhatsApp",
+      desc: "No seu celular, toque em Menu (⋮) ou Configurações.",
+    },
+    {
+      icon: Wifi,
+      title: "Dispositivos conectados",
+      desc: 'Toque em "Dispositivos conectados" → "Conectar um dispositivo".',
+    },
+    {
+      icon: QrCodeIcon,
+      title: "Aponte para o QR",
+      desc: "Aponte a câmera do celular para o código ao lado.",
+    },
   ];
 
   return (
@@ -182,7 +194,9 @@ import { toast } from "sonner";
 
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border border-border">
-              <span className={`h-2 w-2 rounded-full ${status === "open" ? "bg-success" : "bg-warning animate-pulse"}`} />
+              <span
+                className={`h-2 w-2 rounded-full ${status === "open" ? "bg-success" : "bg-warning animate-pulse"}`}
+              />
               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 {status === "open" ? "Online" : "Aguardando"}
               </span>
@@ -219,7 +233,9 @@ import { toast } from "sonner";
                   </div>
                   <div className="pt-1">
                     <p className="text-sm font-bold leading-tight">{step.title}</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">{step.desc}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                      {step.desc}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -280,7 +296,11 @@ import { toast } from "sonner";
                   <div className="absolute -inset-1.5 bg-gradient-to-r from-primary via-primary to-primary rounded-[2rem] blur opacity-40 animate-pulse" />
                   <div className="relative bg-white p-5 rounded-[1.75rem] shadow-2xl">
                     {qrCode ? (
-                      <img src={qrCode} alt="WhatsApp QR Code" className="h-60 w-60 lg:h-64 lg:w-64" />
+                      <img
+                        src={qrCode}
+                        alt="WhatsApp QR Code"
+                        className="h-60 w-60 lg:h-64 lg:w-64"
+                      />
                     ) : (
                       <div className="h-60 w-60 flex items-center justify-center bg-muted/50 rounded-xl">
                         <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />

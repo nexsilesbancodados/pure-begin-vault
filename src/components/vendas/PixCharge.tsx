@@ -74,7 +74,16 @@ export function PixCharge({ amount, txId, description, fallbackToSetup = true }:
         </div>
       );
     }
-    return <PixSetup initial={cfg} onSaved={(c) => { setCfg(c); setShowSetup(false); }} onCancel={() => setShowSetup(false)} />;
+    return (
+      <PixSetup
+        initial={cfg}
+        onSaved={(c) => {
+          setCfg(c);
+          setShowSetup(false);
+        }}
+        onCancel={() => setShowSetup(false)}
+      />
+    );
   }
 
   return (
@@ -102,11 +111,7 @@ export function PixCharge({ amount, txId, description, fallbackToSetup = true }:
 
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div className="bg-white p-3 rounded-xl border border-border">
-          <img
-            src={pixQrUrl(payload!, 200)}
-            alt="QR Code Pix"
-            className="h-48 w-48"
-          />
+          <img src={pixQrUrl(payload!, 200)} alt="QR Code Pix" className="h-48 w-48" />
         </div>
         <div className="flex-1 w-full space-y-2">
           <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
@@ -119,9 +124,13 @@ export function PixCharge({ amount, txId, description, fallbackToSetup = true }:
           />
           <Button onClick={handleCopy} className="w-full">
             {copied ? (
-              <><Check className="h-4 w-4 mr-2" /> Copiado</>
+              <>
+                <Check className="h-4 w-4 mr-2" /> Copiado
+              </>
             ) : (
-              <><Copy className="h-4 w-4 mr-2" /> Copiar código</>
+              <>
+                <Copy className="h-4 w-4 mr-2" /> Copiar código
+              </>
             )}
           </Button>
         </div>

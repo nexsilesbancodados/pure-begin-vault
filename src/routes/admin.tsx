@@ -4,7 +4,19 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Users, Building2, DollarSign, ShoppingCart, Wrench, TrendingUp, ShieldAlert, Copy, CheckCircle2, Settings } from "lucide-react";
+import {
+  Lock,
+  Users,
+  Building2,
+  DollarSign,
+  ShoppingCart,
+  Wrench,
+  TrendingUp,
+  ShieldAlert,
+  Copy,
+  CheckCircle2,
+  Settings,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/admin")({
@@ -37,12 +49,20 @@ function AdminPage() {
   useEffect(() => {
     (async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         const res = await fetch("/api/admin-metrics", {
           headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
         });
-        if (res.status === 403) { setError("Acesso restrito. Apenas super admin."); return; }
-        if (!res.ok) { setError("Erro ao carregar"); return; }
+        if (res.status === 403) {
+          setError("Acesso restrito. Apenas super admin.");
+          return;
+        }
+        if (!res.ok) {
+          setError("Erro ao carregar");
+          return;
+        }
         setData(await res.json());
       } catch {
         setError("Erro de conexão");
@@ -80,15 +100,36 @@ function AdminPage() {
           ) : data ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Kpi icon={DollarSign} label="MRR" value={`R$ ${((data.metrics.mrr_cents ?? 0) / 100).toLocaleString("pt-BR")}`} color="success" big />
+                <Kpi
+                  icon={DollarSign}
+                  label="MRR"
+                  value={`R$ ${((data.metrics.mrr_cents ?? 0) / 100).toLocaleString("pt-BR")}`}
+                  color="success"
+                  big
+                />
                 <Kpi icon={Users} label="Usuários" value={data.metrics.total_users ?? 0} />
                 <Kpi icon={Building2} label="Lojas" value={data.metrics.total_orgs ?? 0} />
-                <Kpi icon={TrendingUp} label="Ativos" value={data.metrics.active_subs ?? 0} color="success" />
+                <Kpi
+                  icon={TrendingUp}
+                  label="Ativos"
+                  value={data.metrics.active_subs ?? 0}
+                  color="success"
+                />
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Kpi icon={Users} label="Em trial" value={data.metrics.trial_subs ?? 0} color="warning" />
-                <Kpi icon={ShieldAlert} label="Cancelados" value={data.metrics.cancelled_subs ?? 0} color="destructive" />
+                <Kpi
+                  icon={Users}
+                  label="Em trial"
+                  value={data.metrics.trial_subs ?? 0}
+                  color="warning"
+                />
+                <Kpi
+                  icon={ShieldAlert}
+                  label="Cancelados"
+                  value={data.metrics.cancelled_subs ?? 0}
+                  color="destructive"
+                />
                 <Kpi icon={ShoppingCart} label="Vendas 24h" value={data.metrics.sales_24h ?? 0} />
                 <Kpi icon={Wrench} label="OS 24h" value={data.metrics.os_24h ?? 0} />
               </div>
@@ -102,7 +143,10 @@ function AdminPage() {
                 ) : (
                   <div className="space-y-2">
                     {data.plan_breakdown.map((p, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-border">
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-3 rounded-xl border border-border"
+                      >
                         <div>
                           <p className="font-bold">{p.name}</p>
                           <p className="text-xs text-muted-foreground">{p.count} assinante(s)</p>
@@ -124,10 +168,15 @@ function AdminPage() {
                 </h3>
                 <div className="space-y-2">
                   {data.recent_orgs.map((o) => (
-                    <div key={o.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40">
+                    <div
+                      key={o.id}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40"
+                    >
                       <div className="min-w-0">
                         <p className="font-bold text-sm truncate">{o.name ?? "Sem nome"}</p>
-                        <p className="text-[10px] font-mono text-muted-foreground">{o.id.slice(0, 13)}</p>
+                        <p className="text-[10px] font-mono text-muted-foreground">
+                          {o.id.slice(0, 13)}
+                        </p>
                       </div>
                       <Badge variant="outline" className="text-[10px]">
                         {new Date(o.created_at).toLocaleDateString("pt-BR")}
@@ -146,7 +195,8 @@ function AdminPage() {
 
 function SetupCard() {
   const [copied, setCopied] = useState<string | null>(null);
-  const supaUrl = (import.meta as any).env?.VITE_SUPABASE_URL ?? "https://irjzfrhvjrvvwnxygufo.supabase.co";
+  const supaUrl =
+    (import.meta as any).env?.VITE_SUPABASE_URL ?? "https://irjzfrhvjrvvwnxygufo.supabase.co";
   const items = [
     {
       id: "mp-webhook",
@@ -178,7 +228,9 @@ function SetupCard() {
         <Settings className="h-4 w-4 text-primary" />
         <h3 className="font-black text-sm uppercase tracking-widest">Setup de integrações</h3>
       </div>
-      <p className="text-xs text-muted-foreground mb-4">URLs e tokens que você precisa cadastrar nos serviços externos.</p>
+      <p className="text-xs text-muted-foreground mb-4">
+        URLs e tokens que você precisa cadastrar nos serviços externos.
+      </p>
       <div className="space-y-3">
         {items.map((i) => (
           <div key={i.id} className="p-3 rounded-xl border border-border">
@@ -188,11 +240,17 @@ function SetupCard() {
                 onClick={() => copy(i.id, i.url)}
                 className="text-xs flex items-center gap-1 px-2 py-1 rounded-lg bg-muted hover:bg-muted/70 font-bold"
               >
-                {copied === i.id ? <CheckCircle2 className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+                {copied === i.id ? (
+                  <CheckCircle2 className="h-3 w-3 text-success" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
                 {copied === i.id ? "Copiado" : "Copiar"}
               </button>
             </div>
-            <code className="block text-[11px] font-mono bg-muted/40 p-2 rounded break-all">{i.url}</code>
+            <code className="block text-[11px] font-mono bg-muted/40 p-2 rounded break-all">
+              {i.url}
+            </code>
             <p className="text-[11px] text-muted-foreground mt-1.5">{i.desc}</p>
           </div>
         ))}
@@ -201,7 +259,19 @@ function SetupCard() {
   );
 }
 
-function Kpi({ icon: Icon, label, value, color, big }: { icon: any; label: string; value: number | string; color?: "success" | "warning" | "destructive"; big?: boolean }) {
+function Kpi({
+  icon: Icon,
+  label,
+  value,
+  color,
+  big,
+}: {
+  icon: any;
+  label: string;
+  value: number | string;
+  color?: "success" | "warning" | "destructive";
+  big?: boolean;
+}) {
   const colors = {
     success: "text-success bg-success/10",
     warning: "text-warning bg-warning/10",
@@ -216,7 +286,9 @@ function Kpi({ icon: Icon, label, value, color, big }: { icon: any; label: strin
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{label}</div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+            {label}
+          </div>
           <div className={`font-black truncate ${big ? "text-2xl" : "text-xl"}`}>{value}</div>
         </div>
       </div>

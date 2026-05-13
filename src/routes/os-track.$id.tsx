@@ -112,9 +112,7 @@ function TrackPage() {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/30 px-4 py-8">
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="text-center">
-          <p className="text-[10px] uppercase tracking-widest font-black text-primary">
-            {orgName}
-          </p>
+          <p className="text-[10px] uppercase tracking-widest font-black text-primary">{orgName}</p>
           <h1 className="text-2xl font-black mt-1">
             Ordem de Serviço {os.os_number ? `#${os.os_number}` : ""}
           </h1>
@@ -144,9 +142,7 @@ function TrackPage() {
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-5">
-          <h3 className="font-black text-sm uppercase tracking-widest mb-4">
-            Acompanhamento
-          </h3>
+          <h3 className="font-black text-sm uppercase tracking-widest mb-4">Acompanhamento</h3>
           <ol className="space-y-3">
             {STATUS_TIMELINE.map((step, i) => {
               const done = i <= currentIdx;
@@ -167,7 +163,11 @@ function TrackPage() {
                   <div className="pt-1.5">
                     <p
                       className={`text-sm ${
-                        current ? "font-black text-primary" : done ? "font-bold" : "text-muted-foreground"
+                        current
+                          ? "font-black text-primary"
+                          : done
+                            ? "font-bold"
+                            : "text-muted-foreground"
                       }`}
                     >
                       {step.label}
@@ -206,9 +206,7 @@ function TrackPage() {
               <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground">
                 Orçamento
               </p>
-              <p className="text-xl font-black">
-                R$ {Number(os.estimated_cost).toFixed(2)}
-              </p>
+              <p className="text-xl font-black">R$ {Number(os.estimated_cost).toFixed(2)}</p>
             </div>
           )}
           {os.total_cost != null && (

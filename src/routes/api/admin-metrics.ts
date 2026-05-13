@@ -53,14 +53,28 @@ export const Route = createFileRoute("/api/admin-metrics")({
       GET: async ({ request }) => {
         const auth = request.headers.get("authorization") ?? "";
         const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-        if (!token) return new Response(JSON.stringify({ error: "no_auth" }), { status: 401, headers: corsHeaders });
+        if (!token)
+          return new Response(JSON.stringify({ error: "no_auth" }), {
+            status: 401,
+            headers: corsHeaders,
+          });
 
         // valida JWT e pega user
-        const { data: { user } } = await (supabaseAdmin as any).auth.getUser(token);
-        if (!user) return new Response(JSON.stringify({ error: "invalid_token" }), { status: 401, headers: corsHeaders });
+        const {
+          data: { user },
+        } = await (supabaseAdmin as any).auth.getUser(token);
+        if (!user)
+          return new Response(JSON.stringify({ error: "invalid_token" }), {
+            status: 401,
+            headers: corsHeaders,
+          });
 
         const sa = await isSuperAdmin(user.id);
-        if (!sa) return new Response(JSON.stringify({ error: "not_super_admin" }), { status: 403, headers: corsHeaders });
+        if (!sa)
+          return new Response(JSON.stringify({ error: "not_super_admin" }), {
+            status: 403,
+            headers: corsHeaders,
+          });
 
         const data = await fetchMetrics();
         return new Response(JSON.stringify(data), { headers: corsHeaders });

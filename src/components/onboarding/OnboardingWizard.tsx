@@ -6,7 +6,16 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Check, ChevronRight, MessageCircle, Users, Workflow, Zap, Loader2, Sparkles } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  MessageCircle,
+  Users,
+  Workflow,
+  Zap,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { CsvImporter } from "@/components/leads/CsvImporter";
 
 const STORAGE_KEY = "onboarding_done_v1";
@@ -51,7 +60,10 @@ export function OnboardingWizard() {
   const saveOrg = async () => {
     if (!orgName.trim() || !profile?.organization_id) return setStep(2);
     setBusy(true);
-    await supabase.from("organizations").update({ name: orgName.trim() }).eq("id", profile.organization_id);
+    await supabase
+      .from("organizations")
+      .update({ name: orgName.trim() })
+      .eq("id", profile.organization_id);
     setBusy(false);
     setStep(2);
   };
@@ -99,7 +111,10 @@ export function OnboardingWizard() {
         name: "Boas-vindas a novos leads",
         trigger_type: "new_lead",
         action_type: "send_whatsapp",
-        config: { message: "Olá {{nome}}! Recebemos seu contato e em instantes um especialista vai te atender. 🙌" },
+        config: {
+          message:
+            "Olá {{nome}}! Recebemos seu contato e em instantes um especialista vai te atender. 🙌",
+        },
         is_active: true,
       });
     }
@@ -111,7 +126,10 @@ export function OnboardingWizard() {
     <div className="flex items-center gap-2 mb-6">
       {[1, 2, 3, 4, 5].map((n) => (
         <div key={n} className="flex-1 h-1.5 rounded-full overflow-hidden bg-muted">
-          <div className={`h-full transition-all ${n <= step ? "bg-primary" : ""}`} style={{ width: n <= step ? "100%" : "0%" }} />
+          <div
+            className={`h-full transition-all ${n <= step ? "bg-primary" : ""}`}
+            style={{ width: n <= step ? "100%" : "0%" }}
+          />
         </div>
       ))}
     </div>
@@ -131,18 +149,28 @@ export function OnboardingWizard() {
           {step === 1 && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center"><Users className="h-5 w-5 text-primary" /></div>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <h3 className="font-bold">Como se chama sua empresa?</h3>
-                  <p className="text-xs text-muted-foreground">Aparece nas notificações e relatórios</p>
+                  <p className="text-xs text-muted-foreground">
+                    Aparece nas notificações e relatórios
+                  </p>
                 </div>
               </div>
               <div>
                 <Label>Nome da empresa</Label>
-                <Input value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Minha Loja LTDA" />
+                <Input
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder="Minha Loja LTDA"
+                />
               </div>
               <div className="flex justify-end">
-                <Button onClick={saveOrg} disabled={busy}>Continuar <ChevronRight className="h-4 w-4 ml-1" /></Button>
+                <Button onClick={saveOrg} disabled={busy}>
+                  Continuar <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
               </div>
             </div>
           )}
@@ -150,19 +178,31 @@ export function OnboardingWizard() {
           {step === 2 && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center"><MessageCircle className="h-5 w-5 text-primary" /></div>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center">
+                  <MessageCircle className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <h3 className="font-bold">Conecte seu WhatsApp</h3>
-                  <p className="text-xs text-muted-foreground">Você pode pular e configurar depois</p>
+                  <p className="text-xs text-muted-foreground">
+                    Você pode pular e configurar depois
+                  </p>
                 </div>
               </div>
               <div>
                 <Label>Número (com DDD)</Label>
-                <Input value={waNumber} onChange={(e) => setWaNumber(e.target.value)} placeholder="5511999999999" />
+                <Input
+                  value={waNumber}
+                  onChange={(e) => setWaNumber(e.target.value)}
+                  placeholder="5511999999999"
+                />
               </div>
               <div className="flex justify-between">
-                <Button variant="ghost" onClick={() => setStep(3)}>Pular</Button>
-                <Button onClick={saveWhatsapp} disabled={busy}>Continuar <ChevronRight className="h-4 w-4 ml-1" /></Button>
+                <Button variant="ghost" onClick={() => setStep(3)}>
+                  Pular
+                </Button>
+                <Button onClick={saveWhatsapp} disabled={busy}>
+                  Continuar <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
               </div>
             </div>
           )}
@@ -170,19 +210,29 @@ export function OnboardingWizard() {
           {step === 3 && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center"><Users className="h-5 w-5 text-primary" /></div>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <h3 className="font-bold">Importe seus leads</h3>
                   <p className="text-xs text-muted-foreground">CSV ou Excel — você pode pular</p>
                 </div>
               </div>
               <div className="rounded-xl border border-dashed border-border p-6 text-center">
-                <Button onClick={() => setShowImporter(true)} className="gap-2"><Users className="h-4 w-4" /> Importar agora</Button>
-                <p className="text-xs text-muted-foreground mt-2">Suporta CSV/Excel com colunas Nome, Telefone, Email</p>
+                <Button onClick={() => setShowImporter(true)} className="gap-2">
+                  <Users className="h-4 w-4" /> Importar agora
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Suporta CSV/Excel com colunas Nome, Telefone, Email
+                </p>
               </div>
               <div className="flex justify-between">
-                <Button variant="ghost" onClick={() => setStep(4)}>Pular</Button>
-                <Button onClick={() => setStep(4)}>Continuar <ChevronRight className="h-4 w-4 ml-1" /></Button>
+                <Button variant="ghost" onClick={() => setStep(4)}>
+                  Pular
+                </Button>
+                <Button onClick={() => setStep(4)}>
+                  Continuar <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
               </div>
             </div>
           )}
@@ -190,23 +240,40 @@ export function OnboardingWizard() {
           {step === 4 && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center"><Workflow className="h-5 w-5 text-primary" /></div>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center">
+                  <Workflow className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <h3 className="font-bold">Configure o funil padrão</h3>
-                  <p className="text-xs text-muted-foreground">Criamos 6 etapas prontas. Você edita depois.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Criamos 6 etapas prontas. Você edita depois.
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {DEFAULT_STAGES.map((s) => (
-                  <div key={s.name} className="flex items-center gap-2 p-2 rounded-lg border border-border">
+                  <div
+                    key={s.name}
+                    className="flex items-center gap-2 p-2 rounded-lg border border-border"
+                  >
                     <span className="h-3 w-3 rounded-full" style={{ background: s.color }} />
                     <span className="text-sm">{s.name}</span>
                   </div>
                 ))}
               </div>
               <div className="flex justify-between">
-                <Button variant="ghost" onClick={() => setStep(5)}>Pular</Button>
-                <Button onClick={seedFunnel} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Criar etapas <ChevronRight className="h-4 w-4 ml-1" /></>}</Button>
+                <Button variant="ghost" onClick={() => setStep(5)}>
+                  Pular
+                </Button>
+                <Button onClick={seedFunnel} disabled={busy}>
+                  {busy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      Criar etapas <ChevronRight className="h-4 w-4 ml-1" />
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           )}
@@ -214,19 +281,37 @@ export function OnboardingWizard() {
           {step === 5 && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center"><Zap className="h-5 w-5 text-primary" /></div>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center">
+                  <Zap className="h-5 w-5 text-primary" />
+                </div>
                 <div>
                   <h3 className="font-bold">Ative sua primeira automação</h3>
-                  <p className="text-xs text-muted-foreground">Mensagem automática de boas-vindas a novos leads</p>
+                  <p className="text-xs text-muted-foreground">
+                    Mensagem automática de boas-vindas a novos leads
+                  </p>
                 </div>
               </div>
               <div className="rounded-xl border border-border p-4 bg-muted/30">
-                <div className="text-xs uppercase font-bold text-muted-foreground mb-1">Quando: novo lead chega</div>
-                <div className="text-sm">Envia: <em>"Olá &#123;&#123;nome&#125;&#125;! Recebemos seu contato..."</em></div>
+                <div className="text-xs uppercase font-bold text-muted-foreground mb-1">
+                  Quando: novo lead chega
+                </div>
+                <div className="text-sm">
+                  Envia: <em>"Olá &#123;&#123;nome&#125;&#125;! Recebemos seu contato..."</em>
+                </div>
               </div>
               <div className="flex justify-between">
-                <Button variant="ghost" onClick={finish}>Pular</Button>
-                <Button onClick={seedAutomation} disabled={busy} className="gap-2">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="h-4 w-4" /> Ativar e finalizar</>}</Button>
+                <Button variant="ghost" onClick={finish}>
+                  Pular
+                </Button>
+                <Button onClick={seedAutomation} disabled={busy} className="gap-2">
+                  {busy ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4" /> Ativar e finalizar
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           )}

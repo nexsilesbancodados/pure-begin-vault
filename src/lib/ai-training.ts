@@ -21,24 +21,24 @@ DIRETRIZES DE COMUNICAÇÃO:
 `;
 
 export const deepseek = {
-  async chat(message: string, history: { role: string, content: string }[] = []) {
+  async chat(message: string, history: { role: string; content: string }[] = []) {
     const API_KEY = process.env.DEEPSEEK_API_KEY || "";
-    
+
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`
+        Authorization: `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
         model: "deepseek-chat",
         messages: [
           { role: "system", content: SALES_AGENT_PROMPT },
           ...history,
-          { role: "user", content: message }
+          { role: "user", content: message },
         ],
-        temperature: 0.7
-      })
+        temperature: 0.7,
+      }),
     });
 
     if (!response.ok) {
@@ -47,5 +47,5 @@ export const deepseek = {
 
     const data = await response.json();
     return data.choices[0].message.content;
-  }
+  },
 };

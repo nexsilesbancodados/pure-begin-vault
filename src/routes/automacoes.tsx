@@ -7,16 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Zap,
-  Mail,
-  MessageSquare,
-  Bell,
-  Power,
-  Check,
-  Plus,
-  Sparkles,
-} from "lucide-react";
+import { Zap, Mail, MessageSquare, Bell, Power, Check, Plus, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
@@ -86,7 +77,9 @@ function AutomacoesPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [orgId]);
+  useEffect(() => {
+    load();
+  }, [orgId]);
 
   const installByTpl = useMemo(() => {
     const m = new Map<string, Install>();
@@ -110,7 +103,10 @@ function AutomacoesPage() {
         .from("automation_installs")
         .update({ is_active: !existing.is_active, updated_at: new Date().toISOString() })
         .eq("id", existing.id);
-      if (error) { toast.error("Erro: " + error.message); return; }
+      if (error) {
+        toast.error("Erro: " + error.message);
+        return;
+      }
       toast.success(existing.is_active ? "Automação desativada" : "Automação ativada");
     } else {
       const { error } = await (supabase as any).from("automation_installs").insert({
@@ -123,7 +119,10 @@ function AutomacoesPage() {
         body: tpl.default_body,
         is_active: true,
       });
-      if (error) { toast.error("Erro: " + error.message); return; }
+      if (error) {
+        toast.error("Erro: " + error.message);
+        return;
+      }
       toast.success("Automação ativada");
     }
     load();
@@ -144,7 +143,10 @@ function AutomacoesPage() {
         updated_at: new Date().toISOString(),
       })
       .eq("id", editingId);
-    if (error) { toast.error("Erro: " + error.message); return; }
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
     toast.success("Mensagem atualizada");
     setEditingId(null);
     load();
@@ -161,9 +163,19 @@ function AutomacoesPage() {
         <main className="flex-1 overflow-y-auto p-6 space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Kpi label="Total templates" value={templates.length} />
-            <Kpi label="Ativas" value={installs.filter((i) => i.is_active).length} color="success" />
-            <Kpi label="WhatsApp" value={installs.filter((i) => i.is_active && i.channel === "whatsapp").length} />
-            <Kpi label="Email" value={installs.filter((i) => i.is_active && i.channel === "email").length} />
+            <Kpi
+              label="Ativas"
+              value={installs.filter((i) => i.is_active).length}
+              color="success"
+            />
+            <Kpi
+              label="WhatsApp"
+              value={installs.filter((i) => i.is_active && i.channel === "whatsapp").length}
+            />
+            <Kpi
+              label="Email"
+              value={installs.filter((i) => i.is_active && i.channel === "email").length}
+            />
           </div>
 
           <Card className="p-3 flex flex-wrap gap-2">
@@ -199,19 +211,28 @@ function AutomacoesPage() {
                 const Icon = CHANNEL_ICONS[tpl.channel] ?? Zap;
 
                 return (
-                  <Card key={tpl.id} className={`p-4 ${active ? "border-success/40 bg-success/5" : ""}`}>
+                  <Card
+                    key={tpl.id}
+                    className={`p-4 ${active ? "border-success/40 bg-success/5" : ""}`}
+                  >
                     <div className="flex items-start gap-3 mb-2">
-                      <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
-                        active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-                      }`}>
+                      <div
+                        className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          active ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
+                        }`}
+                      >
                         <Icon className="h-4 w-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-black text-sm">{tpl.name}</p>
-                          <Badge className="text-[9px]">{CATEGORY_LABELS[tpl.category] ?? tpl.category}</Badge>
+                          <Badge className="text-[9px]">
+                            {CATEGORY_LABELS[tpl.category] ?? tpl.category}
+                          </Badge>
                           {tpl.active_by_default && (
-                            <Badge variant="outline" className="text-[9px]"><Sparkles className="h-2 w-2 mr-0.5" /> Recomendada</Badge>
+                            <Badge variant="outline" className="text-[9px]">
+                              <Sparkles className="h-2 w-2 mr-0.5" /> Recomendada
+                            </Badge>
                           )}
                         </div>
                         {tpl.description && (
@@ -229,7 +250,15 @@ function AutomacoesPage() {
                             : "bg-muted hover:bg-muted-foreground/10"
                         }`}
                       >
-                        {active ? <><Check className="inline h-3 w-3 mr-1" /> Ativa</> : <><Power className="inline h-3 w-3 mr-1" /> Ativar</>}
+                        {active ? (
+                          <>
+                            <Check className="inline h-3 w-3 mr-1" /> Ativa
+                          </>
+                        ) : (
+                          <>
+                            <Power className="inline h-3 w-3 mr-1" /> Ativar
+                          </>
+                        )}
                       </button>
                     </div>
 
@@ -238,7 +267,11 @@ function AutomacoesPage() {
                         {tpl.channel === "email" && (
                           <div>
                             <Label className="text-[10px]">Assunto</Label>
-                            <Input value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} className="h-8 text-xs" />
+                            <Input
+                              value={draft.subject}
+                              onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
+                              className="h-8 text-xs"
+                            />
                           </div>
                         )}
                         <div>
@@ -256,8 +289,12 @@ function AutomacoesPage() {
                           )}
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={saveEdit}>Salvar</Button>
-                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancelar</Button>
+                          <Button size="sm" onClick={saveEdit}>
+                            Salvar
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                            Cancelar
+                          </Button>
                         </div>
                       </div>
                     ) : (
@@ -271,7 +308,10 @@ function AutomacoesPage() {
                               {inst.total_runs} execuções
                               {inst.total_failures > 0 && ` · ${inst.total_failures} falhas`}
                             </span>
-                            <button onClick={() => startEdit(inst)} className="font-bold text-primary hover:underline">
+                            <button
+                              onClick={() => startEdit(inst)}
+                              className="font-bold text-primary hover:underline"
+                            >
                               Editar mensagem
                             </button>
                           </div>
@@ -286,11 +326,10 @@ function AutomacoesPage() {
 
           <Card className="p-4 bg-muted/40 text-xs text-muted-foreground">
             <p>
-              <strong>Como funciona:</strong> automações disparam quando o evento acontece
-              (ex: OS muda status, venda finaliza). Automações temporais (aniversário,
-              inativos, OS atrasada) são processadas 1×/dia pela Edge Function
-              <code> daily-automations</code>. Você pode customizar a mensagem clicando em
-              "Editar".
+              <strong>Como funciona:</strong> automações disparam quando o evento acontece (ex: OS
+              muda status, venda finaliza). Automações temporais (aniversário, inativos, OS
+              atrasada) são processadas 1×/dia pela Edge Function
+              <code> daily-automations</code>. Você pode customizar a mensagem clicando em "Editar".
             </p>
           </Card>
         </main>
@@ -302,8 +341,14 @@ function AutomacoesPage() {
 function Kpi({ label, value, color }: { label: string; value: number; color?: "success" }) {
   return (
     <Card className="p-3">
-      <p className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">{label}</p>
-      <p className={`text-2xl font-black ${color === "success" ? "text-success" : "text-foreground"}`}>{value}</p>
+      <p className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={`text-2xl font-black ${color === "success" ? "text-success" : "text-foreground"}`}
+      >
+        {value}
+      </p>
     </Card>
   );
 }

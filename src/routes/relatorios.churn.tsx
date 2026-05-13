@@ -82,12 +82,8 @@ function ChurnPage() {
     for (const c of customers) {
       const cs = byCustomer.get(c.id);
       if (!cs || cs.length === 0) continue;
-      const last = cs.reduce((a, b) =>
-        new Date(a.created_at) > new Date(b.created_at) ? a : b
-      );
-      const days = Math.floor(
-        (now - new Date(last.created_at).getTime()) / 86400000
-      );
+      const last = cs.reduce((a, b) => (new Date(a.created_at) > new Date(b.created_at) ? a : b));
+      const days = Math.floor((now - new Date(last.created_at).getTime()) / 86400000);
       if (days < thresholdDays) continue;
       out.push({
         customer: c,
@@ -107,11 +103,9 @@ function ChurnPage() {
       avgDays:
         atRisk.length === 0
           ? 0
-          : Math.round(
-              atRisk.reduce((a, b) => a + b.daysSinceLast, 0) / atRisk.length
-            ),
+          : Math.round(atRisk.reduce((a, b) => a + b.daysSinceLast, 0) / atRisk.length),
     }),
-    [atRisk]
+    [atRisk],
   );
 
   const sendReactivation = async (r: AtRisk) => {
@@ -161,12 +155,7 @@ function ChurnPage() {
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Kpi
-              icon={Users}
-              label="Em risco"
-              value={totals.count}
-              color="warning"
-            />
+            <Kpi icon={Users} label="Em risco" value={totals.count} color="warning" />
             <Kpi
               icon={TrendingDown}
               label="Receita histórica"
@@ -250,9 +239,7 @@ function Kpi({
   return (
     <Card className="p-4">
       <div className="flex items-center gap-3">
-        <div
-          className={`h-10 w-10 rounded-xl flex items-center justify-center ${colors[color]}`}
-        >
+        <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${colors[color]}`}>
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">

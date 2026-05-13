@@ -41,7 +41,8 @@ export function CustomerSummary({ customerId, phone }: CustomerSummaryProps) {
 
       if (!custId && phone) {
         let cleanPhone = String(phone).replace(/\D/g, "");
-        if (cleanPhone.length === 13 && cleanPhone.startsWith("55")) cleanPhone = cleanPhone.slice(2);
+        if (cleanPhone.length === 13 && cleanPhone.startsWith("55"))
+          cleanPhone = cleanPhone.slice(2);
         const last8 = cleanPhone.slice(-8);
         const { data: c } = await supabase
           .from("customers" as any)
@@ -53,33 +54,52 @@ export function CustomerSummary({ customerId, phone }: CustomerSummaryProps) {
       }
 
       if (!custId) {
-        if (!cancel) { setData(null); setLoading(false); }
+        if (!cancel) {
+          setData(null);
+          setLoading(false);
+        }
         return;
       }
 
       const [custRes, salesRes, osRes, npsRes, arRes] = await Promise.all([
-        supabase.from("customers" as any).select("id, name, phone, email").eq("id", custId).maybeSingle(),
-        supabase.from("sales_orders").select("id, total_amount, created_at, status").eq("customer_id", custId),
+        supabase
+          .from("customers" as any)
+          .select("id, name, phone, email")
+          .eq("id", custId)
+          .maybeSingle(),
+        supabase
+          .from("sales_orders")
+          .select("id, total_amount, created_at, status")
+          .eq("customer_id", custId),
         supabase.from("service_orders").select("id, status, total_cost").eq("customer_id", custId),
-        supabase.from("nps_responses").select("score").eq("customer_id", custId).order("created_at", { ascending: false }).limit(1),
-        supabase.from("accounts_receivable").select("amount, paid_amount, status").eq("customer_id", custId).neq("status", "paid"),
+        supabase
+          .from("nps_responses")
+          .select("score")
+          .eq("customer_id", custId)
+          .order("created_at", { ascending: false })
+          .limit(1),
+        supabase
+          .from("accounts_receivable")
+          .select("amount, paid_amount, status")
+          .eq("customer_id", custId)
+          .neq("status", "paid"),
       ]);
 
       const sales = ((salesRes.data ?? []) as any[]).filter((s) => s.status !== "cancelada");
       const lastSale = sales.length
-        ? sales.reduce((a, b) => new Date(a.created_at) > new Date(b.created_at) ? a : b)
+        ? sales.reduce((a, b) => (new Date(a.created_at) > new Date(b.created_at) ? a : b))
         : null;
       const totalSpent = sales.reduce((a, b) => a + Number(b.total_amount ?? 0), 0);
 
       const os = (osRes.data ?? []) as any[];
       const openOs = os.filter(
-        (o) => o.status !== "entregue" && o.status !== "concluida" && o.status !== "cancelada"
+        (o) => o.status !== "entregue" && o.status !== "concluida" && o.status !== "cancelada",
       ).length;
 
       const ar = (arRes.data ?? []) as any[];
       const pending = ar.reduce(
         (acc, a) => acc + (Number(a.amount ?? 0) - Number(a.paid_amount ?? 0)),
-        0
+        0,
       );
 
       const daysSinceLast = lastSale
@@ -101,13 +121,13 @@ export function CustomerSummary({ customerId, phone }: CustomerSummaryProps) {
       });
       setLoading(false);
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [customerId, phone]);
 
   if (loading) {
-    return (
-      <div className="text-xs text-muted-foreground py-2">Carregando histórico...</div>
-    );
+    return <div className="text-xs text-muted-foreground py-2">Carregando histórico...</div>;
   }
   if (!data || !data.customer) {
     return (
@@ -137,10 +157,25 @@ export function CustomerSummary({ customerId, phone }: CustomerSummaryProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <Stat icon={DollarSign} label="Total comprado" value={`R$ ${data.totalSpent.toFixed(0)}`} color="success" />
+        <Stat
+          icon={DollarSign}
+          label="Total comprado"
+          value={`R$ ${data.totalSpent.toFixed(0)}`}
+          color="success"
+        />
         <Stat icon={Package} label="Compras" value={data.purchases} color="primary" />
-        <Stat icon={Wrench} label="OS em aberto" value={data.openOs} color={data.openOs > 0 ? "warning" : "primary"} />
-        <Stat icon={AlertCircle} label="A receber" value={`R$ ${data.pendingAmount.toFixed(0)}`} color={data.pendingAmount > 0 ? "destructive" : "primary"} />
+        <Stat
+          icon={Wrench}
+          label="OS em aberto"
+          value={data.openOs}
+          color={data.openOs > 0 ? "warning" : "primary"}
+        />
+        <Stat
+          icon={AlertCircle}
+          label="A receber"
+          value={`R$ ${data.pendingAmount.toFixed(0)}`}
+          color={data.pendingAmount > 0 ? "destructive" : "primary"}
+        />
       </div>
 
       {data.daysSinceLast != null && data.daysSinceLast > 90 && (
@@ -177,9 +212,7 @@ function Stat({
         <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold leading-tight">
           {label}
         </div>
-        <div className={`text-sm font-black ${colors[color]} leading-tight`}>
-          {value}
-        </div>
+        <div className={`text-sm font-black ${colors[color]} leading-tight`}>{value}</div>
       </div>
     </div>
   );

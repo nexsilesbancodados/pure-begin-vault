@@ -77,7 +77,9 @@ function CaixaPdvPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [orgId]);
+  useEffect(() => {
+    load();
+  }, [orgId]);
 
   const totals = useMemo(() => {
     const t = { entradas: 0, saidas: 0 };
@@ -97,15 +99,16 @@ function CaixaPdvPage() {
   const openSession = async () => {
     if (!orgId || !userId) return;
     const opening = parseFloat(openAmount.replace(",", ".")) || 0;
-    const { error } = await supabase
-      .from("cash_register_sessions")
-      .insert({
-        organization_id: orgId,
-        user_id: userId,
-        opening_amount: opening,
-        status: "open",
-      } as any);
-    if (error) { toast.error("Erro: " + error.message); return; }
+    const { error } = await supabase.from("cash_register_sessions").insert({
+      organization_id: orgId,
+      user_id: userId,
+      opening_amount: opening,
+      status: "open",
+    } as any);
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
     toast.success("Caixa aberto");
     load();
   };
@@ -121,7 +124,10 @@ function CaixaPdvPage() {
         closing_amount: totals.saldo,
       } as any)
       .eq("id", session.id);
-    if (error) { toast.error("Erro: " + error.message); return; }
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
     toast.success("Caixa fechado");
     load();
   };
@@ -129,19 +135,23 @@ function CaixaPdvPage() {
   const addMovement = async (type: "sangria" | "reforco") => {
     if (!session || !orgId || !userId) return;
     const v = parseFloat(movAmount.replace(",", "."));
-    if (!v || v <= 0) { toast.error("Valor inválido"); return; }
+    if (!v || v <= 0) {
+      toast.error("Valor inválido");
+      return;
+    }
 
-    const { error } = await supabase
-      .from("cash_register_movements")
-      .insert({
-        organization_id: orgId,
-        user_id: userId,
-        session_id: session.id,
-        type,
-        amount: v,
-        description: movDesc.trim() || null,
-      } as any);
-    if (error) { toast.error("Erro: " + error.message); return; }
+    const { error } = await supabase.from("cash_register_movements").insert({
+      organization_id: orgId,
+      user_id: userId,
+      session_id: session.id,
+      type,
+      amount: v,
+      description: movDesc.trim() || null,
+    } as any);
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
     toast.success(type === "sangria" ? "Sangria registrada" : "Reforço registrado");
     setMovAmount("");
     setMovDesc("");
@@ -155,9 +165,7 @@ function CaixaPdvPage() {
         <Topbar title="Caixa PDV" subtitle="Sangria, reforço e fechamento" />
         <main className="flex-1 overflow-y-auto p-6 space-y-4">
           {loading ? (
-            <Card className="p-10 text-center text-sm text-muted-foreground">
-              Carregando...
-            </Card>
+            <Card className="p-10 text-center text-sm text-muted-foreground">Carregando...</Card>
           ) : !session ? (
             <Card className="p-6 max-w-md mx-auto">
               <h3 className="font-black mb-3 flex items-center gap-2">
@@ -189,8 +197,18 @@ function CaixaPdvPage() {
                   value={`R$ ${totals.saldo.toFixed(2)}`}
                   color="primary"
                 />
-                <Kpi icon={ArrowUpCircle} label="Entradas" value={`R$ ${totals.entradas.toFixed(2)}`} color="success" />
-                <Kpi icon={ArrowDownCircle} label="Saídas" value={`R$ ${totals.saidas.toFixed(2)}`} color="destructive" />
+                <Kpi
+                  icon={ArrowUpCircle}
+                  label="Entradas"
+                  value={`R$ ${totals.entradas.toFixed(2)}`}
+                  color="success"
+                />
+                <Kpi
+                  icon={ArrowDownCircle}
+                  label="Saídas"
+                  value={`R$ ${totals.saidas.toFixed(2)}`}
+                  color="destructive"
+                />
                 <Kpi
                   icon={PlayCircle}
                   label="Abertura"
@@ -245,9 +263,7 @@ function CaixaPdvPage() {
 
               <Card className="p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-black text-sm uppercase tracking-widest">
-                    Movimentações
-                  </h3>
+                  <h3 className="font-black text-sm uppercase tracking-widest">Movimentações</h3>
                   <Badge variant="outline">{movements.length}</Badge>
                 </div>
                 {movements.length === 0 ? (
@@ -270,9 +286,7 @@ function CaixaPdvPage() {
                               <ArrowUpCircle className="h-5 w-5 text-success" />
                             )}
                             <div className="min-w-0">
-                              <p className="text-sm font-bold capitalize">
-                                {m.type}
-                              </p>
+                              <p className="text-sm font-bold capitalize">{m.type}</p>
                               {m.description && (
                                 <p className="text-xs text-muted-foreground truncate">
                                   {m.description}
@@ -304,7 +318,8 @@ function CaixaPdvPage() {
                 className="w-full border-destructive text-destructive hover:bg-destructive/10"
                 onClick={closeSession}
               >
-                <StopCircle className="h-4 w-4 mr-2" /> Fechar caixa (saldo R$ {totals.saldo.toFixed(2)})
+                <StopCircle className="h-4 w-4 mr-2" /> Fechar caixa (saldo R${" "}
+                {totals.saldo.toFixed(2)})
               </Button>
             </>
           )}

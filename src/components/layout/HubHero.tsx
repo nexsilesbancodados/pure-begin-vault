@@ -16,7 +16,13 @@ interface HubHeroProps {
   icon?: LucideIcon;
 }
 
-export function HubHero({ eyebrow, title, description, actions = [], icon: Icon = Sparkles }: HubHeroProps) {
+export function HubHero({
+  eyebrow,
+  title,
+  description,
+  actions = [],
+  icon: Icon = Sparkles,
+}: HubHeroProps) {
   return (
     <div className="rounded-2xl bg-gradient-sidebar-cta p-8 text-white shadow-elegant relative overflow-hidden">
       <div className="absolute top-0 right-0 p-12 opacity-10">
@@ -35,8 +41,8 @@ export function HubHero({ eyebrow, title, description, actions = [], icon: Icon 
                 a.variant === "ghost"
                   ? "bg-white/15 backdrop-blur-md text-white hover:bg-white/25 border border-white/20"
                   : i === 0
-                  ? "bg-white text-primary shadow-lg hover:opacity-90"
-                  : "bg-white/15 backdrop-blur-md text-white hover:bg-white/25 border border-white/20";
+                    ? "bg-white text-primary shadow-lg hover:opacity-90"
+                    : "bg-white/15 backdrop-blur-md text-white hover:bg-white/25 border border-white/20";
               return (
                 <Link
                   key={a.to}

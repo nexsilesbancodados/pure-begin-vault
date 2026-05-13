@@ -33,7 +33,12 @@ const DEFAULT_CHART = [
   { code: "6.02", name: "Contador/assessoria", type: "expense", group: "Despesa Administrativa" },
   { code: "6.03", name: "Bancárias (tarifas)", type: "expense", group: "Despesa Administrativa" },
   { code: "6.04", name: "Taxas cartão", type: "expense", group: "Despesa Administrativa" },
-  { code: "6.05", name: "Impostos sobre receita", type: "expense", group: "Despesa Administrativa" },
+  {
+    code: "6.05",
+    name: "Impostos sobre receita",
+    type: "expense",
+    group: "Despesa Administrativa",
+  },
   { code: "6.06", name: "Pró-labore", type: "expense", group: "Despesa Administrativa" },
 
   // Não operacional
@@ -49,13 +54,11 @@ export async function seedChartOfAccounts(orgId: string, userId: string) {
     .eq("organization_id", orgId);
   const existingCodes = new Set(((existing ?? []) as any[]).map((e) => e.code));
 
-  const toInsert = DEFAULT_CHART
-    .filter((c) => !existingCodes.has(c.code))
-    .map((c) => ({
-      ...c,
-      organization_id: orgId,
-      user_id: userId,
-    }));
+  const toInsert = DEFAULT_CHART.filter((c) => !existingCodes.has(c.code)).map((c) => ({
+    ...c,
+    organization_id: orgId,
+    user_id: userId,
+  }));
 
   if (toInsert.length === 0) return { created: 0, skipped: DEFAULT_CHART.length };
 

@@ -2,7 +2,15 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { Construction } from "lucide-react";
 
-export function PagePlaceholder({ title, subtitle, description }: { title: string; subtitle?: string; description?: string }) {
+export function PagePlaceholder({
+  title,
+  subtitle,
+  description,
+}: {
+  title: string;
+  subtitle?: string;
+  description?: string;
+}) {
   return (
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar />
@@ -15,7 +23,8 @@ export function PagePlaceholder({ title, subtitle, description }: { title: strin
             </div>
             <h2 className="text-xl font-bold font-display">{title}</h2>
             <p className="text-sm text-muted-foreground max-w-md mt-2">
-              {description ?? "Esta seção está pronta para receber seus dados quando o Lovable Cloud (banco de dados) estiver ativo."}
+              {description ??
+                "Esta seção está pronta para receber seus dados quando o Lovable Cloud (banco de dados) estiver ativo."}
             </p>
           </div>
         </main>

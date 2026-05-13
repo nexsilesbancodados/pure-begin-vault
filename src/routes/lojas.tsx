@@ -38,9 +38,13 @@ function LojasPage() {
   const saveEdit = async () => {
     if (!editingId || !editName.trim()) return;
     const { error } = await (supabase as any).rpc("update_organization_name", {
-      _org_id: editingId, _name: editName.trim(),
+      _org_id: editingId,
+      _name: editName.trim(),
     });
-    if (error) { toast.error("Erro: " + error.message); return; }
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
     toast.success("Nome atualizado");
     setEditingId(null);
     reload();
@@ -49,7 +53,10 @@ function LojasPage() {
   const leave = async (orgId: string) => {
     if (!confirm("Sair desta loja? Você perde acesso a todos os dados dela.")) return;
     const { error } = await (supabase as any).rpc("leave_organization", { _org_id: orgId });
-    if (error) { toast.error("Erro: " + error.message); return; }
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
     toast.success("Você saiu da loja");
     setTimeout(() => window.location.reload(), 800);
   };
@@ -69,7 +76,9 @@ function LojasPage() {
                 placeholder="Ex: Loja Shopping Norte"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") create(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") create();
+                }}
                 className="flex-1"
               />
               <Button onClick={create} disabled={!newName.trim() || saving}>
@@ -77,8 +86,8 @@ function LojasPage() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Cada loja tem estoque, vendas, OS, financeiro e equipe independentes.
-              Você alterna entre elas pelo seletor no topo.
+              Cada loja tem estoque, vendas, OS, financeiro e equipe independentes. Você alterna
+              entre elas pelo seletor no topo.
             </p>
           </Card>
 
@@ -111,7 +120,9 @@ function LojasPage() {
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div
                           className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
-                            isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                            isActive
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted text-muted-foreground"
                           }`}
                         >
                           <Building2 className="h-5 w-5" />
@@ -121,7 +132,10 @@ function LojasPage() {
                             <Input
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
-                              onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditingId(null); }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveEdit();
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
                               autoFocus
                               className="text-sm h-8"
                             />
@@ -131,15 +145,20 @@ function LojasPage() {
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground capitalize">
-                            Papel: {o.role}{o.is_default && " · padrão"}
+                            Papel: {o.role}
+                            {o.is_default && " · padrão"}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
                         {editingId === o.organization_id ? (
                           <>
-                            <Button size="sm" onClick={saveEdit}>Salvar</Button>
-                            <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancelar</Button>
+                            <Button size="sm" onClick={saveEdit}>
+                              Salvar
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                              Cancelar
+                            </Button>
                           </>
                         ) : (
                           <>
@@ -185,9 +204,9 @@ function LojasPage() {
 
           <Card className="p-4 bg-muted/40 text-xs text-muted-foreground">
             <p>
-              <strong>Como funciona:</strong> ao trocar de loja, o app recarrega e todas as
-              telas (estoque, vendas, OS, financeiro) passam a mostrar dados daquela loja.
-              Não há mistura de dados entre lojas — cada uma é isolada via RLS.
+              <strong>Como funciona:</strong> ao trocar de loja, o app recarrega e todas as telas
+              (estoque, vendas, OS, financeiro) passam a mostrar dados daquela loja. Não há mistura
+              de dados entre lojas — cada uma é isolada via RLS.
             </p>
           </Card>
         </main>

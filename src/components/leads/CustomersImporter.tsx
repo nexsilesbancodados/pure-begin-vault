@@ -50,11 +50,7 @@ const HEADER_MAP: Record<string, keyof Row> = {
 };
 
 function normalizeKey(k: string): keyof Row | null {
-  const clean = k
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .trim();
+  const clean = k.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
   return HEADER_MAP[clean] ?? null;
 }
 
@@ -79,7 +75,10 @@ export function CustomersImporter({ open, onOpenChange, onImported }: Props) {
     const wb = XLSX.read(buf, { type: "array" });
     const sheet = wb.Sheets[wb.SheetNames[0]];
     const json = XLSX.utils.sheet_to_json<any>(sheet);
-    if (!json.length) { toast.error("Planilha vazia"); return; }
+    if (!json.length) {
+      toast.error("Planilha vazia");
+      return;
+    }
 
     const rows: Row[] = json.map((r) => {
       const out: Row = { name: "" };
@@ -104,7 +103,8 @@ export function CustomersImporter({ open, onOpenChange, onImported }: Props) {
   const importNow = async () => {
     if (!orgId || !userId || valid.length === 0) return;
     setImporting(true);
-    let ok = 0, failed = 0;
+    let ok = 0,
+      failed = 0;
     // batch insert (chunks de 100)
     for (let i = 0; i < valid.length; i += 100) {
       const chunk = valid.slice(i, i + 100).map((r) => ({
@@ -129,12 +129,21 @@ export function CustomersImporter({ open, onOpenChange, onImported }: Props) {
   };
 
   const reset = () => {
-    setPreview([]); setValid([]); setInvalid([]); setResult(null);
+    setPreview([]);
+    setValid([]);
+    setInvalid([]);
+    setResult(null);
     if (fileRef.current) fileRef.current.value = "";
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) reset();
+      }}
+    >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Importar clientes (CSV/XLSX)</DialogTitle>
@@ -146,7 +155,8 @@ export function CustomersImporter({ open, onOpenChange, onImported }: Props) {
               <FileSpreadsheet className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
               <p className="text-sm font-bold mb-1">Suba CSV ou XLSX</p>
               <p className="text-xs text-muted-foreground mb-4">
-                Colunas aceitas: <code>nome</code>, <code>telefone</code>, <code>email</code>, <code>cpf/cnpj</code>, <code>obs</code>
+                Colunas aceitas: <code>nome</code>, <code>telefone</code>, <code>email</code>,{" "}
+                <code>cpf/cnpj</code>, <code>obs</code>
               </p>
               <input
                 ref={fileRef}
@@ -178,15 +188,26 @@ export function CustomersImporter({ open, onOpenChange, onImported }: Props) {
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 bg-muted/40">
                     <tr>
-                      <th className="px-2 py-1.5 text-left text-[10px] uppercase tracking-widest">Nome</th>
-                      <th className="px-2 py-1.5 text-left text-[10px] uppercase tracking-widest">Telefone</th>
-                      <th className="px-2 py-1.5 text-left text-[10px] uppercase tracking-widest">Email</th>
-                      <th className="px-2 py-1.5 text-left text-[10px] uppercase tracking-widest">Doc</th>
+                      <th className="px-2 py-1.5 text-left text-[10px] uppercase tracking-widest">
+                        Nome
+                      </th>
+                      <th className="px-2 py-1.5 text-left text-[10px] uppercase tracking-widest">
+                        Telefone
+                      </th>
+                      <th className="px-2 py-1.5 text-left text-[10px] uppercase tracking-widest">
+                        Email
+                      </th>
+                      <th className="px-2 py-1.5 text-left text-[10px] uppercase tracking-widest">
+                        Doc
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {preview.map((r, i) => (
-                      <tr key={i} className={!r.name || (!r.phone && !r.email) ? "bg-destructive/5" : ""}>
+                      <tr
+                        key={i}
+                        className={!r.name || (!r.phone && !r.email) ? "bg-destructive/5" : ""}
+                      >
                         <td className="px-2 py-1 font-bold">{r.name || "—"}</td>
                         <td className="px-2 py-1">{r.phone || "—"}</td>
                         <td className="px-2 py-1">{r.email || "—"}</td>
@@ -202,7 +223,8 @@ export function CustomersImporter({ open, onOpenChange, onImported }: Props) {
 
               {result && (
                 <div className="rounded-lg bg-success/5 border border-success/30 p-3 text-sm">
-                  ✓ Importação concluída: <strong>{result.ok}</strong> ok, <strong>{result.failed}</strong> falhas
+                  ✓ Importação concluída: <strong>{result.ok}</strong> ok,{" "}
+                  <strong>{result.failed}</strong> falhas
                 </div>
               )}
             </>
@@ -212,7 +234,9 @@ export function CustomersImporter({ open, onOpenChange, onImported }: Props) {
         <DialogFooter>
           {preview.length > 0 && !result && (
             <>
-              <Button variant="outline" onClick={reset}>Trocar arquivo</Button>
+              <Button variant="outline" onClick={reset}>
+                Trocar arquivo
+              </Button>
               <Button onClick={importNow} disabled={importing || valid.length === 0}>
                 {importing ? "Importando..." : `Importar ${valid.length} cliente(s)`}
               </Button>

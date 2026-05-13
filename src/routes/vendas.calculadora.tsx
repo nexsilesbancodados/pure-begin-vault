@@ -24,10 +24,10 @@ const CONDICAO_LABEL: Record<Condicao, string> = {
 
 // Multiplicador sobre preço de mercado para preço de COMPRA (loja paga ao cliente)
 const CONDICAO_FATOR: Record<Condicao, number> = {
-  novo: 0.85,      // novo lacrado: 85% do mercado
-  seminovo: 0.70,  // sem riscos: 70%
-  usado: 0.55,     // usado normal: 55%
-  ruim: 0.35,      // com defeito: 35%
+  novo: 0.85, // novo lacrado: 85% do mercado
+  seminovo: 0.7, // sem riscos: 70%
+  usado: 0.55, // usado normal: 55%
+  ruim: 0.35, // com defeito: 35%
 };
 
 function CalculadoraAparelhosPage() {
