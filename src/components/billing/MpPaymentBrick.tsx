@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 // Public key (publishable, ok no frontend)
-const MP_PUBLIC_KEY = "APP_USR-f31cfc42-1122-41e1-995e-a3f168370491";
+const MP_PUBLIC_KEY = "APP_USR-c09d032c-d0b8-424a-ae0e-5054cf8fd581";
 
 declare global {
   interface Window {
