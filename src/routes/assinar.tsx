@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Check, Loader2, ArrowLeft, CheckCircle2, Copy, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { ensureMercadoPagoSdk } from "@/lib/mercadoPagoSdk";
 
 const MP_PUBLIC_KEY = "APP_USR-c09d032c-d0b8-424a-ae0e-5054cf8fd581";
 
@@ -198,8 +199,13 @@ function PaymentBrick({ plan, form, onResult, onBack }: {
     if (initialized.current) return;
     let cancelled = false;
     const init = async () => {
-      for (let i = 0; i < 60; i++) { if (window.MercadoPago) break; await new Promise(r => setTimeout(r, 100)); }
-      if (cancelled || !window.MercadoPago) { toast.error("Falha ao carregar Mercado Pago"); return; }
+      try {
+        await ensureMercadoPagoSdk();
+      } catch (error: any) {
+        toast.error(error?.message || "Falha ao carregar Mercado Pago");
+        return;
+      }
+      if (cancelled || !window.MercadoPago) return;
       const mp = new window.MercadoPago(MP_PUBLIC_KEY, { locale: "pt-BR" });
       const bricks = mp.bricks();
       try { await window.brickCtl?.unmount?.(); } catch {}
