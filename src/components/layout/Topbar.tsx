@@ -67,21 +67,24 @@ export function Topbar({
         )}
       </div>
 
-      <div className="hidden md:block flex-1 max-w-xl mx-auto relative group">
+      <button
+        type="button"
+        onClick={() => {
+          window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+        }}
+        className="hidden md:flex flex-1 max-w-xl mx-auto relative group items-center text-left"
+        aria-label="Abrir busca rápida"
+      >
         <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground z-10" />
-        <input
-          placeholder="Buscar IMEI, Modelo ou Lead..."
-          className="w-full h-10 lg:h-11 pl-10 pr-24 rounded-2xl bg-muted/60 border border-transparent focus:border-ring focus:bg-card outline-none text-sm placeholder:text-muted-foreground transition shadow-sm group-hover:bg-muted/80"
-        />
+        <span className="w-full h-10 lg:h-11 pl-10 pr-24 rounded-2xl bg-muted/60 border border-transparent group-hover:bg-muted/80 outline-none text-sm text-muted-foreground transition shadow-sm flex items-center">
+          Buscar páginas, leads, produtos...
+        </span>
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
-          <span className="hidden sm:inline-flex px-1.5 py-0.5 rounded border border-border bg-card text-[9px] font-bold text-muted-foreground uppercase">
-            IMEI
-          </span>
           <kbd className="text-[10px] font-medium text-muted-foreground bg-card border border-border rounded px-1.5 py-0.5">
             ⌘K
           </kbd>
         </div>
-      </div>
+      </button>
 
       <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
         <button
