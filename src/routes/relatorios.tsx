@@ -86,7 +86,18 @@ function ReportsPage() {
   const { user, profile } = useAuth();
   const { orgId } = useOrg();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any>({
+  type Trend = { value: string; isUp: boolean };
+  type Stats = {
+    revenue: number;
+    leads: number;
+    conversion: number;
+    avgTicket: number;
+    revenueTrend: Trend;
+    leadsTrend: Trend;
+    conversionTrend: Trend;
+    avgTicketTrend: Trend;
+  };
+  const [stats, setStats] = useState<Stats>({
     revenue: 0,
     leads: 0,
     conversion: 0,
@@ -99,7 +110,15 @@ function ReportsPage() {
   const [activeCategory, setActiveCategory] = useState("visao-geral");
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
-  const [categories, setCategories] = useState<any[]>([
+  type Category = {
+    id: string;
+    label: string;
+    icon: typeof Home;
+    hasArrow?: boolean;
+    isNew?: boolean;
+    children?: { id: string; label: string; icon: typeof Home; isNew?: boolean }[];
+  };
+  const [categories, setCategories] = useState<Category[]>([
     { id: "visao-geral", label: "Visão geral - Atalhos", icon: Home },
     {
       id: "clientes",
@@ -234,7 +253,7 @@ function ReportsPage() {
     }),
   );
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: import("@dnd-kit/core").DragEndEvent) => {
     const { active, over } = event;
     if (active && over && active.id !== over.id) {
       setCategories((items) => {
@@ -253,7 +272,6 @@ function ReportsPage() {
       try {
         const orderIds = JSON.parse(savedOrder);
         setCategories((prev) => {
-          const currentIds = prev.map((c) => c.id);
           const sorted = [...prev].sort((a, b) => {
             const aIndex = orderIds.indexOf(a.id);
             const bIndex = orderIds.indexOf(b.id);
@@ -283,38 +301,55 @@ function ReportsPage() {
     };
   }, []);
 
-  const [funnelData, setFunnelData] = useState<any[]>([]);
-  const [originData, setOriginData] = useState<any[]>([]);
-  const [topAgents, setTopAgents] = useState<any[]>([]);
+  type FunnelDatum = { name: string; value: number; color: string };
+  type OriginDatum = { name: string; value: number; color: string };
+  type AgentDatum = { name: string; avatar: string; sales: number; revenue: string; trend: string };
+  const [funnelData, setFunnelData] = useState<FunnelDatum[]>([]);
+  const [originData, setOriginData] = useState<OriginDatum[]>([]);
+  const [topAgents, setTopAgents] = useState<AgentDatum[]>([]);
 
   const fetchReportsData = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const filt = (q: any) => (orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id));
-      const { data: sales } = await filt(
-        supabase.from("sales_orders").select("total_amount, status, created_at, user_id"),
-      );
-      const concludedSales = (sales || []).filter((s: any) => s.status === "concluded");
+      type SaleRow = { total_amount: number | null; status: string | null; created_at: string | null };
+      type LeadRow = { source: string | null; status: string | null; created_at: string | null };
+      type StageRow = { id: string; name: string; color: string | null };
+      type PipelineRow = { stage_id: string | null };
+
+      const filt = <T,>(q: T): T => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const qq = q as any;
+        return (orgId ? qq.eq("organization_id", orgId) : qq.eq("user_id", user.id)) as T;
+      };
+
+      const [salesRes, leadsRes, stagesRes, pipelineRes] = await Promise.all([
+        filt(supabase.from("sales_orders").select("total_amount, status, created_at")),
+        filt(supabase.from("leads").select("source, status, created_at")),
+        filt(supabase.from("funnel_stages").select("name, color, id")).order("order_index"),
+        filt(supabase.from("pipeline_leads").select("stage_id")),
+      ]);
+
+      const sales = (salesRes.data || []) as SaleRow[];
+      const leads = (leadsRes.data || []) as LeadRow[];
+      const stages = (stagesRes.data || []) as StageRow[];
+      const pipeline = (pipelineRes.data || []) as PipelineRow[];
+
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const concludedSales = sales.filter((s) => s.status === "concluded");
       const currentMonthSales = concludedSales.filter(
-        (s: any) =>
-          new Date(s.created_at!) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+        (s) => s.created_at != null && new Date(s.created_at) >= monthStart,
       );
       const monthRevenue = currentMonthSales.reduce(
-        (acc: number, curr: any) => acc + (curr.total_amount || 0),
+        (acc, curr) => acc + (curr.total_amount || 0),
         0,
       );
 
-      const { data: leads } = await filt(
-        supabase.from("leads").select("source, status, created_at"),
-      );
-      const currentLeads = (leads || []).filter(
-        (l: any) =>
-          l.created_at &&
-          new Date(l.created_at) >= new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      const currentLeads = leads.filter(
+        (l) => l.created_at != null && new Date(l.created_at) >= monthStart,
       );
       const wonLeads = currentLeads.filter(
-        (l: any) => l.status && ["won", "concluded"].includes(l.status),
+        (l) => l.status != null && ["won", "concluded"].includes(l.status),
       ).length;
 
       setStats({
@@ -328,20 +363,16 @@ function ReportsPage() {
         avgTicketTrend: { value: "—", isUp: true },
       });
 
-      const { data: stages } = await filt(
-        supabase.from("funnel_stages").select("name, color, id"),
-      ).order("order_index");
-      const { data: pipeline } = await filt(supabase.from("pipeline_leads").select("stage_id"));
       setFunnelData(
-        (stages || []).map((s: any) => ({
+        stages.map((s) => ({
           name: s.name,
-          value: (pipeline || []).filter((p: any) => p.stage_id === s.id).length,
+          value: pipeline.filter((p) => p.stage_id === s.id).length,
           color: s.color || "#64748b",
         })),
       );
 
       const counts: Record<string, number> = {};
-      (leads || []).forEach((l: any) => {
+      leads.forEach((l) => {
         const src = l.source || "Direto";
         counts[src] = (counts[src] || 0) + 1;
       });

@@ -76,40 +76,47 @@ export function useDashboardStats(period: Period = "today") {
         osQ,
       ]);
 
-      const sales = salesRes.data || [];
-      const products = productsRes.data || [];
-      const leads = leadsRes.data || [];
-      const os = osRes.data || [];
+      type SaleRow = { total_amount: number | null; created_at: string | null; status: string | null };
+      type ProductRow = { stock_quantity: number | null; min_stock: number | null };
+      type LeadRow = { created_at: string | null };
+      type OSRow = { status: string | null };
+
+      const sales = (salesRes.data || []) as SaleRow[];
+      const products = (productsRes.data || []) as ProductRow[];
+      const leads = (leadsRes.data || []) as LeadRow[];
+      const os = (osRes.data || []) as OSRow[];
 
       const isCompleted = (s: string | null | undefined) =>
         s === "completed" || s === "concluded" || s === "paid";
 
       const todaySales = sales
-        .filter((s: any) => {
-          const date = new Date(s.created_at!);
+        .filter((s) => {
+          if (!s.created_at) return false;
+          const date = new Date(s.created_at);
           return date >= startDate && date <= endDate && isCompleted(s.status);
         })
-        .reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
+        .reduce((acc, curr) => acc + (Number(curr.total_amount) || 0), 0);
 
       const monthSales = sales.filter(
-        (s: any) => new Date(s.created_at!) >= firstDayMonth && isCompleted(s.status),
+        (s) => s.created_at != null && new Date(s.created_at) >= firstDayMonth && isCompleted(s.status),
       );
       const monthRevenue = monthSales.reduce(
-        (acc: number, curr: any) => acc + (Number(curr.total_amount) || 0),
+        (acc, curr) => acc + (Number(curr.total_amount) || 0),
         0,
       );
 
       const lowStockCount = products.filter(
-        (p: any) => (Number(p.stock_quantity) || 0) <= (Number(p.min_stock) || 5),
+        (p) => (Number(p.stock_quantity) || 0) <= (Number(p.min_stock) || 5),
       ).length;
 
-      const newLeadsCount = leads.filter((l: any) => {
+      const newLeadsCount = leads.filter((l) => {
+        if (!l.created_at) return false;
         const date = new Date(l.created_at);
         return date >= startDate && date <= endDate;
       }).length;
 
       const activeOSCount = os.filter(
-        (o: any) => o.status !== "delivered" && o.status !== "canceled" && o.status !== "cancelled",
+        (o) => o.status !== "delivered" && o.status !== "canceled" && o.status !== "cancelled",
       ).length;
 
       const avgTicket = monthSales.length > 0 ? monthRevenue / monthSales.length : 0;
