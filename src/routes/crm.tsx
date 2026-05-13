@@ -237,20 +237,14 @@ function CrmHub() {
           {/* Modules grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {modules.map((m) => (
-              <Link
+              <FeatureCard
                 key={m.url}
                 to={m.url}
-                className="group bg-card border border-border rounded-2xl p-5 shadow-card hover:shadow-elegant hover:border-primary/30 transition-all"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`h-11 w-11 rounded-xl ${m.bg} ${m.color} grid place-items-center`}>
-                    <m.icon className="h-5 w-5" />
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition" />
-                </div>
-                <h3 className="font-bold font-display text-base mb-1">{m.title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{m.desc}</p>
-              </Link>
+                icon={m.icon}
+                title={m.title}
+                description={m.desc}
+                tone={m.tone}
+              />
             ))}
           </div>
 
