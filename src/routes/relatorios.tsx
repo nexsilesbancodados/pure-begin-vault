@@ -253,7 +253,7 @@ function ReportsPage() {
     }),
   );
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: { active: { id: string }; over: { id: string } | null }) => {
     const { active, over } = event;
     if (active && over && active.id !== over.id) {
       setCategories((items) => {
