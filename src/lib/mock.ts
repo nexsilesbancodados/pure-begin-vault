@@ -75,7 +75,6 @@ export const sidebarItems = [
       { title: "Estoque Atual", url: "/estoque/atual" },
       { title: "Inventário (contagem)", url: "/inventario", icon: "ClipboardList" },
       { title: "Entrada de NF/Compras", url: "/estoque/compras" },
-      { title: "Produtos Vendidos", url: "/estoque/vendidos" },
       { title: "Movimentações", url: "/estoque/movimentacoes" },
       { title: "Etiquetas", url: "/estoque/etiquetas" },
     ],
