@@ -26,14 +26,6 @@ export function HeroHeader({ userName, todaySales, monthRevenue, newLeads }: Her
         style={{ background: "oklch(0.85 0.2 330)" }} />
       <div className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full opacity-20 blur-3xl"
         style={{ background: "oklch(0.85 0.18 200)" }} />
-      {/* Grid pattern */}
-      <div className="absolute inset-0 opacity-[0.07]"
-        style={{
-          backgroundImage:
-            "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-        }} />
-
       <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5 lg:gap-6">
         <div className="text-white min-w-0">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-[11px] font-medium mb-3">
