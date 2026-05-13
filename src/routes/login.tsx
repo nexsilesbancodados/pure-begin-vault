@@ -7,7 +7,9 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Entrar — ConectaCRM" },
-      { name: "description", content: "Acesse sua conta ConectaCRM." },
+      { name: "description", content: "Acesse sua conta ConectaCRM para gerenciar leads, vendas, estoque e atendimentos no WhatsApp e Instagram." },
+      { property: "og:title", content: "Entrar no ConectaCRM" },
+      { property: "og:description", content: "Acesse sua conta para continuar gerenciando sua loja." },
     ],
   }),
   component: Login,
@@ -109,13 +111,14 @@ export const Route = createFileRoute("/login")({
                    className="w-full h-12 pl-11 pr-11 rounded-xl bg-white border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none text-slate-900 transition-all placeholder:text-slate-400 text-sm"
                    required
                  />
-                 <button
-                   type="button"
-                   onClick={() => setShowPassword(!showPassword)}
-                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                 >
-                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                 </button>
+                   <button
+                     type="button"
+                     onClick={() => setShowPassword(!showPassword)}
+                     aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                   >
+                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                   </button>
                </div>
              </div>
 

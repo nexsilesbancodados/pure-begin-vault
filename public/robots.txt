@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /painel
+Disallow: /onboarding
+Disallow: /admin
+Disallow: /minha-conta
+Disallow: /api/
+
+Sitemap: https://pure-begin-vault.lovable.app/sitemap.xml

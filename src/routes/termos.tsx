@@ -4,7 +4,9 @@ export const Route = createFileRoute("/termos")({
   head: () => ({
     meta: [
       { title: "Termos de Uso — ConectaCRM" },
-      { name: "description", content: "Termos de Uso da plataforma ConectaCRM." },
+      { name: "description", content: "Conheça os termos contratuais que regem o uso do ConectaCRM, incluindo direitos, deveres, planos, cancelamento e responsabilidades." },
+      { property: "og:title", content: "Termos de Uso — ConectaCRM" },
+      { property: "og:description", content: "Termos contratuais da plataforma ConectaCRM." },
     ],
   }),
   component: Termos,
