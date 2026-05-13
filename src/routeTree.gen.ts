@@ -14,6 +14,7 @@ import { Route as VendasRouteImport } from './routes/vendas'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as TemplatesRouteImport } from './routes/templates'
 import { Route as StatusRouteImport } from './routes/status'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ServicosRouteImport } from './routes/servicos'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
@@ -131,6 +132,11 @@ const TemplatesRoute = TemplatesRouteImport.update({
 const StatusRoute = StatusRouteImport.update({
   id: '/status',
   path: '/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServicosRoute = ServicosRouteImport.update({
@@ -646,6 +652,7 @@ export interface FileRoutesByFullPath {
   '/relatorios': typeof RelatoriosRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/servicos': typeof ServicosRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/status': typeof StatusRoute
   '/templates': typeof TemplatesRoute
   '/termos': typeof TermosRoute
@@ -746,6 +753,7 @@ export interface FileRoutesByTo {
   '/relatorios': typeof RelatoriosRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/servicos': typeof ServicosRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/status': typeof StatusRoute
   '/templates': typeof TemplatesRoute
   '/termos': typeof TermosRoute
@@ -847,6 +855,7 @@ export interface FileRoutesById {
   '/relatorios': typeof RelatoriosRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/servicos': typeof ServicosRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/status': typeof StatusRoute
   '/templates': typeof TemplatesRoute
   '/termos': typeof TermosRoute
@@ -949,6 +958,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/reset-password'
     | '/servicos'
+    | '/sitemap.xml'
     | '/status'
     | '/templates'
     | '/termos'
@@ -1049,6 +1059,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/reset-password'
     | '/servicos'
+    | '/sitemap.xml'
     | '/status'
     | '/templates'
     | '/termos'
@@ -1149,6 +1160,7 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/reset-password'
     | '/servicos'
+    | '/sitemap.xml'
     | '/status'
     | '/templates'
     | '/termos'
@@ -1250,6 +1262,7 @@ export interface RootRouteChildren {
   RelatoriosRoute: typeof RelatoriosRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicosRoute: typeof ServicosRouteWithChildren
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StatusRoute: typeof StatusRoute
   TemplatesRoute: typeof TemplatesRoute
   TermosRoute: typeof TermosRoute
@@ -1309,6 +1322,13 @@ declare module '@tanstack/react-router' {
       path: '/status'
       fullPath: '/status'
       preLoaderRoute: typeof StatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/servicos': {
@@ -2140,6 +2160,7 @@ const rootRouteChildren: RootRouteChildren = {
   RelatoriosRoute: RelatoriosRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicosRoute: ServicosRouteWithChildren,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   StatusRoute: StatusRoute,
   TemplatesRoute: TemplatesRoute,
   TermosRoute: TermosRoute,
