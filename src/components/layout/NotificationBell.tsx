@@ -21,13 +21,13 @@ export function NotificationBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<N[]>([]);
-  const unread = items.filter((i) => !i.is_read).length;
+  const unread = useMemo(() => items.reduce((n, i) => (i.is_read ? n : n + 1), 0), [items]);
 
   const load = async () => {
     if (!user?.id) return;
     const { data } = await supabase
       .from("notifications")
-      .select("*")
+      .select("id,type,title,body,link,is_read,created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20);
