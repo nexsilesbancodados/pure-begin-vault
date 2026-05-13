@@ -43,7 +43,7 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
     );
   }
 
-  const Icon = (Icons as any)[item.icon] || HelpCircle;
+  const Icon = iconMap[item.icon] || HelpCircle;
   const active = location.pathname === item.url || (item.children?.some((child: any) => location.pathname === child.url));
 
   const NavItem = (
