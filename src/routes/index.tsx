@@ -234,6 +234,8 @@ function Landing() {
               alt="Dashboard ConectaCRM em notebook e celular mostrando vendas, estoque por IMEI e atendimento WhatsApp"
               width={1536}
               height={1024}
+              fetchPriority="high"
+              decoding="async"
               className="w-full h-auto drop-shadow-2xl"
             />
           </div>
