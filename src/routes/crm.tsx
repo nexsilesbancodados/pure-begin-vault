@@ -25,14 +25,14 @@ export const Route = createFileRoute("/crm")({
   component: CrmHub,
 });
 
-const modules = [
-  { title: "Base de Leads",     desc: "Gestão e qualificação de clientes potenciais", url: "/leads",         icon: UserPlus,       color: "text-primary", bg: "bg-primary/10" },
-  { title: "Funil de Vendas",   desc: "Pipeline Kanban por estágio",                  url: "/funil",         icon: Trello,         color: "text-info",    bg: "bg-info/10" },
-  { title: "Bot de Atendimento",desc: "IA que atende 24/7 no WhatsApp",               url: "/crm/bot",       icon: Bot,            color: "text-success", bg: "bg-success/10" },
-  { title: "Catálogo da IA",    desc: "Produtos e serviços que o bot oferece",        url: "/crm/catalogo",  icon: Package,        color: "text-primary", bg: "bg-primary/10" },
-  { title: "Automações",        desc: "Fluxos automáticos baseados em gatilhos",      url: "/automacao",     icon: Zap,            color: "text-warning", bg: "bg-warning/10" },
-  { title: "WhatsApp",          desc: "Conversas em tempo real e automações",         url: "/whatsapp",      icon: MessageSquare,  color: "text-success", bg: "bg-success/10" },
-  { title: "Instagram",         desc: "Gestão de Directs e Engajamento",              url: "/instagram",     icon: Instagram,      color: "text-primary", bg: "bg-primary/10" },
+const modules: { title: string; desc: string; url: string; icon: any; tone: FeatureCardTone }[] = [
+  { title: "Base de Leads",     desc: "Gestão e qualificação de clientes potenciais", url: "/leads",         icon: UserPlus,      tone: "violet" },
+  { title: "Funil de Vendas",   desc: "Pipeline Kanban por estágio",                  url: "/funil",         icon: Trello,        tone: "info" },
+  { title: "Bot de Atendimento",desc: "IA que atende 24/7 no WhatsApp",               url: "/crm/bot",       icon: Bot,           tone: "success" },
+  { title: "Catálogo da IA",    desc: "Produtos e serviços que o bot oferece",        url: "/crm/catalogo",  icon: Package,       tone: "violet" },
+  { title: "Automações",        desc: "Fluxos automáticos baseados em gatilhos",      url: "/automacao",     icon: Zap,           tone: "warning" },
+  { title: "WhatsApp",          desc: "Conversas em tempo real e automações",         url: "/whatsapp",      icon: MessageSquare, tone: "success" },
+  { title: "Instagram",         desc: "Gestão de Directs e Engajamento",              url: "/instagram",     icon: Instagram,     tone: "violet" },
 ];
 
 function CrmHub() {
