@@ -44,7 +44,7 @@ export const Route = createFileRoute("/api/export-data")({
           "automation_installs",
         ];
 
-        const out: Record<string, any[]> = {
+        const out: Record<string, any> = {
           user: {
             id: user.id,
             email: user.email,
