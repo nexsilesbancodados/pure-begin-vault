@@ -5,6 +5,18 @@ import { NotificationBell } from "./NotificationBell";
 import { useI18n, type Locale } from "@/lib/i18n";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { OrgSwitcher } from "@/components/layout/OrgSwitcher";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const localeLabels: Record<Locale, string> = {
+  pt: "PT",
+  en: "EN",
+  es: "ES",
+};
 
 export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subtitle?: string; toggleSidebar?: () => void }) {
   const navigate = useNavigate();
@@ -71,19 +83,35 @@ export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subt
           <OrgSwitcher />
         </div>
 
-        <div className="hidden sm:flex items-center gap-1 h-10 px-2 rounded-xl hover:bg-muted">
-          <Globe className="h-4 w-4 text-muted-foreground" />
-          <select
-            value={locale}
-            onChange={(e) => setLocale(e.target.value as Locale)}
-            className="bg-transparent text-xs font-bold uppercase outline-none cursor-pointer"
-            aria-label="Idioma"
-          >
-            <option value="pt">PT</option>
-            <option value="en">EN</option>
-            <option value="es">ES</option>
-          </select>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="hidden sm:flex h-10 items-center gap-1 rounded-xl px-2 text-xs font-bold uppercase hover:bg-muted"
+              aria-label="Idioma"
+            >
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <span>{localeLabels[locale]}</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-24">
+            {(
+              [
+                ["pt", "Português"],
+                ["en", "English"],
+                ["es", "Español"],
+              ] as const
+            ).map(([value, label]) => (
+              <DropdownMenuItem
+                key={value}
+                onSelect={() => setLocale(value)}
+                className={locale === value ? "font-semibold text-primary" : undefined}
+              >
+                {label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <button aria-label="Mensagens" className="hidden sm:grid relative h-10 w-10 place-items-center rounded-xl hover:bg-muted">
           <MessageCircle className="h-[18px] w-[18px] text-foreground/70" />
