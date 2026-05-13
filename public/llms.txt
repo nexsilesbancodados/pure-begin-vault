@@ -1,0 +1,19 @@
+# ConectaCRM
+
+> ERP, CRM e IA para lojas de celular: estoque por IMEI, ordem de serviço, vendas, fiscal, financeiro, CRM com WhatsApp e Instagram, e app mobile.
+
+ConectaCRM é a plataforma brasileira que unifica gestão de loja (estoque, PDV, fiscal, financeiro), assistência técnica (ordens de serviço com termos de garantia) e relacionamento (CRM multicanal com IA de pós-venda) para lojas de celular e assistência técnica.
+
+## Pages
+
+- [Home](/): Visão geral da plataforma, funcionalidades, planos e depoimentos.
+- [Login](/login): Acesso à conta.
+- [Criar conta](/registro): Cadastro de nova conta.
+- [Assinar](/assinar): Escolha de plano e checkout via Mercado Pago.
+- [Política de Privacidade](/privacidade): Como tratamos dados conforme LGPD.
+- [Termos de Uso](/termos): Termos contratuais da plataforma.
+
+## Optional
+
+- [Status](/status): Status operacional do serviço.
+- [Ajuda](/help): Central de ajuda e documentação.

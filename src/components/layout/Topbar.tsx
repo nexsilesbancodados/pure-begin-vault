@@ -20,6 +20,7 @@ export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subt
         <button 
           className="lg:hidden p-2 rounded-md hover:bg-muted"
           onClick={toggleSidebar}
+          aria-label="Abrir menu lateral"
         >
           <span className="block w-5 h-0.5 bg-foreground mb-1" />
           <span className="block w-5 h-0.5 bg-foreground mb-1" />
@@ -48,13 +49,13 @@ export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subt
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
-        <button className="md:hidden h-10 w-10 grid place-items-center rounded-xl hover:bg-muted text-foreground/70">
+        <button aria-label="Buscar" className="md:hidden h-10 w-10 grid place-items-center rounded-xl hover:bg-muted text-foreground/70">
           <Search className="h-[18px] w-[18px]" />
         </button>
-        <button className="hidden sm:inline-flex items-center gap-2 h-10 px-3 lg:px-4 rounded-xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-elegant hover:opacity-95 transition">
+        <button aria-label="Criar novo lead" className="hidden sm:inline-flex items-center gap-2 h-10 px-3 lg:px-4 rounded-xl bg-gradient-primary text-primary-foreground text-sm font-medium shadow-elegant hover:opacity-95 transition">
           <Plus className="h-4 w-4" /> <span className="hidden lg:inline">Novo Lead</span><span className="lg:hidden">Novo</span> <ChevronDown className="h-3.5 w-3.5 opacity-80" />
         </button>
-        <button className="sm:hidden h-10 w-10 grid place-items-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
+        <button aria-label="Criar novo lead" className="sm:hidden h-10 w-10 grid place-items-center rounded-xl bg-gradient-primary text-primary-foreground shadow-elegant">
           <Plus className="h-[18px] w-[18px]" />
         </button>
         <button
@@ -84,7 +85,7 @@ export function Topbar({ title, subtitle, toggleSidebar }: { title: string; subt
           </select>
         </div>
 
-        <button className="hidden sm:grid relative h-10 w-10 place-items-center rounded-xl hover:bg-muted">
+        <button aria-label="Mensagens" className="hidden sm:grid relative h-10 w-10 place-items-center rounded-xl hover:bg-muted">
           <MessageCircle className="h-[18px] w-[18px] text-foreground/70" />
           <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-primary text-[10px] font-semibold text-primary-foreground grid place-items-center">3</span>
         </button>

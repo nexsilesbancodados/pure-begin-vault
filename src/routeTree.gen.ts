@@ -13,6 +13,8 @@ import { Route as WhatsappRouteImport } from './routes/whatsapp'
 import { Route as VendasRouteImport } from './routes/vendas'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as TemplatesRouteImport } from './routes/templates'
+import { Route as StatusRouteImport } from './routes/status'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ServicosRouteImport } from './routes/servicos'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RelatoriosRouteImport } from './routes/relatorios'
@@ -26,24 +28,38 @@ import { Route as PainelRouteImport } from './routes/painel'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as NpsRouteImport } from './routes/nps'
 import { Route as MinhaContaRouteImport } from './routes/minha-conta'
+import { Route as MensagensAgendadasRouteImport } from './routes/mensagens-agendadas'
+import { Route as LojasRouteImport } from './routes/lojas'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeadsRouteImport } from './routes/leads'
+import { Route as InventarioRouteImport } from './routes/inventario'
+import { Route as IntegracoesRouteImport } from './routes/integracoes'
 import { Route as InstagramRouteImport } from './routes/instagram'
 import { Route as InboxRouteImport } from './routes/inbox'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as FunilRouteImport } from './routes/funil'
 import { Route as FiscalRouteImport } from './routes/fiscal'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
 import { Route as EstoqueRouteImport } from './routes/estoque'
 import { Route as EsqueciSenhaRouteImport } from './routes/esqueci-senha'
+import { Route as EquipeLojaRouteImport } from './routes/equipe-loja'
 import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as CrmRouteImport } from './routes/crm'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as ConciliacaoRouteImport } from './routes/conciliacao'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as CalendarioRouteImport } from './routes/calendario'
+import { Route as CaixaPdvRouteImport } from './routes/caixa-pdv'
+import { Route as BroadcastRouteImport } from './routes/broadcast'
+import { Route as AutomacoesRouteImport } from './routes/automacoes'
 import { Route as AutomacaoRouteImport } from './routes/automacao'
+import { Route as AuditLogRouteImport } from './routes/audit-log'
 import { Route as AtendimentoRouteImport } from './routes/atendimento'
 import { Route as AssinarRouteImport } from './routes/assinar'
+import { Route as ApiKeysRouteImport } from './routes/api-keys'
 import { Route as AgentesRouteImport } from './routes/agentes'
+import { Route as AfiliadosRouteImport } from './routes/afiliados'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VendasSimuladorRouteImport } from './routes/vendas.simulador'
 import { Route as VendasOrcamentosRouteImport } from './routes/vendas.orcamentos'
@@ -57,7 +73,17 @@ import { Route as ServicosTecnicosRouteImport } from './routes/servicos.tecnicos
 import { Route as ServicosNovaRouteImport } from './routes/servicos.nova'
 import { Route as ServicosDashboardRouteImport } from './routes/servicos.dashboard'
 import { Route as ServicosChecklistsRouteImport } from './routes/servicos.checklists'
+import { Route as RelatoriosVipRouteImport } from './routes/relatorios.vip'
 import { Route as RelatoriosCrescimentoRouteImport } from './routes/relatorios.crescimento'
+import { Route as RelatoriosComissoesRouteImport } from './routes/relatorios.comissoes'
+import { Route as RelatoriosChurnRouteImport } from './routes/relatorios.churn'
+import { Route as ReciboIdRouteImport } from './routes/recibo.$id'
+import { Route as OsTrackIdRouteImport } from './routes/os-track.$id'
+import { Route as OsTermoIdRouteImport } from './routes/os-termo.$id'
+import { Route as OrcamentoIdRouteImport } from './routes/orcamento.$id'
+import { Route as MinhaContaSegurancaRouteImport } from './routes/minha-conta.seguranca'
+import { Route as MinhaContaLgpdRouteImport } from './routes/minha-conta.lgpd'
+import { Route as MAtendimentoRouteImport } from './routes/m.atendimento'
 import { Route as FinanceiroPlanoContasRouteImport } from './routes/financeiro.plano-contas'
 import { Route as FinanceiroNotasAbertoRouteImport } from './routes/financeiro.notas-aberto'
 import { Route as FinanceiroMaquininhasRouteImport } from './routes/financeiro.maquininhas'
@@ -72,7 +98,15 @@ import { Route as EstoqueAtualRouteImport } from './routes/estoque.atual'
 import { Route as CrmConversasRouteImport } from './routes/crm_.conversas'
 import { Route as CrmCatalogoRouteImport } from './routes/crm_.catalogo'
 import { Route as CrmBotRouteImport } from './routes/crm_.bot'
+import { Route as ConviteLojaTokenRouteImport } from './routes/convite-loja.$token'
+import { Route as ConfiguracoesLojaRouteImport } from './routes/configuracoes.loja'
+import { Route as ApiExportDataRouteImport } from './routes/api/export-data'
+import { Route as ApiAdminMetricsRouteImport } from './routes/api/admin-metrics'
 import { Route as AceitarConviteTokenRouteImport } from './routes/aceitar-convite.$token'
+import { Route as ApiReceiptIdRouteImport } from './routes/api/receipt.$id'
+import { Route as ApiQuoteIdRouteImport } from './routes/api/quote.$id'
+import { Route as ApiPublicSplatRouteImport } from './routes/api/public.$'
+import { Route as ApiOsPublicIdRouteImport } from './routes/api/os-public.$id'
 import { Route as ApiEvolutionSplatRouteImport } from './routes/api/evolution/$'
 
 const WhatsappRoute = WhatsappRouteImport.update({
@@ -93,6 +127,16 @@ const TermosRoute = TermosRouteImport.update({
 const TemplatesRoute = TemplatesRouteImport.update({
   id: '/templates',
   path: '/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatusRoute = StatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ServicosRoute = ServicosRouteImport.update({
@@ -160,6 +204,16 @@ const MinhaContaRoute = MinhaContaRouteImport.update({
   path: '/minha-conta',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MensagensAgendadasRoute = MensagensAgendadasRouteImport.update({
+  id: '/mensagens-agendadas',
+  path: '/mensagens-agendadas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LojasRoute = LojasRouteImport.update({
+  id: '/lojas',
+  path: '/lojas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -170,6 +224,16 @@ const LeadsRoute = LeadsRouteImport.update({
   path: '/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InventarioRoute = InventarioRouteImport.update({
+  id: '/inventario',
+  path: '/inventario',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegracoesRoute = IntegracoesRouteImport.update({
+  id: '/integracoes',
+  path: '/integracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InstagramRoute = InstagramRouteImport.update({
   id: '/instagram',
   path: '/instagram',
@@ -178,6 +242,11 @@ const InstagramRoute = InstagramRouteImport.update({
 const InboxRoute = InboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FunilRoute = FunilRouteImport.update({
@@ -205,6 +274,11 @@ const EsqueciSenhaRoute = EsqueciSenhaRouteImport.update({
   path: '/esqueci-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EquipeLojaRoute = EquipeLojaRouteImport.update({
+  id: '/equipe-loja',
+  path: '/equipe-loja',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EquipeRoute = EquipeRouteImport.update({
   id: '/equipe',
   path: '/equipe',
@@ -220,6 +294,11 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConciliacaoRoute = ConciliacaoRouteImport.update({
+  id: '/conciliacao',
+  path: '/conciliacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClientesRoute = ClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -230,9 +309,29 @@ const CalendarioRoute = CalendarioRouteImport.update({
   path: '/calendario',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CaixaPdvRoute = CaixaPdvRouteImport.update({
+  id: '/caixa-pdv',
+  path: '/caixa-pdv',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BroadcastRoute = BroadcastRouteImport.update({
+  id: '/broadcast',
+  path: '/broadcast',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomacoesRoute = AutomacoesRouteImport.update({
+  id: '/automacoes',
+  path: '/automacoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AutomacaoRoute = AutomacaoRouteImport.update({
   id: '/automacao',
   path: '/automacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditLogRoute = AuditLogRouteImport.update({
+  id: '/audit-log',
+  path: '/audit-log',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AtendimentoRoute = AtendimentoRouteImport.update({
@@ -245,9 +344,24 @@ const AssinarRoute = AssinarRouteImport.update({
   path: '/assinar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiKeysRoute = ApiKeysRouteImport.update({
+  id: '/api-keys',
+  path: '/api-keys',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AgentesRoute = AgentesRouteImport.update({
   id: '/agentes',
   path: '/agentes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AfiliadosRoute = AfiliadosRouteImport.update({
+  id: '/afiliados',
+  path: '/afiliados',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -315,10 +429,60 @@ const ServicosChecklistsRoute = ServicosChecklistsRouteImport.update({
   path: '/checklists',
   getParentRoute: () => ServicosRoute,
 } as any)
+const RelatoriosVipRoute = RelatoriosVipRouteImport.update({
+  id: '/vip',
+  path: '/vip',
+  getParentRoute: () => RelatoriosRoute,
+} as any)
 const RelatoriosCrescimentoRoute = RelatoriosCrescimentoRouteImport.update({
   id: '/crescimento',
   path: '/crescimento',
   getParentRoute: () => RelatoriosRoute,
+} as any)
+const RelatoriosComissoesRoute = RelatoriosComissoesRouteImport.update({
+  id: '/comissoes',
+  path: '/comissoes',
+  getParentRoute: () => RelatoriosRoute,
+} as any)
+const RelatoriosChurnRoute = RelatoriosChurnRouteImport.update({
+  id: '/churn',
+  path: '/churn',
+  getParentRoute: () => RelatoriosRoute,
+} as any)
+const ReciboIdRoute = ReciboIdRouteImport.update({
+  id: '/recibo/$id',
+  path: '/recibo/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OsTrackIdRoute = OsTrackIdRouteImport.update({
+  id: '/os-track/$id',
+  path: '/os-track/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OsTermoIdRoute = OsTermoIdRouteImport.update({
+  id: '/os-termo/$id',
+  path: '/os-termo/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrcamentoIdRoute = OrcamentoIdRouteImport.update({
+  id: '/orcamento/$id',
+  path: '/orcamento/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhaContaSegurancaRoute = MinhaContaSegurancaRouteImport.update({
+  id: '/seguranca',
+  path: '/seguranca',
+  getParentRoute: () => MinhaContaRoute,
+} as any)
+const MinhaContaLgpdRoute = MinhaContaLgpdRouteImport.update({
+  id: '/lgpd',
+  path: '/lgpd',
+  getParentRoute: () => MinhaContaRoute,
+} as any)
+const MAtendimentoRoute = MAtendimentoRouteImport.update({
+  id: '/m/atendimento',
+  path: '/m/atendimento',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceiroPlanoContasRoute = FinanceiroPlanoContasRouteImport.update({
   id: '/plano-contas',
@@ -390,9 +554,49 @@ const CrmBotRoute = CrmBotRouteImport.update({
   path: '/crm/bot',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConviteLojaTokenRoute = ConviteLojaTokenRouteImport.update({
+  id: '/convite-loja/$token',
+  path: '/convite-loja/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesLojaRoute = ConfiguracoesLojaRouteImport.update({
+  id: '/loja',
+  path: '/loja',
+  getParentRoute: () => ConfiguracoesRoute,
+} as any)
+const ApiExportDataRoute = ApiExportDataRouteImport.update({
+  id: '/api/export-data',
+  path: '/api/export-data',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminMetricsRoute = ApiAdminMetricsRouteImport.update({
+  id: '/api/admin-metrics',
+  path: '/api/admin-metrics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AceitarConviteTokenRoute = AceitarConviteTokenRouteImport.update({
   id: '/aceitar-convite/$token',
   path: '/aceitar-convite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiReceiptIdRoute = ApiReceiptIdRouteImport.update({
+  id: '/api/receipt/$id',
+  path: '/api/receipt/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiQuoteIdRoute = ApiQuoteIdRouteImport.update({
+  id: '/api/quote/$id',
+  path: '/api/quote/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSplatRoute = ApiPublicSplatRouteImport.update({
+  id: '/api/public/$',
+  path: '/api/public/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOsPublicIdRoute = ApiOsPublicIdRouteImport.update({
+  id: '/api/os-public/$id',
+  path: '/api/os-public/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiEvolutionSplatRoute = ApiEvolutionSplatRouteImport.update({
@@ -403,25 +607,39 @@ const ApiEvolutionSplatRoute = ApiEvolutionSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/afiliados': typeof AfiliadosRoute
   '/agentes': typeof AgentesRoute
+  '/api-keys': typeof ApiKeysRoute
   '/assinar': typeof AssinarRoute
   '/atendimento': typeof AtendimentoRoute
+  '/audit-log': typeof AuditLogRoute
   '/automacao': typeof AutomacaoRoute
+  '/automacoes': typeof AutomacoesRoute
+  '/broadcast': typeof BroadcastRoute
+  '/caixa-pdv': typeof CaixaPdvRoute
   '/calendario': typeof CalendarioRoute
   '/clientes': typeof ClientesRoute
-  '/configuracoes': typeof ConfiguracoesRoute
+  '/conciliacao': typeof ConciliacaoRoute
+  '/configuracoes': typeof ConfiguracoesRouteWithChildren
   '/crm': typeof CrmRoute
   '/equipe': typeof EquipeRoute
+  '/equipe-loja': typeof EquipeLojaRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/estoque': typeof EstoqueRouteWithChildren
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
+  '/integracoes': typeof IntegracoesRoute
+  '/inventario': typeof InventarioRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
-  '/minha-conta': typeof MinhaContaRoute
+  '/lojas': typeof LojasRoute
+  '/mensagens-agendadas': typeof MensagensAgendadasRoute
+  '/minha-conta': typeof MinhaContaRouteWithChildren
   '/nps': typeof NpsRoute
   '/onboarding': typeof OnboardingRoute
   '/painel': typeof PainelRoute
@@ -434,11 +652,17 @@ export interface FileRoutesByFullPath {
   '/relatorios': typeof RelatoriosRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/servicos': typeof ServicosRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/status': typeof StatusRoute
   '/templates': typeof TemplatesRoute
   '/termos': typeof TermosRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/aceitar-convite/$token': typeof AceitarConviteTokenRoute
+  '/api/admin-metrics': typeof ApiAdminMetricsRoute
+  '/api/export-data': typeof ApiExportDataRoute
+  '/configuracoes/loja': typeof ConfiguracoesLojaRoute
+  '/convite-loja/$token': typeof ConviteLojaTokenRoute
   '/crm/bot': typeof CrmBotRoute
   '/crm/catalogo': typeof CrmCatalogoRoute
   '/crm/conversas': typeof CrmConversasRoute
@@ -453,7 +677,17 @@ export interface FileRoutesByFullPath {
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/m/atendimento': typeof MAtendimentoRoute
+  '/minha-conta/lgpd': typeof MinhaContaLgpdRoute
+  '/minha-conta/seguranca': typeof MinhaContaSegurancaRoute
+  '/orcamento/$id': typeof OrcamentoIdRoute
+  '/os-termo/$id': typeof OsTermoIdRoute
+  '/os-track/$id': typeof OsTrackIdRoute
+  '/recibo/$id': typeof ReciboIdRoute
+  '/relatorios/churn': typeof RelatoriosChurnRoute
+  '/relatorios/comissoes': typeof RelatoriosComissoesRoute
   '/relatorios/crescimento': typeof RelatoriosCrescimentoRoute
+  '/relatorios/vip': typeof RelatoriosVipRoute
   '/servicos/checklists': typeof ServicosChecklistsRoute
   '/servicos/dashboard': typeof ServicosDashboardRoute
   '/servicos/nova': typeof ServicosNovaRoute
@@ -467,28 +701,46 @@ export interface FileRoutesByFullPath {
   '/vendas/orcamentos': typeof VendasOrcamentosRoute
   '/vendas/simulador': typeof VendasSimuladorRoute
   '/api/evolution/$': typeof ApiEvolutionSplatRoute
+  '/api/os-public/$id': typeof ApiOsPublicIdRoute
+  '/api/public/$': typeof ApiPublicSplatRoute
+  '/api/quote/$id': typeof ApiQuoteIdRoute
+  '/api/receipt/$id': typeof ApiReceiptIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/afiliados': typeof AfiliadosRoute
   '/agentes': typeof AgentesRoute
+  '/api-keys': typeof ApiKeysRoute
   '/assinar': typeof AssinarRoute
   '/atendimento': typeof AtendimentoRoute
+  '/audit-log': typeof AuditLogRoute
   '/automacao': typeof AutomacaoRoute
+  '/automacoes': typeof AutomacoesRoute
+  '/broadcast': typeof BroadcastRoute
+  '/caixa-pdv': typeof CaixaPdvRoute
   '/calendario': typeof CalendarioRoute
   '/clientes': typeof ClientesRoute
-  '/configuracoes': typeof ConfiguracoesRoute
+  '/conciliacao': typeof ConciliacaoRoute
+  '/configuracoes': typeof ConfiguracoesRouteWithChildren
   '/crm': typeof CrmRoute
   '/equipe': typeof EquipeRoute
+  '/equipe-loja': typeof EquipeLojaRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/estoque': typeof EstoqueRouteWithChildren
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
+  '/integracoes': typeof IntegracoesRoute
+  '/inventario': typeof InventarioRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
-  '/minha-conta': typeof MinhaContaRoute
+  '/lojas': typeof LojasRoute
+  '/mensagens-agendadas': typeof MensagensAgendadasRoute
+  '/minha-conta': typeof MinhaContaRouteWithChildren
   '/nps': typeof NpsRoute
   '/onboarding': typeof OnboardingRoute
   '/painel': typeof PainelRoute
@@ -501,11 +753,17 @@ export interface FileRoutesByTo {
   '/relatorios': typeof RelatoriosRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/servicos': typeof ServicosRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/status': typeof StatusRoute
   '/templates': typeof TemplatesRoute
   '/termos': typeof TermosRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/aceitar-convite/$token': typeof AceitarConviteTokenRoute
+  '/api/admin-metrics': typeof ApiAdminMetricsRoute
+  '/api/export-data': typeof ApiExportDataRoute
+  '/configuracoes/loja': typeof ConfiguracoesLojaRoute
+  '/convite-loja/$token': typeof ConviteLojaTokenRoute
   '/crm/bot': typeof CrmBotRoute
   '/crm/catalogo': typeof CrmCatalogoRoute
   '/crm/conversas': typeof CrmConversasRoute
@@ -520,7 +778,17 @@ export interface FileRoutesByTo {
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/m/atendimento': typeof MAtendimentoRoute
+  '/minha-conta/lgpd': typeof MinhaContaLgpdRoute
+  '/minha-conta/seguranca': typeof MinhaContaSegurancaRoute
+  '/orcamento/$id': typeof OrcamentoIdRoute
+  '/os-termo/$id': typeof OsTermoIdRoute
+  '/os-track/$id': typeof OsTrackIdRoute
+  '/recibo/$id': typeof ReciboIdRoute
+  '/relatorios/churn': typeof RelatoriosChurnRoute
+  '/relatorios/comissoes': typeof RelatoriosComissoesRoute
   '/relatorios/crescimento': typeof RelatoriosCrescimentoRoute
+  '/relatorios/vip': typeof RelatoriosVipRoute
   '/servicos/checklists': typeof ServicosChecklistsRoute
   '/servicos/dashboard': typeof ServicosDashboardRoute
   '/servicos/nova': typeof ServicosNovaRoute
@@ -534,29 +802,47 @@ export interface FileRoutesByTo {
   '/vendas/orcamentos': typeof VendasOrcamentosRoute
   '/vendas/simulador': typeof VendasSimuladorRoute
   '/api/evolution/$': typeof ApiEvolutionSplatRoute
+  '/api/os-public/$id': typeof ApiOsPublicIdRoute
+  '/api/public/$': typeof ApiPublicSplatRoute
+  '/api/quote/$id': typeof ApiQuoteIdRoute
+  '/api/receipt/$id': typeof ApiReceiptIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/afiliados': typeof AfiliadosRoute
   '/agentes': typeof AgentesRoute
+  '/api-keys': typeof ApiKeysRoute
   '/assinar': typeof AssinarRoute
   '/atendimento': typeof AtendimentoRoute
+  '/audit-log': typeof AuditLogRoute
   '/automacao': typeof AutomacaoRoute
+  '/automacoes': typeof AutomacoesRoute
+  '/broadcast': typeof BroadcastRoute
+  '/caixa-pdv': typeof CaixaPdvRoute
   '/calendario': typeof CalendarioRoute
   '/clientes': typeof ClientesRoute
-  '/configuracoes': typeof ConfiguracoesRoute
+  '/conciliacao': typeof ConciliacaoRoute
+  '/configuracoes': typeof ConfiguracoesRouteWithChildren
   '/crm': typeof CrmRoute
   '/equipe': typeof EquipeRoute
+  '/equipe-loja': typeof EquipeLojaRoute
   '/esqueci-senha': typeof EsqueciSenhaRoute
   '/estoque': typeof EstoqueRouteWithChildren
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
+  '/integracoes': typeof IntegracoesRoute
+  '/inventario': typeof InventarioRoute
   '/leads': typeof LeadsRoute
   '/login': typeof LoginRoute
-  '/minha-conta': typeof MinhaContaRoute
+  '/lojas': typeof LojasRoute
+  '/mensagens-agendadas': typeof MensagensAgendadasRoute
+  '/minha-conta': typeof MinhaContaRouteWithChildren
   '/nps': typeof NpsRoute
   '/onboarding': typeof OnboardingRoute
   '/painel': typeof PainelRoute
@@ -569,11 +855,17 @@ export interface FileRoutesById {
   '/relatorios': typeof RelatoriosRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
   '/servicos': typeof ServicosRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/status': typeof StatusRoute
   '/templates': typeof TemplatesRoute
   '/termos': typeof TermosRoute
   '/vendas': typeof VendasRouteWithChildren
   '/whatsapp': typeof WhatsappRoute
   '/aceitar-convite/$token': typeof AceitarConviteTokenRoute
+  '/api/admin-metrics': typeof ApiAdminMetricsRoute
+  '/api/export-data': typeof ApiExportDataRoute
+  '/configuracoes/loja': typeof ConfiguracoesLojaRoute
+  '/convite-loja/$token': typeof ConviteLojaTokenRoute
   '/crm_/bot': typeof CrmBotRoute
   '/crm_/catalogo': typeof CrmCatalogoRoute
   '/crm_/conversas': typeof CrmConversasRoute
@@ -588,7 +880,17 @@ export interface FileRoutesById {
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/m/atendimento': typeof MAtendimentoRoute
+  '/minha-conta/lgpd': typeof MinhaContaLgpdRoute
+  '/minha-conta/seguranca': typeof MinhaContaSegurancaRoute
+  '/orcamento/$id': typeof OrcamentoIdRoute
+  '/os-termo/$id': typeof OsTermoIdRoute
+  '/os-track/$id': typeof OsTrackIdRoute
+  '/recibo/$id': typeof ReciboIdRoute
+  '/relatorios/churn': typeof RelatoriosChurnRoute
+  '/relatorios/comissoes': typeof RelatoriosComissoesRoute
   '/relatorios/crescimento': typeof RelatoriosCrescimentoRoute
+  '/relatorios/vip': typeof RelatoriosVipRoute
   '/servicos/checklists': typeof ServicosChecklistsRoute
   '/servicos/dashboard': typeof ServicosDashboardRoute
   '/servicos/nova': typeof ServicosNovaRoute
@@ -602,29 +904,47 @@ export interface FileRoutesById {
   '/vendas/orcamentos': typeof VendasOrcamentosRoute
   '/vendas/simulador': typeof VendasSimuladorRoute
   '/api/evolution/$': typeof ApiEvolutionSplatRoute
+  '/api/os-public/$id': typeof ApiOsPublicIdRoute
+  '/api/public/$': typeof ApiPublicSplatRoute
+  '/api/quote/$id': typeof ApiQuoteIdRoute
+  '/api/receipt/$id': typeof ApiReceiptIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
+    | '/afiliados'
     | '/agentes'
+    | '/api-keys'
     | '/assinar'
     | '/atendimento'
+    | '/audit-log'
     | '/automacao'
+    | '/automacoes'
+    | '/broadcast'
+    | '/caixa-pdv'
     | '/calendario'
     | '/clientes'
+    | '/conciliacao'
     | '/configuracoes'
     | '/crm'
     | '/equipe'
+    | '/equipe-loja'
     | '/esqueci-senha'
     | '/estoque'
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/help'
     | '/inbox'
     | '/instagram'
+    | '/integracoes'
+    | '/inventario'
     | '/leads'
     | '/login'
+    | '/lojas'
+    | '/mensagens-agendadas'
     | '/minha-conta'
     | '/nps'
     | '/onboarding'
@@ -638,11 +958,17 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/reset-password'
     | '/servicos'
+    | '/sitemap.xml'
+    | '/status'
     | '/templates'
     | '/termos'
     | '/vendas'
     | '/whatsapp'
     | '/aceitar-convite/$token'
+    | '/api/admin-metrics'
+    | '/api/export-data'
+    | '/configuracoes/loja'
+    | '/convite-loja/$token'
     | '/crm/bot'
     | '/crm/catalogo'
     | '/crm/conversas'
@@ -657,7 +983,17 @@ export interface FileRouteTypes {
     | '/financeiro/maquininhas'
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/m/atendimento'
+    | '/minha-conta/lgpd'
+    | '/minha-conta/seguranca'
+    | '/orcamento/$id'
+    | '/os-termo/$id'
+    | '/os-track/$id'
+    | '/recibo/$id'
+    | '/relatorios/churn'
+    | '/relatorios/comissoes'
     | '/relatorios/crescimento'
+    | '/relatorios/vip'
     | '/servicos/checklists'
     | '/servicos/dashboard'
     | '/servicos/nova'
@@ -671,27 +1007,45 @@ export interface FileRouteTypes {
     | '/vendas/orcamentos'
     | '/vendas/simulador'
     | '/api/evolution/$'
+    | '/api/os-public/$id'
+    | '/api/public/$'
+    | '/api/quote/$id'
+    | '/api/receipt/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
+    | '/afiliados'
     | '/agentes'
+    | '/api-keys'
     | '/assinar'
     | '/atendimento'
+    | '/audit-log'
     | '/automacao'
+    | '/automacoes'
+    | '/broadcast'
+    | '/caixa-pdv'
     | '/calendario'
     | '/clientes'
+    | '/conciliacao'
     | '/configuracoes'
     | '/crm'
     | '/equipe'
+    | '/equipe-loja'
     | '/esqueci-senha'
     | '/estoque'
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/help'
     | '/inbox'
     | '/instagram'
+    | '/integracoes'
+    | '/inventario'
     | '/leads'
     | '/login'
+    | '/lojas'
+    | '/mensagens-agendadas'
     | '/minha-conta'
     | '/nps'
     | '/onboarding'
@@ -705,11 +1059,17 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/reset-password'
     | '/servicos'
+    | '/sitemap.xml'
+    | '/status'
     | '/templates'
     | '/termos'
     | '/vendas'
     | '/whatsapp'
     | '/aceitar-convite/$token'
+    | '/api/admin-metrics'
+    | '/api/export-data'
+    | '/configuracoes/loja'
+    | '/convite-loja/$token'
     | '/crm/bot'
     | '/crm/catalogo'
     | '/crm/conversas'
@@ -724,7 +1084,17 @@ export interface FileRouteTypes {
     | '/financeiro/maquininhas'
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/m/atendimento'
+    | '/minha-conta/lgpd'
+    | '/minha-conta/seguranca'
+    | '/orcamento/$id'
+    | '/os-termo/$id'
+    | '/os-track/$id'
+    | '/recibo/$id'
+    | '/relatorios/churn'
+    | '/relatorios/comissoes'
     | '/relatorios/crescimento'
+    | '/relatorios/vip'
     | '/servicos/checklists'
     | '/servicos/dashboard'
     | '/servicos/nova'
@@ -738,27 +1108,45 @@ export interface FileRouteTypes {
     | '/vendas/orcamentos'
     | '/vendas/simulador'
     | '/api/evolution/$'
+    | '/api/os-public/$id'
+    | '/api/public/$'
+    | '/api/quote/$id'
+    | '/api/receipt/$id'
   id:
     | '__root__'
     | '/'
+    | '/admin'
+    | '/afiliados'
     | '/agentes'
+    | '/api-keys'
     | '/assinar'
     | '/atendimento'
+    | '/audit-log'
     | '/automacao'
+    | '/automacoes'
+    | '/broadcast'
+    | '/caixa-pdv'
     | '/calendario'
     | '/clientes'
+    | '/conciliacao'
     | '/configuracoes'
     | '/crm'
     | '/equipe'
+    | '/equipe-loja'
     | '/esqueci-senha'
     | '/estoque'
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/help'
     | '/inbox'
     | '/instagram'
+    | '/integracoes'
+    | '/inventario'
     | '/leads'
     | '/login'
+    | '/lojas'
+    | '/mensagens-agendadas'
     | '/minha-conta'
     | '/nps'
     | '/onboarding'
@@ -772,11 +1160,17 @@ export interface FileRouteTypes {
     | '/relatorios'
     | '/reset-password'
     | '/servicos'
+    | '/sitemap.xml'
+    | '/status'
     | '/templates'
     | '/termos'
     | '/vendas'
     | '/whatsapp'
     | '/aceitar-convite/$token'
+    | '/api/admin-metrics'
+    | '/api/export-data'
+    | '/configuracoes/loja'
+    | '/convite-loja/$token'
     | '/crm_/bot'
     | '/crm_/catalogo'
     | '/crm_/conversas'
@@ -791,7 +1185,17 @@ export interface FileRouteTypes {
     | '/financeiro/maquininhas'
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/m/atendimento'
+    | '/minha-conta/lgpd'
+    | '/minha-conta/seguranca'
+    | '/orcamento/$id'
+    | '/os-termo/$id'
+    | '/os-track/$id'
+    | '/recibo/$id'
+    | '/relatorios/churn'
+    | '/relatorios/comissoes'
     | '/relatorios/crescimento'
+    | '/relatorios/vip'
     | '/servicos/checklists'
     | '/servicos/dashboard'
     | '/servicos/nova'
@@ -805,29 +1209,47 @@ export interface FileRouteTypes {
     | '/vendas/orcamentos'
     | '/vendas/simulador'
     | '/api/evolution/$'
+    | '/api/os-public/$id'
+    | '/api/public/$'
+    | '/api/quote/$id'
+    | '/api/receipt/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  AfiliadosRoute: typeof AfiliadosRoute
   AgentesRoute: typeof AgentesRoute
+  ApiKeysRoute: typeof ApiKeysRoute
   AssinarRoute: typeof AssinarRoute
   AtendimentoRoute: typeof AtendimentoRoute
+  AuditLogRoute: typeof AuditLogRoute
   AutomacaoRoute: typeof AutomacaoRoute
+  AutomacoesRoute: typeof AutomacoesRoute
+  BroadcastRoute: typeof BroadcastRoute
+  CaixaPdvRoute: typeof CaixaPdvRoute
   CalendarioRoute: typeof CalendarioRoute
   ClientesRoute: typeof ClientesRoute
-  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  ConciliacaoRoute: typeof ConciliacaoRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRouteWithChildren
   CrmRoute: typeof CrmRoute
   EquipeRoute: typeof EquipeRoute
+  EquipeLojaRoute: typeof EquipeLojaRoute
   EsqueciSenhaRoute: typeof EsqueciSenhaRoute
   EstoqueRoute: typeof EstoqueRouteWithChildren
   FinanceiroRoute: typeof FinanceiroRouteWithChildren
   FiscalRoute: typeof FiscalRoute
   FunilRoute: typeof FunilRoute
+  HelpRoute: typeof HelpRoute
   InboxRoute: typeof InboxRoute
   InstagramRoute: typeof InstagramRoute
+  IntegracoesRoute: typeof IntegracoesRoute
+  InventarioRoute: typeof InventarioRoute
   LeadsRoute: typeof LeadsRoute
   LoginRoute: typeof LoginRoute
-  MinhaContaRoute: typeof MinhaContaRoute
+  LojasRoute: typeof LojasRoute
+  MensagensAgendadasRoute: typeof MensagensAgendadasRoute
+  MinhaContaRoute: typeof MinhaContaRouteWithChildren
   NpsRoute: typeof NpsRoute
   OnboardingRoute: typeof OnboardingRoute
   PainelRoute: typeof PainelRoute
@@ -840,15 +1262,29 @@ export interface RootRouteChildren {
   RelatoriosRoute: typeof RelatoriosRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   ServicosRoute: typeof ServicosRouteWithChildren
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  StatusRoute: typeof StatusRoute
   TemplatesRoute: typeof TemplatesRoute
   TermosRoute: typeof TermosRoute
   VendasRoute: typeof VendasRouteWithChildren
   WhatsappRoute: typeof WhatsappRoute
   AceitarConviteTokenRoute: typeof AceitarConviteTokenRoute
+  ApiAdminMetricsRoute: typeof ApiAdminMetricsRoute
+  ApiExportDataRoute: typeof ApiExportDataRoute
+  ConviteLojaTokenRoute: typeof ConviteLojaTokenRoute
   CrmBotRoute: typeof CrmBotRoute
   CrmCatalogoRoute: typeof CrmCatalogoRoute
   CrmConversasRoute: typeof CrmConversasRoute
+  MAtendimentoRoute: typeof MAtendimentoRoute
+  OrcamentoIdRoute: typeof OrcamentoIdRoute
+  OsTermoIdRoute: typeof OsTermoIdRoute
+  OsTrackIdRoute: typeof OsTrackIdRoute
+  ReciboIdRoute: typeof ReciboIdRoute
   ApiEvolutionSplatRoute: typeof ApiEvolutionSplatRoute
+  ApiOsPublicIdRoute: typeof ApiOsPublicIdRoute
+  ApiPublicSplatRoute: typeof ApiPublicSplatRoute
+  ApiQuoteIdRoute: typeof ApiQuoteIdRoute
+  ApiReceiptIdRoute: typeof ApiReceiptIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -879,6 +1315,20 @@ declare module '@tanstack/react-router' {
       path: '/templates'
       fullPath: '/templates'
       preLoaderRoute: typeof TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/status': {
+      id: '/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof StatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/servicos': {
@@ -972,6 +1422,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MinhaContaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mensagens-agendadas': {
+      id: '/mensagens-agendadas'
+      path: '/mensagens-agendadas'
+      fullPath: '/mensagens-agendadas'
+      preLoaderRoute: typeof MensagensAgendadasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lojas': {
+      id: '/lojas'
+      path: '/lojas'
+      fullPath: '/lojas'
+      preLoaderRoute: typeof LojasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -986,6 +1450,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inventario': {
+      id: '/inventario'
+      path: '/inventario'
+      fullPath: '/inventario'
+      preLoaderRoute: typeof InventarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integracoes': {
+      id: '/integracoes'
+      path: '/integracoes'
+      fullPath: '/integracoes'
+      preLoaderRoute: typeof IntegracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/instagram': {
       id: '/instagram'
       path: '/instagram'
@@ -998,6 +1476,13 @@ declare module '@tanstack/react-router' {
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/funil': {
@@ -1035,6 +1520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EsqueciSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/equipe-loja': {
+      id: '/equipe-loja'
+      path: '/equipe-loja'
+      fullPath: '/equipe-loja'
+      preLoaderRoute: typeof EquipeLojaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/equipe': {
       id: '/equipe'
       path: '/equipe'
@@ -1056,6 +1548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfiguracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/conciliacao': {
+      id: '/conciliacao'
+      path: '/conciliacao'
+      fullPath: '/conciliacao'
+      preLoaderRoute: typeof ConciliacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clientes': {
       id: '/clientes'
       path: '/clientes'
@@ -1070,11 +1569,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/caixa-pdv': {
+      id: '/caixa-pdv'
+      path: '/caixa-pdv'
+      fullPath: '/caixa-pdv'
+      preLoaderRoute: typeof CaixaPdvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/broadcast': {
+      id: '/broadcast'
+      path: '/broadcast'
+      fullPath: '/broadcast'
+      preLoaderRoute: typeof BroadcastRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automacoes': {
+      id: '/automacoes'
+      path: '/automacoes'
+      fullPath: '/automacoes'
+      preLoaderRoute: typeof AutomacoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/automacao': {
       id: '/automacao'
       path: '/automacao'
       fullPath: '/automacao'
       preLoaderRoute: typeof AutomacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit-log': {
+      id: '/audit-log'
+      path: '/audit-log'
+      fullPath: '/audit-log'
+      preLoaderRoute: typeof AuditLogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/atendimento': {
@@ -1091,11 +1618,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AssinarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api-keys': {
+      id: '/api-keys'
+      path: '/api-keys'
+      fullPath: '/api-keys'
+      preLoaderRoute: typeof ApiKeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/agentes': {
       id: '/agentes'
       path: '/agentes'
       fullPath: '/agentes'
       preLoaderRoute: typeof AgentesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/afiliados': {
+      id: '/afiliados'
+      path: '/afiliados'
+      fullPath: '/afiliados'
+      preLoaderRoute: typeof AfiliadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1189,12 +1737,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ServicosChecklistsRouteImport
       parentRoute: typeof ServicosRoute
     }
+    '/relatorios/vip': {
+      id: '/relatorios/vip'
+      path: '/vip'
+      fullPath: '/relatorios/vip'
+      preLoaderRoute: typeof RelatoriosVipRouteImport
+      parentRoute: typeof RelatoriosRoute
+    }
     '/relatorios/crescimento': {
       id: '/relatorios/crescimento'
       path: '/crescimento'
       fullPath: '/relatorios/crescimento'
       preLoaderRoute: typeof RelatoriosCrescimentoRouteImport
       parentRoute: typeof RelatoriosRoute
+    }
+    '/relatorios/comissoes': {
+      id: '/relatorios/comissoes'
+      path: '/comissoes'
+      fullPath: '/relatorios/comissoes'
+      preLoaderRoute: typeof RelatoriosComissoesRouteImport
+      parentRoute: typeof RelatoriosRoute
+    }
+    '/relatorios/churn': {
+      id: '/relatorios/churn'
+      path: '/churn'
+      fullPath: '/relatorios/churn'
+      preLoaderRoute: typeof RelatoriosChurnRouteImport
+      parentRoute: typeof RelatoriosRoute
+    }
+    '/recibo/$id': {
+      id: '/recibo/$id'
+      path: '/recibo/$id'
+      fullPath: '/recibo/$id'
+      preLoaderRoute: typeof ReciboIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/os-track/$id': {
+      id: '/os-track/$id'
+      path: '/os-track/$id'
+      fullPath: '/os-track/$id'
+      preLoaderRoute: typeof OsTrackIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/os-termo/$id': {
+      id: '/os-termo/$id'
+      path: '/os-termo/$id'
+      fullPath: '/os-termo/$id'
+      preLoaderRoute: typeof OsTermoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orcamento/$id': {
+      id: '/orcamento/$id'
+      path: '/orcamento/$id'
+      fullPath: '/orcamento/$id'
+      preLoaderRoute: typeof OrcamentoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minha-conta/seguranca': {
+      id: '/minha-conta/seguranca'
+      path: '/seguranca'
+      fullPath: '/minha-conta/seguranca'
+      preLoaderRoute: typeof MinhaContaSegurancaRouteImport
+      parentRoute: typeof MinhaContaRoute
+    }
+    '/minha-conta/lgpd': {
+      id: '/minha-conta/lgpd'
+      path: '/lgpd'
+      fullPath: '/minha-conta/lgpd'
+      preLoaderRoute: typeof MinhaContaLgpdRouteImport
+      parentRoute: typeof MinhaContaRoute
+    }
+    '/m/atendimento': {
+      id: '/m/atendimento'
+      path: '/m/atendimento'
+      fullPath: '/m/atendimento'
+      preLoaderRoute: typeof MAtendimentoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/financeiro/plano-contas': {
       id: '/financeiro/plano-contas'
@@ -1294,11 +1912,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmBotRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/convite-loja/$token': {
+      id: '/convite-loja/$token'
+      path: '/convite-loja/$token'
+      fullPath: '/convite-loja/$token'
+      preLoaderRoute: typeof ConviteLojaTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracoes/loja': {
+      id: '/configuracoes/loja'
+      path: '/loja'
+      fullPath: '/configuracoes/loja'
+      preLoaderRoute: typeof ConfiguracoesLojaRouteImport
+      parentRoute: typeof ConfiguracoesRoute
+    }
+    '/api/export-data': {
+      id: '/api/export-data'
+      path: '/api/export-data'
+      fullPath: '/api/export-data'
+      preLoaderRoute: typeof ApiExportDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin-metrics': {
+      id: '/api/admin-metrics'
+      path: '/api/admin-metrics'
+      fullPath: '/api/admin-metrics'
+      preLoaderRoute: typeof ApiAdminMetricsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/aceitar-convite/$token': {
       id: '/aceitar-convite/$token'
       path: '/aceitar-convite/$token'
       fullPath: '/aceitar-convite/$token'
       preLoaderRoute: typeof AceitarConviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/receipt/$id': {
+      id: '/api/receipt/$id'
+      path: '/api/receipt/$id'
+      fullPath: '/api/receipt/$id'
+      preLoaderRoute: typeof ApiReceiptIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/quote/$id': {
+      id: '/api/quote/$id'
+      path: '/api/quote/$id'
+      fullPath: '/api/quote/$id'
+      preLoaderRoute: typeof ApiQuoteIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/$': {
+      id: '/api/public/$'
+      path: '/api/public/$'
+      fullPath: '/api/public/$'
+      preLoaderRoute: typeof ApiPublicSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/os-public/$id': {
+      id: '/api/os-public/$id'
+      path: '/api/os-public/$id'
+      fullPath: '/api/os-public/$id'
+      preLoaderRoute: typeof ApiOsPublicIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/evolution/$': {
@@ -1310,6 +1984,18 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ConfiguracoesRouteChildren {
+  ConfiguracoesLojaRoute: typeof ConfiguracoesLojaRoute
+}
+
+const ConfiguracoesRouteChildren: ConfiguracoesRouteChildren = {
+  ConfiguracoesLojaRoute: ConfiguracoesLojaRoute,
+}
+
+const ConfiguracoesRouteWithChildren = ConfiguracoesRoute._addFileChildren(
+  ConfiguracoesRouteChildren,
+)
 
 interface EstoqueRouteChildren {
   EstoqueAtualRoute: typeof EstoqueAtualRoute
@@ -1352,12 +2038,32 @@ const FinanceiroRouteWithChildren = FinanceiroRoute._addFileChildren(
   FinanceiroRouteChildren,
 )
 
+interface MinhaContaRouteChildren {
+  MinhaContaLgpdRoute: typeof MinhaContaLgpdRoute
+  MinhaContaSegurancaRoute: typeof MinhaContaSegurancaRoute
+}
+
+const MinhaContaRouteChildren: MinhaContaRouteChildren = {
+  MinhaContaLgpdRoute: MinhaContaLgpdRoute,
+  MinhaContaSegurancaRoute: MinhaContaSegurancaRoute,
+}
+
+const MinhaContaRouteWithChildren = MinhaContaRoute._addFileChildren(
+  MinhaContaRouteChildren,
+)
+
 interface RelatoriosRouteChildren {
+  RelatoriosChurnRoute: typeof RelatoriosChurnRoute
+  RelatoriosComissoesRoute: typeof RelatoriosComissoesRoute
   RelatoriosCrescimentoRoute: typeof RelatoriosCrescimentoRoute
+  RelatoriosVipRoute: typeof RelatoriosVipRoute
 }
 
 const RelatoriosRouteChildren: RelatoriosRouteChildren = {
+  RelatoriosChurnRoute: RelatoriosChurnRoute,
+  RelatoriosComissoesRoute: RelatoriosComissoesRoute,
   RelatoriosCrescimentoRoute: RelatoriosCrescimentoRoute,
+  RelatoriosVipRoute: RelatoriosVipRoute,
 }
 
 const RelatoriosRouteWithChildren = RelatoriosRoute._addFileChildren(
@@ -1409,25 +2115,39 @@ const VendasRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  AfiliadosRoute: AfiliadosRoute,
   AgentesRoute: AgentesRoute,
+  ApiKeysRoute: ApiKeysRoute,
   AssinarRoute: AssinarRoute,
   AtendimentoRoute: AtendimentoRoute,
+  AuditLogRoute: AuditLogRoute,
   AutomacaoRoute: AutomacaoRoute,
+  AutomacoesRoute: AutomacoesRoute,
+  BroadcastRoute: BroadcastRoute,
+  CaixaPdvRoute: CaixaPdvRoute,
   CalendarioRoute: CalendarioRoute,
   ClientesRoute: ClientesRoute,
-  ConfiguracoesRoute: ConfiguracoesRoute,
+  ConciliacaoRoute: ConciliacaoRoute,
+  ConfiguracoesRoute: ConfiguracoesRouteWithChildren,
   CrmRoute: CrmRoute,
   EquipeRoute: EquipeRoute,
+  EquipeLojaRoute: EquipeLojaRoute,
   EsqueciSenhaRoute: EsqueciSenhaRoute,
   EstoqueRoute: EstoqueRouteWithChildren,
   FinanceiroRoute: FinanceiroRouteWithChildren,
   FiscalRoute: FiscalRoute,
   FunilRoute: FunilRoute,
+  HelpRoute: HelpRoute,
   InboxRoute: InboxRoute,
   InstagramRoute: InstagramRoute,
+  IntegracoesRoute: IntegracoesRoute,
+  InventarioRoute: InventarioRoute,
   LeadsRoute: LeadsRoute,
   LoginRoute: LoginRoute,
-  MinhaContaRoute: MinhaContaRoute,
+  LojasRoute: LojasRoute,
+  MensagensAgendadasRoute: MensagensAgendadasRoute,
+  MinhaContaRoute: MinhaContaRouteWithChildren,
   NpsRoute: NpsRoute,
   OnboardingRoute: OnboardingRoute,
   PainelRoute: PainelRoute,
@@ -1440,15 +2160,29 @@ const rootRouteChildren: RootRouteChildren = {
   RelatoriosRoute: RelatoriosRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   ServicosRoute: ServicosRouteWithChildren,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  StatusRoute: StatusRoute,
   TemplatesRoute: TemplatesRoute,
   TermosRoute: TermosRoute,
   VendasRoute: VendasRouteWithChildren,
   WhatsappRoute: WhatsappRoute,
   AceitarConviteTokenRoute: AceitarConviteTokenRoute,
+  ApiAdminMetricsRoute: ApiAdminMetricsRoute,
+  ApiExportDataRoute: ApiExportDataRoute,
+  ConviteLojaTokenRoute: ConviteLojaTokenRoute,
   CrmBotRoute: CrmBotRoute,
   CrmCatalogoRoute: CrmCatalogoRoute,
   CrmConversasRoute: CrmConversasRoute,
+  MAtendimentoRoute: MAtendimentoRoute,
+  OrcamentoIdRoute: OrcamentoIdRoute,
+  OsTermoIdRoute: OsTermoIdRoute,
+  OsTrackIdRoute: OsTrackIdRoute,
+  ReciboIdRoute: ReciboIdRoute,
   ApiEvolutionSplatRoute: ApiEvolutionSplatRoute,
+  ApiOsPublicIdRoute: ApiOsPublicIdRoute,
+  ApiPublicSplatRoute: ApiPublicSplatRoute,
+  ApiQuoteIdRoute: ApiQuoteIdRoute,
+  ApiReceiptIdRoute: ApiReceiptIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
