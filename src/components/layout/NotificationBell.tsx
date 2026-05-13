@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bell, Check, CheckCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,13 +21,13 @@ export function NotificationBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<N[]>([]);
-  const unread = items.filter((i) => !i.is_read).length;
+  const unread = useMemo(() => items.reduce((n, i) => (i.is_read ? n : n + 1), 0), [items]);
 
   const load = async () => {
     if (!user?.id) return;
     const { data } = await supabase
       .from("notifications")
-      .select("*")
+      .select("id,type,title,body,link,is_read,created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -76,8 +76,12 @@ export function NotificationBell() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="relative h-10 w-10 grid place-items-center rounded-xl hover:bg-muted">
-          <Bell className="h-[18px] w-[18px] text-foreground/70" />
+        <button
+          type="button"
+          aria-label={unread > 0 ? `Notificações (${unread} não lidas)` : "Notificações"}
+          className="relative h-10 w-10 grid place-items-center rounded-xl hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Bell className="h-[18px] w-[18px] text-foreground/70" aria-hidden="true" />
           {unread > 0 && (
             <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-[10px] font-semibold text-destructive-foreground grid place-items-center">
               {unread > 9 ? "9+" : unread}
