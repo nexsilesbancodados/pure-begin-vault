@@ -53,15 +53,19 @@ export function OrgSwitcher() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="h-9 px-3 rounded-lg bg-card border border-border hover:border-primary/40 transition text-xs font-bold flex items-center gap-2 max-w-[200px]">
-            <Store className="h-3.5 w-3.5 text-primary shrink-0" />
+          <button
+            type="button"
+            aria-label={`Loja ativa: ${activeName}. Trocar de loja`}
+            className="h-9 px-3 rounded-lg bg-card border border-border hover:border-primary/40 transition text-xs font-bold flex items-center gap-2 max-w-[200px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Store className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
             <span className="truncate">{activeName}</span>
             {orgs.length > 1 && (
               <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
                 {orgs.length}
               </span>
             )}
-            <ChevronDown className="h-3 w-3 ml-auto shrink-0" />
+            <ChevronDown className="h-3 w-3 ml-auto shrink-0" aria-hidden="true" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
