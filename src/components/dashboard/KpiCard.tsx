@@ -173,23 +173,33 @@ export function KpiCard({
     <>
       <button
         onClick={() => setIsModalOpen(true)}
-        className={`relative overflow-hidden rounded-2xl bg-card border border-border p-3 sm:p-4 shadow-card hover:shadow-elegant hover:-translate-y-1 active:scale-[0.97] transition-all duration-150 text-left w-full group hover:ring-2 min-w-0 ${styles.ring}`}
+        aria-label={`${label}: ${initialValue}${trend ? `, tendência ${trend}` : ""}. Ver detalhes`}
+        className={`relative overflow-hidden rounded-2xl bg-card border border-border p-3 sm:p-4 shadow-card hover:shadow-elegant hover:-translate-y-1 active:scale-[0.97] transition-all duration-150 text-left w-full group hover:ring-2 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${styles.ring}`}
       >
         <div
           className={`absolute inset-0 bg-gradient-to-br ${styles.gradient} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-0`}
         />
-        <div
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={`Abrir página de ${label}`}
           onClick={handleAction}
-          className="absolute top-3 right-3 p-1 rounded-md hover:bg-primary/10 transition-colors z-20 cursor-pointer"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleAction(e as unknown as React.MouseEvent);
+            }
+          }}
+          className="absolute top-3 right-3 p-1 rounded-md hover:bg-primary/10 transition-colors z-20 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           title="Ver detalhes na página"
         >
-          <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-        </div>
+          <ArrowUpRight aria-hidden className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+        </span>
         <div className="flex items-start gap-3 relative z-10">
           <div
             className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-3 ${styles.icon}`}
           >
-            <Icon className="h-[18px] w-[18px]" />
+            <Icon aria-hidden className="h-[18px] w-[18px]" />
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-[11.5px] text-muted-foreground font-medium group-hover:text-foreground transition-colors pr-5">
