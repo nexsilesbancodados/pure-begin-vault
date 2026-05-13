@@ -1,9 +1,11 @@
 export const sidebarItems = [
+  // ─── PAINEL ──────────────────────────────────────────
   { type: "header", title: "Painel" },
   { title: "Dashboard", url: "/painel", icon: "LayoutDashboard" as const },
   { title: "Calendário", url: "/calendario", icon: "Calendar" as const },
   { title: "Relatórios", url: "/relatorios", icon: "BarChart3" as const },
 
+  // ─── ATENDIMENTO & CRM ──────────────────────────────
   { type: "header", title: "Atendimento & CRM" },
   {
     title: "CRM",
@@ -11,7 +13,6 @@ export const sidebarItems = [
     icon: "Sparkles" as const,
     flyout: true,
     children: [
-      { title: "Visão Geral", url: "/crm", icon: "LayoutDashboard" },
       { title: "Inbox unificada", url: "/inbox", icon: "Inbox" },
       { title: "Pipeline de Vendas", url: "/funil", icon: "Trello" },
       { title: "Bot IA", url: "/crm/bot", icon: "Bot", badge: "IA" },
@@ -21,8 +22,8 @@ export const sidebarItems = [
       { title: "Broadcast em massa", url: "/broadcast", icon: "Megaphone" },
     ],
   },
-  { title: "Agentes", url: "/agentes", icon: "Headphones" as const },
 
+  // ─── COMERCIAL ──────────────────────────────────────
   { type: "header", title: "Comercial" },
   {
     title: "Vendas & PDV",
@@ -54,6 +55,7 @@ export const sidebarItems = [
   },
   { title: "Clientes", url: "/clientes", icon: "Users" as const },
 
+  // ─── ESTOQUE ────────────────────────────────────────
   { type: "header", title: "Estoque" },
   {
     title: "Estoque",
@@ -61,14 +63,15 @@ export const sidebarItems = [
     icon: "Box" as const,
     children: [
       { title: "Estoque Atual", url: "/estoque/atual" },
+      { title: "Catálogo de Produtos", url: "/produtos", icon: "Package" },
       { title: "Inventário (contagem)", url: "/inventario", icon: "ClipboardList" },
       { title: "Entrada de NF/Compras", url: "/estoque/compras" },
       { title: "Movimentações", url: "/estoque/movimentacoes" },
       { title: "Etiquetas", url: "/estoque/etiquetas" },
     ],
   },
-  { title: "Catálogo de Produtos", url: "/produtos", icon: "Package" as const },
 
+  // ─── FINANCEIRO ─────────────────────────────────────
   { type: "header", title: "Financeiro" },
   {
     title: "Financeiro",
@@ -85,6 +88,7 @@ export const sidebarItems = [
     ],
   },
 
+  // ─── CONFIGURAÇÕES ──────────────────────────────────
   { type: "header", title: "Configurações" },
   {
     title: "Loja",
@@ -93,8 +97,9 @@ export const sidebarItems = [
     children: [
       { title: "Minhas Lojas", url: "/lojas", icon: "Store" },
       { title: "Equipe da Loja", url: "/equipe-loja", icon: "UserPlus" },
-      { title: "Config. (Pix/PIN/Comissão)", url: "/configuracoes/loja", icon: "Settings" },
+      { title: "Agentes / Atendentes", url: "/agentes", icon: "Headphones" },
       { title: "Hardware", url: "/hardware", icon: "Printer" },
+      { title: "Config. (Pix/PIN/Comissão)", url: "/configuracoes/loja", icon: "Settings" },
     ],
   },
   {
@@ -120,10 +125,14 @@ export const sidebarItems = [
       { title: "Privacidade (LGPD)", url: "/minha-conta/lgpd", icon: "Shield" },
     ],
   },
+
+  // ─── RODAPÉ ─────────────────────────────────────────
+  { type: "header", title: "Mais" },
   { title: "Programa de Afiliados", url: "/afiliados", icon: "Award" as const, badge: "30%" },
   { title: "Central de Ajuda", url: "/help", icon: "HelpCircle" as const },
   { title: "Admin SaaS", url: "/admin", icon: "Lock" as const, roleRestriction: "super_admin" },
 ] as any;
+
 
  export interface ServiceOrder {
    id: string;

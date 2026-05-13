@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from "@tanstack/react-router";
-import * as Icons from "lucide-react";
-import { HelpCircle, ChevronRight, ChevronDown } from "lucide-react";
+import { iconMap, ChevronRight, ChevronDown, HelpCircle } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -44,7 +43,7 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
     );
   }
 
-  const Icon = (Icons as any)[item.icon] || HelpCircle;
+  const Icon = iconMap[item.icon] || HelpCircle;
   const active = location.pathname === item.url || (item.children?.some((child: any) => location.pathname === child.url));
 
   const NavItem = (
