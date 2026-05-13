@@ -153,10 +153,10 @@ function ReportsPage() {
 
       const { data: stages } = await filt(supabase.from("funnel_stages").select("name, color, id")).order("order_index");
       const { data: pipeline } = await filt(supabase.from("pipeline_leads").select("stage_id"));
-      setFunnelData((stages || []).map(s => ({ name: s.name, value: (pipeline || []).filter(p => p.stage_id === s.id).length, color: s.color || "#64748b" })));
+      setFunnelData((stages || []).map((s: any) => ({ name: s.name, value: (pipeline || []).filter((p: any) => p.stage_id === s.id).length, color: s.color || "#64748b" })));
 
       const counts: Record<string, number> = {};
-      (leads || []).forEach(l => { const src = l.source || "Direto"; counts[src] = (counts[src] || 0) + 1; });
+      (leads || []).forEach((l: any) => { const src = l.source || "Direto"; counts[src] = (counts[src] || 0) + 1; });
       setOriginData(Object.entries(counts).map(([name, value]) => ({ name, value, color: name === 'WhatsApp' ? '#25D366' : name === 'Instagram' ? '#E1306C' : '#64748b' })));
       
       if (concludedSales.length > 0) {

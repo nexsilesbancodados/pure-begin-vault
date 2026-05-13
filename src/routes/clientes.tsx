@@ -87,7 +87,8 @@ function CustomersPage() {
         phone: customer.phone || "",
         document: customer.document || "",
         address: customer.address || "",
-        city: customer.city || ""
+        city: customer.city || "",
+        state: customer.state || ""
       });
     } else {
       setEditingCustomer(null);
@@ -97,7 +98,8 @@ function CustomersPage() {
         phone: "",
         document: "",
         address: "",
-        city: ""
+        city: "",
+        state: ""
       });
     }
     setIsModalOpen(true);
