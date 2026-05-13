@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, X } from "lucide-react";
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<unknown>;
+};
+
 export function PwaInstallPrompt() {
-  const [evt, setEvt] = useState<any>(null);
+  const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -25,9 +30,9 @@ export function PwaInstallPrompt() {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
     if (localStorage.getItem("pwa_install_dismissed")) return;
-    const handler = (e: any) => {
+    const handler = (e: Event) => {
       e.preventDefault();
-      setEvt(e);
+      setEvt(e as BeforeInstallPromptEvent);
       setShow(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
