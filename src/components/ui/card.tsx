@@ -2,11 +2,32 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+type Variant = "default" | "gradient" | "blue" | "glow" | "glass" | "hero";
+
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: Variant;
+  hover?: boolean;
+}
+
+const variantClasses: Record<Variant, string> = {
+  default: "bg-card border border-border shadow-card",
+  gradient: "bg-gradient-card border border-border/60 shadow-card",
+  blue: "bg-gradient-card-blue border border-primary/15 shadow-blue",
+  glow: "bg-gradient-card-glow border border-primary/20 shadow-elegant",
+  glass: "glass shadow-card",
+  hero: "bg-gradient-hero text-white border-0 shadow-elegant",
+};
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant = "default", hover = false, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("rounded-xl border bg-card text-card-foreground shadow", className)}
+      className={cn(
+        "rounded-2xl text-card-foreground transition-all",
+        variantClasses[variant],
+        hover && "card-hover cursor-pointer",
+        className,
+      )}
       {...props}
     />
   ),
