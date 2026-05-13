@@ -23,9 +23,49 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "ConectaCRM — ERP, CRM e IA para lojas de celular" },
-      { name: "description", content: "O sistema mais completo do Brasil para lojas de celular: estoque por IMEI, ordem de serviço, vendas, fiscal, financeiro, CRM com IA e app mobile. Supere a concorrência." },
-      { property: "og:title", content: "ConectaCRM — Supere o Mercado Phone" },
+      { name: "description", content: "ERP + CRM + IA para lojas de celular: estoque por IMEI, OS, vendas, fiscal, financeiro e WhatsApp em uma única plataforma." },
+      { property: "og:title", content: "ConectaCRM — Sistema completo para lojas de celular" },
       { property: "og:description", content: "ERP + CRM + IA + App mobile em uma única plataforma. Controle total da sua loja de celular." },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://pure-begin-vault.lovable.app/" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://pure-begin-vault.lovable.app/" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "ConectaCRM",
+          url: "https://pure-begin-vault.lovable.app/",
+          description: "ERP, CRM e IA para lojas de celular: estoque por IMEI, ordem de serviço, vendas, fiscal, financeiro e WhatsApp.",
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "ConectaCRM",
+          url: "https://pure-begin-vault.lovable.app/",
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: [
+            { "@type": "Question", name: "Posso testar antes de pagar?", acceptedAnswer: { "@type": "Answer", text: "Sim. Você tem 3 dias grátis para testar todos os recursos do plano Pro Max, sem precisar de cartão." } },
+            { "@type": "Question", name: "Tem fidelidade?", acceptedAnswer: { "@type": "Answer", text: "Não. Você pode cancelar quando quiser. O pacote anual oferece desconto, mas é opcional." } },
+            { "@type": "Question", name: "Meus dados ficam seguros?", acceptedAnswer: { "@type": "Answer", text: "Sim. Usamos criptografia em repouso e em trânsito, com backups diários e isolamento total entre lojas." } },
+            { "@type": "Question", name: "Funciona offline?", acceptedAnswer: { "@type": "Answer", text: "O sistema é cloud-first, mas o app mobile mantém ações essenciais em cache para continuar vendendo se a internet cair." } },
+            { "@type": "Question", name: "Importam meus dados do sistema antigo?", acceptedAnswer: { "@type": "Answer", text: "Sim. Importamos seu estoque, clientes e histórico via planilha, sem custo, em qualquer plano." } },
+          ],
+        }),
+      },
     ],
   }),
   component: Landing,

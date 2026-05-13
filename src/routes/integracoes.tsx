@@ -16,6 +16,14 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/integracoes")({
+  head: () => ({
+    meta: [
+      { title: "Integrações — ConectaCRM" },
+      { name: "description", content: "Conecte o ConectaCRM com WhatsApp, Instagram, Mercado Pago, transportadoras e mais para automatizar a operação da sua loja." },
+      { property: "og:title", content: "Integrações do ConectaCRM" },
+      { property: "og:description", content: "Conecte sua loja com WhatsApp, Instagram, gateways de pagamento e logística." },
+    ],
+  }),
   component: IntegracoesPage,
 });
 
