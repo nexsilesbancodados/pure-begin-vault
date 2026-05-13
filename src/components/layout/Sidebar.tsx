@@ -1,5 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import * as Icons from "lucide-react";
+import {
+  iconMap,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Sparkles,
+  X,
+} from "@/lib/icons";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { sidebarItems } from "@/lib/mock";
