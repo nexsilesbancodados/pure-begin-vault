@@ -57,35 +57,35 @@
 }
 
 /* =====================================================
-   OCEAN CLEAR — Blue + White SaaS palette
-   Crisp azure, navy text, white cards, light gradients.
+   ROYAL BLUE & WHITE — Premium SaaS palette
+   Deep royal blue primary, pure white cards, crisp contrast.
    ===================================================== */
 :root {
-  --radius: 0.875rem;
+  --radius: 1rem;
 
-  --background: oklch(0.985 0.005 240);
-  --foreground: oklch(0.2 0.04 240);
+  --background: oklch(0.99 0.003 260);
+  --foreground: oklch(0.18 0.05 265);
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.04 240);
+  --card-foreground: oklch(0.18 0.05 265);
 
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.04 240);
+  --popover-foreground: oklch(0.18 0.05 265);
 
-  /* Azure primary */
-  --primary: oklch(0.55 0.19 250);
-  --primary-foreground: oklch(0.99 0.005 240);
-  --primary-glow: oklch(0.65 0.2 250 / 0.35);
+  /* Royal blue primary (~#2541E0) */
+  --primary: oklch(0.45 0.24 265);
+  --primary-foreground: oklch(1 0 0);
+  --primary-glow: oklch(0.58 0.24 265 / 0.4);
 
-  --secondary: oklch(0.96 0.012 240);
-  --secondary-foreground: oklch(0.25 0.05 240);
+  --secondary: oklch(0.965 0.012 260);
+  --secondary-foreground: oklch(0.25 0.08 265);
 
-  --muted: oklch(0.96 0.01 240);
-  --muted-foreground: oklch(0.48 0.025 240);
+  --muted: oklch(0.965 0.008 260);
+  --muted-foreground: oklch(0.5 0.03 265);
 
-  /* Sky-cyan accent */
-  --accent: oklch(0.94 0.045 220);
-  --accent-foreground: oklch(0.28 0.08 240);
+  /* Royal blue tinted accent */
+  --accent: oklch(0.95 0.04 265);
+  --accent-foreground: oklch(0.3 0.15 265);
 
   --destructive: oklch(0.62 0.22 25);
   --destructive-foreground: oklch(0.99 0 0);
