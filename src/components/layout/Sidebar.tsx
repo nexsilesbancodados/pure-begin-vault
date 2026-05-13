@@ -14,11 +14,10 @@ import { SortableSidebarItem } from "./SortableSidebarItem";
 
 export function AppSidebar({ open, setOpen }: { open?: boolean; setOpen?: (val: boolean) => void }) {
   const location = useLocation();
-  const { user, profile, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const [flyout, setFlyout] = useState<any | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isForcedCollapsed, setIsForcedCollapsed] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => { setFlyout(null); }, [location.pathname]);
 
@@ -38,10 +37,9 @@ export function AppSidebar({ open, setOpen }: { open?: boolean; setOpen?: (val: 
     return sidebarItems.filter((item: any) => {
       if (item.type === "header") return true;
       if (item.roleRestriction === "super_admin" && profile?.role !== 'super_admin') return false;
-      if (!searchQuery) return true;
-      return item.title.toLowerCase().includes(searchQuery.toLowerCase());
+      return true;
     });
-  }, [searchQuery, profile]);
+  }, [profile]);
 
   const isSmall = isCollapsed || !!flyout || isForcedCollapsed;
 
