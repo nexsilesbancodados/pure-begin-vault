@@ -149,7 +149,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
                 <div className="space-y-2 mt-4">
                   {originData.map((origin, i) => (
                     <div key={i} className="flex items-center justify-between text-xs font-bold">
-                      <span className="flex items-center gap-2 text-slate-600">
+                      <span className="flex items-center gap-2 text-muted-foreground">
                         <span className="h-2 w-2 rounded-full" style={{ background: origin.color }} />
                         {origin.name}
                       </span>
@@ -176,10 +176,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
                 {topAgents.map((agent, i) => (
                   <div key={i} className="flex items-center justify-between p-2 -mx-2 rounded-xl hover:bg-muted transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className={`h-9 w-9 rounded-full flex items-center justify-center font-black text-xs ring-2 ring-white shadow-sm ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-muted text-slate-600' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-primary/10 text-primary'}`}>
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center font-black text-xs ring-2 ring-card shadow-sm ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-muted text-muted-foreground' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-primary/10 text-primary'}`}>
                         {agent.avatar}
                       </div>
-                      <span className="text-sm font-bold text-slate-700">{agent.name}</span>
+                      <span className="text-sm font-bold text-foreground">{agent.name}</span>
                     </div>
                     <span className="text-sm font-black text-foreground">{agent.revenue}</span>
                   </div>
@@ -205,7 +205,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           {[1, 2, 3].map(i => (
             <div key={i} className="bg-muted rounded-2xl p-6 border border-border text-left">
               <div className="h-2 w-12 bg-primary/20 rounded-full mb-4" />
-              <div className="h-4 w-24 bg-slate-200 rounded-full mb-2" />
+              <div className="h-4 w-24 bg-muted rounded-full mb-2" />
               <div className="h-6 w-full bg-muted rounded-full" />
             </div>
           ))}
