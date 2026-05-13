@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from "@tanstack/react-router";
-import * as Icons from "lucide-react";
-import { HelpCircle, ChevronRight, ChevronDown } from "lucide-react";
+import { iconMap, ChevronRight, ChevronDown, HelpCircle } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
