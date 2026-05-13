@@ -253,7 +253,7 @@ function ReportsPage() {
     }),
   );
 
-  const handleDragEnd = (event: { active: { id: string }; over: { id: string } | null }) => {
+  const handleDragEnd = (event: import("@dnd-kit/core").DragEndEvent) => {
     const { active, over } = event;
     if (active && over && active.id !== over.id) {
       setCategories((items) => {
