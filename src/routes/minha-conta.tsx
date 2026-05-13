@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { CreditCard, CalendarDays, Loader2, XCircle } from "lucide-react";
+import { CreditCard, CalendarDays, Loader2, XCircle, ArrowUpRight } from "lucide-react";
 
 export const Route = createFileRoute("/minha-conta")({
   head: () => ({
@@ -68,6 +68,31 @@ function MinhaContaPage() {
   const [sub, setSub] = useState<Sub | null>(null);
   const [payments, setPayments] = useState<Pay[]>([]);
   const [canceling, setCanceling] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+
+  const upgradeToRecurring = async (planId: string) => {
+    setUpgrading(true);
+    try {
+      const { data: s } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mp-create-preapproval`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${s.session?.access_token ?? ""}` },
+        body: JSON.stringify({ plan_id: planId, back_url: `${window.location.origin}/minha-conta` }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || "Erro ao criar assinatura");
+      if (json.init_point) {
+        window.location.href = json.init_point;
+      } else {
+        toast.success("Assinatura criada");
+        await load();
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao criar assinatura");
+    } finally {
+      setUpgrading(false);
+    }
+  };
 
   const load = async () => {
     if (!user?.id) return;
@@ -173,10 +198,19 @@ function MinhaContaPage() {
                       </div>
                       <Separator />
                       <div className="flex flex-wrap gap-2">
+                        {(sub.status === "trial" || sub.status === "past_due" || sub.status === "suspended") && (
+                          <Button onClick={() => upgradeToRecurring(sub.plan_id)} disabled={upgrading} className="bg-gradient-primary text-white shadow-blue">
+                            {upgrading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
+                            {sub.status === "trial" ? "Assinar agora (recorrente)" : "Reativar assinatura"}
+                          </Button>
+                        )}
                         <Button asChild variant="outline">
                           <Link to="/assinar">Trocar de plano</Link>
                         </Button>
-                        {sub.status === "active" || sub.status === "pending" ? (
+                        <Button asChild variant="outline">
+                          <Link to="/minha-conta/cobrancas">Ver cobranças</Link>
+                        </Button>
+                        {(sub.status === "active" || sub.status === "pending") && (
                           <Button variant="destructive" onClick={handleCancel} disabled={canceling}>
                             {canceling ? (
                               <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -185,7 +219,7 @@ function MinhaContaPage() {
                             )}
                             Cancelar assinatura
                           </Button>
-                        ) : null}
+                        )}
                       </div>
                       {sub.canceled_at && (
                         <p className="text-xs text-muted-foreground">
