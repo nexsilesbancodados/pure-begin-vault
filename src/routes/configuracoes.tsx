@@ -243,8 +243,6 @@ export const Route = createFileRoute("/configuracoes")({
                  <TabsList className="bg-muted/50 p-1 rounded-xl">
                    <TabsTrigger value="perfil" className="rounded-lg gap-2"><User className="h-4 w-4" /> Perfil</TabsTrigger>
                    <TabsTrigger value="vendas" className="rounded-lg gap-2"><Smartphone className="h-4 w-4" /> Vendas</TabsTrigger>
-                   <TabsTrigger value="ia" className="rounded-lg gap-2"><Zap className="h-4 w-4" /> IA DeepSeek</TabsTrigger>
-                   <TabsTrigger value="integracoes" className="rounded-lg gap-2"><Database className="h-4 w-4" /> Integrações</TabsTrigger>
                     <TabsTrigger value="seguranca" className="rounded-lg gap-2"><Shield className="h-4 w-4" /> Segurança</TabsTrigger>
                     <TabsTrigger value="backup" className="rounded-lg gap-2"><Database className="h-4 w-4" /> Backup</TabsTrigger>
                   </TabsList>
