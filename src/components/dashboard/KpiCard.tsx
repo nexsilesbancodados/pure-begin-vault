@@ -174,10 +174,27 @@ export function KpiCard({
       <button
         onClick={() => setIsModalOpen(true)}
         aria-label={`${label}: ${initialValue}${trend ? `, tendência ${trend}` : ""}. Ver detalhes`}
-        className={`relative overflow-hidden rounded-2xl bg-card border border-border p-3 sm:p-4 shadow-card hover:shadow-elegant hover:-translate-y-1 active:scale-[0.97] transition-all duration-150 text-left w-full group hover:ring-2 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${styles.ring}`}
+        className={`relative overflow-hidden rounded-2xl bg-card border border-border p-3 sm:p-4 shadow-card hover:shadow-elegant hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 text-left w-full group hover:ring-2 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${styles.ring}`}
       >
+        {/* Top highlight line */}
         <div
-          className={`absolute inset-0 bg-gradient-to-br ${styles.gradient} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-0`}
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent"
+        />
+        {/* Gradient wash */}
+        <div
+          aria-hidden
+          className={`absolute inset-0 bg-gradient-to-br ${styles.gradient} opacity-40 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-0`}
+        />
+        {/* Corner glow on hover */}
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute -bottom-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-tr ${styles.gradient} blur-2xl opacity-0 group-hover:opacity-90 transition-opacity duration-500`}
+        />
+        {/* Shine sweep */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms] ease-out bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
         />
         <span
           role="button"
@@ -197,20 +214,20 @@ export function KpiCard({
         </span>
         <div className="flex items-start gap-3 relative z-10">
           <div
-            className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 transition-transform group-hover:scale-110 group-hover:rotate-3 ${styles.icon}`}
+            className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 ring-1 ring-inset ring-current/15 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-4deg] group-hover:shadow-md ${styles.icon}`}
           >
             <Icon aria-hidden className="h-[18px] w-[18px]" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[11.5px] text-muted-foreground font-medium group-hover:text-foreground transition-colors pr-5">
+            <div className="text-[10.5px] text-muted-foreground font-semibold uppercase tracking-wider group-hover:text-foreground transition-colors pr-5">
               {label}
             </div>
-            <div className="mt-0.5 flex items-baseline gap-1.5 flex-wrap">
+            <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
               <span className="text-[17px] sm:text-[20px] lg:text-[22px] font-bold tracking-tight font-display truncate max-w-full">
                 {initialValue}
               </span>
               {trend && (
-                <span className="text-[10px] font-semibold text-success whitespace-nowrap">
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-success bg-success/10 px-1.5 py-0.5 rounded-full whitespace-nowrap ring-1 ring-inset ring-success/20">
                   ↑ {trend.replace("+", "")}
                 </span>
               )}
