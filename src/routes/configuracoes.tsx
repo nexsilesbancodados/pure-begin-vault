@@ -233,7 +233,7 @@ function SettingsPage() {
       setFormData({
         display_name: profile.display_name || "",
         role: profile.role || "",
-        phone: profile.phone || "",
+        phone: (profile as { phone?: string | null }).phone || "",
       });
       setAvatarUrl(profile.avatar_url || null);
     }
