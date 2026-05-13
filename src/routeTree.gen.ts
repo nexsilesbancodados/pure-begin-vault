@@ -37,6 +37,8 @@ import { Route as IntegracoesRouteImport } from './routes/integracoes'
 import { Route as InstagramRouteImport } from './routes/instagram'
 import { Route as InboxRouteImport } from './routes/inbox'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as HardwareRouteImport } from './routes/hardware'
+import { Route as GoogleReviewsRouteImport } from './routes/google-reviews'
 import { Route as FunilRouteImport } from './routes/funil'
 import { Route as FiscalRouteImport } from './routes/fiscal'
 import { Route as FinanceiroRouteImport } from './routes/financeiro'
@@ -83,6 +85,7 @@ import { Route as OsTermoIdRouteImport } from './routes/os-termo.$id'
 import { Route as OrcamentoIdRouteImport } from './routes/orcamento.$id'
 import { Route as MinhaContaSegurancaRouteImport } from './routes/minha-conta.seguranca'
 import { Route as MinhaContaLgpdRouteImport } from './routes/minha-conta.lgpd'
+import { Route as MinhaContaCobrancasRouteImport } from './routes/minha-conta.cobrancas'
 import { Route as MAtendimentoRouteImport } from './routes/m.atendimento'
 import { Route as FinanceiroPlanoContasRouteImport } from './routes/financeiro.plano-contas'
 import { Route as FinanceiroNotasAbertoRouteImport } from './routes/financeiro.notas-aberto'
@@ -247,6 +250,16 @@ const InboxRoute = InboxRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HardwareRoute = HardwareRouteImport.update({
+  id: '/hardware',
+  path: '/hardware',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoogleReviewsRoute = GoogleReviewsRouteImport.update({
+  id: '/google-reviews',
+  path: '/google-reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FunilRoute = FunilRouteImport.update({
@@ -479,6 +492,11 @@ const MinhaContaLgpdRoute = MinhaContaLgpdRouteImport.update({
   path: '/lgpd',
   getParentRoute: () => MinhaContaRoute,
 } as any)
+const MinhaContaCobrancasRoute = MinhaContaCobrancasRouteImport.update({
+  id: '/cobrancas',
+  path: '/cobrancas',
+  getParentRoute: () => MinhaContaRoute,
+} as any)
 const MAtendimentoRoute = MAtendimentoRouteImport.update({
   id: '/m/atendimento',
   path: '/m/atendimento',
@@ -630,6 +648,8 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/google-reviews': typeof GoogleReviewsRoute
+  '/hardware': typeof HardwareRoute
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
@@ -678,6 +698,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
   '/m/atendimento': typeof MAtendimentoRoute
+  '/minha-conta/cobrancas': typeof MinhaContaCobrancasRoute
   '/minha-conta/lgpd': typeof MinhaContaLgpdRoute
   '/minha-conta/seguranca': typeof MinhaContaSegurancaRoute
   '/orcamento/$id': typeof OrcamentoIdRoute
@@ -731,6 +752,8 @@ export interface FileRoutesByTo {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/google-reviews': typeof GoogleReviewsRoute
+  '/hardware': typeof HardwareRoute
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
@@ -779,6 +802,7 @@ export interface FileRoutesByTo {
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
   '/m/atendimento': typeof MAtendimentoRoute
+  '/minha-conta/cobrancas': typeof MinhaContaCobrancasRoute
   '/minha-conta/lgpd': typeof MinhaContaLgpdRoute
   '/minha-conta/seguranca': typeof MinhaContaSegurancaRoute
   '/orcamento/$id': typeof OrcamentoIdRoute
@@ -833,6 +857,8 @@ export interface FileRoutesById {
   '/financeiro': typeof FinanceiroRouteWithChildren
   '/fiscal': typeof FiscalRoute
   '/funil': typeof FunilRoute
+  '/google-reviews': typeof GoogleReviewsRoute
+  '/hardware': typeof HardwareRoute
   '/help': typeof HelpRoute
   '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
@@ -881,6 +907,7 @@ export interface FileRoutesById {
   '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
   '/m/atendimento': typeof MAtendimentoRoute
+  '/minha-conta/cobrancas': typeof MinhaContaCobrancasRoute
   '/minha-conta/lgpd': typeof MinhaContaLgpdRoute
   '/minha-conta/seguranca': typeof MinhaContaSegurancaRoute
   '/orcamento/$id': typeof OrcamentoIdRoute
@@ -936,6 +963,8 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/google-reviews'
+    | '/hardware'
     | '/help'
     | '/inbox'
     | '/instagram'
@@ -984,6 +1013,7 @@ export interface FileRouteTypes {
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
     | '/m/atendimento'
+    | '/minha-conta/cobrancas'
     | '/minha-conta/lgpd'
     | '/minha-conta/seguranca'
     | '/orcamento/$id'
@@ -1037,6 +1067,8 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/google-reviews'
+    | '/hardware'
     | '/help'
     | '/inbox'
     | '/instagram'
@@ -1085,6 +1117,7 @@ export interface FileRouteTypes {
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
     | '/m/atendimento'
+    | '/minha-conta/cobrancas'
     | '/minha-conta/lgpd'
     | '/minha-conta/seguranca'
     | '/orcamento/$id'
@@ -1138,6 +1171,8 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fiscal'
     | '/funil'
+    | '/google-reviews'
+    | '/hardware'
     | '/help'
     | '/inbox'
     | '/instagram'
@@ -1186,6 +1221,7 @@ export interface FileRouteTypes {
     | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
     | '/m/atendimento'
+    | '/minha-conta/cobrancas'
     | '/minha-conta/lgpd'
     | '/minha-conta/seguranca'
     | '/orcamento/$id'
@@ -1240,6 +1276,8 @@ export interface RootRouteChildren {
   FinanceiroRoute: typeof FinanceiroRouteWithChildren
   FiscalRoute: typeof FiscalRoute
   FunilRoute: typeof FunilRoute
+  GoogleReviewsRoute: typeof GoogleReviewsRoute
+  HardwareRoute: typeof HardwareRoute
   HelpRoute: typeof HelpRoute
   InboxRoute: typeof InboxRoute
   InstagramRoute: typeof InstagramRoute
@@ -1483,6 +1521,20 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hardware': {
+      id: '/hardware'
+      path: '/hardware'
+      fullPath: '/hardware'
+      preLoaderRoute: typeof HardwareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/google-reviews': {
+      id: '/google-reviews'
+      path: '/google-reviews'
+      fullPath: '/google-reviews'
+      preLoaderRoute: typeof GoogleReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/funil': {
@@ -1807,6 +1859,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MinhaContaLgpdRouteImport
       parentRoute: typeof MinhaContaRoute
     }
+    '/minha-conta/cobrancas': {
+      id: '/minha-conta/cobrancas'
+      path: '/cobrancas'
+      fullPath: '/minha-conta/cobrancas'
+      preLoaderRoute: typeof MinhaContaCobrancasRouteImport
+      parentRoute: typeof MinhaContaRoute
+    }
     '/m/atendimento': {
       id: '/m/atendimento'
       path: '/m/atendimento'
@@ -2039,11 +2098,13 @@ const FinanceiroRouteWithChildren = FinanceiroRoute._addFileChildren(
 )
 
 interface MinhaContaRouteChildren {
+  MinhaContaCobrancasRoute: typeof MinhaContaCobrancasRoute
   MinhaContaLgpdRoute: typeof MinhaContaLgpdRoute
   MinhaContaSegurancaRoute: typeof MinhaContaSegurancaRoute
 }
 
 const MinhaContaRouteChildren: MinhaContaRouteChildren = {
+  MinhaContaCobrancasRoute: MinhaContaCobrancasRoute,
   MinhaContaLgpdRoute: MinhaContaLgpdRoute,
   MinhaContaSegurancaRoute: MinhaContaSegurancaRoute,
 }
@@ -2138,6 +2199,8 @@ const rootRouteChildren: RootRouteChildren = {
   FinanceiroRoute: FinanceiroRouteWithChildren,
   FiscalRoute: FiscalRoute,
   FunilRoute: FunilRoute,
+  GoogleReviewsRoute: GoogleReviewsRoute,
+  HardwareRoute: HardwareRoute,
   HelpRoute: HelpRoute,
   InboxRoute: InboxRoute,
   InstagramRoute: InstagramRoute,

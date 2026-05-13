@@ -21,15 +21,15 @@ export function Funnel() {
       const { data: stgs } = await filt(supabase.from("funnel_stages").select("*")).order("order_index", { ascending: true });
       const { data: deals } = await filt(supabase.from("pipeline_leads").select(`*, leads (name, source)`));
 
-      const formattedStages = (stgs || []).map(s => {
-        const stageDeals = (deals || []).filter(d => d.stage_id === s.id);
+      const formattedStages = (stgs || []).map((s: any) => {
+        const stageDeals = (deals || []).filter((d: any) => d.stage_id === s.id);
         return {
           id: s.id,
           label: s.name,
           color: s.color || "#64748b",
           count: stageDeals.length,
-          total: stageDeals.reduce((acc, curr) => acc + (Number(curr.deal_value) || 0), 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-          leads: stageDeals.slice(0, 3).map(d => ({
+          total: stageDeals.reduce((acc: number, curr: any) => acc + (Number(curr.deal_value) || 0), 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+          leads: stageDeals.slice(0, 3).map((d: any) => ({
             name: d.leads?.name || "Desconhecido",
             channel: d.leads?.source || "Direto",
             avatar: (d.leads?.name || "U")[0].toUpperCase(),

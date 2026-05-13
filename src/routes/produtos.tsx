@@ -76,7 +76,12 @@ function ProductsPage() {
 
    const handleSave = async (data?: any) => {
      if (!user?.id) return;
-     const dataToSave = data || {
+     if (!orgId) {
+       toast.error("Crie ou selecione uma loja antes de cadastrar produtos.");
+       return;
+     }
+     const isFormEvent = data && typeof data === "object" && ("nativeEvent" in data || "currentTarget" in data);
+     const dataToSave = data && !isFormEvent ? data : {
        name: formData.name,
        price: parseFloat(formData.price) || 0,
        stock_quantity: parseInt(formData.stock_quantity) || 0,
@@ -88,14 +93,14 @@ function ProductsPage() {
 
     setSaving(true);
     try {
-       const payload = {
+      const { stock, imei, imei2, color, capacity, processor, ram, display, margin, markup, battery_health, observations, store, ...productFields } = dataToSave;
+      const payload = {
          user_id: user.id,
          organization_id: orgId,
-         ...dataToSave,
+          ...productFields,
          price: parseFloat(dataToSave.price) || 0,
-         stock_quantity: parseInt(dataToSave.stock || dataToSave.stock_quantity) || 0,
+          stock_quantity: parseInt(stock || dataToSave.stock_quantity) || 0,
        };
-       if (payload.stock !== undefined) delete payload.stock;
 
       if (editingProduct) {
         const { error } = await supabase
@@ -115,9 +120,9 @@ function ProductsPage() {
        setEditingProduct(null);
        setIsAddOpen(false);
       fetchProducts();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar:", error);
-      toast.error("Erro ao salvar produto.");
+      toast.error(error?.message ? `Erro ao salvar produto: ${error.message}` : "Erro ao salvar produto.");
     } finally {
       setSaving(false);
     }
@@ -200,7 +205,7 @@ function ProductsPage() {
                   />
                 </div>
                 <div className="flex gap-2">
-                   <Button onClick={handleSave} disabled={saving} className="flex-1 h-11 font-bold">
+                   <Button onClick={() => handleSave()} disabled={saving} className="flex-1 h-11 font-bold">
                      {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
                      Cadastrar
                    </Button>
