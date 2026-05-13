@@ -276,12 +276,12 @@ function ResultView({ result, email, onRetry, navigateLogin }: {
       <div className="text-center">
         <h3 className="text-lg font-semibold">Pague com PIX para liberar sua conta</h3>
         {result.qr_code_base64 && (
-          <img src={`data:image/png;base64,${result.qr_code_base64}`} alt="PIX" className="w-64 h-64 mx-auto mt-4 border rounded" />
+          <img src={`data:image/png;base64,${result.qr_code_base64}`} alt="QR Code PIX para pagamento da assinatura" className="w-64 h-64 mx-auto mt-4 border rounded" />
         )}
         <p className="text-xs text-muted-foreground mt-3">Ou copie o código:</p>
         <div className="flex gap-2 mt-2">
           <input readOnly value={result.qr_code} className="flex-1 px-3 py-2 text-xs border rounded bg-muted font-mono" />
-          <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(result.qr_code); toast.success("Copiado!"); }}>
+          <Button size="sm" variant="outline" aria-label="Copiar código PIX" onClick={() => { navigator.clipboard.writeText(result.qr_code); toast.success("Copiado!"); }}>
             <Copy className="h-4 w-4" />
           </Button>
         </div>
