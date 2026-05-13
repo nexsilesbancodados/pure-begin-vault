@@ -48,7 +48,6 @@ export const sidebarItems = [
       { title: "Cupons Fiscais", url: "/fiscal" },
       { title: "Simulador de Taxas", url: "/vendas/simulador" },
       { title: "Calculadora de Usados", url: "/vendas/calculadora" },
-      { title: "Consulta Rápida Estoque", url: "/vendas/consulta-estoque" },
       { title: "Garantias", url: "/vendas/garantias" },
       { title: "Gestão Delivery", url: "/vendas/delivery" },
     ],
