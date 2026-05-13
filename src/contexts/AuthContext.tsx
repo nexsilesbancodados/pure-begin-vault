@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import type { Session, User } from "@supabase/supabase-js";
+import type { Tables } from "@/integrations/supabase/types";
+
+import {
+  AppPermissions,
+  DEFAULT_ADMIN_PERMISSIONS,
+  DEFAULT_EMPLOYEE_PERMISSIONS,
+} from "@/types/permissions";
 
 export type Role =
   | "super_admin"
@@ -11,18 +18,14 @@ export type Role =
   | "employee"
   | "user";
 
-import {
-  AppPermissions,
-  DEFAULT_ADMIN_PERMISSIONS,
-  DEFAULT_EMPLOYEE_PERMISSIONS,
-} from "@/types/permissions";
+export type Profile = Tables<"profiles">;
 
 export type { AppPermissions as UserPermissions };
 
 interface AuthContextType {
-  session: any;
+  session: Session | null;
   user: User | null;
-  profile: any;
+  profile: Profile | null;
   permissions: AppPermissions | null;
   loading: boolean;
   logout: () => Promise<void>;
@@ -31,9 +34,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [permissions, setPermissions] = useState<AppPermissions | null>(null);
   const [loading, setLoading] = useState(true);
 

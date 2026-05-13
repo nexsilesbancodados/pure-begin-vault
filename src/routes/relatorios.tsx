@@ -407,7 +407,7 @@ function ReportsPage() {
   }, [fetchReportsData]);
 
   const allowedRoles = ["admin", "owner", "super_admin", "manager"];
-  if (profile && !allowedRoles.includes(profile.role)) {
+  if (profile && !allowedRoles.includes(profile.role ?? "")) {
     return (
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
