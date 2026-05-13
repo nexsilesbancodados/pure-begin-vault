@@ -86,7 +86,18 @@ function ReportsPage() {
   const { user, profile } = useAuth();
   const { orgId } = useOrg();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any>({
+  type Trend = { value: string; isUp: boolean };
+  type Stats = {
+    revenue: number;
+    leads: number;
+    conversion: number;
+    avgTicket: number;
+    revenueTrend: Trend;
+    leadsTrend: Trend;
+    conversionTrend: Trend;
+    avgTicketTrend: Trend;
+  };
+  const [stats, setStats] = useState<Stats>({
     revenue: 0,
     leads: 0,
     conversion: 0,
@@ -99,7 +110,15 @@ function ReportsPage() {
   const [activeCategory, setActiveCategory] = useState("visao-geral");
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
-  const [categories, setCategories] = useState<any[]>([
+  type Category = {
+    id: string;
+    label: string;
+    icon: typeof Home;
+    hasArrow?: boolean;
+    isNew?: boolean;
+    children?: { id: string; label: string; icon: typeof Home; isNew?: boolean }[];
+  };
+  const [categories, setCategories] = useState<Category[]>([
     { id: "visao-geral", label: "Visão geral - Atalhos", icon: Home },
     {
       id: "clientes",
