@@ -42,25 +42,39 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {(visibleStats.length > 0 ? visibleStats : allStats).map((stat, i) => (
-          <div key={i} className="bg-white border border-border rounded-2xl p-5 shadow-sm hover:border-primary/20 transition-colors group">
-            <div className="flex items-start justify-between mb-4">
-              <div className={`h-11 w-11 rounded-xl ${stat.bg} ${stat.text} flex items-center justify-center`}>
-                <stat.icon className="h-5 w-5" />
+        {(visibleStats.length > 0 ? visibleStats : allStats).map((stat, i) => {
+          // Decorative sparkline bars (deterministic per index)
+          const bars = Array.from({ length: 12 }, (_, k) => 30 + ((i * 7 + k * 11) % 60));
+          return (
+            <div key={i} className="relative overflow-hidden bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 group">
+              <div className="flex items-start justify-between mb-3">
+                <div className={`h-10 w-10 rounded-xl ${stat.bg} ${stat.text} flex items-center justify-center ring-1 ring-inset ring-current/10`}>
+                  <stat.icon className="h-5 w-5" />
+                </div>
+                <div className={`flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.trend.isUp ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
+                  {stat.trend.isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                  {stat.trend.value}
+                </div>
               </div>
-              <div className={`flex items-center gap-0.5 text-xs font-bold px-2 py-1 rounded-lg ${stat.trend.isUp ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
-                {stat.trend.isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                {stat.trend.value}
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+              {loading ? (
+                <div className="h-7 w-20 bg-slate-100 animate-pulse rounded-md" />
+              ) : (
+                <h3 className="text-2xl font-black font-display tracking-tight text-slate-900 group-hover:text-primary transition-colors">{stat.value}</h3>
+              )}
+              {/* sparkline */}
+              <div className="mt-4 flex items-end gap-[3px] h-8">
+                {bars.map((h, k) => (
+                  <div
+                    key={k}
+                    className={`flex-1 rounded-sm ${stat.text} opacity-30 group-hover:opacity-60 transition-opacity`}
+                    style={{ height: `${h}%`, background: 'currentColor' }}
+                  />
+                ))}
               </div>
             </div>
-            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
-            {loading ? (
-              <div className="h-8 w-24 bg-muted animate-pulse rounded-lg" />
-            ) : (
-              <h3 className="text-2xl font-black font-display tracking-tight group-hover:text-primary transition-colors">{stat.value}</h3>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
