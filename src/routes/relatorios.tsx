@@ -272,7 +272,6 @@ function ReportsPage() {
       try {
         const orderIds = JSON.parse(savedOrder);
         setCategories((prev) => {
-          const currentIds = prev.map((c) => c.id);
           const sorted = [...prev].sort((a, b) => {
             const aIndex = orderIds.indexOf(a.id);
             const bIndex = orderIds.indexOf(b.id);
