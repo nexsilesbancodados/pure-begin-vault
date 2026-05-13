@@ -2,19 +2,7 @@ export const sidebarItems = [
   { type: "header", title: "Painel" },
   { title: "Dashboard", url: "/painel", icon: "LayoutDashboard" as const },
   { title: "Calendário", url: "/calendario", icon: "Calendar" as const },
-  {
-    title: "Relatórios",
-    url: "/relatorios",
-    icon: "BarChart3" as const,
-    children: [
-      { title: "Visão Geral", url: "/relatorios", icon: "BarChart3" },
-      { title: "Crescimento (CAC/LTV)", url: "/relatorios/crescimento", icon: "TrendingUp" },
-      { title: "Comissões", url: "/relatorios/comissoes", icon: "Award" },
-      { title: "Churn (clientes em risco)", url: "/relatorios/churn", icon: "AlertTriangle" },
-      { title: "Clientes VIP (RFM)", url: "/relatorios/vip", icon: "Star" },
-      { title: "NPS", url: "/nps", icon: "Smile" },
-    ],
-  },
+  { title: "Relatórios", url: "/relatorios", icon: "BarChart3" as const },
 
   { type: "header", title: "Atendimento & CRM" },
   {
