@@ -14,8 +14,8 @@ import { iconMap } from "@/lib/icons";
 import { ArrowRight } from "lucide-react";
 
 interface CommandPaletteProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 interface Entry {
@@ -52,9 +52,28 @@ function buildEntries(): Entry[] {
   return out;
 }
 
-export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+export function CommandPalette({ open: openProp, onOpenChange }: CommandPaletteProps = {}) {
   const navigate = useNavigate();
   const entries = useMemo(buildEntries, []);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? !!openProp : internalOpen;
+  const setOpen = (v: boolean) => {
+    if (!isControlled) setInternalOpen(v);
+    onOpenChange?.(v);
+  };
+
+  useEffect(() => {
+    if (isControlled) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setInternalOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isControlled]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Entry[]>();
