@@ -6,17 +6,17 @@ import {
   Star, Globe, Calendar, Bell, Crown, TrendingUp, ShieldCheck as ShieldIcon,
 } from "lucide-react";
 import heroDashboard from "@/assets/hero-dashboard.webp";
-import ownerStore from "@/assets/owner-store.jpg";
-import customerHappy from "@/assets/customer-happy.jpg";
-import attendantLaptop from "@/assets/attendant-laptop.jpg";
-import featImei from "@/assets/feat-imei.jpg";
-import featPdv from "@/assets/feat-pdv.jpg";
-import featAssist from "@/assets/feat-assist.jpg";
-import featCrm from "@/assets/feat-crm.jpg";
-import featReports from "@/assets/feat-reports.jpg";
-import featAi from "@/assets/feat-ai.jpg";
-import featDevices from "@/assets/feat-devices.jpg";
-import testimonialLeandro from "@/assets/testimonial-leandro.jpg";
+import ownerStore from "@/assets/owner-store.webp";
+import customerHappy from "@/assets/customer-happy.webp";
+import attendantLaptop from "@/assets/attendant-laptop.webp";
+import featImei from "@/assets/feat-imei.webp";
+import featPdv from "@/assets/feat-pdv.webp";
+import featAssist from "@/assets/feat-assist.webp";
+import featCrm from "@/assets/feat-crm.webp";
+import featReports from "@/assets/feat-reports.webp";
+import featAi from "@/assets/feat-ai.webp";
+import featDevices from "@/assets/feat-devices.webp";
+import testimonialLeandro from "@/assets/testimonial-leandro.webp";
 import { X as XIcon, Clock, Heart, Quote, Store, Headphones, BadgeCheck, Cloud, ShieldCheck as ShieldIcon2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
