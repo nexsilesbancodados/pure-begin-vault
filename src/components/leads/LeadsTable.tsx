@@ -73,6 +73,7 @@ export function LeadsTable() {
 
   const save = async () => {
     if (!user?.id || !editing) return;
+    if (!orgId) { toast.error("Crie ou selecione uma loja antes de cadastrar leads."); return; }
     if (!editing.name?.trim()) { toast.error("Nome é obrigatório"); return; }
     setSaving(true);
     const payload = {
@@ -100,6 +101,7 @@ export function LeadsTable() {
 
   const handleQuickSave = async () => {
     if (!user?.id) return;
+    if (!orgId) { toast.error("Crie ou selecione uma loja antes de cadastrar leads."); return; }
     if (!quickLead.name.trim()) { toast.error("Nome é obrigatório"); return; }
     setSaving(true);
     const payload = {

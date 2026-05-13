@@ -93,14 +93,14 @@ function ProductsPage() {
 
     setSaving(true);
     try {
-       const payload = {
+      const { stock, imei, imei2, color, capacity, processor, ram, display, margin, markup, battery_health, observations, store, ...productFields } = dataToSave;
+      const payload = {
          user_id: user.id,
          organization_id: orgId,
-         ...dataToSave,
+          ...productFields,
          price: parseFloat(dataToSave.price) || 0,
-         stock_quantity: parseInt(dataToSave.stock || dataToSave.stock_quantity) || 0,
+          stock_quantity: parseInt(stock || dataToSave.stock_quantity) || 0,
        };
-       if (payload.stock !== undefined) delete payload.stock;
 
       if (editingProduct) {
         const { error } = await supabase
