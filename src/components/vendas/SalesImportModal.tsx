@@ -1,12 +1,19 @@
- import { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useState, useRef } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
- import * as XLSX from "xlsx";
+import * as XLSX from "xlsx";
 
 interface SalesImportModalProps {
   isOpen: boolean;
@@ -15,11 +22,11 @@ interface SalesImportModalProps {
 }
 
 export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImportModalProps) {
-   const { user } = useAuth();
-   const { orgId } = useOrg();
+  const { user } = useAuth();
+  const { orgId } = useOrg();
   const [isImporting, setIsImporting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -27,70 +34,70 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     }
   };
 
-   const processFile = async (file: File): Promise<any[]> => {
-     return new Promise((resolve, reject) => {
-       const reader = new FileReader();
-       reader.onload = (e) => {
-         try {
-           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-           const workbook = XLSX.read(data, { type: "array" });
-           const firstSheetName = workbook.SheetNames[0];
-           const worksheet = workbook.Sheets[firstSheetName];
-           const jsonData = XLSX.utils.sheet_to_json(worksheet);
-           resolve(jsonData);
-         } catch (err) {
-           reject(err);
-         }
-       };
-       reader.onerror = (err) => reject(err);
-       reader.readAsArrayBuffer(file);
-     });
-   };
- 
-   const handleImport = async () => {
-     if (!file || !user?.id) {
-       toast.error("Por favor, selecione um arquivo.");
-       return;
-     }
- 
-     setIsImporting(true);
-     try {
-       const data = await processFile(file);
-       
-       if (!data || data.length === 0) {
-         throw new Error("O arquivo está vazio ou é inválido.");
-       }
- 
-       // Mapeamento dos dados para o formato do banco
-       // Esperamos colunas como: valor, metodo_pagamento, status, data
-       const salesToInsert = data.map((row: any) => ({
-         user_id: user.id,
-         organization_id: orgId,
-         total_amount: parseFloat(row.valor || row.total || row.Amount || 0),
-         payment_method: row.metodo_pagamento || row.payment_method || "Pix",
-          status: row.status || "concluded",
-         notes: row.observacao || row.notes || "Importado via sistema",
-         items: row.itens ? JSON.parse(row.itens) : [],
-         created_at: row.data ? new Date(row.data).toISOString() : new Date().toISOString(),
-       }));
- 
-       const { error } = await supabase
-         .from('sales_orders')
-         .insert(salesToInsert);
- 
-       if (error) throw error;
- 
-       toast.success(`${salesToInsert.length} vendas importadas com sucesso!`);
-       onImportSuccess?.();
-       onClose();
-       setFile(null);
-     } catch (error: any) {
-       console.error("Erro na importação:", error);
-       toast.error(error.message || "Ocorreu um erro ao importar as vendas. Verifique o formato do arquivo.");
-     } finally {
-       setIsImporting(false);
-     }
-   };
+  const processFile = async (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          resolve(jsonData);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleImport = async () => {
+    if (!file || !user?.id) {
+      toast.error("Por favor, selecione um arquivo.");
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const data = await processFile(file);
+
+      if (!data || data.length === 0) {
+        throw new Error("O arquivo está vazio ou é inválido.");
+      }
+
+      // Mapeamento dos dados para o formato do banco
+      // Esperamos colunas como: valor, metodo_pagamento, status, data
+      const salesToInsert = data.map((row: any) => ({
+        user_id: user.id,
+        organization_id: orgId,
+        total_amount: parseFloat(row.valor || row.total || row.Amount || 0),
+        payment_method: row.metodo_pagamento || row.payment_method || "Pix",
+        status: row.status || "concluded",
+        notes: row.observacao || row.notes || "Importado via sistema",
+        items: row.itens ? JSON.parse(row.itens) : [],
+        created_at: row.data ? new Date(row.data).toISOString() : new Date().toISOString(),
+      }));
+
+      const { error } = await supabase.from("sales_orders").insert(salesToInsert);
+
+      if (error) throw error;
+
+      toast.success(`${salesToInsert.length} vendas importadas com sucesso!`);
+      onImportSuccess?.();
+      onClose();
+      setFile(null);
+    } catch (error: any) {
+      console.error("Erro na importação:", error);
+      toast.error(
+        error.message || "Ocorreu um erro ao importar as vendas. Verifique o formato do arquivo.",
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -106,9 +113,9 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         </DialogHeader>
 
         <div className="py-6 space-y-6">
-          <div 
+          <div
             className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
-              file ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+              file ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
             }`}
           >
             <input
@@ -118,8 +125,8 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
               accept=".csv,.xlsx,.xls"
               onChange={handleFileChange}
             />
-            <label 
-              htmlFor="file-upload" 
+            <label
+              htmlFor="file-upload"
               className="cursor-pointer flex flex-col items-center gap-3"
             >
               {file ? (
@@ -164,11 +171,16 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="ghost" onClick={onClose} disabled={isImporting} className="rounded-xl font-bold">
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            disabled={isImporting}
+            className="rounded-xl font-bold"
+          >
             Cancelar
           </Button>
-          <Button 
-            onClick={handleImport} 
+          <Button
+            onClick={handleImport}
             disabled={!file || isImporting}
             className="rounded-xl font-bold bg-primary shadow-lg shadow-primary/20 min-w-[120px]"
           >

@@ -13,13 +13,19 @@ export function useRoles() {
   useEffect(() => {
     let cancel = false;
     (async () => {
-      if (!user?.id) { setRoles([]); setLoading(false); return; }
+      if (!user?.id) {
+        setRoles([]);
+        setLoading(false);
+        return;
+      }
       const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
       if (cancel) return;
       setRoles(((data ?? []) as { role: AppRole }[]).map((r) => r.role));
       setLoading(false);
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [user?.id]);
 
   return {

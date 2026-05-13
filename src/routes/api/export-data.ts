@@ -15,17 +15,31 @@ export const Route = createFileRoute("/api/export-data")({
       GET: async ({ request }) => {
         const auth = request.headers.get("authorization") ?? "";
         const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-        if (!token) return new Response(JSON.stringify({ error: "no_auth" }), { status: 401, headers: corsHeaders });
+        if (!token)
+          return new Response(JSON.stringify({ error: "no_auth" }), {
+            status: 401,
+            headers: corsHeaders,
+          });
 
-        const { data: { user } } = await (supabaseAdmin as any).auth.getUser(token);
-        if (!user) return new Response(JSON.stringify({ error: "invalid_token" }), { status: 401, headers: corsHeaders });
+        const {
+          data: { user },
+        } = await (supabaseAdmin as any).auth.getUser(token);
+        if (!user)
+          return new Response(JSON.stringify({ error: "invalid_token" }), {
+            status: 401,
+            headers: corsHeaders,
+          });
 
         const userId = user.id;
 
-        const orgIds = ((await (supabaseAdmin as any)
-          .from("user_organizations")
-          .select("organization_id")
-          .eq("user_id", userId)).data ?? []).map((r: any) => r.organization_id);
+        const orgIds = (
+          (
+            await (supabaseAdmin as any)
+              .from("user_organizations")
+              .select("organization_id")
+              .eq("user_id", userId)
+          ).data ?? []
+        ).map((r: any) => r.organization_id);
 
         const tables = [
           "profiles",

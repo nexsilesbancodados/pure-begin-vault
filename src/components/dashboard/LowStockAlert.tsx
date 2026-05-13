@@ -29,7 +29,7 @@ export function LowStockAlert({ compact = false }: { compact?: boolean }) {
       .limit(50)
       .then(({ data }) => {
         const low = ((data as LowItem[]) ?? []).filter(
-          (p) => p.min_stock != null && p.stock_quantity <= p.min_stock
+          (p) => p.min_stock != null && p.stock_quantity <= p.min_stock,
         );
         setItems(low);
         setLoading(false);
@@ -88,9 +88,7 @@ export function LowStockAlert({ compact = false }: { compact?: boolean }) {
             <div className="flex items-center gap-2 text-xs shrink-0">
               <span
                 className={
-                  p.stock_quantity <= 0
-                    ? "text-destructive font-black"
-                    : "text-warning font-black"
+                  p.stock_quantity <= 0 ? "text-destructive font-black" : "text-warning font-black"
                 }
               >
                 {p.stock_quantity}

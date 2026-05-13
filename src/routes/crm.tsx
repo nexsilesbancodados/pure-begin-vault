@@ -2,12 +2,31 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import {
-  Sparkles, UserPlus, Trello, Bot, Zap, MessageSquare, Instagram,
-  ArrowRight, Users, Plus, Send, Clock, CheckCircle2, Package,
+  Sparkles,
+  UserPlus,
+  Trello,
+  Bot,
+  Zap,
+  MessageSquare,
+  Instagram,
+  ArrowRight,
+  Users,
+  Plus,
+  Send,
+  Clock,
+  CheckCircle2,
+  Package,
 } from "lucide-react";
 import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
-  BarChart, Bar, CartesianGrid,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  BarChart,
+  Bar,
+  CartesianGrid,
 } from "recharts";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,23 +45,73 @@ export const Route = createFileRoute("/crm")({
 });
 
 const modules: { title: string; desc: string; url: string; icon: any; tone: FeatureCardTone }[] = [
-  { title: "Base de Leads",     desc: "Gestão e qualificação de clientes potenciais", url: "/leads",         icon: UserPlus,      tone: "violet" },
-  { title: "Funil de Vendas",   desc: "Pipeline Kanban por estágio",                  url: "/funil",         icon: Trello,        tone: "info" },
-  { title: "Bot de Atendimento",desc: "IA que atende 24/7 no WhatsApp",               url: "/crm/bot",       icon: Bot,           tone: "success" },
-  { title: "Catálogo da IA",    desc: "Produtos e serviços que o bot oferece",        url: "/crm/catalogo",  icon: Package,       tone: "violet" },
-  { title: "Automações",        desc: "Fluxos automáticos baseados em gatilhos",      url: "/automacao",     icon: Zap,           tone: "warning" },
-  { title: "WhatsApp",          desc: "Conversas em tempo real e automações",         url: "/whatsapp",      icon: MessageSquare, tone: "success" },
-  { title: "Instagram",         desc: "Gestão de Directs e Engajamento",              url: "/instagram",     icon: Instagram,     tone: "violet" },
+  {
+    title: "Base de Leads",
+    desc: "Gestão e qualificação de clientes potenciais",
+    url: "/leads",
+    icon: UserPlus,
+    tone: "violet",
+  },
+  {
+    title: "Funil de Vendas",
+    desc: "Pipeline Kanban por estágio",
+    url: "/funil",
+    icon: Trello,
+    tone: "info",
+  },
+  {
+    title: "Bot de Atendimento",
+    desc: "IA que atende 24/7 no WhatsApp",
+    url: "/crm/bot",
+    icon: Bot,
+    tone: "success",
+  },
+  {
+    title: "Catálogo da IA",
+    desc: "Produtos e serviços que o bot oferece",
+    url: "/crm/catalogo",
+    icon: Package,
+    tone: "violet",
+  },
+  {
+    title: "Automações",
+    desc: "Fluxos automáticos baseados em gatilhos",
+    url: "/automacao",
+    icon: Zap,
+    tone: "warning",
+  },
+  {
+    title: "WhatsApp",
+    desc: "Conversas em tempo real e automações",
+    url: "/whatsapp",
+    icon: MessageSquare,
+    tone: "success",
+  },
+  {
+    title: "Instagram",
+    desc: "Gestão de Directs e Engajamento",
+    url: "/instagram",
+    icon: Instagram,
+    tone: "violet",
+  },
 ];
 
 function CrmHub() {
   const { user } = useAuth();
   const { orgId } = useOrg();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ leads: 0, pipelineValue: 0, botConvs: 0, won: 0, activeConvs: 0 });
+  const [stats, setStats] = useState({
+    leads: 0,
+    pipelineValue: 0,
+    botConvs: 0,
+    won: 0,
+    activeConvs: 0,
+  });
   const [recentLeads, setRecentLeads] = useState<any[]>([]);
   const [leadsSeries, setLeadsSeries] = useState<{ day: string; count: number }[]>([]);
-  const [funnelSeries, setFunnelSeries] = useState<{ name: string; value: number; count: number }[]>([]);
+  const [funnelSeries, setFunnelSeries] = useState<
+    { name: string; value: number; count: number }[]
+  >([]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -57,19 +126,33 @@ function CrmHub() {
         since.setDate(since.getDate() - 29);
 
         // Helper: filtra por org se disponível, senão por user
-        const filt = <T extends any>(q: any) => orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
+        const filt = <T extends any>(q: any) =>
+          orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
 
         // Run RPC + all queries fully in parallel — never block on any one failure
-        const [rpcRes, activeRes, leadsRes, pipelineRes, botRes, stagesRes, latestRes, trendRes] = await Promise.all([
-          supabase.rpc("ensure_default_funnel_stages", { _user_id: user.id }),
-          filt(supabase.from("bot_conversations").select("*", { count: "exact", head: true }).eq("status", "active")),
-          filt(supabase.from("leads").select("*", { count: "exact", head: true })),
-          filt(supabase.from("pipeline_leads").select("deal_value, stage_id")),
-          filt(supabase.from("bot_conversations").select("*", { count: "exact", head: true })),
-          filt(supabase.from("funnel_stages").select("id, name, order_index")).order("order_index"),
-          filt(supabase.from("leads").select("id, name, phone, source, status, created_at")).order("created_at", { ascending: false }).limit(5),
-          filt(supabase.from("leads").select("created_at")).gte("created_at", since.toISOString()),
-        ]);
+        const [rpcRes, activeRes, leadsRes, pipelineRes, botRes, stagesRes, latestRes, trendRes] =
+          await Promise.all([
+            supabase.rpc("ensure_default_funnel_stages", { _user_id: user.id }),
+            filt(
+              supabase
+                .from("bot_conversations")
+                .select("*", { count: "exact", head: true })
+                .eq("status", "active"),
+            ),
+            filt(supabase.from("leads").select("*", { count: "exact", head: true })),
+            filt(supabase.from("pipeline_leads").select("deal_value, stage_id")),
+            filt(supabase.from("bot_conversations").select("*", { count: "exact", head: true })),
+            filt(supabase.from("funnel_stages").select("id, name, order_index")).order(
+              "order_index",
+            ),
+            filt(supabase.from("leads").select("id, name, phone, source, status, created_at"))
+              .order("created_at", { ascending: false })
+              .limit(5),
+            filt(supabase.from("leads").select("created_at")).gte(
+              "created_at",
+              since.toISOString(),
+            ),
+          ]);
 
         if (cancelled) return;
 
@@ -77,8 +160,12 @@ function CrmHub() {
 
         const stages = stagesRes.data ?? [];
         const pipeline = pipelineRes.data ?? [];
-        const wonStageIds = stages.filter((s: any) => /ganho|fechado|won/i.test(s.name)).map((s: any) => s.id);
-        const won = pipeline.filter((p: any) => wonStageIds.includes(p.stage_id)).reduce((s: number, p: any) => s + Number(p.deal_value ?? 0), 0);
+        const wonStageIds = stages
+          .filter((s: any) => /ganho|fechado|won/i.test(s.name))
+          .map((s: any) => s.id);
+        const won = pipeline
+          .filter((p: any) => wonStageIds.includes(p.stage_id))
+          .reduce((s: number, p: any) => s + Number(p.deal_value ?? 0), 0);
         const total = pipeline.reduce((s: number, p: any) => s + Number(p.deal_value ?? 0), 0);
 
         setStats({
@@ -104,14 +191,16 @@ function CrmHub() {
         });
         setLeadsSeries(days);
 
-        setFunnelSeries(stages.map((s: any) => {
-          const inStage = pipeline.filter((p: any) => p.stage_id === s.id);
-          return {
-            name: s.name,
-            count: inStage.length,
-            value: inStage.reduce((sum: number, p: any) => sum + Number(p.deal_value ?? 0), 0),
-          };
-        }));
+        setFunnelSeries(
+          stages.map((s: any) => {
+            const inStage = pipeline.filter((p: any) => p.stage_id === s.id);
+            return {
+              name: s.name,
+              count: inStage.length,
+              value: inStage.reduce((sum: number, p: any) => sum + Number(p.deal_value ?? 0), 0),
+            };
+          }),
+        );
       } catch (e) {
         console.error("[crm] load failed", e);
       } finally {
@@ -119,7 +208,9 @@ function CrmHub() {
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id, orgId]);
 
   const greeting = useMemo(() => {
@@ -148,17 +239,26 @@ function CrmHub() {
                 {greeting}, {user?.email?.split("@")[0] ?? "Usuário"}!
               </h2>
               <p className="text-white/85 leading-relaxed max-w-xl">
-                Gerencie a jornada do seu cliente do primeiro contato ao pós-venda.
-                Foco hoje: aumentar sua taxa de conversão.
+                Gerencie a jornada do seu cliente do primeiro contato ao pós-venda. Foco hoje:
+                aumentar sua taxa de conversão.
               </p>
               <div className="flex flex-wrap gap-3 mt-8">
-                <Link to="/leads" className="flex items-center gap-2 bg-white text-primary px-4 py-2 rounded-xl text-sm font-bold shadow-lg hover:opacity-90 transition">
+                <Link
+                  to="/leads"
+                  className="flex items-center gap-2 bg-white text-primary px-4 py-2 rounded-xl text-sm font-bold shadow-lg hover:opacity-90 transition"
+                >
                   <Plus className="h-4 w-4" /> Novo Lead
                 </Link>
-                <Link to="/crm/conversas" className="flex items-center gap-2 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/30 transition border border-white/20">
+                <Link
+                  to="/crm/conversas"
+                  className="flex items-center gap-2 bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/30 transition border border-white/20"
+                >
                   <MessageSquare className="h-4 w-4" /> Ver Conversas
                 </Link>
-                <Link to="/broadcast" className="flex items-center gap-2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/20 transition border border-white/10">
+                <Link
+                  to="/broadcast"
+                  className="flex items-center gap-2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-white/20 transition border border-white/10"
+                >
                   <Send className="h-4 w-4" /> Disparo em Massa
                 </Link>
               </div>
@@ -169,14 +269,41 @@ function CrmHub() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-24 rounded-2xl bg-card border border-border animate-pulse" />
+                <div
+                  key={i}
+                  className="h-24 rounded-2xl bg-card border border-border animate-pulse"
+                />
               ))
             ) : (
               <>
-                <Kpi icon={CheckCircle2}  label="Pipeline (R$)"     value={`R$ ${stats.pipelineValue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} color="text-primary" bg="bg-primary/10" />
-                <Kpi icon={Clock}         label="Vendas Ganhas"     value={`R$ ${stats.won.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}            color="text-success" bg="bg-success/10" />
-                <Kpi icon={Users}         label="Leads Ativos"      value={stats.leads.toLocaleString("pt-BR")}    color="text-info"    bg="bg-info/10" />
-                <Kpi icon={MessageSquare} label="Conversas Abertas" value={stats.activeConvs.toString()}            color="text-warning" bg="bg-warning/10" />
+                <Kpi
+                  icon={CheckCircle2}
+                  label="Pipeline (R$)"
+                  value={`R$ ${stats.pipelineValue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                  color="text-primary"
+                  bg="bg-primary/10"
+                />
+                <Kpi
+                  icon={Clock}
+                  label="Vendas Ganhas"
+                  value={`R$ ${stats.won.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+                  color="text-success"
+                  bg="bg-success/10"
+                />
+                <Kpi
+                  icon={Users}
+                  label="Leads Ativos"
+                  value={stats.leads.toLocaleString("pt-BR")}
+                  color="text-info"
+                  bg="bg-info/10"
+                />
+                <Kpi
+                  icon={MessageSquare}
+                  label="Conversas Abertas"
+                  value={stats.activeConvs.toString()}
+                  color="text-warning"
+                  bg="bg-warning/10"
+                />
               </>
             )}
           </div>
@@ -202,9 +329,26 @@ function CrmHub() {
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                       <XAxis dataKey="day" stroke="var(--color-muted-foreground)" fontSize={10} />
-                      <YAxis stroke="var(--color-muted-foreground)" fontSize={10} allowDecimals={false} />
-                      <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
-                      <Area type="monotone" dataKey="count" stroke="var(--color-primary)" strokeWidth={2} fill="url(#grLead)" />
+                      <YAxis
+                        stroke="var(--color-muted-foreground)"
+                        fontSize={10}
+                        allowDecimals={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "var(--color-card)",
+                          border: "1px solid var(--color-border)",
+                          borderRadius: 8,
+                          fontSize: 12,
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="count"
+                        stroke="var(--color-primary)"
+                        strokeWidth={2}
+                        fill="url(#grLead)"
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
@@ -218,14 +362,38 @@ function CrmHub() {
                 {loading ? (
                   <div className="h-full w-full bg-muted/40 rounded-lg animate-pulse" />
                 ) : funnelSeries.length === 0 ? (
-                  <div className="h-full grid place-items-center text-xs text-muted-foreground italic">Sem etapas configuradas</div>
+                  <div className="h-full grid place-items-center text-xs text-muted-foreground italic">
+                    Sem etapas configuradas
+                  </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={funnelSeries} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
-                      <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={10} allowDecimals={false} />
-                      <YAxis type="category" dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} width={80} />
-                      <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 8, fontSize: 12 }} />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--color-border)"
+                        horizontal={false}
+                      />
+                      <XAxis
+                        type="number"
+                        stroke="var(--color-muted-foreground)"
+                        fontSize={10}
+                        allowDecimals={false}
+                      />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        stroke="var(--color-muted-foreground)"
+                        fontSize={10}
+                        width={80}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "var(--color-card)",
+                          border: "1px solid var(--color-border)",
+                          borderRadius: 8,
+                          fontSize: 12,
+                        }}
+                      />
                       <Bar dataKey="count" fill="var(--color-primary)" radius={[0, 6, 6, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -255,7 +423,9 @@ function CrmHub() {
                 <h3 className="font-bold font-display">Leads recentes</h3>
                 <p className="text-xs text-muted-foreground">Últimos contatos cadastrados</p>
               </div>
-              <Link to="/leads" className="text-xs font-bold text-primary hover:underline">Ver todos →</Link>
+              <Link to="/leads" className="text-xs font-bold text-primary hover:underline">
+                Ver todos →
+              </Link>
             </div>
             <div className="divide-y divide-border">
               {loading ? (
@@ -270,20 +440,35 @@ function CrmHub() {
                 ))
               ) : recentLeads.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">
-                  Nenhum lead ainda. <Link to="/leads" className="text-primary font-bold hover:underline">Cadastre o primeiro</Link>.
+                  Nenhum lead ainda.{" "}
+                  <Link to="/leads" className="text-primary font-bold hover:underline">
+                    Cadastre o primeiro
+                  </Link>
+                  .
                 </div>
               ) : (
                 recentLeads.map((l) => (
-                  <div key={l.id} className="px-5 py-3 flex items-center gap-4 hover:bg-muted/30 transition">
+                  <div
+                    key={l.id}
+                    className="px-5 py-3 flex items-center gap-4 hover:bg-muted/30 transition"
+                  >
                     <div className="h-9 w-9 rounded-xl bg-gradient-primary text-white grid place-items-center text-xs font-bold">
-                      {l.name?.split(" ").map((n: string) => n[0]).slice(0, 2).join("") || "?"}
+                      {l.name
+                        ?.split(" ")
+                        .map((n: string) => n[0])
+                        .slice(0, 2)
+                        .join("") || "?"}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-bold truncate">{l.name}</div>
                       <div className="text-xs text-muted-foreground">{l.phone || "—"}</div>
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{l.source || "manual"}</span>
-                    <span className="text-[10px] text-muted-foreground">{new Date(l.created_at).toLocaleDateString("pt-BR")}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      {l.source || "manual"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(l.created_at).toLocaleDateString("pt-BR")}
+                    </span>
                   </div>
                 ))
               )}
@@ -303,7 +488,8 @@ function CrmHub() {
                 </div>
               </div>
               <p className="text-sm leading-relaxed text-foreground/80">
-                Clientes que recebem resposta nos primeiros <strong>5 minutos</strong> têm 10× mais chances de converter. Verifique suas conversas pendentes.
+                Clientes que recebem resposta nos primeiros <strong>5 minutos</strong> têm 10× mais
+                chances de converter. Verifique suas conversas pendentes.
               </p>
             </div>
 
@@ -318,15 +504,37 @@ function CrmHub() {
                 </div>
               </div>
               {(() => {
-                const conversionRate = stats.pipelineValue > 0 ? (stats.won / (stats.pipelineValue + stats.won)) * 100 : 0;
-                const label = conversionRate >= 30 ? "Excelente" : conversionRate >= 15 ? "Bom" : conversionRate >= 5 ? "Regular" : "Em construção";
-                const color = conversionRate >= 30 ? "text-success" : conversionRate >= 15 ? "text-info" : conversionRate >= 5 ? "text-warning" : "text-muted-foreground";
+                const conversionRate =
+                  stats.pipelineValue > 0
+                    ? (stats.won / (stats.pipelineValue + stats.won)) * 100
+                    : 0;
+                const label =
+                  conversionRate >= 30
+                    ? "Excelente"
+                    : conversionRate >= 15
+                      ? "Bom"
+                      : conversionRate >= 5
+                        ? "Regular"
+                        : "Em construção";
+                const color =
+                  conversionRate >= 30
+                    ? "text-success"
+                    : conversionRate >= 15
+                      ? "text-info"
+                      : conversionRate >= 5
+                        ? "text-warning"
+                        : "text-muted-foreground";
                 return (
                   <div className="flex items-center gap-4">
                     <div className="flex-1 h-2 bg-success/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-success" style={{ width: `${Math.min(conversionRate, 100)}%` }} />
+                      <div
+                        className="h-full bg-success"
+                        style={{ width: `${Math.min(conversionRate, 100)}%` }}
+                      />
                     </div>
-                    <span className={`text-sm font-bold ${color}`}>{label} ({conversionRate.toFixed(1)}%)</span>
+                    <span className={`text-sm font-bold ${color}`}>
+                      {label} ({conversionRate.toFixed(1)}%)
+                    </span>
                   </div>
                 );
               })()}
@@ -338,14 +546,28 @@ function CrmHub() {
   );
 }
 
-function Kpi({ icon: Icon, label, value, color, bg }: { icon: any; label: string; value: string; color: string; bg: string }) {
+function Kpi({
+  icon: Icon,
+  label,
+  value,
+  color,
+  bg,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  color: string;
+  bg: string;
+}) {
   return (
     <div className="bg-card border border-border rounded-2xl p-4 shadow-card">
       <div className="flex items-center gap-2 mb-3">
         <div className={`h-8 w-8 rounded-lg ${bg} ${color} grid place-items-center`}>
           <Icon className="h-4 w-4" />
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+          {label}
+        </span>
       </div>
       <div className="text-2xl font-bold font-display">{value}</div>
     </div>

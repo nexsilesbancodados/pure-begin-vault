@@ -23,7 +23,9 @@ function LGPDPage() {
   const exportData = async () => {
     setDownloading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const res = await fetch("/api/export-data", {
         headers: { Authorization: `Bearer ${session?.access_token ?? ""}` },
       });
@@ -48,7 +50,12 @@ function LGPDPage() {
       toast.error("Digite EXATAMENTE: DELETAR MINHA CONTA");
       return;
     }
-    if (!confirm("Tem certeza? Esta ação é IRREVERSÍVEL. Você perde acesso a TODAS as suas lojas e dados.")) return;
+    if (
+      !confirm(
+        "Tem certeza? Esta ação é IRREVERSÍVEL. Você perde acesso a TODAS as suas lojas e dados.",
+      )
+    )
+      return;
     setDeleting(true);
     try {
       const { error } = await (supabase as any).rpc("delete_my_account");
@@ -75,8 +82,8 @@ function LGPDPage() {
               <div className="text-sm">
                 <p className="font-black">Seus direitos (LGPD Art. 18)</p>
                 <p className="text-muted-foreground text-xs mt-1">
-                  Você tem direito a acesso, correção, portabilidade e eliminação dos seus dados pessoais.
-                  Use as opções abaixo para exercer esses direitos.
+                  Você tem direito a acesso, correção, portabilidade e eliminação dos seus dados
+                  pessoais. Use as opções abaixo para exercer esses direitos.
                 </p>
               </div>
             </div>
@@ -90,12 +97,14 @@ function LGPDPage() {
               </div>
               <div>
                 <h2 className="font-black">Exportar meus dados</h2>
-                <p className="text-xs text-muted-foreground">Direito de portabilidade — Art. 18 VI</p>
+                <p className="text-xs text-muted-foreground">
+                  Direito de portabilidade — Art. 18 VI
+                </p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-3">
-              Baixe um arquivo JSON com todos seus dados: perfil, lojas, vendas, clientes,
-              produtos, OS, mensagens, automações, etc.
+              Baixe um arquivo JSON com todos seus dados: perfil, lojas, vendas, clientes, produtos,
+              OS, mensagens, automações, etc.
             </p>
             <Button onClick={exportData} disabled={downloading}>
               <Download className="h-4 w-4 mr-2" />
@@ -119,16 +128,18 @@ function LGPDPage() {
               </div>
               <div>
                 <h2 className="font-black text-destructive">Excluir minha conta</h2>
-                <p className="text-xs text-muted-foreground">Direito de esquecimento — Art. 18 VI/X</p>
+                <p className="text-xs text-muted-foreground">
+                  Direito de esquecimento — Art. 18 VI/X
+                </p>
               </div>
             </div>
             <div className="rounded-lg bg-destructive/5 border border-destructive/30 p-3 mb-3 text-sm">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                 <p className="text-muted-foreground">
-                  <strong className="text-destructive">Ação irreversível.</strong> Apaga:
-                  conta, perfil, vínculo com lojas, notificações, logs de auditoria pessoais.
-                  Dados das lojas que você é dono permanecem (passe a propriedade antes se necessário).
+                  <strong className="text-destructive">Ação irreversível.</strong> Apaga: conta,
+                  perfil, vínculo com lojas, notificações, logs de auditoria pessoais. Dados das
+                  lojas que você é dono permanecem (passe a propriedade antes se necessário).
                 </p>
               </div>
             </div>

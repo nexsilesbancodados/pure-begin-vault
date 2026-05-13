@@ -33,7 +33,9 @@ export function initMonitoring() {
     if (window.Sentry) {
       window.Sentry.init({
         dsn: DSN,
-        environment: window.location.hostname.includes("conectaphone.com") ? "production" : "staging",
+        environment: window.location.hostname.includes("conectaphone.com")
+          ? "production"
+          : "staging",
         tracesSampleRate: 0.1,
         replaysSessionSampleRate: 0,
         replaysOnErrorSampleRate: 0.1,

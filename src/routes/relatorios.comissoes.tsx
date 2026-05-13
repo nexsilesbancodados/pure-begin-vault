@@ -58,10 +58,7 @@ function ComissoesPage() {
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(2000),
-      supabase
-        .from("employees")
-        .select("id, name, position")
-        .eq("organization_id", orgId),
+      supabase.from("employees").select("id, name, position").eq("organization_id", orgId),
     ]).then(([s, e]) => {
       setSales((s.data as Sale[]) ?? []);
       setEmployees((e.data as Employee[]) ?? []);
@@ -105,7 +102,7 @@ function ComissoesPage() {
         faturado: acc.faturado + r.faturado,
         comissao: acc.comissao + r.comissao,
       }),
-      { vendas: 0, faturado: 0, comissao: 0 }
+      { vendas: 0, faturado: 0, comissao: 0 },
     );
     return t;
   }, [byEmployee]);
@@ -147,7 +144,13 @@ function ComissoesPage() {
                           : "bg-card border-border hover:border-primary/40"
                       }`}
                     >
-                      {p === "all" ? "Tudo" : p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "90 dias"}
+                      {p === "all"
+                        ? "Tudo"
+                        : p === "7d"
+                          ? "7 dias"
+                          : p === "30d"
+                            ? "30 dias"
+                            : "90 dias"}
                     </button>
                   ))}
                 </div>
@@ -159,16 +162,24 @@ function ComissoesPage() {
           </Card>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Kpi icon={DollarSign} label="Faturado" value={`R$ ${totals.faturado.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`} color="success" />
-            <Kpi icon={Award} label="Comissão total" value={`R$ ${totals.comissao.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`} color="primary" />
+            <Kpi
+              icon={DollarSign}
+              label="Faturado"
+              value={`R$ ${totals.faturado.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`}
+              color="success"
+            />
+            <Kpi
+              icon={Award}
+              label="Comissão total"
+              value={`R$ ${totals.comissao.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`}
+              color="primary"
+            />
             <Kpi icon={TrendingUp} label="Vendas" value={totals.vendas} color="primary" />
             <Kpi icon={Users} label="Vendedores ativos" value={byEmployee.length} color="primary" />
           </div>
 
           <Card className="p-5">
-            <h3 className="font-black text-sm uppercase tracking-widest mb-3">
-              Ranking
-            </h3>
+            <h3 className="font-black text-sm uppercase tracking-widest mb-3">Ranking</h3>
             {loading ? (
               <p className="text-sm text-muted-foreground">Carregando...</p>
             ) : byEmployee.length === 0 ? (
@@ -188,10 +199,10 @@ function ComissoesPage() {
                           i === 0
                             ? "bg-amber-500/15 text-amber-600"
                             : i === 1
-                            ? "bg-slate-400/15 text-slate-600"
-                            : i === 2
-                            ? "bg-orange-700/15 text-orange-700"
-                            : "bg-muted text-muted-foreground"
+                              ? "bg-slate-400/15 text-slate-600"
+                              : i === 2
+                                ? "bg-orange-700/15 text-orange-700"
+                                : "bg-muted text-muted-foreground"
                         }`}
                       >
                         {i + 1}

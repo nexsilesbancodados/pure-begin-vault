@@ -79,7 +79,9 @@ export function OrgSwitcher() {
               return (
                 <DropdownMenuItem
                   key={o.organization_id}
-                  onClick={() => { if (!isActive) switchOrg(o.organization_id); }}
+                  onClick={() => {
+                    if (!isActive) switchOrg(o.organization_id);
+                  }}
                   className="flex items-center gap-2"
                   disabled={isActive}
                 >
@@ -115,17 +117,21 @@ export function OrgSwitcher() {
                 placeholder="Ex: Loja Centro"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submit();
+                }}
                 autoFocus
               />
               <p className="text-[11px] text-muted-foreground mt-1">
-                Cada loja tem estoque, vendas e financeiro independentes. Você pode
-                alternar entre elas a qualquer momento.
+                Cada loja tem estoque, vendas e financeiro independentes. Você pode alternar entre
+                elas a qualquer momento.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenCreate(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setOpenCreate(false)}>
+              Cancelar
+            </Button>
             <Button onClick={submit} disabled={saving || !name.trim()}>
               {saving ? "Criando..." : "Criar loja"}
             </Button>

@@ -46,8 +46,8 @@ function TecnicosPage() {
       .select("id, name, email, position")
       .eq("organization_id", orgId)
       .order("name");
-    const list = (emp ?? []).filter((e: any) =>
-      !e.position || /tecnic|tecnico|bancad/i.test(e.position)
+    const list = (emp ?? []).filter(
+      (e: any) => !e.position || /tecnic|tecnico|bancad/i.test(e.position),
     );
     setTecnicos(list as Tecnico[]);
 
@@ -73,7 +73,9 @@ function TecnicosPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [orgId]);
+  useEffect(() => {
+    load();
+  }, [orgId]);
 
   const criar = async () => {
     if (!orgId || !novoNome.trim()) return;
@@ -85,8 +87,12 @@ function TecnicosPage() {
       position: "Técnico",
     } as any);
     setSaving(false);
-    if (error) { toast.error("Erro: " + error.message); return; }
-    setNovoNome(""); setNovoEmail("");
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
+    setNovoNome("");
+    setNovoEmail("");
     toast.success("Técnico adicionado");
     load();
   };
@@ -94,7 +100,10 @@ function TecnicosPage() {
   const remover = async (id: string) => {
     if (!confirm("Remover este técnico? OS atribuídas a ele perderão o vínculo.")) return;
     const { error } = await supabase.from("employees").delete().eq("id", id);
-    if (error) { toast.error("Erro: " + error.message); return; }
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
     toast.success("Técnico removido");
     load();
   };
@@ -130,11 +139,7 @@ function TecnicosPage() {
                 />
               </div>
               <div className="sm:col-span-2">
-                <Button
-                  className="w-full"
-                  onClick={criar}
-                  disabled={!novoNome.trim() || saving}
-                >
+                <Button className="w-full" onClick={criar} disabled={!novoNome.trim() || saving}>
                   {saving ? "Salvando..." : "Adicionar"}
                 </Button>
               </div>
@@ -177,7 +182,11 @@ function TecnicosPage() {
                       <div className="mt-3 grid grid-cols-3 gap-2">
                         <Metric label="Abertas" value={s.abertas} variant="warning" />
                         <Metric label="Concluídas" value={s.concluidas} variant="success" />
-                        <Metric label="Receita" value={`R$ ${s.receita.toFixed(0)}`} variant="primary" />
+                        <Metric
+                          label="Receita"
+                          value={`R$ ${s.receita.toFixed(0)}`}
+                          variant="primary"
+                        />
                       </div>
                     </div>
                   );

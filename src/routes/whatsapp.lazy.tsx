@@ -60,7 +60,7 @@ function WhatsAppPage() {
       toast.error("Por favor, digite um nome para a instância.");
       return;
     }
-    
+
     const name = newInstanceName.trim();
     try {
       setIsCreating(true);
@@ -113,9 +113,9 @@ function WhatsAppPage() {
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar 
-          title="Gestão de WhatsApp" 
-          subtitle="Hub de conexões via Evolution API" 
+        <Topbar
+          title="Gestão de WhatsApp"
+          subtitle="Hub de conexões via Evolution API"
           toggleSidebar={() => setSidebarOpen(true)}
         />
 
@@ -126,11 +126,15 @@ function WhatsAppPage() {
                 <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                   <Icons.Smartphone className="h-6 w-6" />
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Geral</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">
+                  Geral
+                </span>
               </div>
               <div>
                 <p className="text-2xl font-black tabular-nums">{stats.total}</p>
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Total de Instâncias</p>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">
+                  Total de Instâncias
+                </p>
               </div>
             </div>
 
@@ -143,7 +147,9 @@ function WhatsAppPage() {
               </div>
               <div>
                 <p className="text-2xl font-black tabular-nums text-success">{stats.connected}</p>
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Conectadas Agora</p>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">
+                  Conectadas Agora
+                </p>
               </div>
             </div>
 
@@ -154,8 +160,12 @@ function WhatsAppPage() {
                 </div>
               </div>
               <div>
-                <p className="text-2xl font-black tabular-nums text-warning">{stats.disconnected}</p>
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Aguardando Conexão</p>
+                <p className="text-2xl font-black tabular-nums text-warning">
+                  {stats.disconnected}
+                </p>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">
+                  Aguardando Conexão
+                </p>
               </div>
             </div>
           </div>
@@ -187,7 +197,10 @@ function WhatsAppPage() {
               {loading && instances.length === 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {[1, 2, 4].map((i) => (
-                    <div key={i} className="h-56 rounded-3xl bg-card animate-pulse border border-border" />
+                    <div
+                      key={i}
+                      className="h-56 rounded-3xl bg-card animate-pulse border border-border"
+                    />
                   ))}
                 </div>
               ) : filteredInstances.length === 0 ? (
@@ -203,17 +216,28 @@ function WhatsAppPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {filteredInstances.map((inst) => (
-                    <div key={inst.instanceId} className="group relative rounded-3xl bg-card border border-border p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-                      <div className={`absolute top-0 left-0 w-full h-1.5 ${inst.status === "open" ? "bg-success" : "bg-warning"}`} />
+                    <div
+                      key={inst.instanceId}
+                      className="group relative rounded-3xl bg-card border border-border p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                    >
+                      <div
+                        className={`absolute top-0 left-0 w-full h-1.5 ${inst.status === "open" ? "bg-success" : "bg-warning"}`}
+                      />
                       <div className="flex items-start justify-between mb-6">
                         <div className="flex items-center gap-4">
                           <div className="relative h-16 w-16 rounded-2xl bg-muted overflow-hidden flex items-center justify-center ring-4 ring-muted">
                             {inst.profilePictureUrl ? (
-                              <img src={inst.profilePictureUrl} alt={inst.instanceName} className="h-full w-full object-cover" />
+                              <img
+                                src={inst.profilePictureUrl}
+                                alt={inst.instanceName}
+                                className="h-full w-full object-cover"
+                              />
                             ) : (
                               <Icons.User className="h-8 w-8 text-muted-foreground/50" />
                             )}
-                            <div className={`absolute bottom-0 right-0 h-4 w-4 border-2 border-card rounded-full shadow-sm ${inst.status === "open" ? "bg-success" : "bg-warning animate-pulse"}`} />
+                            <div
+                              className={`absolute bottom-0 right-0 h-4 w-4 border-2 border-card rounded-full shadow-sm ${inst.status === "open" ? "bg-success" : "bg-warning animate-pulse"}`}
+                            />
                           </div>
                           <div>
                             <h4 className="font-bold text-lg leading-tight">{inst.instanceName}</h4>
@@ -231,7 +255,10 @@ function WhatsAppPage() {
                           </div>
                         </div>
 
-                        <button onClick={() => handleDelete(inst.instanceName)} className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                        <button
+                          onClick={() => handleDelete(inst.instanceName)}
+                          className="h-9 w-9 flex items-center justify-center rounded-xl hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        >
                           <Icons.Trash2 className="h-4.5 w-4.5" />
                         </button>
                       </div>
@@ -240,7 +267,9 @@ function WhatsAppPage() {
                         <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30">
                           <div className="flex items-center gap-2">
                             <Icons.Phone className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-xs font-semibold text-muted-foreground">Vínculo</span>
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              Vínculo
+                            </span>
                           </div>
                           <span className="text-sm font-bold tabular-nums">
                             {inst.owner ? `+${inst.owner.split("@")[0]}` : "Pendente"}
@@ -286,7 +315,9 @@ function WhatsAppPage() {
 
                 <div className="p-8 space-y-6 flex-1">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Nome da Instância</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                      Nome da Instância
+                    </label>
                     <div className="relative">
                       <Icons.Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/50" />
                       <input
@@ -308,7 +339,8 @@ function WhatsAppPage() {
                       <Icons.RefreshCw className="h-6 w-6 animate-spin" />
                     ) : (
                       <>
-                        Gerar QR Code <Icons.ArrowRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
+                        Gerar QR Code{" "}
+                        <Icons.ArrowRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
                   </button>
@@ -323,21 +355,20 @@ function WhatsAppPage() {
               </div>
             </div>
           </div>
-
         </main>
 
-         {selectedInstance && (
-           <QrCodeModal
-             open={!!selectedInstance}
-             onOpenChange={(val) => {
-               if (!val) {
-                 setSelectedInstance(null);
-                 fetchInstances();
-               }
-             }}
-             initialInstanceName={selectedInstance}
-           />
-         )}
+        {selectedInstance && (
+          <QrCodeModal
+            open={!!selectedInstance}
+            onOpenChange={(val) => {
+              if (!val) {
+                setSelectedInstance(null);
+                fetchInstances();
+              }
+            }}
+            initialInstanceName={selectedInstance}
+          />
+        )}
       </div>
     </div>
   );

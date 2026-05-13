@@ -53,7 +53,12 @@ function OsTermoPage() {
     })();
   }, [id]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white text-black">Carregando...</div>;
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-black">
+        Carregando...
+      </div>
+    );
   if (error || !data) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white text-black p-6">
@@ -83,7 +88,10 @@ function OsTermoPage() {
 
         <div className="grid grid-cols-2 gap-4 mb-4">
           <Field label="Equipamento" value={data.os.equipment} />
-          <Field label="Marca / Modelo" value={[data.os.brand, data.os.model].filter(Boolean).join(" / ") || "—"} />
+          <Field
+            label="Marca / Modelo"
+            value={[data.os.brand, data.os.model].filter(Boolean).join(" / ") || "—"}
+          />
           <Field label="IMEI" value={data.os.imei || "—"} mono />
           <Field label="Serial" value={data.os.serial || "—"} mono />
           <Field label="Acessórios entregues" value={data.os.accessories || "Sem acessórios"} />
@@ -93,20 +101,57 @@ function OsTermoPage() {
         <Field label="Problema relatado" value={data.os.problem_description || "—"} full />
 
         <div className="grid grid-cols-3 gap-4 mt-4 mb-6">
-          <Field label="Orçamento estimado" value={data.os.estimated_cost != null ? `R$ ${Number(data.os.estimated_cost).toFixed(2)}` : "A diagnosticar"} />
-          <Field label="Previsão" value={data.os.due_date ? new Date(data.os.due_date).toLocaleDateString("pt-BR") : "A definir"} />
-          <Field label="Garantia (dias)" value={data.os.warranty_days != null ? `${data.os.warranty_days}` : "—"} />
+          <Field
+            label="Orçamento estimado"
+            value={
+              data.os.estimated_cost != null
+                ? `R$ ${Number(data.os.estimated_cost).toFixed(2)}`
+                : "A diagnosticar"
+            }
+          />
+          <Field
+            label="Previsão"
+            value={
+              data.os.due_date
+                ? new Date(data.os.due_date).toLocaleDateString("pt-BR")
+                : "A definir"
+            }
+          />
+          <Field
+            label="Garantia (dias)"
+            value={data.os.warranty_days != null ? `${data.os.warranty_days}` : "—"}
+          />
         </div>
 
         {/* Termos legais */}
         <div className="mt-4 pt-4 border-t border-gray-300 text-[10px] text-gray-700 space-y-1.5 leading-snug">
-          <p><strong>Cláusulas — leia com atenção:</strong></p>
-          <p>1. O cliente declara que entregou o equipamento descrito acima, com os acessórios listados, para conserto.</p>
-          <p>2. O orçamento estimado é prévio. Após análise técnica, novo orçamento pode ser apresentado, com aprovação do cliente antes do reparo.</p>
-          <p>3. Equipamentos não retirados em 90 dias após aviso de conclusão serão considerados abandonados, conforme art. 1.275 do Código Civil.</p>
-          <p>4. A garantia cobre apenas o serviço executado e peças instaladas. Não cobre quedas, líquidos, mau uso ou alterações por terceiros.</p>
-          <p>5. Dados eventualmente armazenados no aparelho são de inteira responsabilidade do cliente. A loja não se responsabiliza por perda.</p>
-          <p>6. O cliente autoriza a manipulação do aparelho para fins exclusivos do reparo, incluindo desbloqueio quando necessário e informado.</p>
+          <p>
+            <strong>Cláusulas — leia com atenção:</strong>
+          </p>
+          <p>
+            1. O cliente declara que entregou o equipamento descrito acima, com os acessórios
+            listados, para conserto.
+          </p>
+          <p>
+            2. O orçamento estimado é prévio. Após análise técnica, novo orçamento pode ser
+            apresentado, com aprovação do cliente antes do reparo.
+          </p>
+          <p>
+            3. Equipamentos não retirados em 90 dias após aviso de conclusão serão considerados
+            abandonados, conforme art. 1.275 do Código Civil.
+          </p>
+          <p>
+            4. A garantia cobre apenas o serviço executado e peças instaladas. Não cobre quedas,
+            líquidos, mau uso ou alterações por terceiros.
+          </p>
+          <p>
+            5. Dados eventualmente armazenados no aparelho são de inteira responsabilidade do
+            cliente. A loja não se responsabiliza por perda.
+          </p>
+          <p>
+            6. O cliente autoriza a manipulação do aparelho para fins exclusivos do reparo,
+            incluindo desbloqueio quando necessário e informado.
+          </p>
         </div>
 
         {/* Assinaturas */}
@@ -127,7 +172,10 @@ function OsTermoPage() {
       </div>
 
       <div className="print:hidden text-center mt-4">
-        <button onClick={() => window.print()} className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-black text-white font-bold text-sm">
+        <button
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-black text-white font-bold text-sm"
+        >
           <Printer className="h-4 w-4" /> Imprimir 2 vias
         </button>
       </div>
@@ -142,7 +190,17 @@ function OsTermoPage() {
   );
 }
 
-function Field({ label, value, full, mono }: { label: string; value: string; full?: boolean; mono?: boolean }) {
+function Field({
+  label,
+  value,
+  full,
+  mono,
+}: {
+  label: string;
+  value: string;
+  full?: boolean;
+  mono?: boolean;
+}) {
   return (
     <div className={full ? "col-span-2" : ""}>
       <p className="text-[9px] uppercase tracking-widest font-black text-gray-500">{label}</p>

@@ -6,7 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CreditCard, Plus, Edit2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +35,17 @@ type Terminal = {
   notes?: string | null;
 };
 
-const BRANDS = ["Stone", "Cielo", "Rede", "PagSeguro", "Mercado Pago", "SumUp", "InfinitePay", "Getnet", "Outro"];
+const BRANDS = [
+  "Stone",
+  "Cielo",
+  "Rede",
+  "PagSeguro",
+  "Mercado Pago",
+  "SumUp",
+  "InfinitePay",
+  "Getnet",
+  "Outro",
+];
 
 function TerminalsPage() {
   const { orgId, userId } = useOrg();
@@ -41,20 +57,47 @@ function TerminalsPage() {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    if (!orgId) { setLoading(false); return; }
-    const { data } = await (supabase as any).from("payment_terminals").select("*").eq("organization_id", orgId).order("name");
+    if (!orgId) {
+      setLoading(false);
+      return;
+    }
+    const { data } = await (supabase as any)
+      .from("payment_terminals")
+      .select("*")
+      .eq("organization_id", orgId)
+      .order("name");
     setItems((data ?? []) as Terminal[]);
     setLoading(false);
   };
-  useEffect(() => { load(); }, [orgId]);
+  useEffect(() => {
+    load();
+  }, [orgId]);
 
-  const openNew = () => { setEditing(null); setForm({ active: true, brand: "Stone", rates: { debito: 1.99, credito: 3.99, parcelado: 4.99, pix: 0 } }); setOpen(true); };
-  const openEdit = (t: Terminal) => { setEditing(t); setForm(t); setOpen(true); };
+  const openNew = () => {
+    setEditing(null);
+    setForm({
+      active: true,
+      brand: "Stone",
+      rates: { debito: 1.99, credito: 3.99, parcelado: 4.99, pix: 0 },
+    });
+    setOpen(true);
+  };
+  const openEdit = (t: Terminal) => {
+    setEditing(t);
+    setForm(t);
+    setOpen(true);
+  };
 
   const save = async () => {
-    if (!form.name?.trim() || !form.brand?.trim() || !orgId || !userId) return toast.error("Preencha nome e bandeira");
+    if (!form.name?.trim() || !form.brand?.trim() || !orgId || !userId)
+      return toast.error("Preencha nome e bandeira");
     setSaving(true);
-    const payload = { ...form, organization_id: orgId, user_id: userId, updated_at: new Date().toISOString() };
+    const payload = {
+      ...form,
+      organization_id: orgId,
+      user_id: userId,
+      updated_at: new Date().toISOString(),
+    };
     const { error } = editing
       ? await (supabase as any).from("payment_terminals").update(payload).eq("id", editing.id)
       : await (supabase as any).from("payment_terminals").insert(payload);
@@ -81,11 +124,15 @@ function TerminalsPage() {
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar title="Maquininhas POS" subtitle="Cadastre seus terminais e taxas pra calcular líquido das vendas" />
+        <Topbar
+          title="Maquininhas POS"
+          subtitle="Cadastre seus terminais e taxas pra calcular líquido das vendas"
+        />
         <main className="flex-1 overflow-y-auto p-6 space-y-4">
-
           <div className="flex justify-end">
-            <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Nova maquininha</Button>
+            <Button onClick={openNew} className="gap-2">
+              <Plus className="h-4 w-4" /> Nova maquininha
+            </Button>
           </div>
 
           {loading ? (
@@ -110,12 +157,25 @@ function TerminalsPage() {
                       </div>
                       <div>
                         <p className="font-black">{t.name}</p>
-                        <p className="text-xs text-muted-foreground">{t.brand}{t.acquirer ? ` · ${t.acquirer}` : ""}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t.brand}
+                          {t.acquirer ? ` · ${t.acquirer}` : ""}
+                        </p>
                       </div>
                     </div>
                     <div className="flex gap-1">
-                      <button onClick={() => openEdit(t)} className="h-7 w-7 grid place-items-center rounded-lg hover:bg-muted"><Edit2 className="h-3.5 w-3.5" /></button>
-                      <button onClick={() => remove(t.id)} className="h-7 w-7 grid place-items-center rounded-lg hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                      <button
+                        onClick={() => openEdit(t)}
+                        className="h-7 w-7 grid place-items-center rounded-lg hover:bg-muted"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => remove(t.id)}
+                        className="h-7 w-7 grid place-items-center rounded-lg hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
 
@@ -138,7 +198,11 @@ function TerminalsPage() {
                     </div>
                   </div>
 
-                  {t.serial_number && <p className="text-[10px] text-muted-foreground mt-2 font-mono">SN: {t.serial_number}</p>}
+                  {t.serial_number && (
+                    <p className="text-[10px] text-muted-foreground mt-2 font-mono">
+                      SN: {t.serial_number}
+                    </p>
+                  )}
                 </Card>
               ))}
             </div>
@@ -152,26 +216,91 @@ function TerminalsPage() {
             <DialogTitle>{editing ? "Editar maquininha" : "Nova maquininha"}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2"><Label>Nome / Identificação *</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex: Stone Loja 1" autoFocus /></div>
+            <div className="col-span-2">
+              <Label>Nome / Identificação *</Label>
+              <Input
+                value={form.name ?? ""}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Ex: Stone Loja 1"
+                autoFocus
+              />
+            </div>
             <div>
               <Label>Bandeira *</Label>
-              <select value={form.brand ?? "Stone"} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm">
-                {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
+              <select
+                value={form.brand ?? "Stone"}
+                onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                {BRANDS.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
               </select>
             </div>
-            <div><Label>Adquirente</Label><Input value={form.acquirer ?? ""} onChange={(e) => setForm({ ...form, acquirer: e.target.value })} placeholder="Ex: Banco do Brasil" /></div>
-            <div className="col-span-2"><Label>Número de série</Label><Input value={form.serial_number ?? ""} onChange={(e) => setForm({ ...form, serial_number: e.target.value })} /></div>
+            <div>
+              <Label>Adquirente</Label>
+              <Input
+                value={form.acquirer ?? ""}
+                onChange={(e) => setForm({ ...form, acquirer: e.target.value })}
+                placeholder="Ex: Banco do Brasil"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label>Número de série</Label>
+              <Input
+                value={form.serial_number ?? ""}
+                onChange={(e) => setForm({ ...form, serial_number: e.target.value })}
+              />
+            </div>
             <div className="col-span-2 pt-2 border-t border-border mt-2">
               <p className="text-xs font-bold mb-2">Taxas (% por transação)</p>
             </div>
-            <div><Label>Débito</Label><Input type="number" step="0.01" value={form.rates?.debito ?? 0} onChange={(e) => updateRate("debito", e.target.value)} /></div>
-            <div><Label>Crédito à vista</Label><Input type="number" step="0.01" value={form.rates?.credito ?? 0} onChange={(e) => updateRate("credito", e.target.value)} /></div>
-            <div><Label>Parcelado</Label><Input type="number" step="0.01" value={form.rates?.parcelado ?? 0} onChange={(e) => updateRate("parcelado", e.target.value)} /></div>
-            <div><Label>Pix</Label><Input type="number" step="0.01" value={form.rates?.pix ?? 0} onChange={(e) => updateRate("pix", e.target.value)} /></div>
+            <div>
+              <Label>Débito</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={form.rates?.debito ?? 0}
+                onChange={(e) => updateRate("debito", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Crédito à vista</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={form.rates?.credito ?? 0}
+                onChange={(e) => updateRate("credito", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Parcelado</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={form.rates?.parcelado ?? 0}
+                onChange={(e) => updateRate("parcelado", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>Pix</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={form.rates?.pix ?? 0}
+                onChange={(e) => updateRate("pix", e.target.value)}
+              />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save} disabled={saving || !form.name?.trim()}>{saving ? "Salvando..." : "Salvar"}</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={save} disabled={saving || !form.name?.trim()}>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

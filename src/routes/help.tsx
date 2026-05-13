@@ -133,7 +133,7 @@ function HelpPage() {
     const q = search.trim().toLowerCase();
     if (!q) return ARTICLES;
     return ARTICLES.filter((a) =>
-      [a.title, a.excerpt, a.body, a.category].some((v) => v.toLowerCase().includes(q))
+      [a.title, a.excerpt, a.body, a.category].some((v) => v.toLowerCase().includes(q)),
     );
   }, [search]);
 
@@ -153,16 +153,22 @@ function HelpPage() {
         <div className="flex-1 flex flex-col min-w-0">
           <Topbar title={selected.title} subtitle={selected.category} />
           <main className="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full">
-            <button onClick={() => setSelected(null)} className="text-sm text-primary font-bold mb-4 hover:underline">
+            <button
+              onClick={() => setSelected(null)}
+              className="text-sm text-primary font-bold mb-4 hover:underline"
+            >
               ← Voltar
             </button>
             <Card className="p-6">
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{selected.body}</pre>
+              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                {selected.body}
+              </pre>
             </Card>
             <Card className="p-4 mt-4 bg-muted/40 text-xs">
               <p className="font-bold mb-1">Ainda com dúvida?</p>
               <p className="text-muted-foreground">
-                Envie email pra <strong>suporte@conectaphone.com</strong> ou WhatsApp para nossa equipe.
+                Envie email pra <strong>suporte@conectaphone.com</strong> ou WhatsApp para nossa
+                equipe.
               </p>
             </Card>
           </main>
@@ -175,7 +181,10 @@ function HelpPage() {
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar title="Central de Ajuda" subtitle="Tutoriais e respostas pras dúvidas mais comuns" />
+        <Topbar
+          title="Central de Ajuda"
+          subtitle="Tutoriais e respostas pras dúvidas mais comuns"
+        />
         <main className="flex-1 overflow-y-auto p-6 max-w-5xl mx-auto w-full space-y-4">
           <Card className="p-4">
             <div className="relative">
@@ -218,7 +227,8 @@ function HelpPage() {
               <HelpCircle className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
               <p className="font-bold">Nenhum artigo encontrado</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Tente outras palavras-chave ou envie email pra <strong>suporte@conectaphone.com</strong>.
+                Tente outras palavras-chave ou envie email pra{" "}
+                <strong>suporte@conectaphone.com</strong>.
               </p>
             </Card>
           )}

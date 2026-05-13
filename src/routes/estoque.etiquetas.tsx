@@ -25,20 +25,113 @@ type Product = {
 
 // Code-128 subset B encoder (puro JS, sem dependência externa)
 const C128B_PATTERNS = [
-  "212222","222122","222221","121223","121322","131222","122213","122312",
-  "132212","221213","221312","231212","112232","122132","122231","113222",
-  "123122","123221","223211","221132","221231","213212","223112","312131",
-  "311222","321122","321221","312212","322112","322211","212123","212321",
-  "232121","111323","131123","131321","112313","132113","132311","211313",
-  "231113","231311","112133","112331","132131","113123","113321","133121",
-  "313121","211331","231131","213113","213311","213131","311123","311321",
-  "331121","312113","312311","332111","314111","221411","431111","111224",
-  "111422","121124","121421","141122","141221","112214","112412","122114",
-  "122411","142112","142211","241211","221114","413111","241112","134111",
-  "111242","121142","121241","114212","124112","124211","411212","421112",
-  "421211","212141","214121","412121","111143","111341","131141","114113",
-  "114311","411113","411311","113141","114131","311141","411131","211412",
-  "211214","211232","2331112",
+  "212222",
+  "222122",
+  "222221",
+  "121223",
+  "121322",
+  "131222",
+  "122213",
+  "122312",
+  "132212",
+  "221213",
+  "221312",
+  "231212",
+  "112232",
+  "122132",
+  "122231",
+  "113222",
+  "123122",
+  "123221",
+  "223211",
+  "221132",
+  "221231",
+  "213212",
+  "223112",
+  "312131",
+  "311222",
+  "321122",
+  "321221",
+  "312212",
+  "322112",
+  "322211",
+  "212123",
+  "212321",
+  "232121",
+  "111323",
+  "131123",
+  "131321",
+  "112313",
+  "132113",
+  "132311",
+  "211313",
+  "231113",
+  "231311",
+  "112133",
+  "112331",
+  "132131",
+  "113123",
+  "113321",
+  "133121",
+  "313121",
+  "211331",
+  "231131",
+  "213113",
+  "213311",
+  "213131",
+  "311123",
+  "311321",
+  "331121",
+  "312113",
+  "312311",
+  "332111",
+  "314111",
+  "221411",
+  "431111",
+  "111224",
+  "111422",
+  "121124",
+  "121421",
+  "141122",
+  "141221",
+  "112214",
+  "112412",
+  "122114",
+  "122411",
+  "142112",
+  "142211",
+  "241211",
+  "221114",
+  "413111",
+  "241112",
+  "134111",
+  "111242",
+  "121142",
+  "121241",
+  "114212",
+  "124112",
+  "124211",
+  "411212",
+  "421112",
+  "421211",
+  "212141",
+  "214121",
+  "412121",
+  "111143",
+  "111341",
+  "131141",
+  "114113",
+  "114311",
+  "411113",
+  "411311",
+  "113141",
+  "114131",
+  "311141",
+  "411131",
+  "211412",
+  "211214",
+  "211232",
+  "2331112",
 ];
 const START_B = 104;
 const STOP = 106;
@@ -106,14 +199,13 @@ function EtiquetasPage() {
     return products.filter((p) =>
       [p.name, p.brand, p.model, p.sku, p.ean]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
+        .some((v) => String(v).toLowerCase().includes(q)),
     );
   }, [products, search]);
 
   const adjust = (id: string, delta: number) =>
     setCounts((m) => ({ ...m, [id]: Math.max(0, (m[id] ?? 0) + delta) }));
-  const setQty = (id: string, v: number) =>
-    setCounts((m) => ({ ...m, [id]: Math.max(0, v) }));
+  const setQty = (id: string, v: number) => setCounts((m) => ({ ...m, [id]: Math.max(0, v) }));
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
@@ -142,7 +234,8 @@ function EtiquetasPage() {
               </div>
               <div className="mt-3 flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">
-                  {filtered.length} produtos · <strong className="text-foreground">{total}</strong> etiquetas selecionadas
+                  {filtered.length} produtos · <strong className="text-foreground">{total}</strong>{" "}
+                  etiquetas selecionadas
                 </span>
                 <Button onClick={() => window.print()} disabled={total === 0}>
                   <Printer className="h-4 w-4 mr-2" /> Imprimir {total > 0 && `(${total})`}
@@ -158,22 +251,33 @@ function EtiquetasPage() {
                   {filtered.map((p) => {
                     const c = counts[p.id] ?? 0;
                     return (
-                      <div key={p.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/40">
+                      <div
+                        key={p.id}
+                        className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/40"
+                      >
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold truncate">{p.name}</p>
                           <p className="text-[10px] text-muted-foreground truncate">
                             SKU {p.sku ?? "—"} · EAN {p.ean ?? "—"} · R$ {p.price.toFixed(2)}
                           </p>
                         </div>
-                        <button onClick={() => adjust(p.id, -1)} className="h-7 w-7 rounded-lg bg-muted hover:bg-muted-foreground/10 grid place-items-center">
+                        <button
+                          onClick={() => adjust(p.id, -1)}
+                          className="h-7 w-7 rounded-lg bg-muted hover:bg-muted-foreground/10 grid place-items-center"
+                        >
                           <Minus className="h-3 w-3" />
                         </button>
                         <Input
-                          type="number" min={0} value={c}
+                          type="number"
+                          min={0}
+                          value={c}
                           onChange={(e) => setQty(p.id, parseInt(e.target.value) || 0)}
                           className="w-14 h-7 text-center text-xs font-bold"
                         />
-                        <button onClick={() => adjust(p.id, 1)} className="h-7 w-7 rounded-lg bg-muted hover:bg-muted-foreground/10 grid place-items-center">
+                        <button
+                          onClick={() => adjust(p.id, 1)}
+                          className="h-7 w-7 rounded-lg bg-muted hover:bg-muted-foreground/10 grid place-items-center"
+                        >
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
@@ -199,12 +303,15 @@ function EtiquetasPage() {
                         {[product.brand, product.model].filter(Boolean).join(" · ") || ""}
                       </p>
                       <div className="my-1 flex items-center justify-center">
-                        <BarcodeSVG value={product.ean || product.sku || product.id.slice(0, 12)} height={32} />
+                        <BarcodeSVG
+                          value={product.ean || product.sku || product.id.slice(0, 12)}
+                          height={32}
+                        />
                       </div>
                       <p className="text-[8px] font-mono">{product.ean || product.sku || ""}</p>
                       <p className="text-sm font-black">R$ {product.price.toFixed(2)}</p>
                     </div>
-                  ))
+                  )),
                 )}
               </div>
             </div>

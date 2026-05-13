@@ -1,5 +1,11 @@
 import { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, CheckCircle2, XCircle, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +18,15 @@ interface Props {
   onImported?: () => void;
 }
 
-type Row = { name: string; phone: string; email?: string; document?: string; city?: string; state?: string; notes?: string };
+type Row = {
+  name: string;
+  phone: string;
+  email?: string;
+  document?: string;
+  city?: string;
+  state?: string;
+  notes?: string;
+};
 
 function parseCsv(text: string): Row[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
@@ -27,18 +41,21 @@ function parseCsv(text: string): Row[] {
   const stateIdx = idx(["estado", "uf", "state"]);
   const notesIdx = idx(["obs", "nota", "notes"]);
 
-  return lines.slice(1).map((line) => {
-    const cells = line.split(/[,;\t]/).map((c) => c.trim().replace(/^"|"$/g, ""));
-    return {
-      name: cells[nameIdx] ?? "",
-      phone: cells[phoneIdx] ?? "",
-      email: emailIdx >= 0 ? cells[emailIdx] : undefined,
-      document: docIdx >= 0 ? cells[docIdx] : undefined,
-      city: cityIdx >= 0 ? cells[cityIdx] : undefined,
-      state: stateIdx >= 0 ? cells[stateIdx] : undefined,
-      notes: notesIdx >= 0 ? cells[notesIdx] : undefined,
-    };
-  }).filter((r) => r.name);
+  return lines
+    .slice(1)
+    .map((line) => {
+      const cells = line.split(/[,;\t]/).map((c) => c.trim().replace(/^"|"$/g, ""));
+      return {
+        name: cells[nameIdx] ?? "",
+        phone: cells[phoneIdx] ?? "",
+        email: emailIdx >= 0 ? cells[emailIdx] : undefined,
+        document: docIdx >= 0 ? cells[docIdx] : undefined,
+        city: cityIdx >= 0 ? cells[cityIdx] : undefined,
+        state: stateIdx >= 0 ? cells[stateIdx] : undefined,
+        notes: notesIdx >= 0 ? cells[notesIdx] : undefined,
+      };
+    })
+    .filter((r) => r.name);
 }
 
 export function ImportCsvDialog({ open, onOpenChange, onImported }: Props) {
@@ -62,14 +79,19 @@ export function ImportCsvDialog({ open, onOpenChange, onImported }: Props) {
   const doImport = async () => {
     if (!user?.id) return;
     setImporting(true);
-    const { data: p } = await (supabase as any).from("profiles").select("organization_id").eq("id", user.id).maybeSingle();
+    const { data: p } = await (supabase as any)
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", user.id)
+      .maybeSingle();
     if (!p?.organization_id) {
       toast.error("Sem organização ativa");
       setImporting(false);
       return;
     }
 
-    let ok = 0, fail = 0;
+    let ok = 0,
+      fail = 0;
     const batchSize = 50;
     for (let i = 0; i < rows.length; i += batchSize) {
       const batch = rows.slice(i, i + batchSize).map((r) => ({
@@ -100,7 +122,8 @@ export function ImportCsvDialog({ open, onOpenChange, onImported }: Props) {
   };
 
   const downloadTemplate = () => {
-    const csv = "nome,telefone,email,cpf,cidade,uf,observacoes\nMaria Silva,(11) 98765-4321,maria@exemplo.com,123.456.789-00,São Paulo,SP,Cliente VIP\nJoão Costa,(21) 99876-5432,joao@exemplo.com,,Rio de Janeiro,RJ,";
+    const csv =
+      "nome,telefone,email,cpf,cidade,uf,observacoes\nMaria Silva,(11) 98765-4321,maria@exemplo.com,123.456.789-00,São Paulo,SP,Cliente VIP\nJoão Costa,(21) 99876-5432,joao@exemplo.com,,Rio de Janeiro,RJ,";
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -115,7 +138,8 @@ export function ImportCsvDialog({ open, onOpenChange, onImported }: Props) {
         <DialogHeader>
           <DialogTitle>Importar clientes via CSV</DialogTitle>
           <DialogDescription>
-            Envie uma planilha .csv com colunas: nome, telefone, email, cpf, cidade, uf, observações.
+            Envie uma planilha .csv com colunas: nome, telefone, email, cpf, cidade, uf,
+            observações.
           </DialogDescription>
         </DialogHeader>
 
@@ -125,19 +149,28 @@ export function ImportCsvDialog({ open, onOpenChange, onImported }: Props) {
               <div
                 onClick={() => fileRef.current?.click()}
                 onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const f = e.dataTransfer.files[0];
+                  if (f) handleFile(f);
+                }}
                 className="border-2 border-dashed border-border rounded-2xl p-12 text-center cursor-pointer hover:bg-muted/30"
               >
                 <Upload className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
                 <p className="font-bold mb-1">Arraste o CSV aqui ou clique pra selecionar</p>
-                <p className="text-xs text-muted-foreground">Suporta separador vírgula, ponto-vírgula ou tab</p>
+                <p className="text-xs text-muted-foreground">
+                  Suporta separador vírgula, ponto-vírgula ou tab
+                </p>
               </div>
               <input
                 ref={fileRef}
                 type="file"
                 accept=".csv,.txt"
                 className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleFile(f);
+                }}
               />
               <div className="flex justify-center">
                 <Button variant="outline" onClick={downloadTemplate} className="gap-2">
@@ -151,7 +184,9 @@ export function ImportCsvDialog({ open, onOpenChange, onImported }: Props) {
                 <FileText className="h-5 w-5 text-success" />
                 <div className="flex-1">
                   <p className="font-bold text-sm">{rows.length} clientes detectados</p>
-                  <p className="text-xs text-muted-foreground">Confira a prévia abaixo antes de importar.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Confira a prévia abaixo antes de importar.
+                  </p>
                 </div>
               </div>
               <div className="border rounded-xl overflow-hidden max-h-64 overflow-y-auto">
@@ -175,13 +210,19 @@ export function ImportCsvDialog({ open, onOpenChange, onImported }: Props) {
                     ))}
                   </tbody>
                 </table>
-                {rows.length > 20 && <p className="p-2 text-center text-xs text-muted-foreground">+ {rows.length - 20} linhas adicionais</p>}
+                {rows.length > 20 && (
+                  <p className="p-2 text-center text-xs text-muted-foreground">
+                    + {rows.length - 20} linhas adicionais
+                  </p>
+                )}
               </div>
 
               {importing && (
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-info/10">
                   <div className="animate-spin h-4 w-4 border-2 border-info border-t-transparent rounded-full" />
-                  <span className="text-sm">Importando... {progress.ok + progress.fail}/{rows.length}</span>
+                  <span className="text-sm">
+                    Importando... {progress.ok + progress.fail}/{rows.length}
+                  </span>
                 </div>
               )}
 
@@ -193,7 +234,9 @@ export function ImportCsvDialog({ open, onOpenChange, onImported }: Props) {
               )}
 
               <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setRows([])} disabled={importing}>Trocar arquivo</Button>
+                <Button variant="outline" onClick={() => setRows([])} disabled={importing}>
+                  Trocar arquivo
+                </Button>
                 <Button onClick={doImport} disabled={importing} className="gap-2">
                   <CheckCircle2 className="h-4 w-4" /> Importar {rows.length} clientes
                 </Button>

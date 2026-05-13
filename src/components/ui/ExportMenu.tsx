@@ -13,8 +13,18 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline" }: Pro
   const [open, setOpen] = useState(false);
   const opts = [
     { id: "csv", label: "CSV (texto)", icon: FileText, fn: () => Export.csv(filename, rows, cols) },
-    { id: "excel", label: "Excel (.xls)", icon: FileSpreadsheet, fn: () => Export.excel(filename, rows, cols) },
-    { id: "pdf", label: "PDF (imprimir)", icon: Printer, fn: () => Export.pdf(filename, rows, cols) },
+    {
+      id: "excel",
+      label: "Excel (.xls)",
+      icon: FileSpreadsheet,
+      fn: () => Export.excel(filename, rows, cols),
+    },
+    {
+      id: "pdf",
+      label: "PDF (imprimir)",
+      icon: Printer,
+      fn: () => Export.pdf(filename, rows, cols),
+    },
     { id: "json", label: "JSON (técnico)", icon: FileJson, fn: () => Export.json(filename, rows) },
   ];
 

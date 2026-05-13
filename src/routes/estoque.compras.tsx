@@ -33,7 +33,10 @@ function ComprasPage() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    if (!orgId) { setLoading(false); return; }
+    if (!orgId) {
+      setLoading(false);
+      return;
+    }
     const { data } = await (supabase as any)
       .from("stock_movements")
       .select("id, product:products(name), quantity, unit_cost, reason, notes, created_at")
@@ -45,15 +48,17 @@ function ComprasPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [orgId]);
+  useEffect(() => {
+    load();
+  }, [orgId]);
 
   const totals = compras.reduce(
     (acc, c) => {
       acc.qty += c.quantity;
-      acc.value += (c.quantity * (c.unit_cost ?? 0));
+      acc.value += c.quantity * (c.unit_cost ?? 0);
       return acc;
     },
-    { qty: 0, value: 0 }
+    { qty: 0, value: 0 },
   );
 
   return (
@@ -62,24 +67,44 @@ function ComprasPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title="Compras / Entradas" subtitle="Histórico de entradas de mercadoria" />
         <main className="flex-1 overflow-y-auto p-6 space-y-4">
-
           <div className="grid grid-cols-3 gap-3">
             <Card className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-success/10 grid place-items-center"><ArrowUpCircle className="h-5 w-5 text-success" /></div>
-                <div><p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Itens entrados</p><p className="text-2xl font-black">{totals.qty}</p></div>
+                <div className="h-10 w-10 rounded-xl bg-success/10 grid place-items-center">
+                  <ArrowUpCircle className="h-5 w-5 text-success" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
+                    Itens entrados
+                  </p>
+                  <p className="text-2xl font-black">{totals.qty}</p>
+                </div>
               </div>
             </Card>
             <Card className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center"><ShoppingCart className="h-5 w-5 text-primary" /></div>
-                <div><p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Total investido</p><p className="text-2xl font-black">{BRL(totals.value)}</p></div>
+                <div className="h-10 w-10 rounded-xl bg-primary/10 grid place-items-center">
+                  <ShoppingCart className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
+                    Total investido
+                  </p>
+                  <p className="text-2xl font-black">{BRL(totals.value)}</p>
+                </div>
               </div>
             </Card>
             <Card className="p-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-info/10 grid place-items-center"><Truck className="h-5 w-5 text-info" /></div>
-                <div><p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Notas</p><p className="text-2xl font-black">{compras.length}</p></div>
+                <div className="h-10 w-10 rounded-xl bg-info/10 grid place-items-center">
+                  <Truck className="h-5 w-5 text-info" />
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
+                    Notas
+                  </p>
+                  <p className="text-2xl font-black">{compras.length}</p>
+                </div>
               </div>
             </Card>
           </div>
@@ -89,7 +114,11 @@ function ComprasPage() {
               filename="compras-entradas"
               rows={compras}
               cols={[
-                { key: "created_at", label: "Data", format: (v) => new Date(v).toLocaleString("pt-BR") },
+                {
+                  key: "created_at",
+                  label: "Data",
+                  format: (v) => new Date(v).toLocaleString("pt-BR"),
+                },
                 { key: "product", label: "Produto", format: (v: any) => v?.name ?? "—" },
                 { key: "quantity", label: "Qtd" },
                 { key: "unit_cost", label: "Custo unit." },
@@ -97,7 +126,9 @@ function ComprasPage() {
               ]}
             />
             <Link to="/estoque/movimentacoes">
-              <Button className="gap-2"><ArrowUpCircle className="h-4 w-4" /> Nova entrada</Button>
+              <Button className="gap-2">
+                <ArrowUpCircle className="h-4 w-4" /> Nova entrada
+              </Button>
             </Link>
           </div>
 
@@ -109,7 +140,10 @@ function ComprasPage() {
                 icon={ShoppingCart}
                 title="Nenhuma compra registrada"
                 description="Registre entradas via Movimentações de Estoque. Cada entrada atualiza o saldo do produto automaticamente."
-                action={{ label: "Ir para movimentações", onClick: () => (window.location.href = "/estoque/movimentacoes") }}
+                action={{
+                  label: "Ir para movimentações",
+                  onClick: () => (window.location.href = "/estoque/movimentacoes"),
+                }}
               />
             </Card>
           ) : (
@@ -117,23 +151,43 @@ function ComprasPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted/30 border-b border-border">
                   <tr>
-                    <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Data</th>
-                    <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Produto</th>
-                    <th className="text-right p-3 text-[11px] font-bold uppercase tracking-widest">Qtd</th>
-                    <th className="text-right p-3 text-[11px] font-bold uppercase tracking-widest">Custo unit.</th>
-                    <th className="text-right p-3 text-[11px] font-bold uppercase tracking-widest">Total</th>
-                    <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Motivo</th>
+                    <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">
+                      Data
+                    </th>
+                    <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">
+                      Produto
+                    </th>
+                    <th className="text-right p-3 text-[11px] font-bold uppercase tracking-widest">
+                      Qtd
+                    </th>
+                    <th className="text-right p-3 text-[11px] font-bold uppercase tracking-widest">
+                      Custo unit.
+                    </th>
+                    <th className="text-right p-3 text-[11px] font-bold uppercase tracking-widest">
+                      Total
+                    </th>
+                    <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">
+                      Motivo
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {compras.map((c) => (
                     <tr key={c.id} className="border-b border-border hover:bg-muted/20">
-                      <td className="p-3 text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString("pt-BR")}</td>
+                      <td className="p-3 text-xs text-muted-foreground">
+                        {new Date(c.created_at).toLocaleString("pt-BR")}
+                      </td>
                       <td className="p-3 font-bold">{c.product?.name ?? "—"}</td>
                       <td className="p-3 text-right font-black">{c.quantity}</td>
                       <td className="p-3 text-right">{c.unit_cost ? BRL(c.unit_cost) : "—"}</td>
-                      <td className="p-3 text-right font-black">{c.unit_cost ? BRL(c.unit_cost * c.quantity) : "—"}</td>
-                      <td className="p-3"><Badge variant="outline" className="capitalize">{c.reason}</Badge></td>
+                      <td className="p-3 text-right font-black">
+                        {c.unit_cost ? BRL(c.unit_cost * c.quantity) : "—"}
+                      </td>
+                      <td className="p-3">
+                        <Badge variant="outline" className="capitalize">
+                          {c.reason}
+                        </Badge>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

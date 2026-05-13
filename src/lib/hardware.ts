@@ -79,15 +79,22 @@ const GS = 0x1d;
 class EscPosBuilder {
   private bytes: number[] = [];
 
-  raw(...b: number[]) { this.bytes.push(...b); return this; }
+  raw(...b: number[]) {
+    this.bytes.push(...b);
+    return this;
+  }
 
-  init() { return this.raw(ESC, 0x40); }
+  init() {
+    return this.raw(ESC, 0x40);
+  }
 
   align(a: "left" | "center" | "right") {
     return this.raw(ESC, 0x61, a === "left" ? 0 : a === "center" ? 1 : 2);
   }
 
-  bold(on: boolean) { return this.raw(ESC, 0x45, on ? 1 : 0); }
+  bold(on: boolean) {
+    return this.raw(ESC, 0x45, on ? 1 : 0);
+  }
 
   size(w: 1 | 2 | 3, h: 1 | 2 | 3) {
     return this.raw(GS, 0x21, ((w - 1) << 4) | (h - 1));
@@ -102,18 +109,26 @@ class EscPosBuilder {
     return this;
   }
 
-  textLn(s: string) { return this.text(s).raw(0x0a); }
+  textLn(s: string) {
+    return this.text(s).raw(0x0a);
+  }
 
   feed(lines = 1) {
     for (let i = 0; i < lines; i++) this.bytes.push(0x0a);
     return this;
   }
 
-  cut() { return this.raw(GS, 0x56, 0x42, 0x00); }
+  cut() {
+    return this.raw(GS, 0x56, 0x42, 0x00);
+  }
 
-  drawer() { return this.raw(ESC, 0x70, 0x00, 0x32, 0xfa); }
+  drawer() {
+    return this.raw(ESC, 0x70, 0x00, 0x32, 0xfa);
+  }
 
-  build(): Uint8Array { return new Uint8Array(this.bytes); }
+  build(): Uint8Array {
+    return new Uint8Array(this.bytes);
+  }
 }
 
 export interface UsbPrinter {
@@ -132,7 +147,7 @@ export async function connectUsbPrinter(): Promise<UsbPrinter> {
   await device.claimInterface(device.configuration.interfaces[0].interfaceNumber);
 
   const epOut = device.configuration.interfaces[0].alternate.endpoints.find(
-    (e: any) => e.direction === "out"
+    (e: any) => e.direction === "out",
   );
   if (!epOut) throw new Error("Impressora sem endpoint de saída");
 
@@ -145,11 +160,15 @@ export async function connectUsbPrinter(): Promise<UsbPrinter> {
   };
 }
 
-export async function printReceipt(printer: UsbPrinter, lines: { text: string; bold?: boolean; align?: "left" | "center" | "right"; size?: 1 | 2 }[]) {
+export async function printReceipt(
+  printer: UsbPrinter,
+  lines: { text: string; bold?: boolean; align?: "left" | "center" | "right"; size?: 1 | 2 }[],
+) {
   const b = printer.builder().init();
   for (const line of lines) {
     b.align(line.align ?? "left").bold(!!line.bold);
-    if (line.size === 2) b.size(2, 2); else b.size(1, 1);
+    if (line.size === 2) b.size(2, 2);
+    else b.size(1, 1);
     b.textLn(line.text);
   }
   b.feed(3).cut();

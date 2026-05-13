@@ -55,14 +55,18 @@ function ScheduledMessagesPage() {
       .order("scheduled_at", { ascending: false })
       .limit(200);
     if (err) {
-      setError("Tabela scheduled_messages não encontrada. Aplique a migration 20260512020000_features_extras.sql.");
+      setError(
+        "Tabela scheduled_messages não encontrada. Aplique a migration 20260512020000_features_extras.sql.",
+      );
     } else {
       setList((data as Scheduled[]) ?? []);
     }
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [orgId]);
+  useEffect(() => {
+    load();
+  }, [orgId]);
 
   const schedule = async () => {
     if (!orgId || !userId) return;
@@ -79,9 +83,14 @@ function ScheduledMessagesPage() {
       scheduled_at: new Date(scheduledAt).toISOString(),
     });
     setSaving(false);
-    if (err) { toast.error("Erro: " + err.message); return; }
+    if (err) {
+      toast.error("Erro: " + err.message);
+      return;
+    }
     toast.success("Mensagem agendada");
-    setPhone(""); setBody(""); setScheduledAt("");
+    setPhone("");
+    setBody("");
+    setScheduledAt("");
     load();
   };
 
@@ -91,7 +100,10 @@ function ScheduledMessagesPage() {
       .from("scheduled_messages")
       .update({ status: "cancelled" })
       .eq("id", id);
-    if (err) { toast.error("Erro: " + err.message); return; }
+    if (err) {
+      toast.error("Erro: " + err.message);
+      return;
+    }
     toast.success("Cancelada");
     load();
   };
@@ -158,7 +170,8 @@ function ScheduledMessagesPage() {
                   </div>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-3">
-                  As mensagens são enviadas pela Edge Function dispatch-scheduled-messages, que roda a cada minuto.
+                  As mensagens são enviadas pela Edge Function dispatch-scheduled-messages, que roda
+                  a cada minuto.
                 </p>
               </Card>
 

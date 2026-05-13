@@ -52,7 +52,7 @@ function CuponsPage() {
     return sales.filter((s) =>
       [s.sale_number, s.id, s.status, s.channel, s.payment_method]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
+        .some((v) => String(v).toLowerCase().includes(q)),
     );
   }, [sales, search]);
 
@@ -75,8 +75,8 @@ function CuponsPage() {
               <div>
                 <p className="font-bold">Sem emissão de NF-e/NFC-e nesta loja</p>
                 <p className="text-xs text-muted-foreground">
-                  Geramos apenas cupons não-fiscais (recibo interno) e orçamentos para entregar ao cliente.
-                  Cada venda tem um cupom imprimível em formato 80mm (papel térmico).
+                  Geramos apenas cupons não-fiscais (recibo interno) e orçamentos para entregar ao
+                  cliente. Cada venda tem um cupom imprimível em formato 80mm (papel térmico).
                 </p>
               </div>
             </div>
@@ -85,7 +85,11 @@ function CuponsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Kpi icon={Receipt} label="Vendas" value={stats.vendas} />
             <Kpi icon={FileText} label="Orçamentos" value={stats.orcamentos} />
-            <Kpi icon={Calendar} label="Faturado" value={`R$ ${stats.total.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`} />
+            <Kpi
+              icon={Calendar}
+              label="Faturado"
+              value={`R$ ${stats.total.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`}
+            />
           </div>
 
           <Card className="p-4">
@@ -115,11 +119,21 @@ function CuponsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left border-b border-border">
-                      <th className="py-2 px-2 text-[10px] uppercase tracking-widest font-black text-muted-foreground">Data</th>
-                      <th className="py-2 px-2 text-[10px] uppercase tracking-widest font-black text-muted-foreground">Número</th>
-                      <th className="py-2 px-2 text-[10px] uppercase tracking-widest font-black text-muted-foreground">Total</th>
-                      <th className="py-2 px-2 text-[10px] uppercase tracking-widest font-black text-muted-foreground">Status</th>
-                      <th className="py-2 px-2 text-[10px] uppercase tracking-widest font-black text-muted-foreground text-right">Ações</th>
+                      <th className="py-2 px-2 text-[10px] uppercase tracking-widest font-black text-muted-foreground">
+                        Data
+                      </th>
+                      <th className="py-2 px-2 text-[10px] uppercase tracking-widest font-black text-muted-foreground">
+                        Número
+                      </th>
+                      <th className="py-2 px-2 text-[10px] uppercase tracking-widest font-black text-muted-foreground">
+                        Total
+                      </th>
+                      <th className="py-2 px-2 text-[10px] uppercase tracking-widest font-black text-muted-foreground">
+                        Status
+                      </th>
+                      <th className="py-2 px-2 text-[10px] uppercase tracking-widest font-black text-muted-foreground text-right">
+                        Ações
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -137,14 +151,20 @@ function CuponsPage() {
                             R$ {Number(s.total_amount ?? 0).toFixed(2)}
                           </td>
                           <td className="py-2 px-2">
-                            <Badge className={
-                              isQuote
-                                ? "bg-warning/15 text-warning"
+                            <Badge
+                              className={
+                                isQuote
+                                  ? "bg-warning/15 text-warning"
+                                  : s.status === "cancelada"
+                                    ? "bg-destructive/15 text-destructive"
+                                    : "bg-success/15 text-success"
+                              }
+                            >
+                              {isQuote
+                                ? "Orçamento"
                                 : s.status === "cancelada"
-                                ? "bg-destructive/15 text-destructive"
-                                : "bg-success/15 text-success"
-                            }>
-                              {isQuote ? "Orçamento" : s.status === "cancelada" ? "Cancelada" : "Finalizada"}
+                                  ? "Cancelada"
+                                  : "Finalizada"}
                             </Badge>
                           </td>
                           <td className="py-2 px-2 text-right">
@@ -179,7 +199,9 @@ function Kpi({ icon: Icon, label, value }: { icon: any; label: string; value: nu
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">{label}</div>
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+            {label}
+          </div>
           <div className="text-xl font-black truncate">{value}</div>
         </div>
       </div>

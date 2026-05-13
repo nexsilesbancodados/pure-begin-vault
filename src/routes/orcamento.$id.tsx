@@ -30,7 +30,12 @@ type Data = {
     discount: number | null;
   }>;
   org_name: string;
-  customer: { name: string; document: string | null; phone: string | null; email: string | null } | null;
+  customer: {
+    name: string;
+    document: string | null;
+    phone: string | null;
+    email: string | null;
+  } | null;
 };
 
 function OrcamentoPage() {
@@ -57,7 +62,11 @@ function OrcamentoPage() {
   }, [id]);
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-white text-black">Carregando...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-black">
+        Carregando...
+      </div>
+    );
   }
   if (error || !data) {
     return (
@@ -71,7 +80,9 @@ function OrcamentoPage() {
   }
 
   const dt = new Date(data.quote.created_at).toLocaleDateString("pt-BR");
-  const validUntil = new Date(new Date(data.quote.created_at).getTime() + 7 * 86400000).toLocaleDateString("pt-BR");
+  const validUntil = new Date(
+    new Date(data.quote.created_at).getTime() + 7 * 86400000,
+  ).toLocaleDateString("pt-BR");
   const total = Number(data.quote.total_amount ?? 0);
 
   return (
@@ -83,7 +94,10 @@ function OrcamentoPage() {
             <p className="text-xs text-gray-500 uppercase tracking-widest">{data.org_name}</p>
             <h1 className="text-3xl font-black mt-1">Orçamento</h1>
             <p className="text-xs text-gray-600 mt-1">
-              Nº {data.quote.sale_number ? `#${data.quote.sale_number}` : data.quote.id.slice(0, 8).toUpperCase()}
+              Nº{" "}
+              {data.quote.sale_number
+                ? `#${data.quote.sale_number}`
+                : data.quote.id.slice(0, 8).toUpperCase()}
             </p>
           </div>
           <FileText className="h-12 w-12 text-gray-300" />
@@ -92,22 +106,36 @@ function OrcamentoPage() {
         {/* Cliente + datas */}
         <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
           <div>
-            <p className="text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1">Cliente</p>
+            <p className="text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1">
+              Cliente
+            </p>
             {data.customer ? (
               <>
                 <p className="font-bold">{data.customer.name}</p>
-                {data.customer.document && <p className="text-xs text-gray-600">{data.customer.document}</p>}
-                {data.customer.phone && <p className="text-xs text-gray-600">{data.customer.phone}</p>}
-                {data.customer.email && <p className="text-xs text-gray-600">{data.customer.email}</p>}
+                {data.customer.document && (
+                  <p className="text-xs text-gray-600">{data.customer.document}</p>
+                )}
+                {data.customer.phone && (
+                  <p className="text-xs text-gray-600">{data.customer.phone}</p>
+                )}
+                {data.customer.email && (
+                  <p className="text-xs text-gray-600">{data.customer.email}</p>
+                )}
               </>
             ) : (
               <p className="text-gray-500 italic">Não identificado</p>
             )}
           </div>
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1">Datas</p>
-            <p className="text-sm">Emitido: <strong>{dt}</strong></p>
-            <p className="text-sm">Validade: <strong>{validUntil}</strong></p>
+            <p className="text-[10px] uppercase tracking-widest font-black text-gray-500 mb-1">
+              Datas
+            </p>
+            <p className="text-sm">
+              Emitido: <strong>{dt}</strong>
+            </p>
+            <p className="text-sm">
+              Validade: <strong>{validUntil}</strong>
+            </p>
           </div>
         </div>
 
@@ -115,10 +143,18 @@ function OrcamentoPage() {
         <table className="w-full text-sm mb-6">
           <thead>
             <tr className="border-b-2 border-gray-300">
-              <th className="text-left py-2 text-[10px] uppercase tracking-widest font-black text-gray-600">Item</th>
-              <th className="text-center py-2 text-[10px] uppercase tracking-widest font-black text-gray-600">Qtd</th>
-              <th className="text-right py-2 text-[10px] uppercase tracking-widest font-black text-gray-600">Unit.</th>
-              <th className="text-right py-2 text-[10px] uppercase tracking-widest font-black text-gray-600">Total</th>
+              <th className="text-left py-2 text-[10px] uppercase tracking-widest font-black text-gray-600">
+                Item
+              </th>
+              <th className="text-center py-2 text-[10px] uppercase tracking-widest font-black text-gray-600">
+                Qtd
+              </th>
+              <th className="text-right py-2 text-[10px] uppercase tracking-widest font-black text-gray-600">
+                Unit.
+              </th>
+              <th className="text-right py-2 text-[10px] uppercase tracking-widest font-black text-gray-600">
+                Total
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -169,7 +205,9 @@ function OrcamentoPage() {
 
         {/* Termos */}
         <div className="border-t border-gray-300 pt-4 text-[10px] text-gray-600 space-y-1">
-          <p><strong>Condições gerais:</strong></p>
+          <p>
+            <strong>Condições gerais:</strong>
+          </p>
           <p>• Este orçamento é válido até {validUntil}.</p>
           <p>• Preços sujeitos a alteração após a validade.</p>
           <p>• Disponibilidade dos produtos sujeita a estoque no momento da compra.</p>

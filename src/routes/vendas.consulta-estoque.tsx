@@ -40,7 +40,9 @@ function ConsultaEstoquePage() {
     setLoading(true);
     supabase
       .from("products")
-      .select("id, name, model, brand, sku, ean, category, price, stock_quantity, min_stock, location, has_imei, active")
+      .select(
+        "id, name, model, brand, sku, ean, category, price, stock_quantity, min_stock, location, has_imei, active",
+      )
       .eq("organization_id", orgId)
       .eq("active", true)
       .order("name", { ascending: true })
@@ -57,7 +59,7 @@ function ConsultaEstoquePage() {
     return items.filter((p) =>
       [p.name, p.model, p.brand, p.sku, p.ean, p.category, p.location]
         .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
+        .some((v) => String(v).toLowerCase().includes(q)),
     );
   }, [items, search]);
 
@@ -114,13 +116,21 @@ function ConsultaEstoquePage() {
                   </div>
                   <div className="flex items-end justify-between mt-1">
                     <div className="text-xs text-muted-foreground space-y-0.5">
-                      {p.sku && <div>SKU: <span className="font-mono">{p.sku}</span></div>}
+                      {p.sku && (
+                        <div>
+                          SKU: <span className="font-mono">{p.sku}</span>
+                        </div>
+                      )}
                       {p.location && <div>Local: {p.location}</div>}
                       {p.has_imei && <div>Controla IMEI</div>}
                     </div>
                     <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo</div>
-                      <div className={`text-2xl font-black ${zero ? "text-destructive" : baixo ? "text-warning" : "text-foreground"}`}>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        Saldo
+                      </div>
+                      <div
+                        className={`text-2xl font-black ${zero ? "text-destructive" : baixo ? "text-warning" : "text-foreground"}`}
+                      >
                         {p.stock_quantity}
                       </div>
                       <div className="text-xs text-primary font-bold mt-0.5">
@@ -136,7 +146,9 @@ function ConsultaEstoquePage() {
                 <Package className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
                 <p className="text-sm font-bold">Nenhum produto encontrado</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {search ? "Refine sua busca ou cadastre novos produtos em Estoque." : "Cadastre seus produtos em Estoque para consultá-los aqui."}
+                  {search
+                    ? "Refine sua busca ou cadastre novos produtos em Estoque."
+                    : "Cadastre seus produtos em Estoque para consultá-los aqui."}
                 </p>
               </Card>
             )}

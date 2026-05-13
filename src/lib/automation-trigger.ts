@@ -4,11 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/automation-runner`;
 
-export type AutomationTrigger =
-  | "new_lead"
-  | "message_received"
-  | "stage_changed"
-  | "no_reply_24h";
+export type AutomationTrigger = "new_lead" | "message_received" | "stage_changed" | "no_reply_24h";
 
 export function fireAutomation(
   user_id: string,

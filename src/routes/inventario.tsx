@@ -74,9 +74,7 @@ function InventarioPage() {
   const handleScan = (code: string) => {
     const clean = code.trim();
     if (!clean) return;
-    const found = products.find(
-      (p) => p.ean === clean || p.sku === clean || p.id === clean
-    );
+    const found = products.find((p) => p.ean === clean || p.sku === clean || p.id === clean);
     if (!found) {
       toast.error(`Código não encontrado: ${clean}`);
       setScan("");
@@ -110,11 +108,13 @@ function InventarioPage() {
   };
 
   const rows: CountRow[] = useMemo(() => {
-    return Array.from(counts.entries()).map(([id, counted]) => {
-      const product = products.find((p) => p.id === id);
-      if (!product) return null as any;
-      return { product, counted, diff: counted - product.stock_quantity };
-    }).filter(Boolean);
+    return Array.from(counts.entries())
+      .map(([id, counted]) => {
+        const product = products.find((p) => p.id === id);
+        if (!product) return null as any;
+        return { product, counted, diff: counted - product.stock_quantity };
+      })
+      .filter(Boolean);
   }, [counts, products]);
 
   const stats = useMemo(() => {
@@ -131,21 +131,27 @@ function InventarioPage() {
       .filter((p) =>
         [p.name, p.sku, p.ean, p.location]
           .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q))
+          .some((v) => String(v).toLowerCase().includes(q)),
       )
       .slice(0, 20);
   }, [products, search]);
 
   const applyAll = async () => {
     if (!orgId || !user?.id) return;
-    if (rows.length === 0) { toast.error("Nada contado"); return; }
+    if (rows.length === 0) {
+      toast.error("Nada contado");
+      return;
+    }
     if (!confirm(`Aplicar ${rows.length} ajuste(s) ao estoque?`)) return;
 
     setSaving(true);
     let ok = 0;
     let fail = 0;
     for (const r of rows) {
-      if (r.diff === 0) { ok += 1; continue; }
+      if (r.diff === 0) {
+        ok += 1;
+        continue;
+      }
       try {
         const { error } = await supabase
           .from("products")
@@ -253,10 +259,7 @@ function InventarioPage() {
               <h3 className="font-black text-sm uppercase tracking-widest">
                 Lista de contagem ({rows.length})
               </h3>
-              <Button
-                onClick={applyAll}
-                disabled={rows.length === 0 || saving}
-              >
+              <Button onClick={applyAll} disabled={rows.length === 0 || saving}>
                 <Save className="h-4 w-4 mr-2" />
                 {saving ? "Aplicando..." : `Aplicar ${rows.length} ajustes`}
               </Button>
@@ -276,8 +279,8 @@ function InventarioPage() {
                       r.diff === 0
                         ? "border-success/30 bg-success/5"
                         : r.diff > 0
-                        ? "border-warning/30 bg-warning/5"
-                        : "border-destructive/30 bg-destructive/5"
+                          ? "border-warning/30 bg-warning/5"
+                          : "border-destructive/30 bg-destructive/5"
                     }`}
                   >
                     <div className="flex-1 min-w-0">
@@ -312,8 +315,8 @@ function InventarioPage() {
                         r.diff === 0
                           ? "bg-success/15 text-success"
                           : r.diff > 0
-                          ? "bg-warning/15 text-warning"
-                          : "bg-destructive/15 text-destructive"
+                            ? "bg-warning/15 text-warning"
+                            : "bg-destructive/15 text-destructive"
                       }
                     >
                       {r.diff > 0 ? `+${r.diff}` : r.diff}

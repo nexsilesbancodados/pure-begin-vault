@@ -34,7 +34,9 @@ function DashboardOSPage() {
     setLoading(true);
     supabase
       .from("service_orders")
-      .select("id, status, total_cost, labor_cost, created_at, delivered_at, due_date, priority, equipment, technician_id")
+      .select(
+        "id, status, total_cost, labor_cost, created_at, delivered_at, due_date, priority, equipment, technician_id",
+      )
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false })
       .limit(500)
@@ -51,13 +53,13 @@ function DashboardOSPage() {
 
     const abertas = os.filter((o) => ABERTA(o.status));
     const concluidas = os.filter((o) => CONCLUIDA(o.status));
-    const atrasadas = abertas.filter(
-      (o) => o.due_date && new Date(o.due_date).getTime() < now
-    );
+    const atrasadas = abertas.filter((o) => o.due_date && new Date(o.due_date).getTime() < now);
 
     const tempoConclusao = concluidas
       .filter((o) => o.delivered_at)
-      .map((o) => (new Date(o.delivered_at!).getTime() - new Date(o.created_at).getTime()) / 86400000);
+      .map(
+        (o) => (new Date(o.delivered_at!).getTime() - new Date(o.created_at).getTime()) / 86400000,
+      );
     const tempoMedio = tempoConclusao.length
       ? tempoConclusao.reduce((a, b) => a + b, 0) / tempoConclusao.length
       : 0;
@@ -112,9 +114,24 @@ function DashboardOSPage() {
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <KpiCard icon={Wrench} label="OS abertas" value={k.abertas} color="warning" />
-                <KpiCard icon={CheckCircle2} label="Concluídas" value={k.concluidas} color="success" />
-                <KpiCard icon={AlertCircle} label="Atrasadas" value={k.atrasadas} color="destructive" />
-                <KpiCard icon={Clock} label="Tempo médio (d)" value={k.tempoMedio.toFixed(1)} color="primary" />
+                <KpiCard
+                  icon={CheckCircle2}
+                  label="Concluídas"
+                  value={k.concluidas}
+                  color="success"
+                />
+                <KpiCard
+                  icon={AlertCircle}
+                  label="Atrasadas"
+                  value={k.atrasadas}
+                  color="destructive"
+                />
+                <KpiCard
+                  icon={Clock}
+                  label="Tempo médio (d)"
+                  value={k.tempoMedio.toFixed(1)}
+                  color="primary"
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -197,7 +214,11 @@ function DashboardOSPage() {
                   <div className="flex items-center gap-3">
                     <AlertCircle className="h-5 w-5 text-warning" />
                     <p className="text-sm font-bold">
-                      {k.urgentes} {k.urgentes === 1 ? "OS de prioridade alta/urgente" : "OS de prioridade alta/urgente"} ainda em aberto
+                      {k.urgentes}{" "}
+                      {k.urgentes === 1
+                        ? "OS de prioridade alta/urgente"
+                        : "OS de prioridade alta/urgente"}{" "}
+                      ainda em aberto
                     </p>
                   </div>
                 </Card>

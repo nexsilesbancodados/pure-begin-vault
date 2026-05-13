@@ -60,10 +60,13 @@ function AcceptInvite() {
       setSubmitting(false);
       return setError(signUpErr.message);
     }
-    await supabase.from("team_invitations").update({
-      status: "accepted",
-      accepted_at: new Date().toISOString(),
-    }).eq("id", invite.id);
+    await supabase
+      .from("team_invitations")
+      .update({
+        status: "accepted",
+        accepted_at: new Date().toISOString(),
+      })
+      .eq("id", invite.id);
     toast.success("Conta criada! Verifique seu e-mail para confirmar.");
     navigate({ to: "/login" });
   };
@@ -83,13 +86,16 @@ function AcceptInvite() {
             <Loader2 className="h-4 w-4 animate-spin" /> Validando convite...
           </div>
         ) : error ? (
-          <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">{error}</div>
+          <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+            {error}
+          </div>
         ) : (
           <>
             <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-800 mb-6 flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 mt-0.5" />
               <div>
-                Você foi convidado como <strong>{invite.role}</strong> com o e-mail <strong>{invite.email}</strong>.
+                Você foi convidado como <strong>{invite.role}</strong> com o e-mail{" "}
+                <strong>{invite.email}</strong>.
               </div>
             </div>
             <form onSubmit={accept} className="space-y-4">

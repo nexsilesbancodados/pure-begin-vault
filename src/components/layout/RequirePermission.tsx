@@ -32,8 +32,8 @@ export function RequirePermission({ perm, children }: RequirePermissionProps) {
           </div>
           <h1 className="text-xl font-black mb-2">Acesso restrito</h1>
           <p className="text-sm text-muted-foreground mb-4">
-            Você não tem permissão para acessar esta área. Solicite ao administrador
-            da empresa em Equipe / Permissões.
+            Você não tem permissão para acessar esta área. Solicite ao administrador da empresa em
+            Equipe / Permissões.
           </p>
           <div className="flex gap-2 justify-center">
             <Link

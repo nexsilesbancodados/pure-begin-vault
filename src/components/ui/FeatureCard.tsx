@@ -3,13 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type FeatureCardTone =
-  | "primary"
-  | "info"
-  | "success"
-  | "warning"
-  | "destructive"
-  | "violet";
+export type FeatureCardTone = "primary" | "info" | "success" | "warning" | "destructive" | "violet";
 
 const tones: Record<
   FeatureCardTone,
@@ -20,8 +14,7 @@ const tones: Record<
     iconBg: "bg-primary/10",
     arrow: "text-primary",
     arrowBg: "bg-primary/10 group-hover:bg-primary/20",
-    swoosh:
-      "from-primary/15 via-primary/5 to-transparent",
+    swoosh: "from-primary/15 via-primary/5 to-transparent",
   },
   info: {
     icon: "text-info",
@@ -55,10 +48,8 @@ const tones: Record<
     icon: "text-[oklch(0.55_0.22_295)]",
     iconBg: "bg-[oklch(0.55_0.22_295)]/10",
     arrow: "text-[oklch(0.55_0.22_295)]",
-    arrowBg:
-      "bg-[oklch(0.55_0.22_295)]/10 group-hover:bg-[oklch(0.55_0.22_295)]/20",
-    swoosh:
-      "from-[oklch(0.55_0.22_295)]/15 via-[oklch(0.55_0.22_295)]/5 to-transparent",
+    arrowBg: "bg-[oklch(0.55_0.22_295)]/10 group-hover:bg-[oklch(0.55_0.22_295)]/20",
+    swoosh: "from-[oklch(0.55_0.22_295)]/15 via-[oklch(0.55_0.22_295)]/5 to-transparent",
   },
 };
 
@@ -131,13 +122,9 @@ export function FeatureCard({
       </div>
 
       <div className="relative">
-        <h3 className="font-bold font-display text-base mb-1 text-foreground">
-          {title}
-        </h3>
+        <h3 className="font-bold font-display text-base mb-1 text-foreground">{title}</h3>
         {description && (
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {description}
-          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
         )}
         {children}
       </div>

@@ -55,14 +55,21 @@ function ApiKeysPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [orgId]);
+  useEffect(() => {
+    load();
+  }, [orgId]);
 
   const create = async () => {
     if (!newName.trim()) return;
     setGenerating(true);
-    const { data, error } = await (supabase as any).rpc("create_api_key", { _name: newName.trim() });
+    const { data, error } = await (supabase as any).rpc("create_api_key", {
+      _name: newName.trim(),
+    });
     setGenerating(false);
-    if (error) { toast.error("Erro: " + error.message); return; }
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
     setGenerated((data as any).token);
     setNewName("");
     load();
@@ -70,7 +77,10 @@ function ApiKeysPage() {
 
   const revoke = async (id: string) => {
     if (!confirm("Revogar essa chave? Integrações usando ela vão parar de funcionar.")) return;
-    await (supabase as any).from("api_keys").update({ revoked_at: new Date().toISOString() }).eq("id", id);
+    await (supabase as any)
+      .from("api_keys")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("id", id);
     toast.success("Chave revogada");
     load();
   };
@@ -101,7 +111,9 @@ function ApiKeysPage() {
                   placeholder="Ex: Integração ERP, Site, Zapier"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") create(); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") create();
+                  }}
                 />
               </div>
               <Button onClick={create} disabled={!newName.trim() || generating}>
@@ -115,7 +127,9 @@ function ApiKeysPage() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-black text-sm mb-1">⚠ Copie agora! Esta chave NÃO será mostrada novamente.</p>
+                  <p className="font-black text-sm mb-1">
+                    ⚠ Copie agora! Esta chave NÃO será mostrada novamente.
+                  </p>
                   <div className="flex items-center gap-2 mt-2">
                     <code className="flex-1 px-3 py-2 bg-card border border-border rounded font-mono text-xs break-all">
                       {generated}
@@ -124,7 +138,10 @@ function ApiKeysPage() {
                       {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     </Button>
                   </div>
-                  <button onClick={() => setGenerated(null)} className="text-xs font-bold text-muted-foreground mt-2 hover:underline">
+                  <button
+                    onClick={() => setGenerated(null)}
+                    className="text-xs font-bold text-muted-foreground mt-2 hover:underline"
+                  >
                     Fechar (já copiei)
                   </button>
                 </div>
@@ -139,24 +156,39 @@ function ApiKeysPage() {
             {loading ? (
               <p className="text-sm text-muted-foreground">Carregando...</p>
             ) : keys.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">Nenhuma chave criada.</p>
+              <p className="text-sm text-muted-foreground py-6 text-center">
+                Nenhuma chave criada.
+              </p>
             ) : (
               <div className="space-y-2">
                 {keys.map((k) => {
                   const revoked = !!k.revoked_at;
                   return (
-                    <div key={k.id} className={`flex items-center gap-3 p-3 rounded-xl border ${revoked ? "border-muted bg-muted/20 opacity-60" : "border-border"}`}>
+                    <div
+                      key={k.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border ${revoked ? "border-muted bg-muted/20 opacity-60" : "border-border"}`}
+                    >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-bold text-sm">{k.name}</p>
-                          {revoked && <Badge variant="outline" className="text-[9px]">Revogada</Badge>}
+                          {revoked && (
+                            <Badge variant="outline" className="text-[9px]">
+                              Revogada
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-[10px] font-mono text-muted-foreground">
-                          {k.key_prefix}··· · {k.last_used_at ? `Usada ${new Date(k.last_used_at).toLocaleDateString("pt-BR")}` : "Nunca usada"}
+                          {k.key_prefix}··· ·{" "}
+                          {k.last_used_at
+                            ? `Usada ${new Date(k.last_used_at).toLocaleDateString("pt-BR")}`
+                            : "Nunca usada"}
                         </p>
                       </div>
                       {!revoked && (
-                        <button onClick={() => revoke(k.id)} className="text-muted-foreground hover:text-destructive p-1">
+                        <button
+                          onClick={() => revoke(k.id)}
+                          className="text-muted-foreground hover:text-destructive p-1"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       )}
@@ -173,7 +205,8 @@ function ApiKeysPage() {
             </h3>
             <div className="space-y-3 text-sm">
               <p className="text-muted-foreground">
-                Autenticação: header <code className="bg-muted px-1 rounded">X-API-Key: cph_...</code> ou{" "}
+                Autenticação: header{" "}
+                <code className="bg-muted px-1 rounded">X-API-Key: cph_...</code> ou{" "}
                 <code className="bg-muted px-1 rounded">Authorization: Bearer cph_...</code>
               </p>
 
@@ -186,10 +219,15 @@ function ApiKeysPage() {
               </div>
 
               <div>
-                <p className="font-bold text-xs uppercase tracking-widest mb-2">Endpoints disponíveis</p>
+                <p className="font-bold text-xs uppercase tracking-widest mb-2">
+                  Endpoints disponíveis
+                </p>
                 <div className="space-y-1">
                   {ENDPOINTS.map((e) => (
-                    <div key={e.path} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30">
+                    <div
+                      key={e.path}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-muted/30"
+                    >
                       <Badge className="bg-success/15 text-success font-mono">GET</Badge>
                       <code className="font-mono text-xs flex-1">/api/public/{e.path}</code>
                       <span className="text-xs text-muted-foreground">{e.desc}</span>

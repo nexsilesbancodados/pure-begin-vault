@@ -6,7 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -49,7 +56,9 @@ const fmtMoney = (cents: number, currency = "BRL") =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format((cents || 0) / 100);
 
 const fmtDate = (s?: string | null) =>
-  s ? new Date(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  s
+    ? new Date(s).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })
+    : "—";
 
 function statusBadge(s: string) {
   const map: Record<string, { label: string; cls: string }> = {
@@ -74,11 +83,20 @@ function MinhaContaPage() {
     setUpgrading(true);
     try {
       const { data: s } = await supabase.auth.getSession();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mp-create-preapproval`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${s.session?.access_token ?? ""}` },
-        body: JSON.stringify({ plan_id: planId, back_url: `${window.location.origin}/minha-conta` }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mp-create-preapproval`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${s.session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify({
+            plan_id: planId,
+            back_url: `${window.location.origin}/minha-conta`,
+          }),
+        },
+      );
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || "Erro ao criar assinatura");
       if (json.init_point) {
@@ -100,7 +118,9 @@ function MinhaContaPage() {
     const [{ data: subs }, { data: pays }] = await Promise.all([
       supabase
         .from("subscriptions")
-        .select("id,status,plan_id,current_period_start,current_period_end,canceled_at,plans(name,price_cents,slug)")
+        .select(
+          "id,status,plan_id,current_period_start,current_period_end,canceled_at,plans(name,price_cents,slug)",
+        )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1),
@@ -127,14 +147,17 @@ function MinhaContaPage() {
     setCanceling(true);
     try {
       const { data: s } = await supabase.auth.getSession();
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancel-subscription`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${s.session?.access_token ?? ""}`,
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cancel-subscription`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${s.session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify({ subscription_id: sub.id }),
         },
-        body: JSON.stringify({ subscription_id: sub.id }),
-      });
+      );
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || "Erro ao cancelar");
       toast.success("Assinatura cancelada.");
@@ -154,7 +177,9 @@ function MinhaContaPage() {
         <main className="flex-1 overflow-auto p-6 space-y-6">
           <header>
             <h1 className="text-2xl font-bold tracking-tight">Minha conta</h1>
-            <p className="text-sm text-muted-foreground">Gerencie seu plano e veja seu histórico de pagamentos.</p>
+            <p className="text-sm text-muted-foreground">
+              Gerencie seu plano e veja seu histórico de pagamentos.
+            </p>
           </header>
 
           {loading ? (
@@ -172,7 +197,11 @@ function MinhaContaPage() {
                       </CardTitle>
                       <CardDescription>Detalhes da sua assinatura</CardDescription>
                     </div>
-                    {sub ? statusBadge(sub.status) : <Badge variant="secondary">Sem assinatura</Badge>}
+                    {sub ? (
+                      statusBadge(sub.status)
+                    ) : (
+                      <Badge variant="secondary">Sem assinatura</Badge>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -198,10 +227,22 @@ function MinhaContaPage() {
                       </div>
                       <Separator />
                       <div className="flex flex-wrap gap-2">
-                        {(sub.status === "trial" || sub.status === "past_due" || sub.status === "suspended") && (
-                          <Button onClick={() => upgradeToRecurring(sub.plan_id)} disabled={upgrading} className="bg-gradient-primary text-white shadow-blue">
-                            {upgrading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CreditCard className="h-4 w-4 mr-2" />}
-                            {sub.status === "trial" ? "Assinar agora (recorrente)" : "Reativar assinatura"}
+                        {(sub.status === "trial" ||
+                          sub.status === "past_due" ||
+                          sub.status === "suspended") && (
+                          <Button
+                            onClick={() => upgradeToRecurring(sub.plan_id)}
+                            disabled={upgrading}
+                            className="bg-gradient-primary text-white shadow-blue"
+                          >
+                            {upgrading ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <CreditCard className="h-4 w-4 mr-2" />
+                            )}
+                            {sub.status === "trial"
+                              ? "Assinar agora (recorrente)"
+                              : "Reativar assinatura"}
                           </Button>
                         )}
                         <Button asChild variant="outline">
@@ -246,7 +287,9 @@ function MinhaContaPage() {
                 </CardHeader>
                 <CardContent>
                   {payments.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">Nenhum pagamento registrado.</div>
+                    <div className="text-sm text-muted-foreground">
+                      Nenhum pagamento registrado.
+                    </div>
                   ) : (
                     <Table>
                       <TableHeader>

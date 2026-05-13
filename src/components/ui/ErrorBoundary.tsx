@@ -2,8 +2,14 @@ import { Component, ReactNode, ErrorInfo } from "react";
 import { AlertTriangle, RotateCw, Home } from "lucide-react";
 import { captureError } from "@/lib/monitoring";
 
-interface State { hasError: boolean; error?: Error }
-interface Props { children: ReactNode; fallback?: ReactNode }
+interface State {
+  hasError: boolean;
+  error?: Error;
+}
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
+}
 
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };
@@ -16,7 +22,9 @@ export class ErrorBoundary extends Component<Props, State> {
     captureError(error, { componentStack: info.componentStack });
   }
 
-  reset = () => { this.setState({ hasError: false, error: undefined }); };
+  reset = () => {
+    this.setState({ hasError: false, error: undefined });
+  };
 
   render() {
     if (!this.state.hasError) return this.props.children;

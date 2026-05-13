@@ -26,7 +26,11 @@ export function SeedDreButton({ onDone }: { onDone?: () => void }) {
 
   return (
     <Button variant="outline" onClick={run} disabled={loading}>
-      {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+      {loading ? (
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+      ) : (
+        <Sparkles className="h-4 w-4 mr-2" />
+      )}
       Importar plano padrão (loja celular)
     </Button>
   );

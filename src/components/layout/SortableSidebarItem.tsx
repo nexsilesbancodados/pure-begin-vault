@@ -1,12 +1,8 @@
-import React from 'react';
+import React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { iconMap, ChevronRight, ChevronDown, HelpCircle } from "@/lib/icons";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SortableSidebarItemProps {
   item: any;
@@ -26,7 +22,7 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
   const location = useLocation();
 
   const style = {
-    marginLeft: !isSmall ? `${depth * 12}px` : 0
+    marginLeft: !isSmall ? `${depth * 12}px` : 0,
   };
 
   if (item.type === "header") {
@@ -44,13 +40,12 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
   }
 
   const Icon = iconMap[item.icon] || HelpCircle;
-  const active = location.pathname === item.url || (item.children?.some((child: any) => location.pathname === child.url));
+  const active =
+    location.pathname === item.url ||
+    item.children?.some((child: any) => location.pathname === child.url);
 
   const NavItem = (
-    <div 
-      style={style} 
-      className="space-y-1 group/item relative transition-all duration-200"
-    >
+    <div style={style} className="space-y-1 group/item relative transition-all duration-200">
       {item.flyout ? (
         isSmall ? (
           <button
@@ -61,7 +56,7 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
               "justify-center",
               active || flyout?.url === item.url
                 ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-glow"
-                : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-foreground"
+                : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-foreground",
             )}
           >
             <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.4 : 2} />
@@ -75,29 +70,40 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
                 "group relative flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
                 active
                   ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-glow"
-                  : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-foreground"
+                  : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-foreground",
               )}
             >
               <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.4 : 2} />
               <span className="flex-1 truncate">{item.title}</span>
               {item.badge && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary uppercase ml-1 shrink-0">{item.badge}</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary uppercase ml-1 shrink-0">
+                  {item.badge}
+                </span>
               )}
               {active && <ChevronRight className="h-4 w-4 ml-auto opacity-80" />}
             </Link>
 
             <button
               type="button"
-              aria-label={flyout?.url === item.url ? `Fechar submenu de ${item.title}` : `Abrir submenu de ${item.title}`}
+              aria-label={
+                flyout?.url === item.url
+                  ? `Fechar submenu de ${item.title}`
+                  : `Abrir submenu de ${item.title}`
+              }
               onClick={() => setFlyout(flyout?.url === item.url ? null : item)}
               className={cn(
                 "grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-all",
                 flyout?.url === item.url
                   ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-glow"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-foreground"
+                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-foreground",
               )}
             >
-              <ChevronRight className={cn("h-4 w-4 transition-transform", flyout?.url === item.url ? "rotate-90" : "")} />
+              <ChevronRight
+                className={cn(
+                  "h-4 w-4 transition-transform",
+                  flyout?.url === item.url ? "rotate-90" : "",
+                )}
+              />
             </button>
           </div>
         )
@@ -110,16 +116,22 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
             isSmall ? "justify-center" : "ml-3",
             active
               ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium shadow-glow"
-              : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-foreground"
+              : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-foreground",
           )}
         >
           <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.4 : 2} />
           {!isSmall && <span className="flex-1 truncate">{item.title}</span>}
-          {!isSmall && active && !item.children && <ChevronRight className="h-4 w-4 ml-auto opacity-80" />}
-          {!isSmall && item.children && <ChevronDown className={cn("h-3.5 w-3.5 ml-auto transition-transform", active ? "rotate-180" : "")} />}
+          {!isSmall && active && !item.children && (
+            <ChevronRight className="h-4 w-4 ml-auto opacity-80" />
+          )}
+          {!isSmall && item.children && (
+            <ChevronDown
+              className={cn("h-3.5 w-3.5 ml-auto transition-transform", active ? "rotate-180" : "")}
+            />
+          )}
         </Link>
       )}
-      
+
       {!isSmall && item.children && active && (
         <div className="ml-12 space-y-1 border-l border-sidebar-border/50 pl-2 py-1 animate-in fade-in slide-in-from-top-1 duration-200">
           {item.children.map((child: any) => (
@@ -131,7 +143,7 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
                 "block rounded-md px-3 py-1.5 text-[12.5px] transition-colors",
                 location.pathname === child.url
                   ? "text-foreground font-medium bg-primary/10"
-                  : "text-sidebar-foreground/60 hover:text-foreground hover:bg-primary/5"
+                  : "text-sidebar-foreground/60 hover:text-foreground hover:bg-primary/5",
               )}
             >
               {child.title}
@@ -145,16 +157,18 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
   if (isSmall) {
     return (
       <Tooltip key={item.url || item.title}>
-        <TooltipTrigger asChild>
-          {NavItem}
-        </TooltipTrigger>
+        <TooltipTrigger asChild>{NavItem}</TooltipTrigger>
         <TooltipContent side="right" className="flex items-center gap-2">
           {item.title}
-          {item.badge && <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-white/20 uppercase">{item.badge}</span>}
+          {item.badge && (
+            <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-white/20 uppercase">
+              {item.badge}
+            </span>
+          )}
         </TooltipContent>
       </Tooltip>
     );
   }
 
   return NavItem;
-}
+};

@@ -23,9 +23,17 @@ async function fetchQuote(id: string) {
 
   const [{ data: items }, { data: org }, { data: customer }] = await Promise.all([
     (supabaseAdmin as any).from("sale_items").select("*").eq("sale_id", q.id),
-    (supabaseAdmin as any).from("organizations").select("name").eq("id", q.organization_id).maybeSingle(),
+    (supabaseAdmin as any)
+      .from("organizations")
+      .select("name")
+      .eq("id", q.organization_id)
+      .maybeSingle(),
     q.customer_id
-      ? (supabaseAdmin as any).from("customers").select("name, document, phone, email").eq("id", q.customer_id).maybeSingle()
+      ? (supabaseAdmin as any)
+          .from("customers")
+          .select("name, document, phone, email")
+          .eq("id", q.customer_id)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -45,7 +53,10 @@ export const Route = createFileRoute("/api/quote/$id")({
       GET: async ({ params }) => {
         const r = await fetchQuote(String(params.id ?? ""));
         if (r.error) {
-          return new Response(JSON.stringify({ error: r.error }), { status: r.status, headers: corsHeaders });
+          return new Response(JSON.stringify({ error: r.error }), {
+            status: r.status,
+            headers: corsHeaders,
+          });
         }
         return new Response(JSON.stringify(r), {
           status: 200,

@@ -31,7 +31,7 @@ export const Route = createFileRoute("/sitemap.xml")({
             `  </url>`,
           ]
             .filter(Boolean)
-            .join("\n")
+            .join("\n"),
         );
 
         const xml = [

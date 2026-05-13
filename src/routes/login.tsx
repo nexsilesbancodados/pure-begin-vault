@@ -1,5 +1,27 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Mail, Lock, ArrowRight, Eye, EyeOff, Cloud, MessageCircle, Instagram, Users, TrendingUp, LayoutDashboard, GitBranch, Headphones, Zap, BarChart3, Settings, ShieldCheck, Sparkles, LockKeyhole, ChevronDown, CheckCircle2 } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Cloud,
+  MessageCircle,
+  Instagram,
+  Users,
+  TrendingUp,
+  LayoutDashboard,
+  GitBranch,
+  Headphones,
+  Zap,
+  BarChart3,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  LockKeyhole,
+  ChevronDown,
+  CheckCircle2,
+} from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -7,9 +29,16 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Entrar — ConectaCRM" },
-      { name: "description", content: "Acesse sua conta ConectaCRM para gerenciar leads, vendas, estoque e atendimentos no WhatsApp e Instagram." },
+      {
+        name: "description",
+        content:
+          "Acesse sua conta ConectaCRM para gerenciar leads, vendas, estoque e atendimentos no WhatsApp e Instagram.",
+      },
       { property: "og:title", content: "Entrar no ConectaCRM" },
-      { property: "og:description", content: "Acesse sua conta para continuar gerenciando sua loja." },
+      {
+        property: "og:description",
+        content: "Acesse sua conta para continuar gerenciando sua loja.",
+      },
     ],
   }),
   component: Login,
@@ -43,7 +72,11 @@ function Login() {
     const uid = signInData.user?.id;
     if (uid) {
       const [{ data: prof }, { data: superAdmin }] = await Promise.all([
-        supabase.from("profiles").select("display_name, organization_id, role").eq("id", uid).maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("display_name, organization_id, role")
+          .eq("id", uid)
+          .maybeSingle(),
         (supabase as any).from("super_admins").select("user_id").eq("user_id", uid).maybeSingle(),
       ]);
       const isOwner = prof?.role === "owner" || !!superAdmin;
@@ -68,13 +101,19 @@ function Login() {
           <Link to="/" className="inline-flex items-center gap-3 mb-12 group">
             <div className="relative h-11 w-11">
               <div className="absolute inset-0 rounded-2xl bg-gradient-primary shadow-blue group-hover:shadow-glow transition-shadow" />
-              <Cloud className="absolute inset-0 m-auto h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
+              <Cloud
+                className="absolute inset-0 m-auto h-5 w-5 text-primary-foreground"
+                strokeWidth={2.5}
+              />
             </div>
-            <span className="font-display font-bold text-2xl tracking-tight text-foreground">ConectaCRM</span>
+            <span className="font-display font-bold text-2xl tracking-tight text-foreground">
+              ConectaCRM
+            </span>
           </Link>
 
           <h1 className="text-4xl sm:text-5xl font-display font-bold text-foreground tracking-tight mb-3 leading-[1.05]">
-            Bem-vindo<br />
+            Bem-vindo
+            <br />
             <span className="text-gradient-primary">de volta!</span>
           </h1>
           <p className="text-muted-foreground text-base mb-10 leading-relaxed">
@@ -100,7 +139,12 @@ function Login() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-semibold text-foreground">Senha</label>
-                <Link to="/esqueci-senha" className="text-sm text-primary hover:underline font-semibold">Esqueci a senha</Link>
+                <Link
+                  to="/esqueci-senha"
+                  className="text-sm text-primary hover:underline font-semibold"
+                >
+                  Esqueci a senha
+                </Link>
               </div>
               <div className="relative group">
                 <Lock className="h-4 w-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
@@ -172,14 +216,23 @@ function Login() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
             </span>
-            <span className="text-xs font-bold tracking-widest text-primary-foreground/90">PLATAFORMA ATIVA</span>
+            <span className="text-xs font-bold tracking-widest text-primary-foreground/90">
+              PLATAFORMA ATIVA
+            </span>
           </div>
 
           <div className="flex items-center">
             <div className="flex -space-x-2">
               {[31, 32, 33, 34].map((i) => (
-                <div key={i} className="h-9 w-9 rounded-full border-2 border-white/80 bg-white/20 overflow-hidden ring-1 ring-black/5">
-                  <img src={`https://i.pravatar.cc/80?img=${i}`} alt="" className="w-full h-full object-cover" />
+                <div
+                  key={i}
+                  className="h-9 w-9 rounded-full border-2 border-white/80 bg-white/20 overflow-hidden ring-1 ring-black/5"
+                >
+                  <img
+                    src={`https://i.pravatar.cc/80?img=${i}`}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               ))}
               <div className="h-9 w-9 rounded-full border-2 border-white/80 bg-white text-primary grid place-items-center text-[10px] font-bold">
@@ -192,19 +245,24 @@ function Login() {
         {/* Headline */}
         <div className="relative z-10 max-w-xl">
           <h2 className="text-5xl font-display font-bold tracking-tight leading-[1.05] mb-5">
-            Conecte seus leads,<br />
+            Conecte seus leads,
+            <br />
             feche{" "}
             <span className="bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
               mais vendas.
             </span>
           </h2>
           <p className="text-primary-foreground/80 text-base leading-relaxed max-w-md">
-            Centralize WhatsApp, Instagram e PDV. Automatize o funil, gerencie estoque
-            e ofereça um atendimento que encanta — tudo em uma plataforma.
+            Centralize WhatsApp, Instagram e PDV. Automatize o funil, gerencie estoque e ofereça um
+            atendimento que encanta — tudo em uma plataforma.
           </p>
 
           <ul className="mt-6 space-y-2.5">
-            {["Funil de vendas com automação por IA", "PDV + Estoque integrados em tempo real", "Relatórios e comissões por loja"].map((t) => (
+            {[
+              "Funil de vendas com automação por IA",
+              "PDV + Estoque integrados em tempo real",
+              "Relatórios e comissões por loja",
+            ].map((t) => (
               <li key={t} className="flex items-center gap-2.5 text-sm text-primary-foreground/90">
                 <CheckCircle2 className="h-4 w-4 text-white/90" />
                 {t}
@@ -238,16 +296,25 @@ function Login() {
                 ].map((it, i) => {
                   const Icon = it.icon;
                   return (
-                    <div key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] ${it.active ? "bg-card shadow-sm text-primary font-semibold" : "text-muted-foreground"}`}>
+                    <div
+                      key={i}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] ${it.active ? "bg-card shadow-sm text-primary font-semibold" : "text-muted-foreground"}`}
+                    >
                       <Icon className="h-3.5 w-3.5" />
                       <span>{it.label}</span>
                     </div>
                   );
                 })}
                 <div className="pt-3 mt-3 border-t border-border/60 flex items-center gap-2 px-1">
-                  <img src="https://i.pravatar.cc/40?img=12" alt="" className="h-6 w-6 rounded-full" />
+                  <img
+                    src="https://i.pravatar.cc/40?img=12"
+                    alt=""
+                    className="h-6 w-6 rounded-full"
+                  />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] font-semibold text-foreground truncate">Olá, Renato! 👋</div>
+                    <div className="text-[10px] font-semibold text-foreground truncate">
+                      Olá, Renato! 👋
+                    </div>
                     <div className="text-[9px] text-muted-foreground">Administrador</div>
                   </div>
                   <ChevronDown className="h-3 w-3 text-muted-foreground" />
@@ -258,18 +325,41 @@ function Login() {
               <div className="p-4 space-y-3">
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    { icon: MessageCircle, label: "WhatsApp", sub: "Conversas", val: "128", trend: "+28%" },
-                    { icon: Instagram, label: "Instagram", sub: "Mensagens", val: "32", trend: "+19%" },
+                    {
+                      icon: MessageCircle,
+                      label: "WhatsApp",
+                      sub: "Conversas",
+                      val: "128",
+                      trend: "+28%",
+                    },
+                    {
+                      icon: Instagram,
+                      label: "Instagram",
+                      sub: "Mensagens",
+                      val: "32",
+                      trend: "+19%",
+                    },
                     { icon: Users, label: "Leads", sub: "Novos", val: "256", trend: "+32%" },
-                    { icon: TrendingUp, label: "Conversões", sub: "Tx.", val: "9,2%", trend: "+7%" },
+                    {
+                      icon: TrendingUp,
+                      label: "Conversões",
+                      sub: "Tx.",
+                      val: "9,2%",
+                      trend: "+7%",
+                    },
                   ].map((k, i) => {
                     const Icon = k.icon;
                     return (
-                      <div key={i} className="rounded-xl border border-border/60 p-2 bg-gradient-card">
+                      <div
+                        key={i}
+                        className="rounded-xl border border-border/60 p-2 bg-gradient-card"
+                      >
                         <div className="h-6 w-6 rounded-lg grid place-items-center mb-1.5 bg-primary/10 text-primary">
                           <Icon className="h-3 w-3" />
                         </div>
-                        <div className="text-[8px] font-semibold text-muted-foreground">{k.label}</div>
+                        <div className="text-[8px] font-semibold text-muted-foreground">
+                          {k.label}
+                        </div>
                         <div className="text-[7px] text-muted-foreground/70">{k.sub}</div>
                         <div className="flex items-baseline gap-1 mt-0.5">
                           <span className="text-sm font-bold text-foreground">{k.val}</span>
@@ -285,9 +375,13 @@ function Login() {
                     <div className="flex items-center justify-between mb-2">
                       <div>
                         <div className="text-[9px] font-semibold text-foreground/80">Vendas</div>
-                        <div className="text-sm font-bold text-foreground">R$ 78.540 <span className="text-[8px] text-success">+18%</span></div>
+                        <div className="text-sm font-bold text-foreground">
+                          R$ 78.540 <span className="text-[8px] text-success">+18%</span>
+                        </div>
                       </div>
-                      <div className="text-[8px] text-muted-foreground border border-border rounded-md px-1.5 py-0.5">Mês</div>
+                      <div className="text-[8px] text-muted-foreground border border-border rounded-md px-1.5 py-0.5">
+                        Mês
+                      </div>
                     </div>
                     <svg viewBox="0 0 200 60" className="w-full h-14">
                       <defs>
@@ -296,34 +390,117 @@ function Login() {
                           <stop offset="100%" stopColor="oklch(0.45 0.24 265)" stopOpacity="0" />
                         </linearGradient>
                       </defs>
-                      <path d="M0,50 L20,45 L40,40 L60,42 L80,35 L100,30 L120,25 L140,20 L160,15 L180,12 L200,8 L200,60 L0,60 Z" fill="url(#g1)" />
-                      <path d="M0,50 L20,45 L40,40 L60,42 L80,35 L100,30 L120,25 L140,20 L160,15 L180,12 L200,8" fill="none" stroke="oklch(0.45 0.24 265)" strokeWidth="1.5" />
+                      <path
+                        d="M0,50 L20,45 L40,40 L60,42 L80,35 L100,30 L120,25 L140,20 L160,15 L180,12 L200,8 L200,60 L0,60 Z"
+                        fill="url(#g1)"
+                      />
+                      <path
+                        d="M0,50 L20,45 L40,40 L60,42 L80,35 L100,30 L120,25 L140,20 L160,15 L180,12 L200,8"
+                        fill="none"
+                        stroke="oklch(0.45 0.24 265)"
+                        strokeWidth="1.5"
+                      />
                     </svg>
                   </div>
 
                   <div className="rounded-xl border border-border/60 p-3 bg-gradient-card">
-                    <div className="text-[9px] font-semibold text-foreground/80 mb-2">Origens dos leads</div>
+                    <div className="text-[9px] font-semibold text-foreground/80 mb-2">
+                      Origens dos leads
+                    </div>
                     <div className="flex items-center gap-3">
                       <svg viewBox="0 0 36 36" className="h-14 w-14 -rotate-90">
-                        <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.45 0.24 265)" strokeWidth="6" strokeDasharray="40 100" />
-                        <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.6 0.2 260)" strokeWidth="6" strokeDasharray="22 100" strokeDashoffset="-40" />
-                        <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.7 0.15 245)" strokeWidth="6" strokeDasharray="14 100" strokeDashoffset="-62" />
-                        <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.55 0.22 280)" strokeWidth="6" strokeDasharray="9 100" strokeDashoffset="-76" />
-                        <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.85 0.04 265)" strokeWidth="6" strokeDasharray="5 100" strokeDashoffset="-85" />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="14"
+                          fill="none"
+                          stroke="oklch(0.45 0.24 265)"
+                          strokeWidth="6"
+                          strokeDasharray="40 100"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="14"
+                          fill="none"
+                          stroke="oklch(0.6 0.2 260)"
+                          strokeWidth="6"
+                          strokeDasharray="22 100"
+                          strokeDashoffset="-40"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="14"
+                          fill="none"
+                          stroke="oklch(0.7 0.15 245)"
+                          strokeWidth="6"
+                          strokeDasharray="14 100"
+                          strokeDashoffset="-62"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="14"
+                          fill="none"
+                          stroke="oklch(0.55 0.22 280)"
+                          strokeWidth="6"
+                          strokeDasharray="9 100"
+                          strokeDashoffset="-76"
+                        />
+                        <circle
+                          cx="18"
+                          cy="18"
+                          r="14"
+                          fill="none"
+                          stroke="oklch(0.85 0.04 265)"
+                          strokeWidth="6"
+                          strokeDasharray="5 100"
+                          strokeDashoffset="-85"
+                        />
                       </svg>
                       <div className="space-y-0.5 text-[8px] text-foreground/80">
-                        <div className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{background:"oklch(0.45 0.24 265)"}} />WhatsApp <span className="text-muted-foreground ml-1">45%</span></div>
-                        <div className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{background:"oklch(0.6 0.2 260)"}} />Instagram <span className="text-muted-foreground ml-1">25%</span></div>
-                        <div className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{background:"oklch(0.7 0.15 245)"}} />Site <span className="text-muted-foreground ml-1">15%</span></div>
-                        <div className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{background:"oklch(0.55 0.22 280)"}} />Indicação <span className="text-muted-foreground ml-1">10%</span></div>
-                        <div className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />Outros <span className="text-muted-foreground ml-1">5%</span></div>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ background: "oklch(0.45 0.24 265)" }}
+                          />
+                          WhatsApp <span className="text-muted-foreground ml-1">45%</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ background: "oklch(0.6 0.2 260)" }}
+                          />
+                          Instagram <span className="text-muted-foreground ml-1">25%</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ background: "oklch(0.7 0.15 245)" }}
+                          />
+                          Site <span className="text-muted-foreground ml-1">15%</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ background: "oklch(0.55 0.22 280)" }}
+                          />
+                          Indicação <span className="text-muted-foreground ml-1">10%</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50" />
+                          Outros <span className="text-muted-foreground ml-1">5%</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="rounded-xl border border-border/60 p-3 bg-gradient-card">
-                  <div className="text-[9px] font-semibold text-foreground/80 mb-2">Atendimentos recentes</div>
+                  <div className="text-[9px] font-semibold text-foreground/80 mb-2">
+                    Atendimentos recentes
+                  </div>
                   <div className="space-y-1.5">
                     {[
                       { name: "Juliana Martins", channel: "WhatsApp", time: "10:32", img: 47 },
@@ -331,9 +508,15 @@ function Login() {
                       { name: "Carlos Eduardo", channel: "WhatsApp", time: "10:15", img: 33 },
                     ].map((a, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <img src={`https://i.pravatar.cc/40?img=${a.img}`} alt="" className="h-5 w-5 rounded-full" />
+                        <img
+                          src={`https://i.pravatar.cc/40?img=${a.img}`}
+                          alt=""
+                          className="h-5 w-5 rounded-full"
+                        />
                         <div className="flex-1 min-w-0">
-                          <div className="text-[9px] font-semibold text-foreground truncate">{a.name}</div>
+                          <div className="text-[9px] font-semibold text-foreground truncate">
+                            {a.name}
+                          </div>
                           <div className="text-[8px] text-muted-foreground">{a.channel}</div>
                         </div>
                         <div className="text-[8px] text-muted-foreground">{a.time}</div>
@@ -354,12 +537,21 @@ function Login() {
               <div className="text-[10px] font-semibold text-foreground">Leads</div>
               <div className="text-[8px] text-muted-foreground">Novos hoje</div>
             </div>
-            <div className="text-base font-bold text-foreground">128 <span className="text-[9px] text-success">+21%</span></div>
+            <div className="text-base font-bold text-foreground">
+              128 <span className="text-[9px] text-success">+21%</span>
+            </div>
             <div className="flex -space-x-1.5 ml-2">
               {[20, 21, 22].map((i) => (
-                <img key={i} src={`https://i.pravatar.cc/40?img=${i}`} className="h-6 w-6 rounded-full border-2 border-card" alt="" />
+                <img
+                  key={i}
+                  src={`https://i.pravatar.cc/40?img=${i}`}
+                  className="h-6 w-6 rounded-full border-2 border-card"
+                  alt=""
+                />
               ))}
-              <div className="h-6 w-6 rounded-full border-2 border-card bg-gradient-primary text-primary-foreground grid place-items-center text-[8px] font-bold">+41</div>
+              <div className="h-6 w-6 rounded-full border-2 border-card bg-gradient-primary text-primary-foreground grid place-items-center text-[8px] font-bold">
+                +41
+              </div>
             </div>
           </div>
         </div>

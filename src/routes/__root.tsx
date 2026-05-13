@@ -10,7 +10,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { CookieConsent } from "@/components/layout/CookieConsent";
 import { lazy, Suspense } from "react";
-const CommandPalette = lazy(() => import("@/components/layout/CommandPalette").then(m => ({ default: m.CommandPalette })));
+const CommandPalette = lazy(() =>
+  import("@/components/layout/CommandPalette").then((m) => ({ default: m.CommandPalette })),
+);
 import { KeyboardHelp } from "@/components/layout/KeyboardHelp";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
@@ -167,7 +169,9 @@ function RootComponent() {
           </ErrorBoundary>
           <PwaInstallPrompt />
           <CookieConsent />
-          <Suspense fallback={null}><CommandPalette /></Suspense>
+          <Suspense fallback={null}>
+            <CommandPalette />
+          </Suspense>
           <KeyboardHelp />
         </AuthProvider>
       </I18nProvider>

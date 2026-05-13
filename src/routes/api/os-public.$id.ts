@@ -15,7 +15,7 @@ async function fetchOsPublic(id: string) {
   let query: any = (supabaseAdmin as any)
     .from("service_orders")
     .select(
-      "id, os_number, equipment, brand, model, imei, problem_description, diagnosis, solution, status, priority, estimated_cost, total_cost, warranty_days, due_date, delivered_at, created_at, updated_at, organization_id"
+      "id, os_number, equipment, brand, model, imei, problem_description, diagnosis, solution, status, priority, estimated_cost, total_cost, warranty_days, due_date, delivered_at, created_at, updated_at, organization_id",
     );
 
   if (isUuid) query = query.eq("id", id);

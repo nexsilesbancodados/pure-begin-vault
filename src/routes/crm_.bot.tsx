@@ -4,7 +4,22 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bot, Sparkles, MessageSquare, Clock, Brain, Save, Loader2, Power, Users, Zap, Smartphone, Copy, Send, Webhook } from "lucide-react";
+import {
+  Bot,
+  Sparkles,
+  MessageSquare,
+  Clock,
+  Brain,
+  Save,
+  Loader2,
+  Power,
+  Users,
+  Zap,
+  Smartphone,
+  Copy,
+  Send,
+  Webhook,
+} from "lucide-react";
 import { evolution } from "@/lib/evolution";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +27,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/crm_/bot")({
@@ -65,7 +86,8 @@ const DEFAULTS: BotForm = {
   ai_provider: "deepseek",
   ai_model: "deepseek-chat",
   ai_temperature: 0.7,
-  system_prompt: "Você é um atendente cordial de uma loja de celulares. Responda de forma breve, clara e amigável.",
+  system_prompt:
+    "Você é um atendente cordial de uma loja de celulares. Responda de forma breve, clara e amigável.",
   handoff_keywords: ["humano", "atendente", "pessoa"],
   auto_reply_delay_seconds: 2,
   max_messages_before_handoff: 10,
@@ -79,10 +101,14 @@ function BotPage() {
   const [keywordsText, setKeywordsText] = useState(DEFAULTS.handoff_keywords.join(", "));
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [instances, setInstances] = useState<{ id: string; instance_name: string; status: string | null }[]>([]);
+  const [instances, setInstances] = useState<
+    { id: string; instance_name: string; status: string | null }[]
+  >([]);
   const [webhookSecret, setWebhookSecret] = useState<string | null>(null);
   const [testInput, setTestInput] = useState("");
-  const [testMessages, setTestMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [testMessages, setTestMessages] = useState<
+    { role: "user" | "assistant"; content: string }[]
+  >([]);
   const [testLoading, setTestLoading] = useState(false);
 
   useEffect(() => {
@@ -100,26 +126,26 @@ function BotPage() {
           toast.error("Erro ao carregar bot: " + error.message);
         }
         if (data) {
-        const next: BotForm = {
-          is_active: data.is_active,
-          bot_name: data.bot_name,
-          greeting: data.greeting,
-          away_message: data.away_message,
-          fallback_message: data.fallback_message,
-          business_hours: (data.business_hours as any) ?? DEFAULTS.business_hours,
-          ai_provider: data.ai_provider,
-          ai_model: data.ai_model,
-          ai_temperature: Number(data.ai_temperature),
-          system_prompt: data.system_prompt,
-          handoff_keywords: data.handoff_keywords ?? [],
-          auto_reply_delay_seconds: data.auto_reply_delay_seconds,
-          max_messages_before_handoff: data.max_messages_before_handoff,
-          collect_lead_info: data.collect_lead_info,
-          whatsapp_instance: (data as any).whatsapp_instance ?? null,
-        };
-        setForm(next);
-        setKeywordsText(next.handoff_keywords.join(", "));
-        setWebhookSecret((data as any).webhook_secret ?? null);
+          const next: BotForm = {
+            is_active: data.is_active,
+            bot_name: data.bot_name,
+            greeting: data.greeting,
+            away_message: data.away_message,
+            fallback_message: data.fallback_message,
+            business_hours: (data.business_hours as any) ?? DEFAULTS.business_hours,
+            ai_provider: data.ai_provider,
+            ai_model: data.ai_model,
+            ai_temperature: Number(data.ai_temperature),
+            system_prompt: data.system_prompt,
+            handoff_keywords: data.handoff_keywords ?? [],
+            auto_reply_delay_seconds: data.auto_reply_delay_seconds,
+            max_messages_before_handoff: data.max_messages_before_handoff,
+            collect_lead_info: data.collect_lead_info,
+            whatsapp_instance: (data as any).whatsapp_instance ?? null,
+          };
+          setForm(next);
+          setKeywordsText(next.handoff_keywords.join(", "));
+          setWebhookSecret((data as any).webhook_secret ?? null);
         }
         const { data: inst, error: instErr } = await supabase
           .from("whatsapp_instances")
@@ -172,9 +198,10 @@ function BotPage() {
   };
 
   const projectRef = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string) || "";
-  const webhookUrl = projectRef && webhookSecret && user?.id
-    ? `https://${projectRef}.supabase.co/functions/v1/bot-webhook?uid=${user.id}&secret=${webhookSecret}`
-    : "";
+  const webhookUrl =
+    projectRef && webhookSecret && user?.id
+      ? `https://${projectRef}.supabase.co/functions/v1/bot-webhook?uid=${user.id}&secret=${webhookSecret}`
+      : "";
 
   const copyWebhook = async () => {
     if (!webhookUrl) return toast.error("Salve as configurações para gerar o webhook.");
@@ -197,7 +224,10 @@ function BotPage() {
       const reply = (data as any)?.reply ?? (data as any)?.error ?? form.fallback_message;
       setTestMessages((m) => [...m, { role: "assistant", content: reply }]);
     } catch (e: any) {
-      setTestMessages((m) => [...m, { role: "assistant", content: "Erro: " + (e?.message ?? String(e)) }]);
+      setTestMessages((m) => [
+        ...m,
+        { role: "assistant", content: "Erro: " + (e?.message ?? String(e)) },
+      ]);
     } finally {
       setTestLoading(false);
     }
@@ -221,13 +251,17 @@ function BotPage() {
                 </div>
                 <h2 className="text-2xl font-bold font-display mb-1">{form.bot_name}</h2>
                 <p className="text-white/85 text-sm">
-                  {form.is_active ? "Ativo · respondendo automaticamente no WhatsApp." : "Desativado · ative para começar a atender."}
+                  {form.is_active
+                    ? "Ativo · respondendo automaticamente no WhatsApp."
+                    : "Desativado · ative para começar a atender."}
                 </p>
               </div>
               <div className="flex items-center gap-3 bg-white/10 backdrop-blur rounded-xl px-4 py-3">
                 <Power className={`h-5 w-5 ${form.is_active ? "text-success" : "text-white/60"}`} />
                 <div>
-                  <div className="text-[10px] uppercase tracking-widest text-white/70 font-bold">Status</div>
+                  <div className="text-[10px] uppercase tracking-widest text-white/70 font-bold">
+                    Status
+                  </div>
                   <div className="text-sm font-bold">{form.is_active ? "Online" : "Offline"}</div>
                 </div>
                 <Switch
@@ -252,31 +286,55 @@ function BotPage() {
                   <div className="space-y-4">
                     <div>
                       <Label>Nome do bot</Label>
-                      <Input value={form.bot_name} onChange={(e) => update("bot_name", e.target.value)} />
+                      <Input
+                        value={form.bot_name}
+                        onChange={(e) => update("bot_name", e.target.value)}
+                      />
                     </div>
                     <div>
                       <Label>Mensagem de boas-vindas</Label>
-                      <Textarea rows={3} value={form.greeting} onChange={(e) => update("greeting", e.target.value)} />
+                      <Textarea
+                        rows={3}
+                        value={form.greeting}
+                        onChange={(e) => update("greeting", e.target.value)}
+                      />
                     </div>
                     <div>
                       <Label>Mensagem fora do horário</Label>
-                      <Textarea rows={2} value={form.away_message} onChange={(e) => update("away_message", e.target.value)} />
+                      <Textarea
+                        rows={2}
+                        value={form.away_message}
+                        onChange={(e) => update("away_message", e.target.value)}
+                      />
                     </div>
                     <div>
                       <Label>Mensagem de fallback (não entendeu)</Label>
-                      <Textarea rows={2} value={form.fallback_message} onChange={(e) => update("fallback_message", e.target.value)} />
+                      <Textarea
+                        rows={2}
+                        value={form.fallback_message}
+                        onChange={(e) => update("fallback_message", e.target.value)}
+                      />
                     </div>
                   </div>
                 </Section>
 
                 {/* IA */}
-                <Section icon={Brain} title="Inteligência Artificial" desc="Modelo, criatividade e personalidade">
+                <Section
+                  icon={Brain}
+                  title="Inteligência Artificial"
+                  desc="Modelo, criatividade e personalidade"
+                >
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label>Provedor</Label>
-                        <Select value={form.ai_provider} onValueChange={(v) => update("ai_provider", v)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                        <Select
+                          value={form.ai_provider}
+                          onValueChange={(v) => update("ai_provider", v)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="deepseek">DeepSeek</SelectItem>
                             <SelectItem value="lovable">Lovable AI</SelectItem>
@@ -286,11 +344,15 @@ function BotPage() {
                       <div>
                         <Label>Modelo</Label>
                         <Select value={form.ai_model} onValueChange={(v) => update("ai_model", v)}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="deepseek-chat">deepseek-chat</SelectItem>
                             <SelectItem value="deepseek-reasoner">deepseek-reasoner</SelectItem>
-                            <SelectItem value="google/gemini-2.5-flash">gemini-2.5-flash</SelectItem>
+                            <SelectItem value="google/gemini-2.5-flash">
+                              gemini-2.5-flash
+                            </SelectItem>
                             <SelectItem value="google/gemini-2.5-pro">gemini-2.5-pro</SelectItem>
                           </SelectContent>
                         </Select>
@@ -300,7 +362,9 @@ function BotPage() {
                     <div>
                       <div className="flex justify-between mb-2">
                         <Label>Criatividade (temperatura)</Label>
-                        <span className="text-xs font-bold text-primary">{form.ai_temperature.toFixed(1)}</span>
+                        <span className="text-xs font-bold text-primary">
+                          {form.ai_temperature.toFixed(1)}
+                        </span>
                       </div>
                       <Slider
                         value={[form.ai_temperature]}
@@ -310,7 +374,8 @@ function BotPage() {
                         onValueChange={([v]) => update("ai_temperature", v)}
                       />
                       <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                        <span>Conservador</span><span>Criativo</span>
+                        <span>Conservador</span>
+                        <span>Criativo</span>
                       </div>
                     </div>
 
@@ -327,7 +392,11 @@ function BotPage() {
                 </Section>
 
                 {/* Handoff */}
-                <Section icon={Users} title="Transferência para humano" desc="Quando passar a conversa para um atendente">
+                <Section
+                  icon={Users}
+                  title="Transferência para humano"
+                  desc="Quando passar a conversa para um atendente"
+                >
                   <div className="space-y-4">
                     <div>
                       <Label>Palavras-chave (separadas por vírgula)</Label>
@@ -344,7 +413,9 @@ function BotPage() {
                           type="number"
                           min={1}
                           value={form.max_messages_before_handoff}
-                          onChange={(e) => update("max_messages_before_handoff", Number(e.target.value))}
+                          onChange={(e) =>
+                            update("max_messages_before_handoff", Number(e.target.value))
+                          }
                         />
                       </div>
                       <div>
@@ -353,14 +424,18 @@ function BotPage() {
                           type="number"
                           min={0}
                           value={form.auto_reply_delay_seconds}
-                          onChange={(e) => update("auto_reply_delay_seconds", Number(e.target.value))}
+                          onChange={(e) =>
+                            update("auto_reply_delay_seconds", Number(e.target.value))
+                          }
                         />
                       </div>
                     </div>
                     <label className="flex items-center justify-between p-3 rounded-xl bg-muted/40 border border-border">
                       <div>
                         <div className="text-sm font-bold">Coletar dados do lead</div>
-                        <div className="text-xs text-muted-foreground">Pergunta nome e interesse antes de qualificar</div>
+                        <div className="text-xs text-muted-foreground">
+                          Pergunta nome e interesse antes de qualificar
+                        </div>
                       </div>
                       <Switch
                         checked={form.collect_lead_info}
@@ -378,14 +453,20 @@ function BotPage() {
                   <div className="space-y-3">
                     {instances.length === 0 ? (
                       <div className="text-xs text-muted-foreground">
-                        Nenhuma instância. Conecte uma em <a href="/whatsapp" className="text-primary underline">WhatsApp</a>.
+                        Nenhuma instância. Conecte uma em{" "}
+                        <a href="/whatsapp" className="text-primary underline">
+                          WhatsApp
+                        </a>
+                        .
                       </div>
                     ) : (
                       <Select
                         value={form.whatsapp_instance ?? ""}
                         onValueChange={(v) => update("whatsapp_instance", v)}
                       >
-                        <SelectTrigger><SelectValue placeholder="Selecione uma instância" /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma instância" />
+                        </SelectTrigger>
                         <SelectContent>
                           {instances.map((i) => (
                             <SelectItem key={i.id} value={i.instance_name}>
@@ -402,7 +483,12 @@ function BotPage() {
                 <Section icon={Webhook} title="Webhook" desc="Configure na Evolution API">
                   <div className="space-y-3">
                     <div className="flex gap-2">
-                      <Input readOnly value={webhookUrl} placeholder="Salve para gerar a URL" className="font-mono text-[11px]" />
+                      <Input
+                        readOnly
+                        value={webhookUrl}
+                        placeholder="Salve para gerar a URL"
+                        className="font-mono text-[11px]"
+                      />
                       <Button type="button" variant="outline" size="icon" onClick={copyWebhook}>
                         <Copy className="h-4 w-4" />
                       </Button>
@@ -439,8 +525,13 @@ function BotPage() {
                         </div>
                       ) : (
                         testMessages.map((m, i) => (
-                          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                            <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs ${m.role === "user" ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-card border border-border rounded-bl-sm"}`}>
+                          <div
+                            key={i}
+                            className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                          >
+                            <div
+                              className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs ${m.role === "user" ? "bg-primary text-primary-foreground rounded-br-sm" : "bg-card border border-border rounded-bl-sm"}`}
+                            >
                               {m.content}
                             </div>
                           </div>
@@ -469,7 +560,11 @@ function BotPage() {
                 </Section>
 
                 {/* Horário */}
-                <Section icon={Clock} title="Horário de atendimento" desc="Quando o bot deve estar ativo">
+                <Section
+                  icon={Clock}
+                  title="Horário de atendimento"
+                  desc="Quando o bot deve estar ativo"
+                >
                   <div className="space-y-4">
                     <label className="flex items-center justify-between">
                       <span className="text-sm font-medium">Restringir por horário</span>
@@ -479,15 +574,25 @@ function BotPage() {
                       />
                     </label>
 
-                    <div className={`space-y-3 ${form.business_hours.enabled ? "" : "opacity-50 pointer-events-none"}`}>
+                    <div
+                      className={`space-y-3 ${form.business_hours.enabled ? "" : "opacity-50 pointer-events-none"}`}
+                    >
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <Label>Início</Label>
-                          <Input type="time" value={form.business_hours.start} onChange={(e) => updateHours("start", e.target.value)} />
+                          <Input
+                            type="time"
+                            value={form.business_hours.start}
+                            onChange={(e) => updateHours("start", e.target.value)}
+                          />
                         </div>
                         <div>
                           <Label>Fim</Label>
-                          <Input type="time" value={form.business_hours.end} onChange={(e) => updateHours("end", e.target.value)} />
+                          <Input
+                            type="time"
+                            value={form.business_hours.end}
+                            onChange={(e) => updateHours("end", e.target.value)}
+                          />
                         </div>
                       </div>
 
@@ -515,9 +620,18 @@ function BotPage() {
 
                 <Section icon={Zap} title="Dicas rápidas" desc="">
                   <ul className="space-y-2 text-xs text-muted-foreground leading-relaxed">
-                    <li className="flex gap-2"><MessageSquare className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" /> Conecte uma instância em <b>WhatsApp</b> antes de ativar o bot.</li>
-                    <li className="flex gap-2"><Brain className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" /> Quanto menor a temperatura, mais previsível a resposta.</li>
-                    <li className="flex gap-2"><Users className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" /> Use palavras-chave que seus clientes realmente digitam.</li>
+                    <li className="flex gap-2">
+                      <MessageSquare className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" /> Conecte
+                      uma instância em <b>WhatsApp</b> antes de ativar o bot.
+                    </li>
+                    <li className="flex gap-2">
+                      <Brain className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" /> Quanto menor a
+                      temperatura, mais previsível a resposta.
+                    </li>
+                    <li className="flex gap-2">
+                      <Users className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" /> Use
+                      palavras-chave que seus clientes realmente digitam.
+                    </li>
                   </ul>
                 </Section>
               </div>
@@ -526,9 +640,15 @@ function BotPage() {
 
           <div className="sticky bottom-4 z-40 max-w-7xl mx-auto px-6 py-4 bg-white/80 backdrop-blur-xl border border-slate-200 shadow-2xl shadow-indigo-500/10 rounded-[2rem] flex items-center justify-between gap-3">
             <div className="hidden sm:block">
-              <p className="text-xs font-bold text-slate-400">Última alteração: <span className="text-slate-900">Hoje</span></p>
+              <p className="text-xs font-bold text-slate-400">
+                Última alteração: <span className="text-slate-900">Hoje</span>
+              </p>
             </div>
-            <Button onClick={save} disabled={saving || loading} className="h-12 px-8 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-bold shadow-lg shadow-indigo-500/30 hover:opacity-95 transition-all gap-2">
+            <Button
+              onClick={save}
+              disabled={saving || loading}
+              className="h-12 px-8 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-bold shadow-lg shadow-indigo-500/30 hover:opacity-95 transition-all gap-2"
+            >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Salvar configurações
             </Button>
@@ -539,7 +659,17 @@ function BotPage() {
   );
 }
 
-function Section({ icon: Icon, title, desc, children }: { icon: any; title: string; desc?: string; children: React.ReactNode }) {
+function Section({
+  icon: Icon,
+  title,
+  desc,
+  children,
+}: {
+  icon: any;
+  title: string;
+  desc?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 transition-all overflow-hidden group">
       <div className="px-6 py-5 border-b border-slate-50 flex items-center gap-4">

@@ -2,21 +2,43 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { ImportCsvDialog } from "@/components/customers/ImportCsvDialog";
- import { Users, Plus, MoreVertical, Search, Filter, Loader2, User, Trash2, Edit3, Phone, Mail, MapPin, DollarSign, Wrench, X } from "lucide-react";
+import {
+  Users,
+  Plus,
+  MoreVertical,
+  Search,
+  Filter,
+  Loader2,
+  User,
+  Trash2,
+  Edit3,
+  Phone,
+  Mail,
+  MapPin,
+  DollarSign,
+  Wrench,
+  X,
+} from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/clientes")({
@@ -39,10 +61,13 @@ function CustomersPage() {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any | null>(null);
-   const [saving, setSaving] = useState(false);
-   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-   const [customerHistory, setCustomerHistory] = useState<{ sales: any[], services: any[] }>({ sales: [], services: [] });
-   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [customerHistory, setCustomerHistory] = useState<{ sales: any[]; services: any[] }>({
+    sales: [],
+    services: [],
+  });
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -88,7 +113,7 @@ function CustomersPage() {
         document: customer.document || "",
         address: customer.address || "",
         city: customer.city || "",
-        state: customer.state || ""
+        state: customer.state || "",
       });
     } else {
       setEditingCustomer(null);
@@ -99,7 +124,7 @@ function CustomersPage() {
         document: "",
         address: "",
         city: "",
-        state: ""
+        state: "",
       });
     }
     setIsModalOpen(true);
@@ -112,7 +137,7 @@ function CustomersPage() {
       const payload = {
         user_id: user.id,
         organization_id: orgId,
-        ...formData
+        ...formData,
       };
 
       if (editingCustomer) {
@@ -123,9 +148,7 @@ function CustomersPage() {
         if (error) throw error;
         toast.success("Cliente atualizado!");
       } else {
-        const { error } = await supabase
-          .from("customers")
-          .insert(payload);
+        const { error } = await supabase.from("customers").insert(payload);
         if (error) throw error;
         toast.success("Cliente cadastrado!");
       }
@@ -152,88 +175,125 @@ function CustomersPage() {
     }
   };
 
-   const filteredCustomers = customers.filter(c => 
-     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-     (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-     (c.phone && c.phone.includes(searchTerm))
-   );
- 
-   const fetchCustomerHistory = async (customerId: string) => {
-     setLoadingHistory(true);
-     try {
-       const [salesRes, servicesRes] = await Promise.all([
-         supabase.from("sales_orders").select("*").eq("customer_id", customerId).order("created_at", { ascending: false }),
-         supabase.from("service_orders").select("*").eq("customer_id", customerId).order("created_at", { ascending: false })
-       ]);
-       setCustomerHistory({
-         sales: (salesRes.data || []).map((s: any) => ({ ...s, total_amount: s.total_amount || 0 })),
-         services: servicesRes.data || []
-       });
-     } catch (error) {
-       toast.error("Erro ao carregar histórico");
-     } finally {
-       setLoadingHistory(false);
-     }
-   };
- 
-   const handleViewHistory = (customer: any) => {
-     setEditingCustomer(customer);
-     fetchCustomerHistory(customer.id);
-     setIsHistoryOpen(true);
-   };
+  const filteredCustomers = customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (c.phone && c.phone.includes(searchTerm)),
+  );
 
-   return (
-     <div className="min-h-screen flex w-full bg-background">
-       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-         <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
-           <DialogHeader>
-             <DialogTitle>Histórico: {editingCustomer?.name}</DialogTitle>
-           </DialogHeader>
-           <div className="space-y-6 py-4">
-             {loadingHistory ? (
-               <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-             ) : (
-               <>
-                 <div className="space-y-3">
-                   <h3 className="text-sm font-bold flex items-center gap-2"><DollarSign className="h-4 w-4 text-green-600" /> Vendas Recentes</h3>
-                   {customerHistory.sales.length > 0 ? (
-                     <div className="space-y-2">
-                       {customerHistory.sales.map(s => (
-                         <div key={s.id} className="text-xs p-3 rounded-xl border border-border bg-slate-50/50 flex justify-between items-center">
-                           <div>
-                             <div className="font-bold">Venda #{s.id.slice(0, 8)}</div>
-                             <div className="text-muted-foreground">{new Date(s.created_at).toLocaleDateString('pt-BR')}</div>
-                           </div>
-                           <div className="font-black text-slate-900">R$ {s.total_amount.toLocaleString('pt-BR')}</div>
-                         </div>
-                       ))}
-                     </div>
-                   ) : <p className="text-xs text-muted-foreground italic px-3">Nenhuma venda registrada.</p>}
-                 </div>
- 
-                 <div className="space-y-3">
-                   <h3 className="text-sm font-bold flex items-center gap-2"><Wrench className="h-4 w-4 text-blue-600" /> Ordens de Serviço</h3>
-                   {customerHistory.services.length > 0 ? (
-                     <div className="space-y-2">
-                       {customerHistory.services.map(s => (
-                         <div key={s.id} className="text-xs p-3 rounded-xl border border-border bg-slate-50/50 flex justify-between items-center">
-                           <div>
-                             <div className="font-bold">{s.equipment}</div>
-                             <div className="text-muted-foreground">{new Date(s.created_at).toLocaleDateString('pt-BR')} - {s.status}</div>
-                           </div>
-                           <div className="font-black text-slate-900">R$ {(s.estimated_cost || 0).toLocaleString('pt-BR')}</div>
-                         </div>
-                       ))}
-                     </div>
-                   ) : <p className="text-xs text-muted-foreground italic px-3">Nenhum serviço registrado.</p>}
-                 </div>
-               </>
-             )}
-           </div>
-         </DialogContent>
-       </Dialog>
- 
-       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+  const fetchCustomerHistory = async (customerId: string) => {
+    setLoadingHistory(true);
+    try {
+      const [salesRes, servicesRes] = await Promise.all([
+        supabase
+          .from("sales_orders")
+          .select("*")
+          .eq("customer_id", customerId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("service_orders")
+          .select("*")
+          .eq("customer_id", customerId)
+          .order("created_at", { ascending: false }),
+      ]);
+      setCustomerHistory({
+        sales: (salesRes.data || []).map((s: any) => ({ ...s, total_amount: s.total_amount || 0 })),
+        services: servicesRes.data || [],
+      });
+    } catch (error) {
+      toast.error("Erro ao carregar histórico");
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleViewHistory = (customer: any) => {
+    setEditingCustomer(customer);
+    fetchCustomerHistory(customer.id);
+    setIsHistoryOpen(true);
+  };
+
+  return (
+    <div className="min-h-screen flex w-full bg-background">
+      <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Histórico: {editingCustomer?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {loadingHistory ? (
+              <div className="flex justify-center py-10">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-green-600" /> Vendas Recentes
+                  </h3>
+                  {customerHistory.sales.length > 0 ? (
+                    <div className="space-y-2">
+                      {customerHistory.sales.map((s) => (
+                        <div
+                          key={s.id}
+                          className="text-xs p-3 rounded-xl border border-border bg-slate-50/50 flex justify-between items-center"
+                        >
+                          <div>
+                            <div className="font-bold">Venda #{s.id.slice(0, 8)}</div>
+                            <div className="text-muted-foreground">
+                              {new Date(s.created_at).toLocaleDateString("pt-BR")}
+                            </div>
+                          </div>
+                          <div className="font-black text-slate-900">
+                            R$ {s.total_amount.toLocaleString("pt-BR")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic px-3">
+                      Nenhuma venda registrada.
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold flex items-center gap-2">
+                    <Wrench className="h-4 w-4 text-blue-600" /> Ordens de Serviço
+                  </h3>
+                  {customerHistory.services.length > 0 ? (
+                    <div className="space-y-2">
+                      {customerHistory.services.map((s) => (
+                        <div
+                          key={s.id}
+                          className="text-xs p-3 rounded-xl border border-border bg-slate-50/50 flex justify-between items-center"
+                        >
+                          <div>
+                            <div className="font-bold">{s.equipment}</div>
+                            <div className="text-muted-foreground">
+                              {new Date(s.created_at).toLocaleDateString("pt-BR")} - {s.status}
+                            </div>
+                          </div>
+                          <div className="font-black text-slate-900">
+                            R$ {(s.estimated_cost || 0).toLocaleString("pt-BR")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic px-3">
+                      Nenhum serviço registrado.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{editingCustomer ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
@@ -241,64 +301,66 @@ function CustomersPage() {
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome Completo</Label>
-              <Input 
-                id="name" 
-                value={formData.name} 
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Ex: João da Silva"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  value={formData.email} 
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })} 
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="joao@exemplo.com"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">WhatsApp / Celular</Label>
-                <Input 
-                  id="phone" 
-                  value={formData.phone} 
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="(11) 99999-9999"
                 />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="document">CPF / CNPJ</Label>
-              <Input 
-                id="document" 
-                value={formData.document} 
-                onChange={(e) => setFormData({ ...formData, document: e.target.value })} 
+              <Input
+                id="document"
+                value={formData.document}
+                onChange={(e) => setFormData({ ...formData, document: e.target.value })}
                 placeholder="000.000.000-00"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="street">Endereço (Rua)</Label>
-                <Input 
-                  id="street" 
-                  value={formData.address} 
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })} 
+                <Input
+                  id="street"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="city">Cidade</Label>
-                <Input 
-                  id="city" 
-                  value={formData.city} 
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })} 
+                <Input
+                  id="city"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancelar
+            </Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Cliente"}
             </Button>
@@ -306,46 +368,62 @@ function CustomersPage() {
         </DialogContent>
       </Dialog>
 
-      <ImportCsvDialog open={isImportOpen} onOpenChange={setIsImportOpen} onImported={() => fetchCustomers()} />
+      <ImportCsvDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        onImported={() => fetchCustomers()}
+      />
 
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title="Base de Clientes" subtitle="Gestão centralizada de contatos" />
         <main className="flex-1 overflow-y-auto p-6">
-          
           {/* Quick Add Section */}
-          <div className={`mb-6 transition-all duration-300 overflow-hidden ${isQuickAddOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"}`}>
+          <div
+            className={`mb-6 transition-all duration-300 overflow-hidden ${isQuickAddOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"}`}
+          >
             <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 shadow-sm mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold flex items-center gap-2 text-primary">
                   <Plus className="h-4 w-4" /> Cadastro Rápido de Cliente
                 </h3>
-                <button onClick={() => setIsQuickAddOpen(false)} className="text-muted-foreground hover:text-foreground">
+                <button
+                  onClick={() => setIsQuickAddOpen(false)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Nome Completo</Label>
-                  <Input 
-                    placeholder="Nome do cliente..." 
+                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">
+                    Nome Completo
+                  </Label>
+                  <Input
+                    placeholder="Nome do cliente..."
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="bg-card h-11"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">WhatsApp / Telefone</Label>
-                  <Input 
-                    placeholder="(11) 99999-9999" 
+                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">
+                    WhatsApp / Telefone
+                  </Label>
+                  <Input
+                    placeholder="(11) 99999-9999"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="bg-card h-11"
                   />
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleSave} disabled={saving} className="flex-1 h-11 font-bold">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                    {saving ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Plus className="h-4 w-4 mr-2" />
+                    )}
                     Cadastrar Cliente
                   </Button>
                   <Button variant="outline" onClick={() => handleOpenModal()} className="h-11 px-4">
@@ -360,9 +438,9 @@ function CustomersPage() {
             <div className="flex items-center gap-4 flex-1">
               <div className="relative max-w-sm w-full">
                 <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input 
-                  placeholder="Buscar clientes por nome, email ou telefone..." 
-                  className="w-full h-10 pl-10 pr-4 rounded-xl bg-card border border-border outline-none text-sm" 
+                <input
+                  placeholder="Buscar clientes por nome, email ou telefone..."
+                  className="w-full h-10 pl-10 pr-4 rounded-xl bg-card border border-border outline-none text-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -377,18 +455,25 @@ function CustomersPage() {
             <button
               onClick={() => {
                 import("@/lib/exportCsv").then(({ exportToCsv }) => {
-                  exportToCsv("clientes.csv", customers.map((c) => ({
-                    nome: c.name, email: c.email, telefone: c.phone,
-                    documento: c.document, cidade: c.city, estado: c.state,
-                    criado_em: c.created_at,
-                  })));
+                  exportToCsv(
+                    "clientes.csv",
+                    customers.map((c) => ({
+                      nome: c.name,
+                      email: c.email,
+                      telefone: c.phone,
+                      documento: c.document,
+                      cidade: c.city,
+                      estado: c.state,
+                      criado_em: c.created_at,
+                    })),
+                  );
                 });
               }}
               className="h-10 px-4 rounded-xl text-sm font-semibold border border-border bg-card hover:bg-muted transition flex items-center gap-2"
             >
               Exportar CSV
             </button>
-            <button 
+            <button
               onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
               className={`h-10 px-4 rounded-xl text-sm font-semibold shadow-elegant transition flex items-center gap-2 ${isQuickAddOpen ? "bg-muted text-foreground hover:bg-muted/80" : "bg-gradient-primary text-white hover:opacity-95"}`}
             >
@@ -401,11 +486,21 @@ function CustomersPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Cliente</th>
-                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Contato</th>
-                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">Localização</th>
-                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">CPF/CNPJ</th>
-                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">Ações</th>
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      Cliente
+                    </th>
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      Contato
+                    </th>
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      Localização
+                    </th>
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      CPF/CNPJ
+                    </th>
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
+                      Ações
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -418,7 +513,10 @@ function CustomersPage() {
                     </tr>
                   ) : filteredCustomers.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-20 text-center text-muted-foreground text-sm">
+                      <td
+                        colSpan={5}
+                        className="px-6 py-20 text-center text-muted-foreground text-sm"
+                      >
                         Nenhum cliente encontrado.
                       </td>
                     </tr>
@@ -465,10 +563,16 @@ function CustomersPage() {
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleOpenModal(customer)} className="gap-2">
+                              <DropdownMenuItem
+                                onClick={() => handleOpenModal(customer)}
+                                className="gap-2"
+                              >
                                 <Edit3 className="h-4 w-4" /> Editar
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete(customer.id)} className="gap-2 text-destructive">
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(customer.id)}
+                                className="gap-2 text-destructive"
+                              >
                                 <Trash2 className="h-4 w-4" /> Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>

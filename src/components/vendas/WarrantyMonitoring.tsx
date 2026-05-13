@@ -27,13 +27,18 @@ export function WarrantyMonitoring() {
   const [filter, setFilter] = useState<"all" | "active" | "warning" | "expired">("all");
 
   const load = async () => {
-    if (!orgId) { setLoading(false); return; }
+    if (!orgId) {
+      setLoading(false);
+      return;
+    }
     // Busca itens de venda com IMEI + warranty_days. Schema pode variar
     // (sale_items pode ter snake snapshot do produto). Fallback gracioso.
     try {
       const { data: sales } = await (supabase as any)
         .from("sales_orders")
-        .select("id, created_at, customer_name, customer_phone, customer:customers(name, phone), items, warranty_days")
+        .select(
+          "id, created_at, customer_name, customer_phone, customer:customers(name, phone), items, warranty_days",
+        )
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(500);
@@ -62,7 +67,9 @@ export function WarrantyMonitoring() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [orgId]);
+  useEffect(() => {
+    load();
+  }, [orgId]);
 
   const enriched = useMemo(
     () =>
@@ -71,16 +78,19 @@ export function WarrantyMonitoring() {
         const expiry = new Date(sale);
         expiry.setDate(expiry.getDate() + (it.warranty_days ?? 90));
         const days = Math.ceil((expiry.getTime() - Date.now()) / 86400000);
-        const status: "active" | "warning" | "expired" = days < 0 ? "expired" : days <= 30 ? "warning" : "active";
+        const status: "active" | "warning" | "expired" =
+          days < 0 ? "expired" : days <= 30 ? "warning" : "active";
         return { ...it, expiry, days, status };
       }),
-    [items]
+    [items],
   );
 
   const filtered = enriched.filter((e) => {
     if (filter !== "all" && e.status !== filter) return false;
     if (!q) return true;
-    return (e.product_name + (e.imei ?? "") + (e.customer_name ?? "")).toLowerCase().includes(q.toLowerCase());
+    return (e.product_name + (e.imei ?? "") + (e.customer_name ?? ""))
+      .toLowerCase()
+      .includes(q.toLowerCase());
   });
 
   const counts = {
@@ -89,7 +99,7 @@ export function WarrantyMonitoring() {
     expired: enriched.filter((e) => e.status === "expired").length,
   };
 
-  const renewMessage = (w: typeof enriched[0]) => {
+  const renewMessage = (w: (typeof enriched)[0]) => {
     const phone = (w.customer_phone ?? "").replace(/\D/g, "");
     if (!phone) return alert("Cliente sem telefone");
     const msg = `Olá ${w.customer_name}, sua garantia do ${w.product_name} vence em ${w.days} dias. Que tal renovar ou levar pra revisão?`;
@@ -99,24 +109,53 @@ export function WarrantyMonitoring() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/30" onClick={() => setFilter(filter === "active" ? "all" : "active")}>
-          <div className="p-3 bg-success/10 rounded-full text-success"><ShieldCheck className="h-6 w-6" /></div>
-          <div><p className="text-sm text-muted-foreground">Ativas</p><p className="text-2xl font-bold">{counts.active}</p></div>
+        <Card
+          className="p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/30"
+          onClick={() => setFilter(filter === "active" ? "all" : "active")}
+        >
+          <div className="p-3 bg-success/10 rounded-full text-success">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Ativas</p>
+            <p className="text-2xl font-bold">{counts.active}</p>
+          </div>
         </Card>
-        <Card className="p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/30" onClick={() => setFilter(filter === "warning" ? "all" : "warning")}>
-          <div className="p-3 bg-warning/10 rounded-full text-warning"><ShieldAlert className="h-6 w-6" /></div>
-          <div><p className="text-sm text-muted-foreground">Vencem em 30 dias</p><p className="text-2xl font-bold">{counts.warning}</p></div>
+        <Card
+          className="p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/30"
+          onClick={() => setFilter(filter === "warning" ? "all" : "warning")}
+        >
+          <div className="p-3 bg-warning/10 rounded-full text-warning">
+            <ShieldAlert className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Vencem em 30 dias</p>
+            <p className="text-2xl font-bold">{counts.warning}</p>
+          </div>
         </Card>
-        <Card className="p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/30" onClick={() => setFilter(filter === "expired" ? "all" : "expired")}>
-          <div className="p-3 bg-destructive/10 rounded-full text-destructive"><ShieldAlert className="h-6 w-6" /></div>
-          <div><p className="text-sm text-muted-foreground">Expiradas</p><p className="text-2xl font-bold">{counts.expired}</p></div>
+        <Card
+          className="p-4 flex items-center gap-4 cursor-pointer hover:bg-muted/30"
+          onClick={() => setFilter(filter === "expired" ? "all" : "expired")}
+        >
+          <div className="p-3 bg-destructive/10 rounded-full text-destructive">
+            <ShieldAlert className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Expiradas</p>
+            <p className="text-2xl font-bold">{counts.expired}</p>
+          </div>
         </Card>
       </div>
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar IMEI, cliente, produto..." className="pl-10" />
+          <Input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar IMEI, cliente, produto..."
+            className="pl-10"
+          />
         </div>
         {filter !== "all" && (
           <Button variant="outline" size="sm" onClick={() => setFilter("all")}>
@@ -130,21 +169,35 @@ export function WarrantyMonitoring() {
             { key: "product_name", label: "Produto" },
             { key: "imei", label: "IMEI" },
             { key: "customer_name", label: "Cliente" },
-            { key: "sale_date", label: "Data venda", format: (v) => new Date(v).toLocaleDateString("pt-BR") },
-            { key: "expiry", label: "Vencimento", format: (v) => new Date(v).toLocaleDateString("pt-BR") },
+            {
+              key: "sale_date",
+              label: "Data venda",
+              format: (v) => new Date(v).toLocaleDateString("pt-BR"),
+            },
+            {
+              key: "expiry",
+              label: "Vencimento",
+              format: (v) => new Date(v).toLocaleDateString("pt-BR"),
+            },
             { key: "status", label: "Status" },
           ]}
         />
       </div>
 
       {loading ? (
-        <Card className="p-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></Card>
+        <Card className="p-8 text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+        </Card>
       ) : filtered.length === 0 ? (
         <Card>
           <EmptyState
             icon={ShieldCheck}
             title={items.length === 0 ? "Sem garantias ativas" : "Nenhuma garantia neste filtro"}
-            description={items.length === 0 ? "As garantias aparecem aqui automaticamente conforme você faz vendas no PDV com produtos." : "Mude o filtro pra ver outras garantias."}
+            description={
+              items.length === 0
+                ? "As garantias aparecem aqui automaticamente conforme você faz vendas no PDV com produtos."
+                : "Mude o filtro pra ver outras garantias."
+            }
           />
         </Card>
       ) : (
@@ -152,12 +205,24 @@ export function WarrantyMonitoring() {
           <table className="w-full text-sm">
             <thead className="bg-muted/30 border-b">
               <tr>
-                <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Produto / IMEI</th>
-                <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Cliente</th>
-                <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Venda</th>
-                <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Vence em</th>
-                <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">Status</th>
-                <th className="text-right p-3 text-[11px] font-bold uppercase tracking-widest">Ações</th>
+                <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">
+                  Produto / IMEI
+                </th>
+                <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">
+                  Cliente
+                </th>
+                <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">
+                  Venda
+                </th>
+                <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">
+                  Vence em
+                </th>
+                <th className="text-left p-3 text-[11px] font-bold uppercase tracking-widest">
+                  Status
+                </th>
+                <th className="text-right p-3 text-[11px] font-bold uppercase tracking-widest">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -168,16 +233,33 @@ export function WarrantyMonitoring() {
                     {w.imei && <p className="text-xs text-muted-foreground font-mono">{w.imei}</p>}
                   </td>
                   <td className="p-3">{w.customer_name}</td>
-                  <td className="p-3 text-xs">{new Date(w.sale_date).toLocaleDateString("pt-BR")}</td>
+                  <td className="p-3 text-xs">
+                    {new Date(w.sale_date).toLocaleDateString("pt-BR")}
+                  </td>
                   <td className="p-3 text-xs">{w.expiry.toLocaleDateString("pt-BR")}</td>
                   <td className="p-3">
-                    {w.status === "active" && <Badge className="bg-success/10 text-success border-success/30">Ativa</Badge>}
-                    {w.status === "warning" && <Badge className="bg-warning/10 text-warning border-warning/30">Vence em {w.days}d</Badge>}
-                    {w.status === "expired" && <Badge className="bg-destructive/10 text-destructive border-destructive/30">Expirada há {Math.abs(w.days)}d</Badge>}
+                    {w.status === "active" && (
+                      <Badge className="bg-success/10 text-success border-success/30">Ativa</Badge>
+                    )}
+                    {w.status === "warning" && (
+                      <Badge className="bg-warning/10 text-warning border-warning/30">
+                        Vence em {w.days}d
+                      </Badge>
+                    )}
+                    {w.status === "expired" && (
+                      <Badge className="bg-destructive/10 text-destructive border-destructive/30">
+                        Expirada há {Math.abs(w.days)}d
+                      </Badge>
+                    )}
                   </td>
                   <td className="p-3 text-right">
                     {w.status === "warning" && w.customer_phone && (
-                      <Button size="sm" variant="ghost" onClick={() => renewMessage(w)} className="gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => renewMessage(w)}
+                        className="gap-1"
+                      >
                         <Send className="h-3 w-3" /> WhatsApp
                       </Button>
                     )}

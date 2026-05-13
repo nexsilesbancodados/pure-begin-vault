@@ -83,7 +83,11 @@ function ReciboPage() {
   }, [data]);
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-white text-black">Carregando...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white text-black">
+        Carregando...
+      </div>
+    );
   }
   if (error || !data) {
     return (
@@ -151,13 +155,9 @@ function ReciboPage() {
                 <span className="truncate flex-1 pr-1">
                   {it.quantity}x {it.product_name}
                 </span>
-                <span className="shrink-0 font-bold">
-                  {Number(it.total).toFixed(2)}
-                </span>
+                <span className="shrink-0 font-bold">{Number(it.total).toFixed(2)}</span>
               </div>
-              {it.imei && (
-                <p className="text-[8px] text-gray-600">IMEI: {it.imei}</p>
-              )}
+              {it.imei && <p className="text-[8px] text-gray-600">IMEI: {it.imei}</p>}
               {it.discount != null && Number(it.discount) > 0 && (
                 <p className="text-[8px] text-gray-600">
                   Desc.: -R$ {Number(it.discount).toFixed(2)}

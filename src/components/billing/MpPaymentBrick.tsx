@@ -69,7 +69,7 @@ export function MpPaymentBrick({ planSlug, amount, payerEmail, onSuccess }: Prop
             creditCard: "all",
             debitCard: "all",
             bankTransfer: "all", // PIX
-            ticket: "all",       // Boleto
+            ticket: "all", // Boleto
           },
           visual: { style: { theme: "default" } },
         },
@@ -123,7 +123,7 @@ export function MpPaymentBrick({ planSlug, amount, payerEmail, onSuccess }: Prop
       } catch {}
       initialized.current = false;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planSlug, amount]);
 
   if (result?.status === "approved") {
@@ -179,7 +179,9 @@ export function MpPaymentBrick({ planSlug, amount, payerEmail, onSuccess }: Prop
           Conclua o pagamento usando o boleto abaixo:
         </p>
         <Button asChild className="mt-4">
-          <a href={result.boleto_url} target="_blank" rel="noreferrer">Abrir boleto</a>
+          <a href={result.boleto_url} target="_blank" rel="noreferrer">
+            Abrir boleto
+          </a>
         </Button>
       </div>
     );

@@ -27,13 +27,13 @@ function BroadcastPage() {
   const { orgId } = useOrg();
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState<"all_customers" | "all_leads" | "active_customers">(
-    "active_customers"
+    "active_customers",
   );
   const [targets, setTargets] = useState<Target[]>([]);
   const [loadingTargets, setLoadingTargets] = useState(true);
   const [sending, setSending] = useState(false);
   const [progress, setProgress] = useState<{ done: number; failed: number; total: number } | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -61,7 +61,7 @@ function BroadcastPage() {
             .eq("organization_id", orgId)
             .gte("created_at", cutoff);
           const activeIds = new Set(
-            ((salesData ?? []) as any[]).map((s) => s.customer_id).filter(Boolean)
+            ((salesData ?? []) as any[]).map((s) => s.customer_id).filter(Boolean),
           );
           list = list.filter((t) => activeIds.has(t.id));
         }
@@ -87,8 +87,14 @@ function BroadcastPage() {
   }, [body, targets]);
 
   const send = async () => {
-    if (!body.trim()) { toast.error("Escreva uma mensagem"); return; }
-    if (targets.length === 0) { toast.error("Sem destinatários"); return; }
+    if (!body.trim()) {
+      toast.error("Escreva uma mensagem");
+      return;
+    }
+    if (targets.length === 0) {
+      toast.error("Sem destinatários");
+      return;
+    }
     if (!confirm(`Disparar para ${targets.length} contato(s)? Pode levar alguns minutos.`)) return;
 
     setSending(true);
@@ -155,9 +161,7 @@ function BroadcastPage() {
               </div>
 
               <div>
-                <Label htmlFor="body">
-                  Mensagem (use {`{{nome}}`} pra personalizar)
-                </Label>
+                <Label htmlFor="body">Mensagem (use {`{{nome}}`} pra personalizar)</Label>
                 <textarea
                   id="body"
                   rows={6}
@@ -181,9 +185,7 @@ function BroadcastPage() {
                     <div
                       className="h-full bg-primary rounded-full transition-all"
                       style={{
-                        width: `${
-                          ((progress.done + progress.failed) / progress.total) * 100
-                        }%`,
+                        width: `${((progress.done + progress.failed) / progress.total) * 100}%`,
                       }}
                     />
                   </div>
@@ -213,9 +215,7 @@ function BroadcastPage() {
               <div className="text-3xl font-black mb-2">
                 {loadingTargets ? "..." : targets.length}
               </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                contatos com telefone válido
-              </p>
+              <p className="text-xs text-muted-foreground mb-4">contatos com telefone válido</p>
 
               {targets.length > 0 && (
                 <>
@@ -223,9 +223,7 @@ function BroadcastPage() {
                     Preview p/ primeiro contato
                   </p>
                   <div className="rounded-xl bg-card border border-border p-3 text-sm">
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Pra {targets[0].name}
-                    </p>
+                    <p className="text-xs text-muted-foreground mb-1">Pra {targets[0].name}</p>
                     <p className="whitespace-pre-wrap">{preview || "..."}</p>
                   </div>
                 </>

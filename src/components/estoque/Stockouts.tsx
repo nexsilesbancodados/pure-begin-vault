@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ShoppingCart, TrendingDown, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,19 +67,20 @@ export function Stockouts() {
     })();
   }, [orgId]);
 
-  const stockouts = useMemo(
-    () => products.filter((p) => p.stock_quantity === 0),
-    [products]
-  );
+  const stockouts = useMemo(() => products.filter((p) => p.stock_quantity === 0), [products]);
   const critical = useMemo(
     () => products.filter((p) => p.stock_quantity > 0 && p.stock_quantity <= (p.min_stock ?? 0)),
-    [products]
+    [products],
   );
 
   const all = [...stockouts, ...critical];
 
   if (loading) {
-    return <Card className="p-12"><Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" /></Card>;
+    return (
+      <Card className="p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+      </Card>
+    );
   }
 
   return (
@@ -85,7 +93,9 @@ export function Stockouts() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-700 dark:text-red-400">{stockouts.length} {stockouts.length === 1 ? "item" : "itens"}</div>
+            <div className="text-2xl font-bold text-red-700 dark:text-red-400">
+              {stockouts.length} {stockouts.length === 1 ? "item" : "itens"}
+            </div>
             <p className="text-xs text-red-600/70">Necessitam reposição imediata</p>
           </CardContent>
         </Card>
@@ -96,7 +106,9 @@ export function Stockouts() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">{critical.length} {critical.length === 1 ? "item" : "itens"}</div>
+            <div className="text-2xl font-bold text-orange-700 dark:text-orange-400">
+              {critical.length} {critical.length === 1 ? "item" : "itens"}
+            </div>
             <p className="text-xs text-orange-600/70">Abaixo do nível de segurança</p>
           </CardContent>
         </Card>
@@ -132,7 +144,13 @@ export function Stockouts() {
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.name}</TableCell>
                       <TableCell className="text-center">
-                        <span className={p.stock_quantity === 0 ? "text-red-600 font-bold" : "text-orange-600 font-bold"}>
+                        <span
+                          className={
+                            p.stock_quantity === 0
+                              ? "text-red-600 font-bold"
+                              : "text-orange-600 font-bold"
+                          }
+                        >
                           {p.stock_quantity}
                         </span>
                       </TableCell>
@@ -141,14 +159,23 @@ export function Stockouts() {
                         {p.stock_quantity === 0 ? (
                           <Badge variant="destructive">Esgotado</Badge>
                         ) : (
-                          <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200">Crítico</Badge>
+                          <Badge
+                            variant="secondary"
+                            className="bg-orange-100 text-orange-700 border-orange-200"
+                          >
+                            Crítico
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {lastSold ? new Date(lastSold).toLocaleDateString("pt-BR") : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="sm" className="gap-2" onClick={() => navigate({ to: "/estoque/movimentacoes" })}>
+                        <Button
+                          size="sm"
+                          className="gap-2"
+                          onClick={() => navigate({ to: "/estoque/movimentacoes" })}
+                        >
                           <ShoppingCart className="h-3 w-3" /> Repor
                         </Button>
                       </TableCell>

@@ -6,14 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  KeyRound,
-  QrCode,
-  Percent,
-  ShieldCheck,
-  Save,
-  CheckCircle2,
-} from "lucide-react";
+import { KeyRound, QrCode, Percent, ShieldCheck, Save, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { getPixConfig, setPixConfig } from "@/components/vendas/PixCharge";
 import {
@@ -45,7 +38,11 @@ function ConfigLojaPage() {
       toast.error("Preencha todos os campos do Pix");
       return;
     }
-    setPixConfig({ pixKey: pixKey.trim(), merchantName: merchantName.trim(), merchantCity: merchantCity.trim() });
+    setPixConfig({
+      pixKey: pixKey.trim(),
+      merchantName: merchantName.trim(),
+      merchantCity: merchantCity.trim(),
+    });
     toast.success("Pix salvo");
   };
 
@@ -228,9 +225,9 @@ function ConfigLojaPage() {
             <div className="flex items-start gap-2">
               <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
               <p>
-                Essas configurações ficam armazenadas no navegador (localStorage) — cada
-                dispositivo precisa configurar uma vez. Para sincronização entre máquinas,
-                migraremos para a tabela <code>organization_settings</code> em versão futura.
+                Essas configurações ficam armazenadas no navegador (localStorage) — cada dispositivo
+                precisa configurar uma vez. Para sincronização entre máquinas, migraremos para a
+                tabela <code>organization_settings</code> em versão futura.
               </p>
             </div>
           </Card>

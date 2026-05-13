@@ -35,7 +35,9 @@ function SegurancaPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const startEnroll = async () => {
     setEnrolling(true);
@@ -67,7 +69,10 @@ function SegurancaPage() {
       });
       if (error) throw error;
       toast.success("2FA ativado!");
-      setQr(null); setFactorId(null); setSecret(null); setCode("");
+      setQr(null);
+      setFactorId(null);
+      setSecret(null);
+      setCode("");
       load();
     } catch (e: any) {
       toast.error("Código inválido: " + e.message);
@@ -77,7 +82,10 @@ function SegurancaPage() {
   const unenroll = async (id: string) => {
     if (!confirm("Desativar 2FA? Sua conta ficará menos segura.")) return;
     const { error } = await supabase.auth.mfa.unenroll({ factorId: id });
-    if (error) { toast.error("Erro: " + error.message); return; }
+    if (error) {
+      toast.error("Erro: " + error.message);
+      return;
+    }
     toast.success("2FA desativado");
     load();
   };
@@ -90,16 +98,20 @@ function SegurancaPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title="Segurança" subtitle="2FA, sessões e login" />
         <main className="flex-1 overflow-y-auto p-6 max-w-2xl mx-auto w-full space-y-4">
-          <Card className={`p-5 ${activeFactors.length > 0 ? "border-success/30 bg-success/5" : "border-warning/30 bg-warning/5"}`}>
+          <Card
+            className={`p-5 ${activeFactors.length > 0 ? "border-success/30 bg-success/5" : "border-warning/30 bg-warning/5"}`}
+          >
             <div className="flex items-start gap-3">
-              <ShieldCheck className={`h-5 w-5 ${activeFactors.length > 0 ? "text-success" : "text-warning"} shrink-0 mt-0.5`} />
+              <ShieldCheck
+                className={`h-5 w-5 ${activeFactors.length > 0 ? "text-success" : "text-warning"} shrink-0 mt-0.5`}
+              />
               <div className="flex-1">
                 <h2 className="font-black">
                   2FA: {activeFactors.length > 0 ? "✓ Ativo" : "Não configurado"}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Autenticação de 2 fatores via app (Google Authenticator, Authy, 1Password)
-                  protege sua conta mesmo se a senha vazar.
+                  Autenticação de 2 fatores via app (Google Authenticator, Authy, 1Password) protege
+                  sua conta mesmo se a senha vazar.
                 </p>
               </div>
             </div>
@@ -140,7 +152,15 @@ function SegurancaPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => { setQr(null); setFactorId(null); }}>Cancelar</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setQr(null);
+                    setFactorId(null);
+                  }}
+                >
+                  Cancelar
+                </Button>
                 <Button onClick={verify} disabled={code.length !== 6} className="flex-1">
                   <Check className="h-4 w-4 mr-2" /> Confirmar
                 </Button>
@@ -163,14 +183,19 @@ function SegurancaPage() {
               ) : (
                 <div className="space-y-2">
                   {activeFactors.map((f) => (
-                    <div key={f.id} className="flex items-center justify-between p-3 rounded-xl border border-border">
+                    <div
+                      key={f.id}
+                      className="flex items-center justify-between p-3 rounded-xl border border-border"
+                    >
                       <div>
                         <p className="font-bold text-sm">{f.friendly_name ?? "Authenticator"}</p>
                         <p className="text-[10px] text-muted-foreground">
                           Adicionado {new Date(f.created_at).toLocaleDateString("pt-BR")}
                         </p>
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => unenroll(f.id)}>Desativar</Button>
+                      <Button size="sm" variant="outline" onClick={() => unenroll(f.id)}>
+                        Desativar
+                      </Button>
                     </div>
                   ))}
                 </div>

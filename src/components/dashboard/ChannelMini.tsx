@@ -9,7 +9,10 @@ type DataPoint = { day: string; whats: number; insta: number };
 
 const Row = ({ label, value, color, dataKey, gradId, data }: any) => (
   <div className="flex items-center gap-3 py-2.5">
-    <div className="h-10 w-10 rounded-xl grid place-items-center shrink-0" style={{ background: `color-mix(in oklab, ${color} 15%, transparent)` }}>
+    <div
+      className="h-10 w-10 rounded-xl grid place-items-center shrink-0"
+      style={{ background: `color-mix(in oklab, ${color} 15%, transparent)` }}
+    >
       <span className="text-base">{label === "WhatsApp" ? "💬" : "📷"}</span>
     </div>
     <div className="min-w-0">
@@ -25,7 +28,13 @@ const Row = ({ label, value, color, dataKey, gradId, data }: any) => (
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <Area type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} fill={`url(#${gradId})`} />
+          <Area
+            type="monotone"
+            dataKey={dataKey}
+            stroke={color}
+            strokeWidth={2}
+            fill={`url(#${gradId})`}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -55,13 +64,19 @@ export function ChannelMini() {
         d.setDate(d.getDate() - i);
         days.push({ day: d.toISOString().slice(5, 10), whats: 0, insta: 0 });
       }
-      let w = 0, ig = 0;
+      let w = 0,
+        ig = 0;
       for (const m of (data ?? []) as any[]) {
         const k = m.created_at.slice(5, 10);
         const day = days.find((d) => d.day === k);
         const ch = (m.channel ?? "").toLowerCase();
-        if (ch.includes("whats")) { if (day) day.whats++; w++; }
-        else if (ch.includes("insta")) { if (day) day.insta++; ig++; }
+        if (ch.includes("whats")) {
+          if (day) day.whats++;
+          w++;
+        } else if (ch.includes("insta")) {
+          if (day) day.insta++;
+          ig++;
+        }
       }
       setSeries(days);
       setTotals({ whats: w, insta: ig });
@@ -72,8 +87,22 @@ export function ChannelMini() {
     <div className="rounded-2xl bg-card border border-border p-5 shadow-card">
       <h3 className="text-[15px] font-semibold">Atendimentos por canal</h3>
       <div className="divide-y divide-border">
-        <Row label="WhatsApp" value={totals.whats} color="var(--color-success)" dataKey="whats" gradId="gW" data={series} />
-        <Row label="Instagram" value={totals.insta} color="oklch(0.65 0.2 330)" dataKey="insta" gradId="gI" data={series} />
+        <Row
+          label="WhatsApp"
+          value={totals.whats}
+          color="var(--color-success)"
+          dataKey="whats"
+          gradId="gW"
+          data={series}
+        />
+        <Row
+          label="Instagram"
+          value={totals.insta}
+          color="oklch(0.65 0.2 330)"
+          dataKey="insta"
+          gradId="gI"
+          data={series}
+        />
       </div>
       <button
         onClick={() => navigate({ to: "/atendimento" })}

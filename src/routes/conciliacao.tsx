@@ -5,13 +5,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Upload,
-  CheckCircle2,
-  AlertCircle,
-  ArrowRight,
-  Banknote,
-} from "lucide-react";
+import { Upload, CheckCircle2, AlertCircle, ArrowRight, Banknote } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { useAuth } from "@/contexts/AuthContext";
@@ -84,7 +78,7 @@ function ConciliacaoPage() {
       const matched: Match[] = parsed.map((tx) => {
         // candidatos do tipo correto (credit→receivable, debit→payable)
         const candidates = list.filter((a) =>
-          tx.type === "credit" ? a.kind === "receivable" : a.kind === "payable"
+          tx.type === "credit" ? a.kind === "receivable" : a.kind === "payable",
         );
         let best: { account: AccountRow; score: number } | null = null;
         for (const a of candidates) {
@@ -94,7 +88,7 @@ function ConciliacaoPage() {
           if (valueDiff > Math.max(0.5, remaining * 0.05)) continue;
 
           const dueDays = Math.abs(
-            (new Date(a.due_date).getTime() - new Date(tx.date).getTime()) / 86400000
+            (new Date(a.due_date).getTime() - new Date(tx.date).getTime()) / 86400000,
           );
           if (dueDays > 30) continue;
 
@@ -109,7 +103,9 @@ function ConciliacaoPage() {
         };
       });
       setMatches(matched);
-      toast.success(`${parsed.length} transações lidas, ${matched.filter((m) => m.account).length} casadas`);
+      toast.success(
+        `${parsed.length} transações lidas, ${matched.filter((m) => m.account).length} casadas`,
+      );
     } finally {
       setProcessing(false);
     }
@@ -125,7 +121,7 @@ function ConciliacaoPage() {
   const applyMatch = async (m: Match) => {
     if (!m.account || !user?.id) return;
     const table = m.account.kind === "receivable" ? "accounts_receivable" : "accounts_payable";
-    const newPaid = (Number(m.account.paid_amount ?? 0) + m.tx.amount);
+    const newPaid = Number(m.account.paid_amount ?? 0) + m.tx.amount;
     const totalDue = Number(m.account.amount);
     const status = newPaid >= totalDue ? "paid" : "partial";
 
@@ -148,7 +144,10 @@ function ConciliacaoPage() {
 
   const applyAll = async () => {
     const auto = matches.filter((m) => m.account && m.confidence >= 0.85);
-    if (auto.length === 0) { toast.error("Sem matches de alta confiança"); return; }
+    if (auto.length === 0) {
+      toast.error("Sem matches de alta confiança");
+      return;
+    }
     if (!confirm(`Aplicar ${auto.length} baixa(s) automática(s)?`)) return;
     for (const m of auto) await applyMatch(m);
   };
@@ -178,8 +177,8 @@ function ConciliacaoPage() {
               {processing ? "Lendo..." : "Escolher arquivo OFX"}
             </Button>
             <p className="text-xs text-muted-foreground mt-2">
-              Baixe o OFX do seu banco (Itaú, Bradesco, NuBank etc) e importe aqui. Vamos casar com as
-              contas a receber/pagar pendentes automaticamente.
+              Baixe o OFX do seu banco (Itaú, Bradesco, NuBank etc) e importe aqui. Vamos casar com
+              as contas a receber/pagar pendentes automaticamente.
             </p>
           </Card>
 
@@ -218,16 +217,12 @@ function ConciliacaoPage() {
                           >
                             {m.tx.type === "credit" ? "Crédito" : "Débito"}
                           </Badge>
-                          <span className="font-black text-sm">
-                            R$ {m.tx.amount.toFixed(2)}
-                          </span>
+                          <span className="font-black text-sm">R$ {m.tx.amount.toFixed(2)}</span>
                           <span className="text-xs text-muted-foreground">
                             {new Date(m.tx.date).toLocaleDateString("pt-BR")}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {m.tx.memo}
-                        </p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">{m.tx.memo}</p>
                       </div>
 
                       {m.account ? (
@@ -244,13 +239,11 @@ function ConciliacaoPage() {
                               >
                                 {(m.confidence * 100).toFixed(0)}%
                               </Badge>
-                              <p className="text-xs font-bold truncate">
-                                {m.account.description}
-                              </p>
+                              <p className="text-xs font-bold truncate">{m.account.description}</p>
                             </div>
                             <p className="text-[10px] text-muted-foreground truncate">
-                              Vence {new Date(m.account.due_date).toLocaleDateString("pt-BR")} ·
-                              R$ {Number(m.account.amount).toFixed(2)}
+                              Vence {new Date(m.account.due_date).toLocaleDateString("pt-BR")} · R${" "}
+                              {Number(m.account.amount).toFixed(2)}
                             </p>
                           </div>
                           <Button size="sm" variant="outline" onClick={() => applyMatch(m)}>

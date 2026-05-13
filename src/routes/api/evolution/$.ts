@@ -11,10 +11,10 @@ async function proxy(request: Request, splat: string) {
   const apiKey = process.env.EVOLUTION_API_KEY;
 
   if (!apiUrl || !apiKey) {
-    return new Response(
-      JSON.stringify({ error: "Evolution API credentials not configured" }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } },
-    );
+    return new Response(JSON.stringify({ error: "Evolution API credentials not configured" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 
   const url = new URL(request.url);
