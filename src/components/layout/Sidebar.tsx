@@ -55,7 +55,9 @@ export function AppSidebar({ open, setOpen }: { open?: boolean; setOpen?: (val: 
   }, []);
 
   useEffect(() => {
-    const savedOrder = localStorage.getItem('sidebar-menu-order-v8');
+    // bump version to invalidate stale saved orders with duplicates/old links
+    try { localStorage.removeItem('sidebar-menu-order-v8'); } catch {}
+    const savedOrder = localStorage.getItem('sidebar-menu-order-v9');
     if (savedOrder) {
       try {
         setItems(JSON.parse(savedOrder));
@@ -130,14 +132,14 @@ export function AppSidebar({ open, setOpen }: { open?: boolean; setOpen?: (val: 
               targetItem.children.push(movedItem);
             }
             
-            localStorage.setItem('sidebar-menu-order-v8', JSON.stringify(itemsWithoutMoved));
+            localStorage.setItem('sidebar-menu-order-v9', JSON.stringify(itemsWithoutMoved));
             return itemsWithoutMoved;
           }
         }
 
         // Se for apenas reordenamento na raiz
         const finalOrder = arrayMove(prev, prev.findIndex(i => (i.url || i.title) === active.id), prev.findIndex(i => (i.url || i.title) === over.id));
-        localStorage.setItem('sidebar-menu-order-v8', JSON.stringify(finalOrder));
+        localStorage.setItem('sidebar-menu-order-v9', JSON.stringify(finalOrder));
         return finalOrder;
       });
     }
