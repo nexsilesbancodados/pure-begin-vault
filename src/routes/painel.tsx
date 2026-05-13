@@ -66,12 +66,7 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
           toggleSidebar={() => setSidebarOpen(true)}
         />
          <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
-           <HeroHeader
-             userName={user?.user_metadata?.display_name || "Usuário"}
-             todaySales={stats.todaySales}
-             monthRevenue={stats.monthRevenue}
-             newLeads={stats.newLeads}
-           />
+           <HeroHeader userName={user?.user_metadata?.display_name || "Usuário"} />
 
            <QuickActions />
 
