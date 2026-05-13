@@ -1,4 +1,11 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouter } from "@tanstack/react-router";
+import {
+  Outlet,
+  Link,
+  createRootRoute,
+  HeadContent,
+  Scripts,
+  useRouter,
+} from "@tanstack/react-router";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { CookieConsent } from "@/components/layout/CookieConsent";
@@ -76,10 +83,18 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "ConectaCRM — CRM para WhatsApp e Instagram" },
-      { name: "description", content: "CRM completo para gerenciar leads, atendimentos, funil de vendas e automações com WhatsApp e Instagram." },
+      {
+        name: "description",
+        content:
+          "CRM completo para gerenciar leads, atendimentos, funil de vendas e automações com WhatsApp e Instagram.",
+      },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "ConectaCRM — CRM para WhatsApp e Instagram" },
-      { property: "og:description", content: "CRM completo para gerenciar leads, atendimentos, funil de vendas e automações com WhatsApp e Instagram." },
+      {
+        property: "og:description",
+        content:
+          "CRM completo para gerenciar leads, atendimentos, funil de vendas e automações com WhatsApp e Instagram.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -89,14 +104,29 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "ConectaCRM" },
       { name: "twitter:title", content: "ConectaCRM — CRM para WhatsApp e Instagram" },
-      { name: "twitter:description", content: "CRM completo para gerenciar leads, atendimentos, funil de vendas e automações com WhatsApp e Instagram." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7325eced-10f6-49ff-aeed-0d78576367dd/id-preview-6b89dfeb--98d49989-1fe8-4c57-8601-17907d783829.lovable.app-1778695669997.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7325eced-10f6-49ff-aeed-0d78576367dd/id-preview-6b89dfeb--98d49989-1fe8-4c57-8601-17907d783829.lovable.app-1778695669997.png" },
+      {
+        name: "twitter:description",
+        content:
+          "CRM completo para gerenciar leads, atendimentos, funil de vendas e automações com WhatsApp e Instagram.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7325eced-10f6-49ff-aeed-0d78576367dd/id-preview-6b89dfeb--98d49989-1fe8-4c57-8601-17907d783829.lovable.app-1778695669997.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/7325eced-10f6-49ff-aeed-0d78576367dd/id-preview-6b89dfeb--98d49989-1fe8-4c57-8601-17907d783829.lovable.app-1778695669997.png",
+      },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap",
+      },
       ...(import.meta.env.PROD ? [{ rel: "manifest", href: "/manifest.webmanifest" }] : []),
       { rel: "apple-touch-icon", href: "/icon-192.png" },
       { rel: "icon", href: "/icon-192.png", type: "image/png" },
