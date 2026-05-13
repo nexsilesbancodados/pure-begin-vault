@@ -167,7 +167,8 @@ function ReportsPage() {
 
   useEffect(() => { fetchReportsData(); }, [fetchReportsData]);
 
-  if (profile?.role !== 'admin' && profile) {
+  const allowedRoles = ['admin', 'owner', 'super_admin', 'manager'];
+  if (profile && !allowedRoles.includes(profile.role)) {
     return (
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
