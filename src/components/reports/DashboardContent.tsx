@@ -33,7 +33,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   const renderSummaryCards = () => {
     const allStats = [
       { label: "Faturamento", value: stats.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), trend: stats.revenueTrend, icon: DollarSign, bg: "bg-primary/10", text: "text-primary", categories: ['visao-geral', 'financeiro', 'vendas', 'vendedores'] },
-      { label: "Leads Totais", value: stats.leads.toString(), trend: stats.leadsTrend, icon: Users, bg: "bg-blue-500/10", text: "text-blue-500", categories: ['visao-geral', 'clientes', 'vendas'] },
+      { label: "Leads Totais", value: stats.leads.toString(), trend: stats.leadsTrend, icon: Users, bg: "bg-info/10", text: "text-info", categories: ['visao-geral', 'clientes', 'vendas'] },
       { label: "Conversão", value: stats.conversion.toFixed(1) + "%", trend: stats.conversionTrend, icon: Target, bg: "bg-success/10", text: "text-success", categories: ['visao-geral', 'vendas', 'vendedores'] },
       { label: "Ticket Médio", value: stats.avgTicket.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), trend: stats.avgTicketTrend, icon: TrendingUp, bg: "bg-warning/10", text: "text-warning", categories: ['visao-geral', 'vendas', 'financeiro'] },
     ];
@@ -46,21 +46,21 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           // Decorative sparkline bars (deterministic per index)
           const bars = Array.from({ length: 12 }, (_, k) => 30 + ((i * 7 + k * 11) % 60));
           return (
-            <div key={i} className="relative overflow-hidden bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 group">
+            <div key={i} className="relative overflow-hidden bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 group">
               <div className="flex items-start justify-between mb-3">
                 <div className={`h-10 w-10 rounded-xl ${stat.bg} ${stat.text} flex items-center justify-center ring-1 ring-inset ring-current/10`}>
                   <stat.icon className="h-5 w-5" />
                 </div>
-                <div className={`flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.trend.isUp ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
+                <div className={`flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.trend.isUp ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
                   {stat.trend.isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                   {stat.trend.value}
                 </div>
               </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
               {loading ? (
-                <div className="h-7 w-20 bg-slate-100 animate-pulse rounded-md" />
+                <div className="h-7 w-20 bg-muted animate-pulse rounded-md" />
               ) : (
-                <h3 className="text-2xl font-black font-display tracking-tight text-slate-900 group-hover:text-primary transition-colors">{stat.value}</h3>
+                <h3 className="text-2xl font-black font-display tracking-tight text-foreground group-hover:text-primary transition-colors">{stat.value}</h3>
               )}
               {/* sparkline */}
               <div className="mt-4 flex items-end gap-[3px] h-8">
@@ -85,25 +85,25 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
+          <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
             <SalesChart embedded />
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-sm">
+          <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight">Funil de Conversão</h3>
-                <p className="text-sm font-bold text-slate-400">Eficiência por etapa</p>
+                <h3 className="text-xl font-black text-foreground tracking-tight">Funil de Conversão</h3>
+                <p className="text-sm font-bold text-muted-foreground">Eficiência por etapa</p>
               </div>
             </div>
             <div className="h-[300px]">
               {funnelData.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center">
-                  <div className="h-14 w-14 rounded-2xl bg-slate-50 text-slate-300 flex items-center justify-center mb-3">
+                  <div className="h-14 w-14 rounded-2xl bg-muted text-muted-foreground/60 flex items-center justify-center mb-3">
                     <PieChartIcon className="h-7 w-7" />
                   </div>
-                  <p className="text-sm font-bold text-slate-500">Sem dados de funil ainda</p>
-                  <p className="text-xs text-slate-400 mt-1">Crie etapas no CRM para ver a conversão</p>
+                  <p className="text-sm font-bold text-muted-foreground">Sem dados de funil ainda</p>
+                  <p className="text-xs text-muted-foreground mt-1">Crie etapas no CRM para ver a conversão</p>
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -124,15 +124,15 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-lg font-black mb-6 text-slate-900">Origem dos Leads</h3>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-black mb-6 text-foreground">Origem dos Leads</h3>
             {originData.length === 0 ? (
               <div className="h-[240px] flex flex-col items-center justify-center text-center">
-                <div className="h-14 w-14 rounded-2xl bg-slate-50 text-slate-300 flex items-center justify-center mb-3">
+                <div className="h-14 w-14 rounded-2xl bg-muted text-muted-foreground/60 flex items-center justify-center mb-3">
                   <Users className="h-7 w-7" />
                 </div>
-                <p className="text-sm font-bold text-slate-500">Nenhum lead registrado</p>
-                <p className="text-xs text-slate-400 mt-1">Aguardando primeiros contatos</p>
+                <p className="text-sm font-bold text-muted-foreground">Nenhum lead registrado</p>
+                <p className="text-xs text-muted-foreground mt-1">Aguardando primeiros contatos</p>
               </div>
             ) : (
               <>
@@ -153,7 +153,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
                         <span className="h-2 w-2 rounded-full" style={{ background: origin.color }} />
                         {origin.name}
                       </span>
-                      <span className="text-slate-900">{origin.value}</span>
+                      <span className="text-foreground">{origin.value}</span>
                     </div>
                   ))}
                 </div>
@@ -161,27 +161,27 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             )}
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-lg font-black mb-6 text-slate-900">Top Agentes</h3>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-black mb-6 text-foreground">Top Agentes</h3>
             {topAgents.length === 0 ? (
               <div className="py-8 flex flex-col items-center justify-center text-center">
-                <div className="h-14 w-14 rounded-2xl bg-slate-50 text-slate-300 flex items-center justify-center mb-3">
+                <div className="h-14 w-14 rounded-2xl bg-muted text-muted-foreground/60 flex items-center justify-center mb-3">
                   <UserCheck className="h-7 w-7" />
                 </div>
-                <p className="text-sm font-bold text-slate-500">Sem ranking ainda</p>
-                <p className="text-xs text-slate-400 mt-1">Adicione vendedores para ver o top</p>
+                <p className="text-sm font-bold text-muted-foreground">Sem ranking ainda</p>
+                <p className="text-xs text-muted-foreground mt-1">Adicione vendedores para ver o top</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {topAgents.map((agent, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 -mx-2 rounded-xl hover:bg-slate-50 transition-colors">
+                  <div key={i} className="flex items-center justify-between p-2 -mx-2 rounded-xl hover:bg-muted transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className={`h-9 w-9 rounded-full flex items-center justify-center font-black text-xs ring-2 ring-white shadow-sm ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-slate-100 text-slate-600' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-primary/10 text-primary'}`}>
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center font-black text-xs ring-2 ring-white shadow-sm ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-muted text-slate-600' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-primary/10 text-primary'}`}>
                         {agent.avatar}
                       </div>
                       <span className="text-sm font-bold text-slate-700">{agent.name}</span>
                     </div>
-                    <span className="text-sm font-black text-slate-900">{agent.revenue}</span>
+                    <span className="text-sm font-black text-foreground">{agent.revenue}</span>
                   </div>
                 ))}
               </div>
@@ -194,19 +194,19 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
   const renderGenericReport = (title: string, subtitle: string) => (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-white border border-border rounded-[2.5rem] p-10 shadow-sm text-center">
+      <div className="bg-card border border-border rounded-2xl p-10 shadow-sm text-center">
         <div className="h-20 w-20 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mx-auto mb-6">
           <TrendingUp className="h-10 w-10" />
         </div>
-        <h2 className="text-3xl font-black text-slate-900 mb-2">{title}</h2>
-        <p className="text-slate-500 font-bold max-w-lg mx-auto mb-8">{subtitle}</p>
+        <h2 className="text-3xl font-black text-foreground mb-2">{title}</h2>
+        <p className="text-muted-foreground font-bold max-w-lg mx-auto mb-8">{subtitle}</p>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {[1, 2, 3].map(i => (
-            <div key={i} className="bg-slate-50 rounded-2xl p-6 border border-slate-100 text-left">
+            <div key={i} className="bg-muted rounded-2xl p-6 border border-border text-left">
               <div className="h-2 w-12 bg-primary/20 rounded-full mb-4" />
               <div className="h-4 w-24 bg-slate-200 rounded-full mb-2" />
-              <div className="h-6 w-full bg-slate-100 rounded-full" />
+              <div className="h-6 w-full bg-muted rounded-full" />
             </div>
           ))}
         </div>
