@@ -85,12 +85,12 @@ export function CommandPalette({ open: openProp, onOpenChange }: CommandPaletteP
   }, [entries]);
 
   const go = (url: string) => {
-    onOpenChange(false);
+    setOpen(false);
     navigate({ to: url });
   };
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput placeholder="Buscar páginas, módulos, ações..." />
       <CommandList>
         <CommandEmpty>Nada encontrado.</CommandEmpty>
