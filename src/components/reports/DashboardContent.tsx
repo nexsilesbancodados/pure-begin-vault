@@ -42,25 +42,39 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
 
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {(visibleStats.length > 0 ? visibleStats : allStats).map((stat, i) => (
-          <div key={i} className="bg-white border border-border rounded-2xl p-5 shadow-sm hover:border-primary/20 transition-colors group">
-            <div className="flex items-start justify-between mb-4">
-              <div className={`h-11 w-11 rounded-xl ${stat.bg} ${stat.text} flex items-center justify-center`}>
-                <stat.icon className="h-5 w-5" />
+        {(visibleStats.length > 0 ? visibleStats : allStats).map((stat, i) => {
+          // Decorative sparkline bars (deterministic per index)
+          const bars = Array.from({ length: 12 }, (_, k) => 30 + ((i * 7 + k * 11) % 60));
+          return (
+            <div key={i} className="relative overflow-hidden bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 group">
+              <div className="flex items-start justify-between mb-3">
+                <div className={`h-10 w-10 rounded-xl ${stat.bg} ${stat.text} flex items-center justify-center ring-1 ring-inset ring-current/10`}>
+                  <stat.icon className="h-5 w-5" />
+                </div>
+                <div className={`flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${stat.trend.isUp ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"}`}>
+                  {stat.trend.isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                  {stat.trend.value}
+                </div>
               </div>
-              <div className={`flex items-center gap-0.5 text-xs font-bold px-2 py-1 rounded-lg ${stat.trend.isUp ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
-                {stat.trend.isUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                {stat.trend.value}
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+              {loading ? (
+                <div className="h-7 w-20 bg-slate-100 animate-pulse rounded-md" />
+              ) : (
+                <h3 className="text-2xl font-black font-display tracking-tight text-slate-900 group-hover:text-primary transition-colors">{stat.value}</h3>
+              )}
+              {/* sparkline */}
+              <div className="mt-4 flex items-end gap-[3px] h-8">
+                {bars.map((h, k) => (
+                  <div
+                    key={k}
+                    className={`flex-1 rounded-sm ${stat.text} opacity-30 group-hover:opacity-60 transition-opacity`}
+                    style={{ height: `${h}%`, background: 'currentColor' }}
+                  />
+                ))}
               </div>
             </div>
-            <p className="text-[11px] font-black text-muted-foreground uppercase tracking-widest mb-1">{stat.label}</p>
-            {loading ? (
-              <div className="h-8 w-24 bg-muted animate-pulse rounded-lg" />
-            ) : (
-              <h3 className="text-2xl font-black font-display tracking-tight group-hover:text-primary transition-colors">{stat.value}</h3>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -94,58 +108,95 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
               </div>
             </div>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={funnelData}>
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 800, fill: "#94a3b8" }} />
-                  <Tooltip cursor={{ fill: "transparent" }} />
-                  <Bar dataKey="value" radius={[0, 12, 12, 0]} barSize={32}>
-                    {funnelData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {funnelData.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center">
+                  <div className="h-14 w-14 rounded-2xl bg-slate-50 text-slate-300 flex items-center justify-center mb-3">
+                    <PieChartIcon className="h-7 w-7" />
+                  </div>
+                  <p className="text-sm font-bold text-slate-500">Sem dados de funil ainda</p>
+                  <p className="text-xs text-slate-400 mt-1">Crie etapas no CRM para ver a conversão</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart layout="vertical" data={funnelData}>
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 800, fill: "#94a3b8" }} />
+                    <Tooltip cursor={{ fill: "transparent" }} />
+                    <Bar dataKey="value" radius={[0, 12, 12, 0]} barSize={32}>
+                      {funnelData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-lg font-black mb-6">Origem dos Leads</h3>
-            <div className="h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <RePieChart>
-                  <Pie data={originData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                    {originData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip />
-                </RePieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-3 mt-4">
-              {originData.map((origin, i) => (
-                <div key={i} className="flex items-center justify-between text-xs font-bold">
-                  <span className="text-muted-foreground">{origin.name}</span>
-                  <span>{origin.value}</span>
+          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-black mb-6 text-slate-900">Origem dos Leads</h3>
+            {originData.length === 0 ? (
+              <div className="h-[240px] flex flex-col items-center justify-center text-center">
+                <div className="h-14 w-14 rounded-2xl bg-slate-50 text-slate-300 flex items-center justify-center mb-3">
+                  <Users className="h-7 w-7" />
                 </div>
-              ))}
-            </div>
+                <p className="text-sm font-bold text-slate-500">Nenhum lead registrado</p>
+                <p className="text-xs text-slate-400 mt-1">Aguardando primeiros contatos</p>
+              </div>
+            ) : (
+              <>
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RePieChart>
+                      <Pie data={originData} innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value">
+                        {originData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip />
+                    </RePieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="space-y-2 mt-4">
+                  {originData.map((origin, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs font-bold">
+                      <span className="flex items-center gap-2 text-slate-600">
+                        <span className="h-2 w-2 rounded-full" style={{ background: origin.color }} />
+                        {origin.name}
+                      </span>
+                      <span className="text-slate-900">{origin.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          <div className="bg-white border border-border rounded-2xl p-6 shadow-sm">
-            <h3 className="text-lg font-black mb-6">Top Agentes</h3>
-            <div className="space-y-4">
-              {topAgents.map((agent, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">{agent.avatar}</div>
-                    <span className="text-sm font-bold">{agent.name}</span>
-                  </div>
-                  <span className="text-sm font-black">{agent.revenue}</span>
+          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-black mb-6 text-slate-900">Top Agentes</h3>
+            {topAgents.length === 0 ? (
+              <div className="py-8 flex flex-col items-center justify-center text-center">
+                <div className="h-14 w-14 rounded-2xl bg-slate-50 text-slate-300 flex items-center justify-center mb-3">
+                  <UserCheck className="h-7 w-7" />
                 </div>
-              ))}
-            </div>
+                <p className="text-sm font-bold text-slate-500">Sem ranking ainda</p>
+                <p className="text-xs text-slate-400 mt-1">Adicione vendedores para ver o top</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {topAgents.map((agent, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 -mx-2 rounded-xl hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-9 w-9 rounded-full flex items-center justify-center font-black text-xs ring-2 ring-white shadow-sm ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-slate-100 text-slate-600' : i === 2 ? 'bg-orange-100 text-orange-700' : 'bg-primary/10 text-primary'}`}>
+                        {agent.avatar}
+                      </div>
+                      <span className="text-sm font-bold text-slate-700">{agent.name}</span>
+                    </div>
+                    <span className="text-sm font-black text-slate-900">{agent.revenue}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
