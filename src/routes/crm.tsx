@@ -13,6 +13,7 @@ import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
+import { FeatureCard, type FeatureCardTone } from "@/components/ui/FeatureCard";
 
 export const Route = createFileRoute("/crm")({
   head: () => ({
