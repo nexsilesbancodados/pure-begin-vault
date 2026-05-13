@@ -66,8 +66,8 @@ export function AppSidebar({ open, setOpen }: { open?: boolean; setOpen?: (val: 
             </div>
             {!isSmall && <div className="leading-tight animate-in fade-in slide-in-from-left-2 duration-300"><div className="font-display font-bold text-[17px] text-foreground tracking-tight">ConectaCRM</div></div>}
           </div>
-          {!isSmall && <button onClick={() => setIsCollapsed(true)} aria-label="Recolher menu lateral" className="p-1.5 rounded-lg text-sidebar-foreground/40 hover:text-foreground hover:bg-sidebar-accent transition-colors"><Icons.PanelLeftClose className="h-4 w-4" /></button>}
-          {isSmall && !flyout && <button onClick={() => setIsCollapsed(false)} aria-label="Expandir menu lateral" className="absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-sidebar-primary text-white shadow-glow grid place-items-center z-50 lg:flex hidden"><Icons.PanelLeftOpen className="h-3 w-3" /></button>}
+          {!isSmall && <button onClick={() => setIsCollapsed(true)} aria-label="Recolher menu lateral" className="p-1.5 rounded-lg text-sidebar-foreground/40 hover:text-foreground hover:bg-sidebar-accent transition-colors"><PanelLeftClose className="h-4 w-4" /></button>}
+          {isSmall && !flyout && <button onClick={() => setIsCollapsed(false)} aria-label="Expandir menu lateral" className="absolute -right-3 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-sidebar-primary text-white shadow-glow grid place-items-center z-50 lg:flex hidden"><PanelLeftOpen className="h-3 w-3" /></button>}
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
