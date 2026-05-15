@@ -222,30 +222,41 @@ export function FinanceDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-foreground">
-            Dashboard Financeiro
-          </h1>
-          <p className="text-muted-foreground text-sm font-medium">
-            Acompanhe a saúde financeira da sua empresa
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 gap-2 font-bold rounded-xl border-border shadow-sm"
-          >
-            <Calendar className="h-4 w-4" /> Últimos 30 dias
-          </Button>
-          <Button
-            onClick={() => setIsFormOpen(true)}
-            size="sm"
-            className="h-9 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-bold rounded-xl shadow-lg shadow-primary/20"
-          >
-            <Plus className="h-4 w-4" /> Novo Lançamento
-          </Button>
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/15 p-6">
+        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+        <div className="relative flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground grid place-items-center shadow-lg shadow-primary/30">
+              <DollarSign className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">
+                Dashboard Financeiro
+              </div>
+              <h1 className="text-2xl font-black tracking-tight text-foreground">
+                Saúde financeira em tempo real
+              </h1>
+              <p className="text-muted-foreground text-sm font-medium">
+                Entradas, saídas e projeções consolidadas do mês
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 gap-2 font-bold rounded-xl border-border shadow-sm bg-background/60 backdrop-blur"
+            >
+              <Calendar className="h-4 w-4" /> Últimos 30 dias
+            </Button>
+            <Button
+              onClick={() => setIsFormOpen(true)}
+              size="sm"
+              className="h-10 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-bold rounded-xl shadow-lg shadow-primary/30"
+            >
+              <Plus className="h-4 w-4" /> Novo Lançamento
+            </Button>
+          </div>
         </div>
       </div>
 

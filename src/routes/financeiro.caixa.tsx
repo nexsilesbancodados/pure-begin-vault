@@ -217,10 +217,10 @@ function FinanceCaixaPage() {
                   <Calendar className="h-5 w-5" />
                 </div>
               </div>
-              <div className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest mt-4">
+              <div className="text-[11px] font-bold text-primary-foreground/70 uppercase tracking-widest mt-4">
                 Previsto
               </div>
-              <div className="text-2xl font-black mt-1 text-white">
+              <div className="text-2xl font-black mt-1 text-primary-foreground">
                 {stats.planned.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </div>
             </Card>
