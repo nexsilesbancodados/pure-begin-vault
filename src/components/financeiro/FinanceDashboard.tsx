@@ -280,8 +280,18 @@ export function FinanceDashboard() {
               <div className="h-10 w-10 rounded-xl bg-green-100/50 text-green-600 grid place-items-center">
                 <TrendingUp className="h-5 w-5" />
               </div>
-              <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase tracking-tighter">
-                +15.2% vs mês ant.
+              <span
+                className={`text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter ${
+                  stats.incomeDelta === null
+                    ? "text-muted-foreground bg-muted/60"
+                    : stats.incomeDelta >= 0
+                      ? "text-green-600 bg-green-50"
+                      : "text-red-600 bg-red-50"
+                }`}
+              >
+                {stats.incomeDelta === null
+                  ? "Sem histórico"
+                  : `${stats.incomeDelta >= 0 ? "+" : ""}${stats.incomeDelta.toFixed(1)}% vs mês ant.`}
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground font-black uppercase tracking-widest flex items-center gap-1.5">
@@ -308,8 +318,18 @@ export function FinanceDashboard() {
               <div className="h-10 w-10 rounded-xl bg-red-100/50 text-red-600 grid place-items-center">
                 <TrendingDown className="h-5 w-5" />
               </div>
-              <span className="text-[10px] font-black text-red-600 bg-red-50 px-2 py-1 rounded-full uppercase tracking-tighter">
-                -2.4% vs mês ant.
+              <span
+                className={`text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter ${
+                  stats.expenseDelta === null
+                    ? "text-muted-foreground bg-muted/60"
+                    : stats.expenseDelta <= 0
+                      ? "text-green-600 bg-green-50"
+                      : "text-red-600 bg-red-50"
+                }`}
+              >
+                {stats.expenseDelta === null
+                  ? "Sem histórico"
+                  : `${stats.expenseDelta >= 0 ? "+" : ""}${stats.expenseDelta.toFixed(1)}% vs mês ant.`}
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground font-black uppercase tracking-widest flex items-center gap-1.5">
@@ -336,8 +356,18 @@ export function FinanceDashboard() {
               <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center">
                 <Wallet className="h-5 w-5" />
               </div>
-              <span className="text-[10px] font-black text-primary bg-primary/5 px-2 py-1 rounded-full uppercase tracking-tighter">
-                Meta: 92% atingida
+              <span
+                className={`text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter ${
+                  stats.balanceDelta === null
+                    ? "text-muted-foreground bg-muted/60"
+                    : stats.balanceDelta >= 0
+                      ? "text-primary bg-primary/5"
+                      : "text-red-600 bg-red-50"
+                }`}
+              >
+                {stats.balanceDelta === null
+                  ? "Sem histórico"
+                  : `${stats.balanceDelta >= 0 ? "+" : ""}${stats.balanceDelta.toFixed(1)}% vs mês ant.`}
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground font-black uppercase tracking-widest flex items-center gap-1.5">
