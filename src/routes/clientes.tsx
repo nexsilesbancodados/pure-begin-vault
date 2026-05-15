@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { HubHero } from "@/components/layout/HubHero";
 import { ImportCsvDialog } from "@/components/customers/ImportCsvDialog";
 import {
   Users,
   Plus,
   MoreVertical,
   Search,
-  Filter,
   Loader2,
-  User,
   Trash2,
   Edit3,
   Phone,
@@ -18,12 +17,19 @@ import {
   DollarSign,
   Wrench,
   X,
+  Upload,
+  Download,
+  History,
+  MessageCircle,
+  UserPlus,
+  Sparkles,
 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +46,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+function avatarGradient(name: string) {
+  const palettes = [
+    "from-[oklch(0.6_0.2_255)] to-[oklch(0.55_0.22_220)]",
+    "from-[oklch(0.6_0.2_295)] to-[oklch(0.55_0.22_255)]",
+    "from-[oklch(0.65_0.18_180)] to-[oklch(0.55_0.2_220)]",
+    "from-[oklch(0.65_0.2_25)] to-[oklch(0.6_0.22_15)]",
+    "from-[oklch(0.65_0.18_140)] to-[oklch(0.55_0.2_180)]",
+    "from-[oklch(0.65_0.2_70)] to-[oklch(0.6_0.22_30)]",
+  ];
+  const idx = (name?.charCodeAt(0) ?? 0) % palettes.length;
+  return palettes[idx];
+}
+function initialsFor(name?: string | null) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase())
+    .join("");
+}
 
 export const Route = createFileRoute("/clientes")({
   head: () => ({
@@ -181,6 +209,19 @@ function CustomersPage() {
       (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (c.phone && c.phone.includes(searchTerm)),
   );
+
+  const stats = useMemo(() => {
+    const now = Date.now();
+    const monthAgo = now - 30 * 86400000;
+    return {
+      total: customers.length,
+      newMonth: customers.filter(
+        (c) => c.created_at && new Date(c.created_at).getTime() > monthAgo,
+      ).length,
+      withWhatsapp: customers.filter((c) => !!c.phone).length,
+      withEmail: customers.filter((c) => !!c.email).length,
+    };
+  }, [customers]);
 
   const fetchCustomerHistory = async (customerId: string) => {
     setLoadingHistory(true);
