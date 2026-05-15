@@ -222,36 +222,47 @@ export function FinanceDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">
-            Dashboard Financeiro
-          </h1>
-          <p className="text-muted-foreground text-sm font-medium">
-            Acompanhe a saúde financeira da sua empresa
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 gap-2 font-bold rounded-xl border-slate-200 shadow-sm"
-          >
-            <Calendar className="h-4 w-4" /> Últimos 30 dias
-          </Button>
-          <Button
-            onClick={() => setIsFormOpen(true)}
-            size="sm"
-            className="h-9 gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200"
-          >
-            <Plus className="h-4 w-4" /> Novo Lançamento
-          </Button>
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/15 p-6">
+        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+        <div className="relative flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground grid place-items-center shadow-lg shadow-primary/30">
+              <DollarSign className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">
+                Dashboard Financeiro
+              </div>
+              <h1 className="text-2xl font-black tracking-tight text-foreground">
+                Saúde financeira em tempo real
+              </h1>
+              <p className="text-muted-foreground text-sm font-medium">
+                Entradas, saídas e projeções consolidadas do mês
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 gap-2 font-bold rounded-xl border-border shadow-sm bg-background/60 backdrop-blur"
+            >
+              <Calendar className="h-4 w-4" /> Últimos 30 dias
+            </Button>
+            <Button
+              onClick={() => setIsFormOpen(true)}
+              size="sm"
+              className="h-10 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground font-bold rounded-xl shadow-lg shadow-primary/30"
+            >
+              <Plus className="h-4 w-4" /> Novo Lançamento
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card
-          className="border-border shadow-sm overflow-hidden rounded-2xl cursor-pointer hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.98]"
+          className="border-border shadow-sm overflow-hidden rounded-2xl cursor-pointer hover:border-primary/30 hover:shadow-md transition-all active:scale-[0.98]"
           onClick={() => setSelectedCard("entradas")}
         >
           <CardContent className="p-6">
@@ -270,7 +281,7 @@ export function FinanceDashboard() {
             {loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/20" />
             ) : (
-              <div className="text-3xl font-black mt-1 flex items-baseline gap-1 text-slate-900">
+              <div className="text-3xl font-black mt-1 flex items-baseline gap-1 text-foreground">
                 <span className="text-sm font-bold text-muted-foreground">R$</span>
                 {stats.monthIncome.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
@@ -279,7 +290,7 @@ export function FinanceDashboard() {
         </Card>
 
         <Card
-          className="border-border shadow-sm overflow-hidden rounded-2xl cursor-pointer hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.98]"
+          className="border-border shadow-sm overflow-hidden rounded-2xl cursor-pointer hover:border-primary/30 hover:shadow-md transition-all active:scale-[0.98]"
           onClick={() => setSelectedCard("saidas")}
         >
           <CardContent className="p-6">
@@ -298,7 +309,7 @@ export function FinanceDashboard() {
             {loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/20" />
             ) : (
-              <div className="text-3xl font-black mt-1 flex items-baseline gap-1 text-slate-900">
+              <div className="text-3xl font-black mt-1 flex items-baseline gap-1 text-foreground">
                 <span className="text-sm font-bold text-muted-foreground">R$</span>
                 {stats.monthExpense.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
@@ -307,15 +318,15 @@ export function FinanceDashboard() {
         </Card>
 
         <Card
-          className="border-border shadow-sm overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/50 to-transparent cursor-pointer hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.98]"
+          className="border-border shadow-sm overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50/50 to-transparent cursor-pointer hover:border-primary/30 hover:shadow-md transition-all active:scale-[0.98]"
           onClick={() => setSelectedCard("saldo")}
         >
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="h-10 w-10 rounded-xl bg-blue-100/50 text-blue-600 grid place-items-center">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center">
                 <Wallet className="h-5 w-5" />
               </div>
-              <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-full uppercase tracking-tighter">
+              <span className="text-[10px] font-black text-primary bg-primary/5 px-2 py-1 rounded-full uppercase tracking-tighter">
                 Meta: 92% atingida
               </span>
             </div>
@@ -326,7 +337,7 @@ export function FinanceDashboard() {
             {loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/20" />
             ) : (
-              <div className="text-3xl font-black mt-1 text-blue-600 flex items-baseline gap-1">
+              <div className="text-3xl font-black mt-1 text-primary flex items-baseline gap-1">
                 <span className="text-sm font-bold">R$</span>
                 {stats.totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
@@ -337,13 +348,13 @@ export function FinanceDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card
-          className="lg:col-span-2 border-border shadow-sm rounded-2xl cursor-pointer hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.99]"
+          className="lg:col-span-2 border-border shadow-sm rounded-2xl cursor-pointer hover:border-primary/30 hover:shadow-md transition-all active:scale-[0.99]"
           onClick={() => navigate({ to: "/financeiro/caixa" })}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
             <div>
-              <CardTitle className="text-base font-black flex items-center gap-2 text-slate-900">
-                <TrendingUp className="h-4 w-4 text-blue-600" /> Fluxo de Caixa (6 Meses)
+              <CardTitle className="text-base font-black flex items-center gap-2 text-foreground">
+                <TrendingUp className="h-4 w-4 text-primary" /> Fluxo de Caixa (6 Meses)
               </CardTitle>
               <CardDescription className="font-medium text-xs">
                 Comparativo entre entradas e saídas mensais
@@ -420,12 +431,12 @@ export function FinanceDashboard() {
         </Card>
 
         <Card
-          className="border-border shadow-sm rounded-2xl cursor-pointer hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.98]"
+          className="border-border shadow-sm rounded-2xl cursor-pointer hover:border-primary/30 hover:shadow-md transition-all active:scale-[0.98]"
           onClick={() => navigate({ to: "/financeiro/caixa" })}
         >
           <CardHeader className="pb-7">
-            <CardTitle className="text-base font-black flex items-center gap-2 text-slate-900">
-              <PieChart className="h-4 w-4 text-blue-600" /> Gastos por Categoria
+            <CardTitle className="text-base font-black flex items-center gap-2 text-foreground">
+              <PieChart className="h-4 w-4 text-primary" /> Gastos por Categoria
             </CardTitle>
             <CardDescription className="font-medium text-xs">
               Distribuição de despesas no mês
@@ -442,7 +453,7 @@ export function FinanceDashboard() {
                           className="w-1.5 h-1.5 rounded-full"
                           style={{ backgroundColor: cat.color }}
                         ></div>
-                        <span className="font-bold text-slate-700 truncate max-w-[120px] uppercase tracking-tighter">
+                        <span className="font-bold text-foreground/80 truncate max-w-[120px] uppercase tracking-tighter">
                           {cat.name}
                         </span>
                       </div>
@@ -450,12 +461,12 @@ export function FinanceDashboard() {
                         <span className="text-muted-foreground font-medium">
                           {cat.percentage.toFixed(1)}%
                         </span>
-                        <span className="font-black text-slate-900">
+                        <span className="font-black text-foreground">
                           R$ {cat.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
-                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500 ease-out"
                         style={{
@@ -469,10 +480,10 @@ export function FinanceDashboard() {
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center space-y-2">
-                  <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
-                    <PieChart className="h-6 w-6 text-slate-300" />
+                  <div className="h-12 w-12 rounded-full bg-muted/50 flex items-center justify-center">
+                    <PieChart className="h-6 w-6 text-muted-foreground/50" />
                   </div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest italic">
+                  <p className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest italic">
                     Nenhum gasto registrado este mês
                   </p>
                 </div>
@@ -500,28 +511,28 @@ export function FinanceDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card
-          className="border-border shadow-sm flex flex-col rounded-2xl cursor-pointer hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.98]"
+          className="border-border shadow-sm flex flex-col rounded-2xl cursor-pointer hover:border-primary/30 hover:shadow-md transition-all active:scale-[0.98]"
           onClick={() => navigate({ to: "/financeiro/caixa" })}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <CardTitle className="text-base font-black flex items-center gap-2 text-slate-900">
-              <Building2 className="h-4 w-4 text-blue-600" /> Contas e Bancos
+            <CardTitle className="text-base font-black flex items-center gap-2 text-foreground">
+              <Building2 className="h-4 w-4 text-primary" /> Contas e Bancos
             </CardTitle>
             <button
               onClick={() => navigate({ to: "/financeiro/caixa" })}
-              className="text-[11px] font-black text-blue-600 hover:underline flex items-center gap-1 uppercase tracking-wider"
+              className="text-[11px] font-black text-primary hover:underline flex items-center gap-1 uppercase tracking-wider"
             >
               Ver Tudo <ArrowRight className="h-3 w-3" />
             </button>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+            <div className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/40">
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-lg bg-white border border-slate-200 grid place-items-center shadow-sm">
-                  <Wallet className="h-4 w-4 text-blue-600" />
+                <div className="h-8 w-8 rounded-lg bg-white border border-border grid place-items-center shadow-sm">
+                  <Wallet className="h-4 w-4 text-primary" />
                 </div>
                 <div>
-                  <div className="text-xs font-black text-slate-900 uppercase tracking-tighter">
+                  <div className="text-xs font-black text-foreground uppercase tracking-tighter">
                     Caixa Geral
                   </div>
                   <div className="text-[10px] font-bold text-muted-foreground uppercase">
@@ -530,7 +541,7 @@ export function FinanceDashboard() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-black text-slate-900">
+                <div className="text-sm font-black text-foreground">
                   R${" "}
                   {(stats.totalBalance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </div>
@@ -540,12 +551,12 @@ export function FinanceDashboard() {
         </Card>
 
         <Card
-          className="border-border shadow-sm flex flex-col rounded-2xl cursor-pointer hover:border-blue-200 hover:shadow-md transition-all active:scale-[0.98]"
+          className="border-border shadow-sm flex flex-col rounded-2xl cursor-pointer hover:border-primary/30 hover:shadow-md transition-all active:scale-[0.98]"
           onClick={() => navigate({ to: "/financeiro/caixa" })}
         >
           <CardHeader className="pb-4">
-            <CardTitle className="text-base font-black flex items-center gap-2 text-slate-900">
-              <Receipt className="h-4 w-4 text-blue-600" /> Lançamentos Recentes
+            <CardTitle className="text-base font-black flex items-center gap-2 text-foreground">
+              <Receipt className="h-4 w-4 text-primary" /> Lançamentos Recentes
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -553,7 +564,7 @@ export function FinanceDashboard() {
               {transactions.slice(0, 5).map((t, i) => (
                 <div
                   key={i}
-                  className="group flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg transition-colors"
+                  className="group flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg transition-colors"
                 >
                   <div className="flex items-center gap-3 flex-1 overflow-hidden">
                     <div
@@ -566,7 +577,7 @@ export function FinanceDashboard() {
                       )}
                     </div>
                     <div className="truncate">
-                      <div className="text-xs font-bold text-slate-900 truncate">
+                      <div className="text-xs font-bold text-foreground truncate">
                         {t.description}
                       </div>
                       <div className="text-[10px] text-muted-foreground">
@@ -590,7 +601,7 @@ export function FinanceDashboard() {
                           setEditingTransaction(t);
                           setIsFormOpen(true);
                         }}
-                        className="p-1 hover:text-blue-600 transition-colors"
+                        className="p-1 hover:text-primary transition-colors"
                       >
                         <Edit className="h-3 w-3" />
                       </button>
@@ -608,7 +619,7 @@ export function FinanceDashboard() {
                 </div>
               ))}
               {transactions.length === 0 && (
-                <div className="text-center text-xs text-muted-foreground py-8 italic border border-dashed border-slate-100 rounded-xl">
+                <div className="text-center text-xs text-muted-foreground py-8 italic border border-dashed border-border/60 rounded-xl">
                   Nenhum lançamento recente
                 </div>
               )}
@@ -630,7 +641,7 @@ export function FinanceDashboard() {
       <Dialog open={!!selectedCard} onOpenChange={(open) => !open && setSelectedCard(null)}>
         <DialogContent className="sm:max-w-[500px] rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+            <DialogTitle className="text-xl font-black text-foreground flex items-center gap-2">
               {selectedCard === "entradas" && (
                 <>
                   <TrendingUp className="h-5 w-5 text-green-600" /> Detalhes de Entradas
@@ -643,7 +654,7 @@ export function FinanceDashboard() {
               )}
               {selectedCard === "saldo" && (
                 <>
-                  <Wallet className="h-5 w-5 text-blue-600" /> Detalhes do Saldo
+                  <Wallet className="h-5 w-5 text-primary" /> Detalhes do Saldo
                 </>
               )}
             </DialogTitle>
@@ -653,7 +664,7 @@ export function FinanceDashboard() {
           </DialogHeader>
 
           <div className="py-4 space-y-6">
-            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <div className="bg-muted/50 p-6 rounded-2xl border border-border/60">
               <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">
                 Valor Total
               </div>
@@ -663,7 +674,7 @@ export function FinanceDashboard() {
                     ? "text-green-600"
                     : selectedCard === "saidas"
                       ? "text-red-600"
-                      : "text-blue-600"
+                      : "text-primary"
                 }`}
               >
                 R${" "}
@@ -676,7 +687,7 @@ export function FinanceDashboard() {
             </div>
 
             <div className="space-y-3">
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500">
+              <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
                 Resumo por Categoria
               </h4>
               <div className="space-y-2">
@@ -697,10 +708,10 @@ export function FinanceDashboard() {
                   .map((item, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl"
+                      className="flex items-center justify-between p-3 bg-white border border-border/60 rounded-xl"
                     >
-                      <span className="text-xs font-bold text-slate-700">{item.name}</span>
-                      <span className="text-xs font-black text-slate-900">
+                      <span className="text-xs font-bold text-foreground/80">{item.name}</span>
+                      <span className="text-xs font-black text-foreground">
                         R$ {item.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
@@ -713,7 +724,7 @@ export function FinanceDashboard() {
                 setSelectedCard(null);
                 navigate({ to: "/financeiro/caixa" });
               }}
-              className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl"
+              className="w-full h-11 bg-foreground hover:bg-foreground/90 text-background text-white font-bold rounded-xl"
             >
               Ver Fluxo de Caixa Completo
             </Button>

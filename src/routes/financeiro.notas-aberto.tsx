@@ -234,10 +234,10 @@ function NotasAbertoPage() {
               <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                 Valor Pendente
               </div>
-              <div className="text-xl font-black text-slate-900 mt-1">
+              <div className="text-xl font-black text-foreground mt-1">
                 {stats.totalPending.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </div>
-              <div className="text-[10px] text-slate-500 mt-1 font-bold">
+              <div className="text-[10px] text-muted-foreground mt-1 font-bold">
                 {stats.count} registros pendentes
               </div>
             </Card>
@@ -254,7 +254,7 @@ function NotasAbertoPage() {
               <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                 Valor Vencido
               </div>
-              <div className="text-xl font-black text-slate-900 mt-1">
+              <div className="text-xl font-black text-foreground mt-1">
                 {stats.overdueAmount.toLocaleString("pt-BR", {
                   style: "currency",
                   currency: "BRL",
@@ -267,14 +267,14 @@ function NotasAbertoPage() {
 
             <Card className="p-5 border-border shadow-sm rounded-2xl">
               <div className="flex justify-between items-start mb-2">
-                <div className="h-9 w-9 rounded-xl bg-blue-100 text-blue-600 grid place-items-center">
+                <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary grid place-items-center">
                   <FileText className="h-5 w-5" />
                 </div>
               </div>
               <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                 Projeção Próximos 7 dias
               </div>
-              <div className="text-xl font-black text-slate-900 mt-1">
+              <div className="text-xl font-black text-foreground mt-1">
                 {transactions
                   .filter(
                     (t) =>
@@ -299,7 +299,7 @@ function NotasAbertoPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   placeholder="Buscar notas..."
-                  className="w-full h-11 pl-10 pr-4 rounded-xl bg-card border border-slate-200 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 transition shadow-sm"
+                  className="w-full h-11 pl-10 pr-4 rounded-xl bg-card border border-border text-sm font-medium outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition shadow-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -308,13 +308,13 @@ function NotasAbertoPage() {
             <div className="flex gap-2">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="h-11 rounded-xl bg-blue-600 hover:bg-blue-700 font-bold px-6 shadow-lg shadow-blue-200">
+                  <Button className="h-11 rounded-xl bg-primary hover:bg-primary/90 font-bold px-6 shadow-lg shadow-primary/20">
                     <Plus className="h-4 w-4 mr-2" /> Nova Nota
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle className="text-xl font-black text-slate-900">
+                    <DialogTitle className="text-xl font-black text-foreground">
                       Cadastrar Nova Nota
                     </DialogTitle>
                   </DialogHeader>
@@ -323,7 +323,7 @@ function NotasAbertoPage() {
                       <div className="space-y-2">
                         <Label
                           htmlFor="description"
-                          className="text-[10px] font-black uppercase text-slate-500"
+                          className="text-[10px] font-black uppercase text-muted-foreground"
                         >
                           Descrição/Título *
                         </Label>
@@ -338,7 +338,7 @@ function NotasAbertoPage() {
                       <div className="space-y-2">
                         <Label
                           htmlFor="amount"
-                          className="text-[10px] font-black uppercase text-slate-500"
+                          className="text-[10px] font-black uppercase text-muted-foreground"
                         >
                           Valor Total (R$) *
                         </Label>
@@ -355,7 +355,7 @@ function NotasAbertoPage() {
                       <div className="space-y-2">
                         <Label
                           htmlFor="supplier"
-                          className="text-[10px] font-black uppercase text-slate-500"
+                          className="text-[10px] font-black uppercase text-muted-foreground"
                         >
                           Fornecedor
                         </Label>
@@ -372,7 +372,7 @@ function NotasAbertoPage() {
                       <div className="space-y-2">
                         <Label
                           htmlFor="invoice"
-                          className="text-[10px] font-black uppercase text-slate-500"
+                          className="text-[10px] font-black uppercase text-muted-foreground"
                         >
                           Número da NF
                         </Label>
@@ -389,7 +389,7 @@ function NotasAbertoPage() {
                       <div className="space-y-2">
                         <Label
                           htmlFor="due_date"
-                          className="text-[10px] font-black uppercase text-slate-500"
+                          className="text-[10px] font-black uppercase text-muted-foreground"
                         >
                           Data de Vencimento *
                         </Label>
@@ -402,7 +402,7 @@ function NotasAbertoPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-slate-500">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground">
                           Categoria
                         </Label>
                         <Select
@@ -426,7 +426,7 @@ function NotasAbertoPage() {
 
                     <div className="space-y-4 border-t pt-6">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                        <h3 className="text-sm font-black text-foreground uppercase tracking-tight flex items-center gap-2">
                           <Package className="h-4 w-4" /> Produtos da Nota
                         </h3>
                         <span className="text-[10px] text-muted-foreground font-bold">
@@ -471,13 +471,13 @@ function NotasAbertoPage() {
                       </div>
 
                       {productsList.length > 0 && (
-                        <div className="bg-slate-50 rounded-xl p-3 space-y-2 border border-slate-100 max-h-40 overflow-y-auto">
+                        <div className="bg-muted/50 rounded-xl p-3 space-y-2 border border-border/60 max-h-40 overflow-y-auto">
                           {productsList.map((p, i) => (
                             <div
                               key={i}
-                              className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200 text-xs"
+                              className="flex items-center justify-between bg-white p-2 rounded-lg border border-border text-xs"
                             >
-                              <span className="font-bold text-slate-700">
+                              <span className="font-bold text-foreground/80">
                                 {p.quantity}x {p.name}
                               </span>
                               <button
@@ -504,7 +504,7 @@ function NotasAbertoPage() {
                       </Button>
                       <Button
                         type="submit"
-                        className="bg-blue-600 hover:bg-blue-700 font-bold px-8"
+                        className="bg-primary hover:bg-primary/90 font-bold px-8"
                         disabled={submitting}
                       >
                         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Nota"}
@@ -515,7 +515,7 @@ function NotasAbertoPage() {
               </Dialog>
               <Button
                 variant="outline"
-                className="h-11 rounded-xl border-slate-200 font-bold px-6"
+                className="h-11 rounded-xl border-border font-bold px-6"
                 onClick={() => {
                   import("@/lib/exportCsv").then(({ exportToCsv }) => {
                     exportToCsv(
@@ -541,31 +541,31 @@ function NotasAbertoPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/50">
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <tr className="border-b border-border/60 bg-muted/40">
+                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                       Vencimento
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                       Descrição
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                       Categoria
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">
+                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">
                       Valor
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
+                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">
                       Status
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
+                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">
                       Produtos
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">
+                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">
                       Ações
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border/60">
                   {loading ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-20 text-center">
@@ -581,9 +581,9 @@ function NotasAbertoPage() {
                       const isExpanded = expandedRow === t.id;
                       return (
                         <Fragment key={t.id}>
-                          <tr className="hover:bg-slate-50/50 transition-colors group">
+                          <tr className="hover:bg-muted/40 transition-colors group">
                             <td
-                              className={`px-6 py-4 text-xs font-bold ${isOverdue ? "text-red-600" : "text-slate-500"}`}
+                              className={`px-6 py-4 text-xs font-bold ${isOverdue ? "text-red-600" : "text-muted-foreground"}`}
                             >
                               <div className="flex items-center gap-2">
                                 <Calendar className="h-3.5 w-3.5" />
@@ -609,7 +609,7 @@ function NotasAbertoPage() {
                                   )}
                                 </div>
                                 <div className="flex flex-col">
-                                  <span className="font-bold text-sm text-slate-900">
+                                  <span className="font-bold text-sm text-foreground">
                                     {t.description}
                                   </span>
                                   {t.supplier_name && (
@@ -628,7 +628,7 @@ function NotasAbertoPage() {
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-tight border border-slate-200">
+                              <span className="px-2.5 py-1 rounded-full bg-muted text-slate-600 text-[10px] font-black uppercase tracking-tight border border-border">
                                 {t.category || "Geral"}
                               </span>
                             </td>
@@ -681,19 +681,19 @@ function NotasAbertoPage() {
                             </td>
                           </tr>
                           {isExpanded && t.products_list && (
-                            <tr className="bg-slate-50/80">
+                            <tr className="bg-muted/60">
                               <td colSpan={7} className="px-6 py-3">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                   {t.products_list.map((item: any, idx: number) => (
                                     <div
                                       key={idx}
-                                      className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-200 shadow-sm"
+                                      className="flex items-center gap-3 bg-white p-2 rounded-lg border border-border shadow-sm"
                                     >
-                                      <div className="h-8 w-8 rounded bg-slate-100 flex items-center justify-center text-slate-500">
+                                      <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-muted-foreground">
                                         <Package className="h-4 w-4" />
                                       </div>
                                       <div className="flex-1">
-                                        <div className="text-[11px] font-bold text-slate-900 leading-tight">
+                                        <div className="text-[11px] font-bold text-foreground leading-tight">
                                           {item.name || item.description || "Produto"}
                                         </div>
                                         <div className="text-[10px] text-muted-foreground font-medium">

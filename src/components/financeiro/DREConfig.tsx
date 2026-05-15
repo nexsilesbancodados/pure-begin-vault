@@ -194,7 +194,7 @@ export function DREConfig() {
                 Receita Bruta
               </div>
               <div className="text-2xl font-black text-green-600">{BRL(dre.receitaBruta)}</div>
-              <div className="mt-2 text-[10px] font-bold text-slate-400">
+              <div className="mt-2 text-[10px] font-bold text-muted-foreground/70">
                 {txs.filter((t) => t.type === "income" || t.type === "receita").length} lançamentos
               </div>
             </Card>
@@ -203,7 +203,7 @@ export function DREConfig() {
                 Margem Bruta
               </div>
               <div className="text-2xl font-black">{margemBruta.toFixed(1)}%</div>
-              <div className="mt-2 text-[10px] font-bold text-slate-400">
+              <div className="mt-2 text-[10px] font-bold text-muted-foreground/70">
                 Lucro Bruto: {BRL(dre.lucroBruto)}
               </div>
             </Card>
@@ -212,7 +212,7 @@ export function DREConfig() {
                 Despesas Fixas
               </div>
               <div className="text-2xl font-black text-red-600">{BRL(despesasFixas)}</div>
-              <div className="mt-2 text-[10px] font-bold text-slate-400">
+              <div className="mt-2 text-[10px] font-bold text-muted-foreground/70">
                 {dre.receitaBruta > 0
                   ? ((despesasFixas / dre.receitaBruta) * 100).toFixed(1)
                   : "0,0"}
@@ -220,7 +220,7 @@ export function DREConfig() {
               </div>
             </Card>
             <Card className="p-5 border-none shadow-lg bg-slate-900 text-white rounded-2xl">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+              <div className="text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest mb-1">
                 Lucro Líquido
               </div>
               <div className={`text-2xl font-black ${dre.lucroLiquido < 0 ? "text-red-400" : ""}`}>
@@ -253,7 +253,7 @@ export function DREConfig() {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
+                  <TableRow className="bg-muted/40 dark:bg-slate-900/50">
                     <TableHead className="px-6 py-3 text-[10px] font-black uppercase tracking-widest">
                       Descrição
                     </TableHead>
@@ -272,7 +272,7 @@ export function DREConfig() {
                     return (
                       <TableRow
                         key={idx}
-                        className={`${item.type === "total" ? "bg-slate-50/50 dark:bg-slate-900/50 font-bold" : ""} ${item.type === "final" ? "bg-slate-100/80 dark:bg-slate-800/80 font-black" : ""}`}
+                        className={`${item.type === "total" ? "bg-muted/40 dark:bg-slate-900/50 font-bold" : ""} ${item.type === "final" ? "bg-muted/80 dark:bg-slate-800/80 font-black" : ""}`}
                       >
                         <TableCell className="px-6 py-3 text-sm">{item.label}</TableCell>
                         <TableCell
@@ -280,7 +280,7 @@ export function DREConfig() {
                         >
                           {BRL(item.value)}
                         </TableCell>
-                        <TableCell className="px-6 py-3 text-right text-xs font-bold text-slate-400">
+                        <TableCell className="px-6 py-3 text-right text-xs font-bold text-muted-foreground/70">
                           {pct.toFixed(1)}%
                         </TableCell>
                       </TableRow>
