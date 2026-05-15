@@ -81,37 +81,47 @@ export function FinanceDashboard() {
     const now = new Date();
     const currentMonthStart = startOfMonth(now);
     const currentMonthEnd = endOfMonth(now);
+    const prevMonthDate = subMonths(now, 1);
+    const prevMonthStart = startOfMonth(prevMonthDate);
+    const prevMonthEnd = endOfMonth(prevMonthDate);
 
-    const monthIncome = transactions
-      .filter(
-        (t) =>
-          t.type === "income" &&
-          t.payment_date &&
-          isWithinInterval(new Date(t.payment_date), {
-            start: currentMonthStart,
-            end: currentMonthEnd,
-          }),
-      )
-      .reduce((acc, t) => acc + (t.amount || 0), 0);
+    const sum = (type: "income" | "expense", start: Date, end: Date) =>
+      transactions
+        .filter(
+          (t) =>
+            t.type === type &&
+            t.payment_date &&
+            isWithinInterval(new Date(t.payment_date), { start, end }),
+        )
+        .reduce((acc, t) => acc + (t.amount || 0), 0);
 
-    const monthExpense = transactions
-      .filter(
-        (t) =>
-          t.type === "expense" &&
-          t.payment_date &&
-          isWithinInterval(new Date(t.payment_date), {
-            start: currentMonthStart,
-            end: currentMonthEnd,
-          }),
-      )
-      .reduce((acc, t) => acc + (t.amount || 0), 0);
+    const monthIncome = sum("income", currentMonthStart, currentMonthEnd);
+    const monthExpense = sum("expense", currentMonthStart, currentMonthEnd);
+    const prevIncome = sum("income", prevMonthStart, prevMonthEnd);
+    const prevExpense = sum("expense", prevMonthStart, prevMonthEnd);
+
+    const incomeDelta = prevIncome > 0 ? ((monthIncome - prevIncome) / prevIncome) * 100 : null;
+    const expenseDelta =
+      prevExpense > 0 ? ((monthExpense - prevExpense) / prevExpense) * 100 : null;
 
     const totalBalance = transactions.reduce(
       (acc, t) => acc + (t.type === "income" ? t.amount || 0 : -(t.amount || 0)),
       0,
     );
 
-    return { monthIncome, monthExpense, totalBalance };
+    const monthBalance = monthIncome - monthExpense;
+    const prevBalance = prevIncome - prevExpense;
+    const balanceDelta =
+      prevBalance > 0 ? ((monthBalance - prevBalance) / prevBalance) * 100 : null;
+
+    return {
+      monthIncome,
+      monthExpense,
+      totalBalance,
+      incomeDelta,
+      expenseDelta,
+      balanceDelta,
+    };
   }, [transactions]);
 
   const chartData = useMemo(() => {
@@ -270,8 +280,18 @@ export function FinanceDashboard() {
               <div className="h-10 w-10 rounded-xl bg-green-100/50 text-green-600 grid place-items-center">
                 <TrendingUp className="h-5 w-5" />
               </div>
-              <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-full uppercase tracking-tighter">
-                +15.2% vs mês ant.
+              <span
+                className={`text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter ${
+                  stats.incomeDelta === null
+                    ? "text-muted-foreground bg-muted/60"
+                    : stats.incomeDelta >= 0
+                      ? "text-green-600 bg-green-50"
+                      : "text-red-600 bg-red-50"
+                }`}
+              >
+                {stats.incomeDelta === null
+                  ? "Sem histórico"
+                  : `${stats.incomeDelta >= 0 ? "+" : ""}${stats.incomeDelta.toFixed(1)}% vs mês ant.`}
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground font-black uppercase tracking-widest flex items-center gap-1.5">
@@ -298,8 +318,18 @@ export function FinanceDashboard() {
               <div className="h-10 w-10 rounded-xl bg-red-100/50 text-red-600 grid place-items-center">
                 <TrendingDown className="h-5 w-5" />
               </div>
-              <span className="text-[10px] font-black text-red-600 bg-red-50 px-2 py-1 rounded-full uppercase tracking-tighter">
-                -2.4% vs mês ant.
+              <span
+                className={`text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter ${
+                  stats.expenseDelta === null
+                    ? "text-muted-foreground bg-muted/60"
+                    : stats.expenseDelta <= 0
+                      ? "text-green-600 bg-green-50"
+                      : "text-red-600 bg-red-50"
+                }`}
+              >
+                {stats.expenseDelta === null
+                  ? "Sem histórico"
+                  : `${stats.expenseDelta >= 0 ? "+" : ""}${stats.expenseDelta.toFixed(1)}% vs mês ant.`}
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground font-black uppercase tracking-widest flex items-center gap-1.5">
@@ -326,8 +356,18 @@ export function FinanceDashboard() {
               <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary grid place-items-center">
                 <Wallet className="h-5 w-5" />
               </div>
-              <span className="text-[10px] font-black text-primary bg-primary/5 px-2 py-1 rounded-full uppercase tracking-tighter">
-                Meta: 92% atingida
+              <span
+                className={`text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter ${
+                  stats.balanceDelta === null
+                    ? "text-muted-foreground bg-muted/60"
+                    : stats.balanceDelta >= 0
+                      ? "text-primary bg-primary/5"
+                      : "text-red-600 bg-red-50"
+                }`}
+              >
+                {stats.balanceDelta === null
+                  ? "Sem histórico"
+                  : `${stats.balanceDelta >= 0 ? "+" : ""}${stats.balanceDelta.toFixed(1)}% vs mês ant.`}
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground font-black uppercase tracking-widest flex items-center gap-1.5">
