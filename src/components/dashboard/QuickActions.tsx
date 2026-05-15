@@ -28,14 +28,26 @@ export function QuickActions() {
           <button
             key={action.label}
             onClick={() => navigate({ to: action.url as any })}
-            className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border shadow-card hover:shadow-elegant hover:-translate-y-0.5 transition-all group"
+            aria-label={action.label}
+            className="group relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl bg-card border border-border shadow-card hover:shadow-elegant hover:-translate-y-0.5 hover:border-primary/40 active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
+            {/* Top highlight */}
             <div
-              className={`h-10 w-10 rounded-xl ${action.color} text-white grid place-items-center shrink-0 shadow-sm`}
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent"
+            />
+            {/* Shine sweep */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms] ease-out bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
+            />
+            <div
+              aria-hidden
+              className={`h-10 w-10 rounded-xl ${action.color} text-white grid place-items-center shrink-0 shadow-sm ring-1 ring-inset ring-white/15 transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-4deg] group-hover:shadow-md`}
             >
               <Icon className="h-5 w-5" />
             </div>
-            <span className="text-[13px] font-bold text-foreground/90 group-hover:text-primary transition">
+            <span className="relative text-[13px] font-bold text-foreground/90 group-hover:text-primary transition-colors">
               {action.label}
             </span>
           </button>
