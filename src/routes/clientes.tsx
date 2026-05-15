@@ -308,7 +308,7 @@ function CustomersPage() {
                       {customerHistory.services.map((s) => (
                         <div
                           key={s.id}
-                          className="text-xs p-3 rounded-xl border border-border bg-slate-50/50 flex justify-between items-center"
+                          className="text-xs p-3 rounded-xl border border-border bg-muted/40 flex justify-between items-center"
                         >
                           <div>
                             <div className="font-bold">{s.equipment}</div>
@@ -316,7 +316,7 @@ function CustomersPage() {
                               {new Date(s.created_at).toLocaleDateString("pt-BR")} - {s.status}
                             </div>
                           </div>
-                          <div className="font-black text-slate-900">
+                          <div className="font-black text-foreground">
                             R$ {(s.estimated_cost || 0).toLocaleString("pt-BR")}
                           </div>
                         </div>
