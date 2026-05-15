@@ -208,7 +208,7 @@ function FinanceCaixaPage() {
                 {stats.balance.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </div>
             </Card>
-            <Card className="p-5 border-none bg-slate-900 text-white shadow-sm rounded-[2rem] hover:shadow-xl hover:shadow-slate-900/20 transition-all group overflow-hidden relative">
+            <Card className="p-5 border-none bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/20 rounded-[2rem] hover:shadow-xl hover:shadow-primary/30 transition-all group overflow-hidden relative">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
                 <Calendar className="h-24 w-24" />
               </div>
