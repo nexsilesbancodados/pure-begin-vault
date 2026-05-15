@@ -1,15 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { HubHero } from "@/components/layout/HubHero";
 import { ImportCsvDialog } from "@/components/customers/ImportCsvDialog";
 import {
   Users,
   Plus,
   MoreVertical,
   Search,
-  Filter,
   Loader2,
-  User,
   Trash2,
   Edit3,
   Phone,
@@ -18,12 +17,19 @@ import {
   DollarSign,
   Wrench,
   X,
+  Upload,
+  Download,
+  History,
+  MessageCircle,
+  UserPlus,
+  Sparkles,
 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +46,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+function avatarGradient(name: string) {
+  const palettes = [
+    "from-[oklch(0.6_0.2_255)] to-[oklch(0.55_0.22_220)]",
+    "from-[oklch(0.6_0.2_295)] to-[oklch(0.55_0.22_255)]",
+    "from-[oklch(0.65_0.18_180)] to-[oklch(0.55_0.2_220)]",
+    "from-[oklch(0.65_0.2_25)] to-[oklch(0.6_0.22_15)]",
+    "from-[oklch(0.65_0.18_140)] to-[oklch(0.55_0.2_180)]",
+    "from-[oklch(0.65_0.2_70)] to-[oklch(0.6_0.22_30)]",
+  ];
+  const idx = (name?.charCodeAt(0) ?? 0) % palettes.length;
+  return palettes[idx];
+}
+function initialsFor(name?: string | null) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s) => s[0]?.toUpperCase())
+    .join("");
+}
 
 export const Route = createFileRoute("/clientes")({
   head: () => ({
@@ -182,6 +210,19 @@ function CustomersPage() {
       (c.phone && c.phone.includes(searchTerm)),
   );
 
+  const stats = useMemo(() => {
+    const now = Date.now();
+    const monthAgo = now - 30 * 86400000;
+    return {
+      total: customers.length,
+      newMonth: customers.filter(
+        (c) => c.created_at && new Date(c.created_at).getTime() > monthAgo,
+      ).length,
+      withWhatsapp: customers.filter((c) => !!c.phone).length,
+      withEmail: customers.filter((c) => !!c.email).length,
+    };
+  }, [customers]);
+
   const fetchCustomerHistory = async (customerId: string) => {
     setLoadingHistory(true);
     try {
@@ -230,14 +271,14 @@ function CustomersPage() {
               <>
                 <div className="space-y-3">
                   <h3 className="text-sm font-bold flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600" /> Vendas Recentes
+                    <DollarSign className="h-4 w-4 text-success" /> Vendas Recentes
                   </h3>
                   {customerHistory.sales.length > 0 ? (
                     <div className="space-y-2">
                       {customerHistory.sales.map((s) => (
                         <div
                           key={s.id}
-                          className="text-xs p-3 rounded-xl border border-border bg-slate-50/50 flex justify-between items-center"
+                          className="text-xs p-3 rounded-xl border border-border bg-muted/40 flex justify-between items-center"
                         >
                           <div>
                             <div className="font-bold">Venda #{s.id.slice(0, 8)}</div>
@@ -245,7 +286,7 @@ function CustomersPage() {
                               {new Date(s.created_at).toLocaleDateString("pt-BR")}
                             </div>
                           </div>
-                          <div className="font-black text-slate-900">
+                          <div className="font-black text-foreground">
                             R$ {s.total_amount.toLocaleString("pt-BR")}
                           </div>
                         </div>
@@ -260,14 +301,14 @@ function CustomersPage() {
 
                 <div className="space-y-3">
                   <h3 className="text-sm font-bold flex items-center gap-2">
-                    <Wrench className="h-4 w-4 text-blue-600" /> Ordens de Serviço
+                    <Wrench className="h-4 w-4 text-primary" /> Ordens de Serviço
                   </h3>
                   {customerHistory.services.length > 0 ? (
                     <div className="space-y-2">
                       {customerHistory.services.map((s) => (
                         <div
                           key={s.id}
-                          className="text-xs p-3 rounded-xl border border-border bg-slate-50/50 flex justify-between items-center"
+                          className="text-xs p-3 rounded-xl border border-border bg-muted/40 flex justify-between items-center"
                         >
                           <div>
                             <div className="font-bold">{s.equipment}</div>
@@ -275,7 +316,7 @@ function CustomersPage() {
                               {new Date(s.created_at).toLocaleDateString("pt-BR")} - {s.status}
                             </div>
                           </div>
-                          <div className="font-black text-slate-900">
+                          <div className="font-black text-foreground">
                             R$ {(s.estimated_cost || 0).toLocaleString("pt-BR")}
                           </div>
                         </div>
@@ -377,19 +418,89 @@ function CustomersPage() {
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title="Base de Clientes" subtitle="Gestão centralizada de contatos" />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+          <HubHero
+            eyebrow="Clientes"
+            icon={Users}
+            title="Sua base, organizada e ativa"
+            description="Cadastre, segmente e converse com seus clientes. Acompanhe o histórico de vendas e ordens de serviço em um só lugar."
+            actions={[
+              {
+                label: "Novo Cliente",
+                onClick: () => setIsQuickAddOpen(true),
+                icon: UserPlus,
+              },
+              {
+                label: "Importar CSV",
+                onClick: () => setIsImportOpen(true),
+                icon: Upload,
+                variant: "ghost",
+              },
+            ]}
+          />
+
+          {/* KPI strip */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: "Total", value: stats.total, icon: Users, tone: "primary" as const },
+              { label: "Novos no Mês", value: stats.newMonth, icon: Sparkles, tone: "success" as const },
+              { label: "Com WhatsApp", value: stats.withWhatsapp, icon: MessageCircle, tone: "info" as const },
+              { label: "Com E-mail", value: stats.withEmail, icon: Mail, tone: "warning" as const },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="group relative overflow-hidden rounded-2xl bg-card border border-border p-4 shadow-card transition-all hover:shadow-elegant hover:-translate-y-0.5"
+              >
+                <div
+                  aria-hidden
+                  className={cn(
+                    "pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full blur-3xl opacity-50 transition-opacity group-hover:opacity-80",
+                    s.tone === "primary" && "bg-primary/30",
+                    s.tone === "success" && "bg-success/30",
+                    s.tone === "info" && "bg-info/30",
+                    s.tone === "warning" && "bg-warning/30",
+                  )}
+                />
+                <div className="relative flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "h-11 w-11 rounded-xl grid place-items-center ring-1 ring-inset",
+                      s.tone === "primary" && "bg-primary/10 text-primary ring-primary/20",
+                      s.tone === "success" && "bg-success/10 text-success ring-success/20",
+                      s.tone === "info" && "bg-info/10 text-info ring-info/20",
+                      s.tone === "warning" && "bg-warning/10 text-warning ring-warning/20",
+                    )}
+                  >
+                    <s.icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-2xl font-black tracking-tight font-display tabular-nums">
+                      {s.value}
+                    </div>
+                    <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">
+                      {s.label}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Quick Add Section */}
           <div
-            className={`mb-6 transition-all duration-300 overflow-hidden ${isQuickAddOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0"}`}
+            className={cn(
+              "transition-all duration-300 overflow-hidden",
+              isQuickAddOpen ? "max-h-[300px] opacity-100" : "max-h-0 opacity-0",
+            )}
           >
-            <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 shadow-sm mb-6">
+            <div className="bg-gradient-card-blue border border-primary/20 rounded-2xl p-6 shadow-blue">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold flex items-center gap-2 text-primary">
                   <Plus className="h-4 w-4" /> Cadastro Rápido de Cliente
                 </h3>
                 <button
                   onClick={() => setIsQuickAddOpen(false)}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -418,89 +529,100 @@ function CustomersPage() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleSave} disabled={saving} className="flex-1 h-11 font-bold">
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex-1 h-11 font-bold bg-gradient-primary hover:opacity-95 shadow-blue"
+                  >
                     {saving ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : (
                       <Plus className="h-4 w-4 mr-2" />
                     )}
-                    Cadastrar Cliente
+                    Cadastrar
                   </Button>
-                  <Button variant="outline" onClick={() => handleOpenModal()} className="h-11 px-4">
-                    Formulário Completo
+                  <Button
+                    variant="outline"
+                    onClick={() => handleOpenModal()}
+                    className="h-11 px-4"
+                  >
+                    Completo
                   </Button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="relative max-w-sm w-full">
-                <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  placeholder="Buscar clientes por nome, email ou telefone..."
-                  className="w-full h-10 pl-10 pr-4 rounded-xl bg-card border border-border outline-none text-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+          {/* Toolbar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="relative flex-1 md:max-w-md">
+              <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                placeholder="Buscar por nome, email ou telefone..."
+                className="w-full h-10 pl-10 pr-4 rounded-xl bg-card border border-border outline-none text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <button
-              onClick={() => setIsImportOpen(true)}
-              className="h-10 px-4 rounded-xl text-sm font-semibold border border-border bg-card hover:bg-muted transition flex items-center gap-2"
-            >
-              Importar CSV
-            </button>
-            <button
-              onClick={() => {
-                import("@/lib/exportCsv").then(({ exportToCsv }) => {
-                  exportToCsv(
-                    "clientes.csv",
-                    customers.map((c) => ({
-                      nome: c.name,
-                      email: c.email,
-                      telefone: c.phone,
-                      documento: c.document,
-                      cidade: c.city,
-                      estado: c.state,
-                      criado_em: c.created_at,
-                    })),
-                  );
-                });
-              }}
-              className="h-10 px-4 rounded-xl text-sm font-semibold border border-border bg-card hover:bg-muted transition flex items-center gap-2"
-            >
-              Exportar CSV
-            </button>
-            <button
-              onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-              className={`h-10 px-4 rounded-xl text-sm font-semibold shadow-elegant transition flex items-center gap-2 ${isQuickAddOpen ? "bg-muted text-foreground hover:bg-muted/80" : "bg-gradient-primary text-white hover:opacity-95"}`}
-            >
-              <Plus className="h-4 w-4" /> Novo Cliente
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsImportOpen(true)}
+                className="h-10 px-4 rounded-xl text-sm font-semibold border border-border bg-card hover:bg-muted transition flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" /> Importar
+              </button>
+              <button
+                onClick={() => {
+                  import("@/lib/exportCsv").then(({ exportToCsv }) => {
+                    exportToCsv(
+                      "clientes.csv",
+                      customers.map((c) => ({
+                        nome: c.name,
+                        email: c.email,
+                        telefone: c.phone,
+                        documento: c.document,
+                        cidade: c.city,
+                        estado: c.state,
+                        criado_em: c.created_at,
+                      })),
+                    );
+                  });
+                }}
+                className="h-10 px-4 rounded-xl text-sm font-semibold border border-border bg-card hover:bg-muted transition flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" /> Exportar
+              </button>
+              <button
+                onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+                className={cn(
+                  "h-10 px-4 rounded-xl text-sm font-bold transition flex items-center gap-2",
+                  isQuickAddOpen
+                    ? "bg-muted text-foreground hover:bg-muted/80"
+                    : "bg-gradient-primary text-white hover:opacity-95 hover:scale-[1.02] active:scale-95 shadow-blue",
+                )}
+              >
+                <Plus className="h-4 w-4" /> Novo Cliente
+              </button>
+            </div>
           </div>
 
+          {/* Table */}
           <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-card">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Cliente
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Contato
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      Localização
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      CPF/CNPJ
-                    </th>
-                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
-                      Ações
-                    </th>
+                  <tr className="border-b border-border bg-muted/40">
+                    {["Cliente", "Contato", "Localização", "CPF/CNPJ", ""].map((h, i) => (
+                      <th
+                        key={h + i}
+                        className={cn(
+                          "px-5 py-3.5 text-[10px] font-black text-muted-foreground uppercase tracking-widest",
+                          i === 4 && "text-right",
+                        )}
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -508,78 +630,154 @@ function CustomersPage() {
                     <tr>
                       <td colSpan={5} className="px-6 py-20 text-center">
                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                        <p className="text-muted-foreground mt-2 text-sm">Carregando clientes...</p>
+                        <p className="text-muted-foreground mt-2 text-sm">
+                          Carregando clientes...
+                        </p>
                       </td>
                     </tr>
                   ) : filteredCustomers.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-20 text-center text-muted-foreground text-sm"
-                      >
-                        Nenhum cliente encontrado.
+                      <td colSpan={5} className="px-6 py-16 text-center">
+                        <div className="h-16 w-16 rounded-2xl bg-primary/10 text-primary grid place-items-center mx-auto mb-4 ring-1 ring-inset ring-primary/20">
+                          <Users className="h-8 w-8" />
+                        </div>
+                        <h3 className="text-lg font-black font-display">
+                          Nenhum cliente encontrado
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+                          Cadastre seu primeiro cliente ou importe sua base por CSV.
+                        </p>
+                        <button
+                          onClick={() => setIsQuickAddOpen(true)}
+                          className="mt-4 inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-gradient-primary text-white text-sm font-bold shadow-blue hover:opacity-95 transition"
+                        >
+                          <Plus className="h-4 w-4" /> Cadastrar Cliente
+                        </button>
                       </td>
                     </tr>
                   ) : (
-                    filteredCustomers.map((customer) => (
-                      <tr key={customer.id} className="hover:bg-muted/30 transition-colors group">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-full bg-primary/10 text-primary grid place-items-center font-bold text-xs">
-                              {customer.name.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="font-semibold text-sm">{customer.name}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="space-y-1">
-                            {customer.phone && (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Phone className="h-3 w-3" /> {customer.phone}
+                    filteredCustomers.map((customer) => {
+                      const isNew =
+                        customer.created_at &&
+                        Date.now() - new Date(customer.created_at).getTime() < 7 * 86400000;
+                      return (
+                        <tr
+                          key={customer.id}
+                          className="group hover:bg-muted/40 transition-colors"
+                        >
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={cn(
+                                  "h-10 w-10 rounded-full bg-gradient-to-br text-white grid place-items-center font-black text-xs shadow-sm shrink-0",
+                                  avatarGradient(customer.name),
+                                )}
+                              >
+                                {initialsFor(customer.name)}
                               </div>
-                            )}
-                            {customer.email && (
-                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                <Mail className="h-3 w-3" /> {customer.email}
+                              <div className="min-w-0">
+                                <div className="font-bold text-sm flex items-center gap-2">
+                                  <span className="truncate">{customer.name}</span>
+                                  {isNew && (
+                                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-success/10 text-success ring-1 ring-inset ring-success/20">
+                                      Novo
+                                    </span>
+                                  )}
+                                </div>
+                                {customer.created_at && (
+                                  <div className="text-[10px] text-muted-foreground">
+                                    Desde{" "}
+                                    {new Date(customer.created_at).toLocaleDateString("pt-BR", {
+                                      month: "short",
+                                      year: "numeric",
+                                    })}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {customer.city && (
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <MapPin className="h-3 w-3" /> {customer.city}
                             </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-xs font-mono text-muted-foreground">
-                          {customer.document || "—"}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="h-8 w-8 rounded-full hover:bg-muted grid place-items-center text-muted-foreground transition-colors">
-                                <MoreVertical className="h-4 w-4" />
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="space-y-1">
+                              {customer.phone && (
+                                <div className="flex items-center gap-1.5 text-xs text-foreground/80">
+                                  <Phone className="h-3 w-3 text-success" /> {customer.phone}
+                                </div>
+                              )}
+                              {customer.email && (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate">
+                                  <Mail className="h-3 w-3" /> {customer.email}
+                                </div>
+                              )}
+                              {!customer.phone && !customer.email && (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4">
+                            {customer.city ? (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3" /> {customer.city}
+                                {customer.state ? `/${customer.state}` : ""}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-5 py-4 text-xs font-mono text-muted-foreground">
+                            {customer.document || "—"}
+                          </td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {customer.phone && (
+                                <a
+                                  href={`https://wa.me/55${customer.phone.replace(/\D/g, "")}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-2 rounded-lg hover:bg-success/10 text-success transition"
+                                  title="WhatsApp"
+                                >
+                                  <MessageCircle className="h-4 w-4" />
+                                </a>
+                              )}
+                              <button
+                                onClick={() => handleViewHistory(customer)}
+                                className="p-2 rounded-lg hover:bg-primary/10 text-primary transition"
+                                title="Histórico"
+                              >
+                                <History className="h-4 w-4" />
                               </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => handleOpenModal(customer)}
-                                className="gap-2"
-                              >
-                                <Edit3 className="h-4 w-4" /> Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(customer.id)}
-                                className="gap-2 text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" /> Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    ))
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuItem
+                                    onClick={() => handleOpenModal(customer)}
+                                    className="gap-2"
+                                  >
+                                    <Edit3 className="h-4 w-4" /> Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleViewHistory(customer)}
+                                    className="gap-2"
+                                  >
+                                    <History className="h-4 w-4" /> Ver Histórico
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDelete(customer.id)}
+                                    className="gap-2 text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" /> Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

@@ -3,7 +3,8 @@ import { Sparkles, type LucideIcon } from "lucide-react";
 
 interface HubHeroAction {
   label: string;
-  to: string;
+  to?: string;
+  onClick?: () => void;
   icon: LucideIcon;
   variant?: "primary" | "ghost";
 }
@@ -43,14 +44,23 @@ export function HubHero({
                   : i === 0
                     ? "bg-white text-primary shadow-lg hover:opacity-90"
                     : "bg-white/15 backdrop-blur-md text-white hover:bg-white/25 border border-white/20";
-              return (
-                <Link
-                  key={a.to}
-                  to={a.to}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition ${cls}`}
-                >
+              const inner = (
+                <>
                   <a.icon className="h-4 w-4" /> {a.label}
-                </Link>
+                </>
+              );
+              const baseCls = `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition ${cls}`;
+              if (a.to) {
+                return (
+                  <Link key={a.label + i} to={a.to} onClick={a.onClick} className={baseCls}>
+                    {inner}
+                  </Link>
+                );
+              }
+              return (
+                <button key={a.label + i} type="button" onClick={a.onClick} className={baseCls}>
+                  {inner}
+                </button>
               );
             })}
           </div>
@@ -59,3 +69,4 @@ export function HubHero({
     </div>
   );
 }
+
