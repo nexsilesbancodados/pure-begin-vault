@@ -163,7 +163,7 @@ function FinanceCaixaPage() {
         />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="p-5 border-none bg-white shadow-sm border border-slate-100 rounded-[2rem] hover:shadow-xl hover:shadow-emerald-500/5 transition-all group">
+            <Card className="p-5 border-none bg-white shadow-sm border border-border/60 rounded-[2rem] hover:shadow-xl hover:shadow-emerald-500/5 transition-all group">
               <div className="flex justify-between items-start mb-2">
                 <div className="h-10 w-10 rounded-2xl bg-emerald-500 text-white grid place-items-center shadow-lg shadow-emerald-500/20 group-hover:scale-110 transition-transform">
                   <ArrowUpCircle className="h-5 w-5" />
@@ -172,14 +172,14 @@ function FinanceCaixaPage() {
                   Hoje
                 </span>
               </div>
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-4">
+              <div className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest mt-4">
                 Entradas
               </div>
-              <div className="text-2xl font-black text-slate-900 mt-1">
+              <div className="text-2xl font-black text-foreground mt-1">
                 {stats.todayIncome.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </div>
             </Card>
-            <Card className="p-5 border-none bg-white shadow-sm border border-slate-100 rounded-[2rem] hover:shadow-xl hover:shadow-red-500/5 transition-all group">
+            <Card className="p-5 border-none bg-white shadow-sm border border-border/60 rounded-[2rem] hover:shadow-xl hover:shadow-red-500/5 transition-all group">
               <div className="flex justify-between items-start mb-2">
                 <div className="h-10 w-10 rounded-2xl bg-red-500 text-white grid place-items-center shadow-lg shadow-red-500/20 group-hover:scale-110 transition-transform">
                   <ArrowDownCircle className="h-5 w-5" />
@@ -188,23 +188,23 @@ function FinanceCaixaPage() {
                   Hoje
                 </span>
               </div>
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-4">
+              <div className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest mt-4">
                 Saídas
               </div>
-              <div className="text-2xl font-black text-slate-900 mt-1">
+              <div className="text-2xl font-black text-foreground mt-1">
                 {stats.todayExpense.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </div>
             </Card>
-            <Card className="p-5 border-none bg-white shadow-sm border border-slate-100 rounded-[2rem] hover:shadow-xl hover:shadow-indigo-500/5 transition-all group">
+            <Card className="p-5 border-none bg-white shadow-sm border border-border/60 rounded-[2rem] hover:shadow-xl hover:shadow-indigo-500/5 transition-all group">
               <div className="flex justify-between items-start mb-2">
                 <div className="h-10 w-10 rounded-2xl bg-indigo-500 text-white grid place-items-center shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
                   <Wallet className="h-5 w-5" />
                 </div>
               </div>
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-4">
+              <div className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest mt-4">
                 Saldo Atual
               </div>
-              <div className="text-2xl font-black text-slate-900 mt-1">
+              <div className="text-2xl font-black text-foreground mt-1">
                 {stats.balance.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </div>
             </Card>
@@ -217,7 +217,7 @@ function FinanceCaixaPage() {
                   <Calendar className="h-5 w-5" />
                 </div>
               </div>
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-4">
+              <div className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest mt-4">
                 Previsto
               </div>
               <div className="text-2xl font-black mt-1 text-white">
@@ -232,7 +232,7 @@ function FinanceCaixaPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   placeholder="Buscar transação..."
-                  className="w-full h-11 pl-10 pr-4 rounded-xl bg-card border border-slate-200 text-sm font-medium outline-none focus:ring-2 focus:ring-blue-600/10 focus:border-blue-600 transition shadow-sm"
+                  className="w-full h-11 pl-10 pr-4 rounded-xl bg-card border border-border text-sm font-medium outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition shadow-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -244,7 +244,7 @@ function FinanceCaixaPage() {
                   setEditingTransaction(null);
                   setIsFormOpen(true);
                 }}
-                className="h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-6 shadow-lg shadow-blue-200"
+                className="h-11 rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-bold px-6 shadow-lg shadow-primary/20"
               >
                 <Plus className="h-4 w-4 mr-2" /> Novo Lançamento
               </Button>
@@ -254,28 +254,28 @@ function FinanceCaixaPage() {
           <Card className="border-border shadow-sm overflow-hidden rounded-2xl">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                <tr className="border-b border-border/60 bg-muted/40">
+                  <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                     Data
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                     Descrição
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                     Categoria
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">
+                  <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">
                     Valor
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
+                  <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">
                     Status
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">
+                  <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">
                     Ações
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border/60">
                 {loading ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-20 text-center">
@@ -285,8 +285,8 @@ function FinanceCaixaPage() {
                   </tr>
                 ) : filteredTransactions.length > 0 ? (
                   filteredTransactions.map((t) => (
-                    <tr key={t.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-6 py-4 text-xs font-bold text-slate-500">
+                    <tr key={t.id} className="hover:bg-muted/40 transition-colors group">
+                      <td className="px-6 py-4 text-xs font-bold text-muted-foreground">
                         {t.payment_date
                           ? format(new Date(t.payment_date), "dd/MM/yyyy", { locale: ptBR })
                           : "—"}
@@ -302,11 +302,11 @@ function FinanceCaixaPage() {
                               <ArrowDownLeft className="h-4 w-4" />
                             )}
                           </div>
-                          <span className="font-bold text-sm text-slate-900">{t.description}</span>
+                          <span className="font-bold text-sm text-foreground">{t.description}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-tight border border-slate-200">
+                        <span className="px-2.5 py-1 rounded-full bg-muted text-slate-600 text-[10px] font-black uppercase tracking-tight border border-border">
                           {t.category || "Geral"}
                         </span>
                       </td>
@@ -332,7 +332,7 @@ function FinanceCaixaPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 rounded-lg group-hover:bg-white group-hover:shadow-sm transition-all text-slate-400 hover:text-slate-600"
+                              className="h-8 w-8 rounded-lg group-hover:bg-white group-hover:shadow-sm transition-all text-muted-foreground/70 hover:text-slate-600"
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
