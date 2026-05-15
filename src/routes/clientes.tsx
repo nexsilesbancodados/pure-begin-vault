@@ -271,14 +271,14 @@ function CustomersPage() {
               <>
                 <div className="space-y-3">
                   <h3 className="text-sm font-bold flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600" /> Vendas Recentes
+                    <DollarSign className="h-4 w-4 text-success" /> Vendas Recentes
                   </h3>
                   {customerHistory.sales.length > 0 ? (
                     <div className="space-y-2">
                       {customerHistory.sales.map((s) => (
                         <div
                           key={s.id}
-                          className="text-xs p-3 rounded-xl border border-border bg-slate-50/50 flex justify-between items-center"
+                          className="text-xs p-3 rounded-xl border border-border bg-muted/40 flex justify-between items-center"
                         >
                           <div>
                             <div className="font-bold">Venda #{s.id.slice(0, 8)}</div>
@@ -286,7 +286,7 @@ function CustomersPage() {
                               {new Date(s.created_at).toLocaleDateString("pt-BR")}
                             </div>
                           </div>
-                          <div className="font-black text-slate-900">
+                          <div className="font-black text-foreground">
                             R$ {s.total_amount.toLocaleString("pt-BR")}
                           </div>
                         </div>
@@ -301,7 +301,7 @@ function CustomersPage() {
 
                 <div className="space-y-3">
                   <h3 className="text-sm font-bold flex items-center gap-2">
-                    <Wrench className="h-4 w-4 text-blue-600" /> Ordens de Serviço
+                    <Wrench className="h-4 w-4 text-primary" /> Ordens de Serviço
                   </h3>
                   {customerHistory.services.length > 0 ? (
                     <div className="space-y-2">
