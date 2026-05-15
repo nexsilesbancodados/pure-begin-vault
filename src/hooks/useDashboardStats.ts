@@ -140,5 +140,23 @@ export function useDashboardStats(period: Period = "today") {
     fetchStats();
   }, [fetchStats]);
 
+  // Realtime: refresh stats when underlying tables change
+  useEffect(() => {
+    if (!user?.id) return;
+    const filter = orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}`;
+    const tables = ["sales_orders", "leads", "service_orders", "products"] as const;
+    const channels = tables.map((t) =>
+      supabase
+        .channel(`dash-${t}-${orgId ?? user.id}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: t, filter }, () => {
+          fetchStats();
+        })
+        .subscribe(),
+    );
+    return () => {
+      channels.forEach((c) => supabase.removeChannel(c));
+    };
+  }, [user?.id, orgId, fetchStats]);
+
   return { stats, loading, refresh: fetchStats };
 }
