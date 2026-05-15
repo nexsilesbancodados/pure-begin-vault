@@ -99,22 +99,27 @@ export function OSForm() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">
-            Nova Ordem de Serviço
-          </h1>
-          <p className="text-muted-foreground text-sm font-medium">
-            Preencha os detalhes para iniciar o atendimento
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-xl bg-gradient-primary text-white grid place-items-center shadow-blue">
+            <Wrench className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight font-display">
+              Nova Ordem de Serviço
+            </h1>
+            <p className="text-muted-foreground text-sm font-medium">
+              Preencha os detalhes para iniciar o atendimento
+            </p>
+          </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="border-border shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+          <Card className="border-border shadow-card rounded-2xl overflow-hidden">
+            <CardHeader className="bg-muted/40 border-b border-border">
               <CardTitle className="text-base font-black flex items-center gap-2">
-                <Wrench className="h-4 w-4 text-blue-600" /> Detalhes do Serviço
+                <Wrench className="h-4 w-4 text-primary" /> Detalhes do Serviço
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
@@ -190,8 +195,8 @@ export function OSForm() {
         </div>
 
         <div className="space-y-6">
-          <Card className="border-border shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+          <Card className="border-border shadow-card rounded-2xl overflow-hidden">
+            <CardHeader className="bg-muted/40 border-b border-border">
               <CardTitle className="text-base font-black">Resumo</CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
@@ -202,7 +207,7 @@ export function OSForm() {
                   type="number"
                   step="0.01"
                   placeholder="0,00"
-                  className="h-11 rounded-xl font-black text-blue-600"
+                  className="h-11 rounded-xl font-black text-primary"
                   value={formData.estimated_cost}
                   onChange={(e) => setFormData({ ...formData, estimated_cost: e.target.value })}
                 />
@@ -228,7 +233,7 @@ export function OSForm() {
               <div className="pt-4">
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200"
+                  className="w-full h-12 bg-gradient-primary hover:opacity-95 text-white font-bold rounded-xl shadow-blue transition-all hover:scale-[1.02] active:scale-95"
                   disabled={loading}
                 >
                   {loading ? (
