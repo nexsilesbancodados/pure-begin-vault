@@ -946,48 +946,61 @@ export function PDVInterface() {
   return (
     <div className="flex flex-col gap-4 h-full lg:h-[calc(100vh-140px)] animate-in fade-in duration-500 overflow-y-auto lg:overflow-hidden p-2 sm:p-0">
       {/* Header de Ações Rápidas */}
-      <div className="flex items-center justify-between bg-card p-4 border border-border rounded-2xl shadow-sm">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full xl:hidden"
-            onClick={() => history.back()}
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              Frente de Caixa
-              <Badge
-                variant="outline"
-                className="text-[10px] uppercase tracking-wider bg-primary/5"
-              >
-                Operacional
-              </Badge>
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Terminal 01 • Atendente: {user?.email?.split("@")[0] || "Usuário"}
-            </p>
+      <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 sm:p-5 border border-primary/20 rounded-2xl shadow-sm">
+        <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        <div className="relative flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full xl:hidden"
+              onClick={() => history.back()}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30">
+              <ShoppingCart className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg sm:text-xl font-black tracking-tight flex items-center gap-2">
+                Frente de Caixa
+                <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest bg-success/15 text-success font-bold px-2 py-0.5 rounded-md border border-success/30">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+                  Online
+                </span>
+              </h2>
+              <p className="text-[11px] sm:text-xs text-muted-foreground">
+                Terminal 01 • {user?.email?.split("@")[0] || "Usuário"}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="hidden sm:flex gap-2"
-            onClick={() => navigate({ to: "/vendas/historico" })}
-          >
-            <History className="h-4 w-4" /> Histórico
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="hidden sm:flex gap-2"
-            onClick={() => navigate({ to: "/vendas/calculadora" })}
-          >
-            <Calculator className="h-4 w-4" /> Calculadora
-          </Button>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden md:flex flex-col items-end px-3 py-1.5 rounded-xl bg-card/80 backdrop-blur border border-border/60">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                Carrinho
+              </span>
+              <span className="text-sm font-black text-primary">
+                {subtotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:flex gap-2 bg-card/80 backdrop-blur"
+              onClick={() => navigate({ to: "/vendas/historico" })}
+            >
+              <History className="h-4 w-4" /> Histórico
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:flex gap-2 bg-card/80 backdrop-blur"
+              onClick={() => navigate({ to: "/vendas/calculadora" })}
+            >
+              <Calculator className="h-4 w-4" /> Calculadora
+            </Button>
+          </div>
         </div>
       </div>
 
