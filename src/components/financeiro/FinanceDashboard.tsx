@@ -81,37 +81,47 @@ export function FinanceDashboard() {
     const now = new Date();
     const currentMonthStart = startOfMonth(now);
     const currentMonthEnd = endOfMonth(now);
+    const prevMonthDate = subMonths(now, 1);
+    const prevMonthStart = startOfMonth(prevMonthDate);
+    const prevMonthEnd = endOfMonth(prevMonthDate);
 
-    const monthIncome = transactions
-      .filter(
-        (t) =>
-          t.type === "income" &&
-          t.payment_date &&
-          isWithinInterval(new Date(t.payment_date), {
-            start: currentMonthStart,
-            end: currentMonthEnd,
-          }),
-      )
-      .reduce((acc, t) => acc + (t.amount || 0), 0);
+    const sum = (type: "income" | "expense", start: Date, end: Date) =>
+      transactions
+        .filter(
+          (t) =>
+            t.type === type &&
+            t.payment_date &&
+            isWithinInterval(new Date(t.payment_date), { start, end }),
+        )
+        .reduce((acc, t) => acc + (t.amount || 0), 0);
 
-    const monthExpense = transactions
-      .filter(
-        (t) =>
-          t.type === "expense" &&
-          t.payment_date &&
-          isWithinInterval(new Date(t.payment_date), {
-            start: currentMonthStart,
-            end: currentMonthEnd,
-          }),
-      )
-      .reduce((acc, t) => acc + (t.amount || 0), 0);
+    const monthIncome = sum("income", currentMonthStart, currentMonthEnd);
+    const monthExpense = sum("expense", currentMonthStart, currentMonthEnd);
+    const prevIncome = sum("income", prevMonthStart, prevMonthEnd);
+    const prevExpense = sum("expense", prevMonthStart, prevMonthEnd);
+
+    const incomeDelta = prevIncome > 0 ? ((monthIncome - prevIncome) / prevIncome) * 100 : null;
+    const expenseDelta =
+      prevExpense > 0 ? ((monthExpense - prevExpense) / prevExpense) * 100 : null;
 
     const totalBalance = transactions.reduce(
       (acc, t) => acc + (t.type === "income" ? t.amount || 0 : -(t.amount || 0)),
       0,
     );
 
-    return { monthIncome, monthExpense, totalBalance };
+    const monthBalance = monthIncome - monthExpense;
+    const prevBalance = prevIncome - prevExpense;
+    const balanceDelta =
+      prevBalance > 0 ? ((monthBalance - prevBalance) / prevBalance) * 100 : null;
+
+    return {
+      monthIncome,
+      monthExpense,
+      totalBalance,
+      incomeDelta,
+      expenseDelta,
+      balanceDelta,
+    };
   }, [transactions]);
 
   const chartData = useMemo(() => {
