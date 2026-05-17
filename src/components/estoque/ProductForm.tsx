@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/useOrg";
 import {
   Dialog,
   DialogContent,
