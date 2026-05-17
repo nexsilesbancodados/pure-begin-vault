@@ -62,6 +62,7 @@ export const iconMap: Record<string, LucideIcon> = {
   Clock,
   DollarSign,
   FileText,
+  FileWarning,
   Headphones,
   HelpCircle,
   Inbox,
