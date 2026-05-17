@@ -87,6 +87,11 @@ export const sidebarItems = [
       { title: "Notas em Aberto", url: "/financeiro/notas-aberto" },
     ],
   },
+  {
+    title: "Notas",
+    url: "/financeiro/notas-aberto",
+    icon: "FileWarning" as const,
+  },
 
   // ─── CONFIGURAÇÕES ──────────────────────────────────
   { type: "header", title: "Configurações" },
