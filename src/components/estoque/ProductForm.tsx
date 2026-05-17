@@ -312,7 +312,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
           <TabsList className="h-auto rounded-none justify-start gap-0 bg-background border-b px-4 py-0">
             {[
               { v: "geral", l: "Dados gerais", i: Info },
-              { v: "contas", l: "Contas a Pagar", i: Wallet },
+              { v: "contas", l: "Financeiro", i: Wallet },
               { v: "pagamento", l: "Forma de Pagamento", i: CreditCard },
               { v: "custos", l: "Custos extras", i: Coins },
               { v: "anexos", l: "Anexos", i: Paperclip },
