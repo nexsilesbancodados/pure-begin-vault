@@ -326,8 +326,20 @@ function ProductsPage() {
                   key={product.id}
                   className="rounded-2xl bg-card border border-border overflow-hidden shadow-card hover:shadow-elegant transition-all group"
                 >
-                  <div className="h-40 bg-muted grid place-items-center relative">
-                    <ShoppingBag className="h-12 w-12 text-muted-foreground/30 group-hover:scale-110 transition duration-300" />
+                  <div className="h-40 bg-muted grid place-items-center relative overflow-hidden">
+                    {product.image_url ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition duration-300"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <ShoppingBag className="h-12 w-12 text-muted-foreground/30 group-hover:scale-110 transition duration-300" />
+                    )}
                     <div className="absolute top-3 right-3">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
