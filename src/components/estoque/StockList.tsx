@@ -420,7 +420,13 @@ export function StockList() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: "Total de Itens", value: totalStats.totalItems, icon: Layers, color: "indigo" },
+          {
+            label: "Total de Itens",
+            value: totalStats.totalItems,
+            icon: Layers,
+            accent: "from-primary/15 to-primary/0 text-primary",
+            iconBg: "bg-primary/10 text-primary",
+          },
           {
             label: "Venda Estimada",
             value: totalStats.totalValue.toLocaleString("pt-BR", {
@@ -428,7 +434,8 @@ export function StockList() {
               currency: "BRL",
             }),
             icon: TrendingUp,
-            color: "emerald",
+            accent: "from-success/15 to-success/0 text-success",
+            iconBg: "bg-success/10 text-success",
           },
           {
             label: "Custo Total",
@@ -437,32 +444,47 @@ export function StockList() {
               currency: "BRL",
             }),
             icon: Tags,
-            color: "violet",
+            accent: "from-info/15 to-info/0 text-info",
+            iconBg: "bg-info/10 text-info",
           },
-          { label: "Estoque Baixo", value: totalStats.lowStock, icon: Clock, color: "amber" },
-          { label: "Esgotados", value: totalStats.outOfStock, icon: AlertTriangle, color: "red" },
-        ].map((stat, i) => (
-          <Card
-            key={i}
-            className="bg-white border border-slate-100 rounded-[2rem] hover:shadow-xl hover:shadow-slate-200/50 transition-all group relative overflow-hidden"
-          >
-            <CardContent className="p-6">
-              <div
-                className={`h-12 w-12 rounded-2xl bg-${stat.color}-500 text-white grid place-items-center shadow-lg shadow-${stat.color}-500/20 group-hover:scale-110 transition-transform mb-4`}
-              >
-                <stat.icon className="h-6 w-6" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+          {
+            label: "Estoque Baixo",
+            value: totalStats.lowStock,
+            icon: Clock,
+            accent: "from-warning/15 to-warning/0 text-warning",
+            iconBg: "bg-warning/10 text-warning",
+          },
+          {
+            label: "Esgotados",
+            value: totalStats.outOfStock,
+            icon: AlertTriangle,
+            accent: "from-destructive/15 to-destructive/0 text-destructive",
+            iconBg: "bg-destructive/10 text-destructive",
+          },
+        ].map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <div
+              key={i}
+              className={`relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br ${stat.accent.replace(/text-\S+/, "")} bg-card p-5 group hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all`}
+            >
+              <div className="absolute top-0 right-0 h-24 w-24 rounded-full bg-gradient-to-br from-white/40 to-transparent blur-2xl opacity-50 group-hover:opacity-80 transition-opacity" />
+              <div className="relative">
+                <div
+                  className={`h-11 w-11 rounded-xl ${stat.iconBg} grid place-items-center mb-4 group-hover:scale-110 transition-transform`}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                   {stat.label}
                 </p>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight truncate">
+                <h3 className="text-xl font-black mt-1 tracking-tight truncate text-foreground">
                   {stat.value || 0}
                 </h3>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          );
+        })}
       </div>
 
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-card p-4 rounded-2xl border border-border">
