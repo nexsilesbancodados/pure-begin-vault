@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -21,69 +22,44 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  Tag,
-  DollarSign,
-  History,
-  CheckCircle2,
   Plus,
-  Cpu,
-  Upload,
-  Image as ImageIcon,
-  Hash,
-  Settings2,
-  Info as InfoIcon,
-  Zap,
-  Box,
-  ClipboardList,
-  Warehouse,
-  MapPin,
-  Percent,
-  Globe,
-  Trash2,
-  ChevronDown,
-  Sparkles,
-  LayoutGrid,
-  Coins,
-  Package,
-  Monitor,
-  Briefcase,
   Loader2,
+  Smartphone,
+  Barcode,
+  DollarSign,
+  FileText,
+  Wallet,
   CreditCard,
+  Coins,
+  Paperclip,
+  ArrowLeftRight,
+  ClipboardCheck,
+  Info,
+  Trash2,
+  Upload,
+  Calendar as CalendarIcon,
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+
+type ProductType = "Aparelho" | "Acessório" | "Peça";
 
 interface ProductFormData {
+  // Core (mapped to columns)
   name: string;
   sku?: string;
   ean?: string;
-  ncm?: string;
-  reference?: string;
-  category: string;
+  category?: string;
   brand?: string;
   supplier?: string;
   model?: string;
   price: number;
-  wholesale_price?: number;
   cost_price?: number;
-  stock: number;
+  wholesale_price?: number;
+  stock_quantity: number;
   min_stock?: number;
-  unit: string;
-  weight?: number;
-  location?: string;
-  store?: string;
-  imei?: string;
-  imei2?: string;
-  color?: string;
-  capacity?: string;
+  unit?: string;
   description?: string;
-  processor?: string;
-  ram?: string;
-  display?: string;
-  image_url?: string;
-  margin?: number;
-  markup?: number;
-  battery_health?: string;
-  observations?: string;
+  // Extras → metadata
+  metadata?: Record<string, any>;
 }
 
 interface ProductFormProps {
@@ -93,1232 +69,884 @@ interface ProductFormProps {
   onSave?: (data: ProductFormData) => void;
 }
 
+type ExtraRow = { id: string; description: string; amount: string; dueDate?: string };
+
 export function ProductForm({ open, onOpenChange, product, onSave }: ProductFormProps) {
-  const [existingBrands, setExistingBrands] = useState<string[]>([]);
-  const [existingSuppliers, setExistingSuppliers] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState("geral");
+  const [isSaving, setIsSaving] = useState(false);
+  const [productType, setProductType] = useState<ProductType>(
+    (product?.metadata?.tipo as ProductType) || "Aparelho",
+  );
 
-  useEffect(() => {
-    const fetchExistingData = async () => {
-      const { data: brandsData } = await supabase
-        .from("products")
-        .select("brand")
-        .not("brand", "is", null)
-        .neq("brand", "");
+  const md = product?.metadata || {};
 
-      const { data: suppliersData } = await supabase
-        .from("products")
-        .select("supplier")
-        .not("supplier", "is", null)
-        .neq("supplier", "");
-
-      if (brandsData) {
-        const uniqueBrands = Array.from(new Set(brandsData.map((b: any) => b.brand)));
-        setExistingBrands(uniqueBrands as string[]);
-      }
-      if (suppliersData) {
-        const uniqueSuppliers = Array.from(new Set(suppliersData.map((s: any) => s.supplier)));
-        setExistingSuppliers(uniqueSuppliers as string[]);
-      }
-    };
-
-    if (open) {
-      fetchExistingData();
-    }
-  }, [open]);
-  const [activeTab, setActiveTab] = useState<
-    "geral" | "financeiro" | "logistica" | "especificacoes" | "servicos"
-  >("geral");
-  const [isSmartphone, setIsSmartphone] = useState(product?.category === "Smartphones");
-  const [formData, setFormData] = useState<ProductFormData>(() => {
-    const isNew = !product;
-    return {
-      name: product?.name || "",
-      sku: product?.sku || "",
-      ean: product?.ean || "",
-      ncm: product?.ncm || "",
-      reference: product?.reference || "",
-      category:
-        product?.category ||
-        (isNew ? localStorage.getItem("last_product_category") || "Acessórios" : "Acessórios"),
-      brand:
-        product?.brand || (isNew ? localStorage.getItem("last_product_brand") || "apple" : "apple"),
-      supplier:
-        product?.supplier ||
-        (isNew ? localStorage.getItem("last_product_supplier") || "padrao" : "padrao"),
-      model: product?.model || (isNew ? localStorage.getItem("last_product_model") || "" : ""),
-      price: product?.price || 0,
-      wholesale_price: product?.wholesale_price || 0,
-      cost_price: product?.cost_price || 0,
-      stock: product?.stock || 0,
-      min_stock: product?.min_stock || 2,
-      unit: product?.unit || (isNew ? localStorage.getItem("last_product_unit") || "un" : "un"),
-      weight: product?.weight || 0,
-      location:
-        product?.location || (isNew ? localStorage.getItem("last_product_location") || "" : ""),
-      store:
-        product?.store ||
-        (isNew ? localStorage.getItem("last_product_store") || "matriz" : "matriz"),
-      imei: product?.imei || "",
-      imei2: product?.imei2 || "",
-      color: product?.color || (isNew ? localStorage.getItem("last_product_color") || "" : ""),
-      capacity:
-        product?.capacity || (isNew ? localStorage.getItem("last_product_capacity") || "" : ""),
-      description: product?.description || "",
-      image_url: product?.image_url || "",
-      processor:
-        product?.processor || (isNew ? localStorage.getItem("last_product_processor") || "" : ""),
-      ram: product?.ram || (isNew ? localStorage.getItem("last_product_ram") || "" : ""),
-      display:
-        product?.display || (isNew ? localStorage.getItem("last_product_display") || "" : ""),
-      battery_health: product?.battery_health || "",
-      observations: product?.observations || "",
-      margin: 0,
-      markup: 0,
-    };
+  const [form, setForm] = useState({
+    // dados gerais
+    codigo: product?.reference || product?.id?.slice(0, 8) || "",
+    tipo: md.tipo || "Aparelho",
+    imei: md.imei || "",
+    imei2: md.imei2 || "",
+    sku: product?.sku || "",
+    ean: product?.ean || "",
+    disponibilidade: md.disponibilidade || "Disponível para venda",
+    modelo: product?.model || "",
+    gb: md.gb || "",
+    serial: md.serial || "",
+    ram: md.ram || "",
+    cor: md.cor || "",
+    marca: product?.brand || "",
+    categoria: product?.category || "Smartphones",
+    subcategoria: md.subcategoria || "",
+    saude_bateria: md.saude_bateria || "",
+    ciclo_bateria: md.ciclo_bateria || "",
+    estado: md.estado || "",
+    quantidade: String(product?.stock_quantity ?? 1),
+    quantidade_minima: String(product?.min_stock ?? ""),
+    valor_custo: String(product?.cost_price ?? ""),
+    valor_venda: String(product?.price ?? ""),
+    margem: md.margem || "",
+    markup: md.markup || "",
+    data_entrada: md.data_entrada || new Date().toISOString().slice(0, 10),
+    dias_garantia: md.dias_garantia || "90",
+    valor_venda_2: md.valor_venda_2 || "",
+    valor_venda_3: md.valor_venda_3 || "",
+    observacao: product?.description || "",
+    tags: (md.tags || []).join(", "),
+    // fornecedor
+    tipo_fornecedor: md.tipo_fornecedor || "Fornecedor",
+    fornecedor: product?.supplier || "",
+    // outras informações
+    ncm: md.ncm || product?.ncm || "",
+    cest: md.cest || "",
+    origem: md.origem || "0",
+    peso: md.peso || product?.weight || "",
+    // forma de pagamento
+    forma_pagamento: md.forma_pagamento || "À vista",
+    parcelas: md.parcelas || "1",
+    // movimentação inicial
+    mov_tipo: md.mov_tipo || "entrada",
+    mov_motivo: md.mov_motivo || "Compra",
+    mov_obs: md.mov_obs || "",
   });
 
+  const [contasPagar, setContasPagar] = useState<ExtraRow[]>(md.contas_pagar || []);
+  const [custosExtras, setCustosExtras] = useState<ExtraRow[]>(md.custos_extras || []);
+  const [anexos, setAnexos] = useState<{ name: string; url?: string }[]>(md.anexos || []);
+  const [checklist, setChecklist] = useState<{ id: string; item: string; ok: boolean }[]>(
+    md.checklist || [
+      { id: "1", item: "Tela sem riscos", ok: false },
+      { id: "2", item: "Carregador incluso", ok: false },
+      { id: "3", item: "Caixa original", ok: false },
+    ],
+  );
+
+  // Reset when product changes
   useEffect(() => {
-    if (product) {
-      setIsSmartphone(product.category === "Smartphones");
-      const { margin, markup } = calculateFromPrice(product.price || 0, product.cost_price);
-      setFormData({
-        name: product.name || "",
-        sku: product.sku || "",
-        ean: product.ean || "",
-        ncm: product.ncm || "",
-        reference: product.reference || "",
-        category: product.category || "Acessórios",
-        brand: product.brand || "apple",
-        supplier: product.supplier || "padrao",
-        model: product.model || "",
-        price: product.price || 0,
-        wholesale_price: product.wholesale_price || 0,
-        cost_price: product.cost_price || 0,
-        stock: product.stock || 0,
-        min_stock: product.min_stock || 2,
-        unit: product.unit || "un",
-        weight: product.weight || 0,
-        location: product.location || "",
-        store: product.store || "matriz",
-        imei: product.imei || "",
-        imei2: product.imei2 || "",
-        color: product.color || "",
-        capacity: product.capacity || "",
-        description: product.description || "",
-        image_url: product.image_url || "",
-        processor: product.processor || "",
-        ram: product.ram || "",
-        display: product.display || "",
-        battery_health: product.battery_health || "",
-        observations: product.observations || "",
-        margin,
-        markup,
-      });
-    }
-  }, [product]);
+    if (!open) return;
+    setActiveTab("geral");
+  }, [open]);
 
-  const calculateFromPrice = (price: number, cost: number | undefined) => {
-    if (!cost || !price) return { margin: 0, markup: 0 };
-    const grossProfit = price - cost;
-    const margin = (grossProfit / price) * 100;
-    const markup = (grossProfit / cost) * 100;
-    return { margin: Math.max(0, margin), markup: Math.max(0, markup) };
-  };
+  const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
-  const calculateFromMargin = (margin: number, cost: number) => {
-    if (!cost) return 0;
-    if (margin >= 100) return cost * 10; // Avoid division by zero
-    return cost / (1 - margin / 100);
-  };
+  // Auto calc lucro / margem / markup
+  const lucro = useMemo(() => {
+    const v = parseFloat(form.valor_venda) || 0;
+    const c = parseFloat(form.valor_custo) || 0;
+    return v - c;
+  }, [form.valor_venda, form.valor_custo]);
 
-  const calculateFromMarkup = (markup: number, cost: number) => {
-    if (!cost) return 0;
-    return cost * (1 + markup / 100);
-  };
+  const margemCalc = useMemo(() => {
+    const v = parseFloat(form.valor_venda) || 0;
+    if (!v) return 0;
+    return (lucro / v) * 100;
+  }, [lucro, form.valor_venda]);
 
-  const handleChange = (field: keyof ProductFormData, value: any) => {
-    setFormData((prev) => {
-      const newData = { ...prev, [field]: value };
-
-      if (field === "price" || field === "cost_price") {
-        const p =
-          field === "price"
-            ? typeof value === "number"
-              ? value
-              : parseFloat(value) || 0
-            : prev.price;
-        const c =
-          field === "cost_price"
-            ? typeof value === "number"
-              ? value
-              : parseFloat(value) || 0
-            : prev.cost_price;
-        const { margin, markup } = calculateFromPrice(p, c);
-        newData.margin = margin;
-        newData.markup = markup;
-      } else if (field === "margin") {
-        newData.price = calculateFromMargin(value, prev.cost_price || 0);
-        const { markup } = calculateFromPrice(newData.price, prev.cost_price || 0);
-        newData.markup = markup;
-      } else if (field === "markup") {
-        newData.price = calculateFromMarkup(value, prev.cost_price || 0);
-        const { margin } = calculateFromPrice(newData.price, prev.cost_price || 0);
-        newData.margin = margin;
-      }
-
-      return newData;
-    });
-
-    if (field === "category") {
-      setIsSmartphone(value === "Smartphones");
-    }
-
-    const persistentFields = [
-      "category",
-      "brand",
-      "supplier",
-      "model",
-      "unit",
-      "location",
-      "store",
-      "processor",
-      "ram",
-      "display",
-      "capacity",
-      "color",
-    ];
-
-    if (!product && persistentFields.includes(field)) {
-      localStorage.setItem(`last_product_${field}`, String(value));
-    }
-  };
-
-  const grossProfit = (formData.price || 0) - (formData.cost_price || 0);
-
-  const [isSaving, setIsSaving] = useState(false);
+  const markupCalc = useMemo(() => {
+    const c = parseFloat(form.valor_custo) || 0;
+    if (!c) return 0;
+    return (lucro / c) * 100;
+  }, [lucro, form.valor_custo]);
 
   const handleSave = async () => {
-    if (!formData.name.trim()) {
-      alert("O nome do produto é obrigatório.");
-      return;
+    if (!form.modelo && !form.sku && !form.ean && !form.codigo && !form.marca) {
+      // require at least a name
     }
+    const name =
+      [form.marca, form.modelo, form.gb && `${form.gb}GB`, form.cor].filter(Boolean).join(" ") ||
+      form.modelo ||
+      form.sku ||
+      "Produto sem nome";
+
+    const payload: ProductFormData = {
+      name,
+      sku: form.sku || undefined,
+      ean: form.ean || undefined,
+      category: form.categoria || form.tipo,
+      brand: form.marca || undefined,
+      supplier: form.fornecedor || undefined,
+      model: form.modelo || undefined,
+      price: parseFloat(form.valor_venda) || 0,
+      cost_price: parseFloat(form.valor_custo) || 0,
+      stock_quantity: parseInt(form.quantidade) || 0,
+      min_stock: form.quantidade_minima ? parseInt(form.quantidade_minima) : undefined,
+      unit: "un",
+      description: form.observacao || undefined,
+      metadata: {
+        tipo: form.tipo,
+        imei: form.imei,
+        imei2: form.imei2,
+        disponibilidade: form.disponibilidade,
+        gb: form.gb,
+        serial: form.serial,
+        ram: form.ram,
+        cor: form.cor,
+        subcategoria: form.subcategoria,
+        saude_bateria: form.saude_bateria,
+        ciclo_bateria: form.ciclo_bateria,
+        estado: form.estado,
+        margem: form.margem || margemCalc.toFixed(2),
+        markup: form.markup || markupCalc.toFixed(2),
+        data_entrada: form.data_entrada,
+        dias_garantia: form.dias_garantia,
+        valor_venda_2: form.valor_venda_2,
+        valor_venda_3: form.valor_venda_3,
+        tags: form.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        tipo_fornecedor: form.tipo_fornecedor,
+        ncm: form.ncm,
+        cest: form.cest,
+        origem: form.origem,
+        peso: form.peso,
+        forma_pagamento: form.forma_pagamento,
+        parcelas: form.parcelas,
+        contas_pagar: contasPagar,
+        custos_extras: custosExtras,
+        anexos,
+        checklist,
+        mov_tipo: form.mov_tipo,
+        mov_motivo: form.mov_motivo,
+        mov_obs: form.mov_obs,
+      },
+    };
 
     setIsSaving(true);
     try {
-      if (onSave) {
-        await onSave(formData);
-      }
+      if (onSave) await onSave(payload as any);
       onOpenChange(false);
-    } catch (error) {
-      console.error("Erro ao salvar produto no formulário:", error);
+    } catch (e) {
+      console.error(e);
     } finally {
       setIsSaving(false);
     }
   };
 
+  // ----- helpers UI -----
+  const FieldRow = ({
+    label,
+    required,
+    children,
+    className = "",
+  }: {
+    label: string;
+    required?: boolean;
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <div className={`grid grid-cols-[160px_1fr] items-center gap-3 ${className}`}>
+      <Label className="text-xs font-semibold text-muted-foreground text-right">
+        {required && <span className="text-destructive mr-1">*</span>}
+        {label}:
+      </Label>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+
+  const addExtraRow = (setter: (fn: any) => void) =>
+    setter((prev: ExtraRow[]) => [
+      ...prev,
+      { id: crypto.randomUUID(), description: "", amount: "", dueDate: "" },
+    ]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] w-[1400px] p-0 overflow-hidden border-sidebar-border bg-background backdrop-blur-xl h-[95vh] flex flex-col shadow-elegant">
-        <DialogHeader className="p-6 pb-4 bg-muted/20">
-          <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground shadow-glow shrink-0">
-              {product ? <History className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-            </div>
-            <div className="space-y-0.5">
-              <DialogTitle className="text-2xl font-black tracking-tight">
-                {product ? "Editar Registro" : "Novo Cadastro"}
-              </DialogTitle>
-              <div className="flex items-center gap-2">
-                <DialogDescription className="text-xs font-medium text-muted-foreground">
-                  {product
-                    ? "Atualização de estoque e metadados"
-                    : "Todos os dados concentrados em uma única página"}
-                </DialogDescription>
-                <Badge
-                  variant="outline"
-                  className="bg-primary/5 text-primary border-primary/20 text-[9px] uppercase font-bold py-0 h-4 animate-pulse"
-                >
-                  Fluxo Unificado
-                </Badge>
-              </div>
-            </div>
-          </div>
+      <DialogContent className="max-w-[95vw] w-[1500px] p-0 overflow-hidden h-[95vh] flex flex-col">
+        {/* Header */}
+        <DialogHeader className="px-6 py-4 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground space-y-0">
+          <DialogTitle className="text-base font-bold">
+            {product ? "Editar Produto em Estoque" : "Cadastrar Produto em Estoque"}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Formulário completo de cadastro de produto
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-muted/5">
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
-            <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
-              <TabsList className="grid grid-cols-2 md:grid-cols-5 gap-4 p-1 bg-muted/20 rounded-2xl border border-sidebar-border/30 h-auto mb-10">
-                <TabsTrigger
-                  value="geral"
-                  className="rounded-xl h-10 font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary"
-                >
-                  <LayoutGrid className="h-3.5 w-3.5 mr-2" /> Geral
-                </TabsTrigger>
-                <TabsTrigger
-                  value="financeiro"
-                  className="rounded-xl h-10 font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary"
-                >
-                  <Coins className="h-3.5 w-3.5 mr-2" /> Financeiro
-                </TabsTrigger>
-                <TabsTrigger
-                  value="logistica"
-                  className="rounded-xl h-10 font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary"
-                >
-                  <Package className="h-3.5 w-3.5 mr-2" /> Logística
-                </TabsTrigger>
-                <TabsTrigger
-                  value="especificacoes"
-                  className="rounded-xl h-10 font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary"
-                >
-                  <Monitor className="h-3.5 w-3.5 mr-2" /> Especificações
-                </TabsTrigger>
-                <TabsTrigger
-                  value="servicos"
-                  className="rounded-xl h-10 font-bold text-[10px] uppercase tracking-wider data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary"
-                >
-                  <Briefcase className="h-3.5 w-3.5 mr-2" /> Serviços
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent
-                value="geral"
-                className="mt-0 animate-in fade-in slide-in-from-left-4 duration-300"
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="h-auto rounded-none justify-start gap-0 bg-background border-b px-4 py-0">
+            {[
+              { v: "geral", l: "Dados gerais", i: Info },
+              { v: "contas", l: "Contas a Pagar", i: Wallet },
+              { v: "pagamento", l: "Forma de Pagamento", i: CreditCard },
+              { v: "custos", l: "Custos extras", i: Coins },
+              { v: "anexos", l: "Anexos", i: Paperclip },
+              { v: "movimentacao", l: "Movimentação de Estoque", i: ArrowLeftRight },
+              { v: "checklist", l: "Checklist", i: ClipboardCheck },
+              { v: "outras", l: "Outras informações", i: FileText },
+            ].map((t) => (
+              <TabsTrigger
+                key={t.v}
+                value={t.v}
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3 text-xs font-semibold"
               >
-                <div className="space-y-6 pb-20">
-                  <div className="flex flex-col lg:flex-row gap-6 items-start">
-                    <section className="flex-1 bg-background rounded-3xl border border-sidebar-border/60 p-8 space-y-8 shadow-sm hover:shadow-md transition-all duration-300">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-[13px] font-black uppercase tracking-widest text-primary flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <Tag className="h-4 w-4 text-primary" />
-                          </div>
-                          Dados do Produto
-                        </h3>
-                        <Badge
-                          variant="outline"
-                          className="bg-emerald-500/5 text-emerald-600 border-emerald-500/20 text-[9px] font-black py-1"
-                        >
-                          Sincronizado
-                        </Badge>
-                      </div>
+                {t.l}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-                      <div className="grid gap-6">
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-                          <div className="md:col-span-8 grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1 flex items-center gap-2">
-                              Nome do Produto
-                              <Badge
-                                variant="outline"
-                                className="text-[8px] h-3.5 px-1 py-0 border-primary/20 text-primary"
-                              >
-                                Obrigatório
-                              </Badge>
-                            </Label>
-                            <Input
-                              id="name"
-                              value={formData.name}
-                              onChange={(e) => handleChange("name", e.target.value)}
-                              placeholder="Ex: Apple iPhone 15 Pro Max 256GB"
-                              className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 text-sm font-bold transition-all"
-                              required
-                            />
-                          </div>
-                          <div className="md:col-span-4 grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                              Código Interno / SKU
-                            </Label>
-                            <Input
-                              value={formData.sku}
-                              onChange={(e) => handleChange("sku", e.target.value)}
-                              placeholder="AUTO-GEN-001"
-                              className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 text-sm font-bold transition-all"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-                          <div className="md:col-span-3 grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                              EAN / Código de Barras
-                            </Label>
-                            <Input
-                              value={formData.ean}
-                              onChange={(e) => handleChange("ean", e.target.value)}
-                              placeholder="789..."
-                              className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 text-sm font-bold transition-all"
-                            />
-                          </div>
-                          <div className="md:col-span-3 grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                              Código NCM
-                            </Label>
-                            <Input
-                              value={formData.ncm}
-                              onChange={(e) => handleChange("ncm", e.target.value)}
-                              placeholder="8517.13.00"
-                              className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 text-sm font-bold transition-all"
-                            />
-                          </div>
-                          <div className="md:col-span-3 grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                              Referência do Fabricante
-                            </Label>
-                            <Input
-                              value={formData.reference}
-                              onChange={(e) => handleChange("reference", e.target.value)}
-                              placeholder="REF-123"
-                              className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 text-sm font-bold transition-all"
-                            />
-                          </div>
-                          <div className="md:col-span-3 grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1 flex items-center gap-2">
-                              Tipo do Produto
-                              <Badge
-                                variant="outline"
-                                className="text-[8px] h-3.5 px-1 py-0 border-primary/20 text-primary"
-                              >
-                                Estoque
-                              </Badge>
-                            </Label>
-                            <Select defaultValue="simples">
-                              <SelectTrigger className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 font-semibold transition-all">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="simples">Produto Simples</SelectItem>
-                                <SelectItem value="composto">Produto Composto</SelectItem>
-                                <SelectItem value="servico">Serviço</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                              Categoria
-                            </Label>
-                            <Select
-                              value={formData.category}
-                              onValueChange={(v) => handleChange("category", v)}
-                            >
-                              <SelectTrigger className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 font-semibold transition-all">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="border-border shadow-elegant">
-                                <SelectItem value="Smartphones">Smartphones</SelectItem>
-                                <SelectItem value="Tablets">Tablets</SelectItem>
-                                <SelectItem value="Watch">Smartwatches</SelectItem>
-                                <SelectItem value="Acessórios">Acessórios</SelectItem>
-                                <SelectItem value="Serviços">Serviços</SelectItem>
-                                <SelectItem value="Peças">Peças</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                              Fabricante / Marca
-                            </Label>
-                            <div className="flex w-full group">
-                              <Input
-                                value={formData.brand}
-                                onChange={(e) => handleChange("brand", e.target.value)}
-                                placeholder="Ex: Apple, Samsung..."
-                                className="bg-card h-11 border-border border-r-0 rounded-r-none shadow-sm focus:ring-4 focus:ring-primary/5 text-sm font-bold transition-all"
-                              />
-                              <Select
-                                onValueChange={(v) => {
-                                  if (v === "new_brand") {
-                                    handleChange("brand", "");
-                                  } else {
-                                    handleChange("brand", v);
-                                  }
-                                }}
-                              >
-                                <SelectTrigger className="h-11 w-10 border-border border-l-0 rounded-l-none bg-card hover:bg-muted/20 transition-colors focus:ring-0">
-                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                </SelectTrigger>
-                                <SelectContent className="border-border shadow-elegant">
-                                  <SelectItem
-                                    value="new_brand"
-                                    className="font-bold text-primary border-b border-border mb-1 hover:bg-primary/5"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <Plus className="h-3 w-3" />
-                                      <span>Cadastrar Nova</span>
-                                    </div>
-                                  </SelectItem>
-                                  {existingBrands.length > 0 ? (
-                                    existingBrands.map((brand) => (
-                                      <SelectItem key={brand} value={brand}>
-                                        {brand}
-                                      </SelectItem>
-                                    ))
-                                  ) : (
-                                    <div className="p-2 text-[10px] text-center text-muted-foreground uppercase font-black">
-                                      Nenhuma marca
-                                    </div>
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <div className="grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                              Fornecedor
-                            </Label>
-                            <div className="flex w-full group">
-                              <Input
-                                value={formData.supplier}
-                                onChange={(e) => handleChange("supplier", e.target.value)}
-                                placeholder="Selecione ou digite..."
-                                className="bg-muted/10 h-11 border-border border-r-0 rounded-r-none shadow-sm focus:ring-4 focus:ring-primary/5 text-sm font-bold transition-all"
-                              />
-                              <Select
-                                onValueChange={(v) => {
-                                  if (v === "new_supplier") {
-                                    // Em uma implementação real aqui abriria um modal de cadastro
-                                    // Por enquanto apenas limpa para o usuário digitar
-                                    handleChange("supplier", "");
-                                  } else {
-                                    handleChange("supplier", v);
-                                  }
-                                }}
-                              >
-                                <SelectTrigger className="h-11 w-10 border-border border-l-0 rounded-l-none bg-card hover:bg-muted/20 transition-colors focus:ring-0">
-                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                </SelectTrigger>
-                                <SelectContent className="border-border shadow-elegant">
-                                  <SelectItem
-                                    value="new_supplier"
-                                    className="font-bold text-primary border-b border-border mb-1 hover:bg-primary/5"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <Plus className="h-3 w-3" />
-                                      <span>Cadastrar Novo</span>
-                                    </div>
-                                  </SelectItem>
-                                  {existingSuppliers.length > 0 ? (
-                                    existingSuppliers.map((supplier) => (
-                                      <SelectItem key={supplier} value={supplier}>
-                                        {supplier}
-                                      </SelectItem>
-                                    ))
-                                  ) : (
-                                    <div className="p-2 text-[10px] text-center text-muted-foreground uppercase font-black">
-                                      Nenhum fornecedor
-                                    </div>
-                                  )}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          <div className="grid gap-2 md:col-span-3">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                              Modelo / Referência
-                            </Label>
-                            <Input
-                              value={formData.model}
-                              onChange={(e) => handleChange("model", e.target.value)}
-                              placeholder="iPhone 15 Pro Max"
-                              className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 text-sm font-bold transition-all"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </section>
-
-                    <section className="w-full lg:w-[380px] space-y-6 shrink-0">
-                      <div className="bg-primary/5 rounded-3xl border border-primary/20 p-6 space-y-5 shadow-sm">
-                        <h3 className="text-[11px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                          <DollarSign className="h-4 w-4" /> Precificação Básica
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="grid gap-2">
-                            <Label className="text-[9px] font-black uppercase opacity-60">
-                              Venda
-                            </Label>
-                            <div className="relative">
-                              <div className="absolute inset-y-0 left-0 w-8 flex items-center justify-center bg-primary text-primary-foreground font-black text-[9px] rounded-l-xl shadow-glow">
-                                R$
-                              </div>
-                              <Input
-                                type="number"
-                                value={formData.price}
-                                onChange={(e) =>
-                                  handleChange("price", parseFloat(e.target.value) || 0)
-                                }
-                                className="h-11 border-primary/20 bg-background pl-10 text-sm font-black text-primary focus:ring-4 focus:ring-primary/5"
-                              />
-                            </div>
-                          </div>
-                          <div className="grid gap-2">
-                            <Label className="text-[9px] font-black uppercase opacity-60">
-                              Custo
-                            </Label>
-                            <div className="relative">
-                              <div className="absolute inset-y-0 left-0 w-8 flex items-center justify-center bg-muted text-muted-foreground font-black text-[9px] rounded-l-xl border border-r-0 border-border">
-                                R$
-                              </div>
-                              <Input
-                                type="number"
-                                value={formData.cost_price}
-                                onChange={(e) =>
-                                  handleChange("cost_price", parseFloat(e.target.value) || 0)
-                                }
-                                className="h-11 border-border bg-background pl-10 text-sm font-black focus:ring-4 focus:ring-primary/5"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="pt-2">
-                          <div
-                            className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${grossProfit > 0 ? "bg-emerald-500/10 border-emerald-500/20" : "bg-destructive/10 border-destructive/20"}`}
-                          >
-                            <div className="space-y-0.5">
-                              <span
-                                className={`text-[9px] font-black uppercase block ${grossProfit > 0 ? "text-emerald-600" : "text-destructive"}`}
-                              >
-                                Lucro Estimado
-                              </span>
-                              <span
-                                className={`text-sm font-black ${grossProfit > 0 ? "text-emerald-600" : "text-destructive"}`}
-                              >
-                                {Number(grossProfit).toLocaleString("pt-BR", {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </span>
-                            </div>
-                            <div
-                              className={`p-2 rounded-lg ${grossProfit > 0 ? "bg-emerald-500/20 text-emerald-600" : "bg-destructive/20 text-destructive"}`}
-                            >
-                              <Percent className="h-4 w-4" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-muted/10 rounded-2xl border border-sidebar-border/50 p-5 space-y-4">
-                        <h3 className="text-[11px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                          <Settings2 className="h-3 w-3" /> Visibilidade & Status
-                        </h3>
-                        <div className="grid grid-cols-1 gap-3">
-                          <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-card border border-sidebar-border/30">
-                            <Label className="text-[9px] font-bold uppercase opacity-60">
-                              Status do Produto
-                            </Label>
-                            <Select
-                              value={
-                                formData.location === "indisponivel"
-                                  ? "indisponivel"
-                                  : formData.location === "rascunho"
-                                    ? "rascunho"
-                                    : "ativo"
-                              }
-                              onValueChange={(v) => handleChange("location", v)}
-                            >
-                              <SelectTrigger className="h-7 text-[10px] bg-transparent border-none p-0 focus:ring-0 shadow-none font-bold">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="ativo">Disponível para Venda</SelectItem>
-                                <SelectItem value="rascunho">Aguardando Revisão</SelectItem>
-                                <SelectItem value="indisponivel">Indisponível</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-sidebar-border/30">
-                            <div className="space-y-0.5">
-                              <Label className="text-[9px] font-bold uppercase opacity-60">
-                                Destaque na Home
-                              </Label>
-                              <p className="text-[8px] text-muted-foreground">
-                                Exibir na vitrine principal
-                              </p>
-                            </div>
-                            <Switch className="scale-75" />
-                          </div>
-                          <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-sidebar-border/30">
-                            <div className="space-y-0.5">
-                              <Label className="text-[9px] font-bold uppercase opacity-60">
-                                Venda Exclusiva
-                              </Label>
-                              <p className="text-[8px] text-muted-foreground">
-                                Apenas para clientes VIP
-                              </p>
-                            </div>
-                            <Switch className="scale-75" />
-                          </div>
-                        </div>
-                      </div>
-                    </section>
-                  </div>
-
-                  <div className="flex flex-col lg:flex-row gap-6 items-start">
-                    <div className="flex-1 space-y-6">
-                      <section className="bg-card rounded-3xl border border-border/60 p-6 space-y-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-[11px] font-black uppercase tracking-[0.1em] text-primary flex items-center gap-2">
-                            <InfoIcon className="h-3 w-3" /> Descrição Comercial
-                          </h3>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-[9px] font-black uppercase gap-1.5 px-3 rounded-lg border-primary/30 text-primary hover:bg-primary/5 shadow-sm"
-                          >
-                            <Zap className="h-3 w-3 fill-current" /> IA
-                          </Button>
-                        </div>
-                        <textarea
-                          value={formData.description}
-                          onChange={(e) => handleChange("description", e.target.value)}
-                          className="w-full bg-muted/20 border border-border rounded-xl p-3 text-sm font-medium outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/30 min-h-[120px] custom-scrollbar transition-all leading-relaxed"
-                          placeholder="Diferenciais competitivos..."
-                        />
-                      </section>
-
-                      <section className="bg-card rounded-3xl border border-border/60 p-6 space-y-4 shadow-sm hover:shadow-md transition-shadow">
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.1em] text-primary flex items-center gap-2">
-                          <ClipboardList className="h-3 w-3" /> Ficha Técnica / Spec
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="grid gap-1.5">
-                            <Label className="text-[9px] font-bold uppercase opacity-60">
-                              Processador
-                            </Label>
-                            <Input
-                              value={formData.processor}
-                              onChange={(e) => handleChange("processor", e.target.value)}
-                              className="h-9 text-xs bg-muted/10 border-border"
-                              placeholder="Ex: A17 Pro"
-                            />
-                          </div>
-                          <div className="grid gap-1.5">
-                            <Label className="text-[9px] font-bold uppercase opacity-60">
-                              Memória RAM
-                            </Label>
-                            <Input
-                              value={formData.ram}
-                              onChange={(e) => handleChange("ram", e.target.value)}
-                              className="h-9 text-xs bg-muted/10 border-border"
-                              placeholder="Ex: 8GB"
-                            />
-                          </div>
-                          <div className="grid gap-1.5">
-                            <Label className="text-[9px] font-bold uppercase opacity-60">
-                              Display
-                            </Label>
-                            <Input
-                              value={formData.display}
-                              onChange={(e) => handleChange("display", e.target.value)}
-                              className="h-9 text-xs bg-muted/10 border-border"
-                              placeholder="Ex: 6.7 OLED"
-                            />
-                          </div>
-                        </div>
-                      </section>
-                    </div>
-
-                    <div className="w-full lg:w-[380px] space-y-6 shrink-0">
-                      <section className="bg-card rounded-3xl border border-border/60 p-6 space-y-5 shadow-sm hover:shadow-md transition-shadow h-full">
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.1em] text-primary flex items-center gap-2">
-                          <ImageIcon className="h-3 w-3" /> Mídia do Produto
-                        </h3>
-                        <div className="space-y-4">
-                          {formData.image_url ? (
-                            <div className="relative aspect-square rounded-3xl overflow-hidden border border-border group">
-                              <img
-                                src={formData.image_url}
-                                alt="Preview"
-                                className="w-full h-full object-cover"
-                              />
-                              <button
-                                onClick={() => handleChange("image_url", "")}
-                                className="absolute top-2 right-2 p-1.5 bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="aspect-square border-2 border-dashed border-primary/20 rounded-3xl flex flex-col items-center justify-center gap-3 hover:bg-primary/[0.02] hover:border-primary/40 transition-all cursor-pointer group bg-muted/10">
-                              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shadow-glow">
-                                <Upload className="h-5 w-5" />
-                              </div>
-                              <div className="text-center px-4">
-                                <span className="text-[10px] font-black text-primary uppercase tracking-widest block">
-                                  URL da Imagem
-                                </span>
-                                <Input
-                                  value={formData.image_url}
-                                  onChange={(e) => handleChange("image_url", e.target.value)}
-                                  placeholder="https://..."
-                                  className="mt-2 h-8 text-[10px] bg-transparent border-primary/20"
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </section>
-                    </div>
-                  </div>
+          <div className="flex-1 overflow-y-auto px-8 py-6 bg-background">
+            {/* === DADOS GERAIS === */}
+            <TabsContent value="geral" className="mt-0 space-y-6">
+              {/* Tipo aparelho/acessorio/peca */}
+              <div className="flex justify-end">
+                <div className="inline-flex rounded-md overflow-hidden border border-border">
+                  {(["Aparelho", "Acessório", "Peça"] as ProductType[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        setProductType(t);
+                        set("tipo", t);
+                      }}
+                      className={`px-6 py-2 text-xs font-bold transition ${
+                        productType === t
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
                 </div>
-              </TabsContent>
+              </div>
 
-              <TabsContent
-                value="financeiro"
-                className="mt-0 animate-in fade-in slide-in-from-left-4 duration-300"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                  <section className="md:col-span-8 bg-background rounded-3xl border border-sidebar-border/60 p-8 space-y-8 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-[13px] font-black uppercase tracking-widest text-primary flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <CreditCard className="h-4 w-4 text-primary" />
-                        </div>
-                        Pagamento ao Fornecedor
-                      </h3>
-                      <Badge
-                        variant="outline"
-                        className="bg-primary/5 text-primary border-primary/20 text-[9px] font-black py-1 uppercase"
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-3">
+                <FieldRow label="Código">
+                  <Input value={form.codigo} disabled className="bg-muted/50" />
+                </FieldRow>
+                <FieldRow label="SKU">
+                  <Input value={form.sku} onChange={(e) => set("sku", e.target.value)} />
+                </FieldRow>
+
+                <FieldRow label="Tipo" required>
+                  <Select value={form.tipo} onValueChange={(v) => set("tipo", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Novo">Novo</SelectItem>
+                      <SelectItem value="Seminovo">Seminovo</SelectItem>
+                      <SelectItem value="Usado">Usado</SelectItem>
+                      <SelectItem value="Vitrine">Vitrine</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FieldRow>
+                <FieldRow label="Código de Barras">
+                  <div className="flex gap-2">
+                    <Input value={form.ean} onChange={(e) => set("ean", e.target.value)} />
+                    <Button type="button" variant="secondary" size="icon" className="shrink-0">
+                      <Barcode className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </FieldRow>
+
+                {productType === "Aparelho" && (
+                  <>
+                    <FieldRow label="IMEI">
+                      <div className="flex gap-2">
+                        <Input value={form.imei} onChange={(e) => set("imei", e.target.value)} />
+                        <Button type="button" variant="secondary" size="icon" className="shrink-0">
+                          <Smartphone className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </FieldRow>
+                    <FieldRow label="Disponibilidade" required>
+                      <Select
+                        value={form.disponibilidade}
+                        onValueChange={(v) => set("disponibilidade", v)}
                       >
-                        Controle Financeiro
-                      </Badge>
-                    </div>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Disponível para venda">Disponível para venda</SelectItem>
+                          <SelectItem value="Reservado">Reservado</SelectItem>
+                          <SelectItem value="Em conserto">Em conserto</SelectItem>
+                          <SelectItem value="Indisponível">Indisponível</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FieldRow>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                          Forma de Pagamento
-                        </Label>
-                        <Select defaultValue="boleto">
-                          <SelectTrigger className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 font-semibold transition-all">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pix">PIX</SelectItem>
-                            <SelectItem value="boleto">Boleto Bancário</SelectItem>
-                            <SelectItem value="cartao_credito">Cartão de Crédito</SelectItem>
-                            <SelectItem value="transferencia">Transferência / TED</SelectItem>
-                            <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    <FieldRow label="IMEI 2">
+                      <div className="flex gap-2">
+                        <Input value={form.imei2} onChange={(e) => set("imei2", e.target.value)} />
+                        <Button type="button" variant="secondary" size="icon" className="shrink-0">
+                          <Smartphone className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                          Condição de Pagamento
-                        </Label>
-                        <Select defaultValue="vista">
-                          <SelectTrigger className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 font-semibold transition-all">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="vista">À Vista</SelectItem>
-                            <SelectItem value="30_dias">30 Dias</SelectItem>
-                            <SelectItem value="parcelado">Parcelado</SelectItem>
-                            <SelectItem value="antecipado">Pagamento Antecipado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+                    </FieldRow>
+                    <FieldRow label="Modelo Aparelho" required>
+                      <Input
+                        value={form.modelo}
+                        onChange={(e) => set("modelo", e.target.value)}
+                        placeholder="Buscar"
+                      />
+                    </FieldRow>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                          Data da Compra
-                        </Label>
-                        <Input
-                          type="date"
-                          className="bg-card h-11 border-border font-bold text-sm"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                          Vencimento
-                        </Label>
-                        <Input
-                          type="date"
-                          className="bg-card h-11 border-border font-bold text-sm text-destructive"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1 font-black">
-                          Valor Total
-                        </Label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 w-8 flex items-center justify-center bg-muted text-muted-foreground font-black text-[9px] rounded-l-lg border border-r-0 border-border">
-                            R$
-                          </div>
-                          <Input
-                            type="number"
-                            value={formData.cost_price}
-                            readOnly
-                            className="bg-muted/30 h-11 border-border font-black transition-all pl-10 text-sm"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </section>
+                    <FieldRow label="Serial number">
+                      <Input value={form.serial} onChange={(e) => set("serial", e.target.value)} />
+                    </FieldRow>
+                    <FieldRow label="GB">
+                      <Select value={form.gb} onValueChange={(v) => set("gb", v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["32", "64", "128", "256", "512", "1024"].map((g) => (
+                            <SelectItem key={g} value={g}>
+                              {g} GB
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FieldRow>
 
-                  <section className="md:col-span-4 space-y-6">
-                    <div className="bg-primary/5 rounded-3xl border border-primary/10 p-6 space-y-4">
-                      <h4 className="text-[11px] font-black uppercase tracking-wider text-primary flex items-center gap-2">
-                        <InfoIcon className="h-3.5 w-3.5" /> Resumo de Custo
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center py-2 border-b border-primary/10">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                            Preço Unitário
-                          </span>
-                          <span className="text-sm font-black">
-                            {Number(formData.cost_price || 0).toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            })}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center py-2 border-b border-primary/10">
-                          <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                            Quantidade
-                          </span>
-                          <span className="text-sm font-black">{formData.stock || 0}</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-2">
-                          <span className="text-[10px] font-black text-primary uppercase">
-                            Total Investido
-                          </span>
-                          <span className="text-lg font-black text-primary">
-                            {Number(
-                              (formData.cost_price || 0) * (formData.stock || 0),
-                            ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-                </div>
-              </TabsContent>
+                    <FieldRow label="Cor">
+                      <Input value={form.cor} onChange={(e) => set("cor", e.target.value)} />
+                    </FieldRow>
+                    <FieldRow label="Memória RAM">
+                      <Select value={form.ram} onValueChange={(v) => set("ram", v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["2", "3", "4", "6", "8", "12", "16"].map((r) => (
+                            <SelectItem key={r} value={r}>
+                              {r} GB
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FieldRow>
+                  </>
+                )}
 
-              <TabsContent
-                value="logistica"
-                className="space-y-8 mt-0 animate-in fade-in slide-in-from-left-4 duration-300"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <section className="bg-muted/5 rounded-3xl border border-sidebar-border/40 p-6 space-y-6 shadow-sm">
-                    <h5 className="text-[11px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                      <Warehouse className="h-3.5 w-3.5" /> Estoque & Unidade
-                    </h5>
-                    <div className="grid gap-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="grid gap-2">
-                          <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider text-center">
-                            Estoque Inicial
-                          </Label>
-                          <Input
-                            id="stock"
-                            type="number"
-                            value={formData.stock}
-                            onChange={(e) => handleChange("stock", parseInt(e.target.value) || 0)}
-                            className="bg-card h-12 border-border font-black text-lg text-center focus:ring-4 focus:ring-primary/5 transition-all"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider text-center">
-                            Estoque Mínimo
-                          </Label>
-                          <Input
-                            id="min_stock"
-                            type="number"
-                            value={formData.min_stock}
-                            onChange={(e) =>
-                              handleChange("min_stock", parseInt(e.target.value) || 0)
-                            }
-                            className="bg-card h-12 border-border text-center text-warning font-black text-lg focus:ring-4 focus:ring-warning/5 transition-all"
-                          />
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider">
-                          Unidade de Medida
-                        </Label>
-                        <Select
-                          value={formData.unit}
-                          onValueChange={(v) => handleChange("unit", v)}
-                        >
-                          <SelectTrigger className="bg-card h-11 border-border font-semibold transition-all">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="un">Unidade (UN)</SelectItem>
-                            <SelectItem value="cx">Caixa (CX)</SelectItem>
-                            <SelectItem value="jg">Jogo (JG)</SelectItem>
-                            <SelectItem value="pc">Peça (PC)</SelectItem>
-                            <SelectItem value="kit">Kit (KIT)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider">
-                          Peso Bruto (kg)
-                        </Label>
-                        <Input
-                          type="number"
-                          step="0.001"
-                          value={formData.weight}
-                          onChange={(e) => handleChange("weight", parseFloat(e.target.value) || 0)}
-                          placeholder="0.250"
-                          className="bg-card h-11 border-border text-sm font-bold"
-                        />
-                      </div>
-                    </div>
-                  </section>
+                {productType !== "Aparelho" && (
+                  <>
+                    <FieldRow label="Modelo" required>
+                      <Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} />
+                    </FieldRow>
+                    <FieldRow label="Cor">
+                      <Input value={form.cor} onChange={(e) => set("cor", e.target.value)} />
+                    </FieldRow>
+                  </>
+                )}
 
-                  <section className="bg-muted/5 rounded-3xl border border-sidebar-border/40 p-6 space-y-6 shadow-sm">
-                    <h5 className="text-[11px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                      <MapPin className="h-3.5 w-3.5" /> Armazenamento & Localização
-                    </h5>
-                    <div className="grid gap-4">
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider">
-                          Localização (Box/Prateleira)
-                        </Label>
-                        <Input
-                          value={formData.location}
-                          onChange={(e) => handleChange("location", e.target.value)}
-                          placeholder="Ex: A-12-04"
-                          className="bg-card h-11 border-border text-sm font-mono font-black"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider">
-                          Loja / Depósito
-                        </Label>
-                        <Select
-                          value={formData.store}
-                          onValueChange={(v) => handleChange("store", v)}
-                        >
-                          <SelectTrigger className="bg-card h-11 border-border font-semibold transition-all">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="matriz">Loja Matriz</SelectItem>
-                            <SelectItem value="filial1">Filial Centro</SelectItem>
-                            <SelectItem value="deposito">Depósito Central</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-wider">
-                          Status Inicial
-                        </Label>
-                        <Select
-                          value={formData.location || "ativo"}
-                          onValueChange={(v) => handleChange("location", v)}
-                        >
-                          <SelectTrigger className="bg-card h-11 border-border font-semibold transition-all">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="ativo">Ativo</SelectItem>
-                            <SelectItem value="rascunho">Rascunho</SelectItem>
-                            <SelectItem value="indisponivel">Indisponível</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </section>
-                </div>
-              </TabsContent>
+                <FieldRow label="Categoria">
+                  <Input
+                    value={form.categoria}
+                    onChange={(e) => set("categoria", e.target.value)}
+                    placeholder="Selecionar"
+                  />
+                </FieldRow>
+                <FieldRow label="Marca">
+                  <Input value={form.marca} onChange={(e) => set("marca", e.target.value)} />
+                </FieldRow>
 
-              <TabsContent
-                value="servicos"
-                className="mt-0 animate-in fade-in slide-in-from-left-4 duration-300"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
-                  <section className="bg-card rounded-3xl border border-sidebar-border/60 p-8 space-y-8 shadow-sm">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-[13px] font-black uppercase tracking-widest text-primary flex items-center gap-2.5">
-                        <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <Briefcase className="h-4 w-4 text-primary" />
-                        </div>
-                        Configurações de Serviço
-                      </h3>
-                    </div>
+                <FieldRow label="Subcategoria">
+                  <Input
+                    value={form.subcategoria}
+                    onChange={(e) => set("subcategoria", e.target.value)}
+                  />
+                </FieldRow>
+                {productType === "Aparelho" && (
+                  <FieldRow label="Saúde bateria">
+                    <Input
+                      value={form.saude_bateria}
+                      onChange={(e) => set("saude_bateria", e.target.value)}
+                      placeholder="Ex: 92%"
+                    />
+                  </FieldRow>
+                )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                          Tempo Estimado (minutos)
-                        </Label>
-                        <Input
-                          type="number"
-                          placeholder="Ex: 60"
-                          className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 text-sm font-bold"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/80 tracking-widest px-1">
-                          Garantia (dias)
-                        </Label>
-                        <Input
-                          type="number"
-                          placeholder="Ex: 90"
-                          className="bg-card h-11 border-border shadow-sm focus:ring-4 focus:ring-primary/5 text-sm font-bold"
-                        />
-                      </div>
-                    </div>
-                  </section>
-                </div>
-              </TabsContent>
+                {productType === "Aparelho" && (
+                  <>
+                    <FieldRow label="Ciclo bateria">
+                      <Input
+                        value={form.ciclo_bateria}
+                        onChange={(e) => set("ciclo_bateria", e.target.value)}
+                      />
+                    </FieldRow>
+                    <FieldRow label="Estado do Aparelho">
+                      <Select value={form.estado} onValueChange={(v) => set("estado", v)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Novo">Novo</SelectItem>
+                          <SelectItem value="Excelente">Excelente</SelectItem>
+                          <SelectItem value="Bom">Bom</SelectItem>
+                          <SelectItem value="Regular">Regular</SelectItem>
+                          <SelectItem value="Defeito">Defeito</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FieldRow>
+                  </>
+                )}
 
-              <TabsContent
-                value="especificacoes"
-                className="space-y-8 mt-0 animate-in fade-in slide-in-from-left-4 duration-300"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                  <div className="space-y-5">
-                    <h5 className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-2">
-                      <Hash className="h-3 w-3" /> Identificação Técnica
-                    </h5>
+                <FieldRow label="Quantidade">
+                  <Input
+                    type="number"
+                    value={form.quantidade}
+                    onChange={(e) => set("quantidade", e.target.value)}
+                  />
+                </FieldRow>
+                <FieldRow label="Quantidade mínima">
+                  <Input
+                    type="number"
+                    value={form.quantidade_minima}
+                    onChange={(e) => set("quantidade_minima", e.target.value)}
+                  />
+                </FieldRow>
 
-                    <div className="grid gap-4">
-                      <div className="grid gap-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">
-                          SKU / Part Number
-                        </Label>
-                        <Input
-                          value={formData.sku}
-                          onChange={(e) => handleChange("sku", e.target.value)}
-                          placeholder="GER-100234"
-                          className="bg-muted/10 h-11 border-border text-xs font-bold font-mono tracking-widest"
-                        />
-                      </div>
-                      {isSmartphone && (
-                        <>
-                          <div className="grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">
-                              IMEI 1 (SIM 1)
-                            </Label>
-                            <Input
-                              id="imei"
-                              value={formData.imei}
-                              onChange={(e) => handleChange("imei", e.target.value)}
-                              placeholder="Ex: 356789..."
-                              className="bg-muted/10 h-12 border-border font-mono text-sm tracking-[0.2em] font-black focus:ring-4 focus:ring-primary/5 transition-all"
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">
-                              IMEI 2 (SIM 2)
-                            </Label>
-                            <Input
-                              id="imei2"
-                              value={formData.imei2}
-                              onChange={(e) => handleChange("imei2", e.target.value)}
-                              placeholder="Ex: 356789..."
-                              className="bg-muted/10 h-12 border-border font-mono text-sm tracking-[0.2em] font-black focus:ring-4 focus:ring-primary/5 transition-all"
-                            />
-                          </div>
-                        </>
-                      )}
-                    </div>
+                <FieldRow label="Valor custo" required>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.valor_custo}
+                    onChange={(e) => set("valor_custo", e.target.value)}
+                  />
+                </FieldRow>
+                <FieldRow label="Valor venda" required>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={form.valor_venda}
+                      onChange={(e) => set("valor_venda", e.target.value)}
+                    />
+                    <Button type="button" variant="secondary" size="icon" className="shrink-0">
+                      <DollarSign className="h-4 w-4" />
+                    </Button>
                   </div>
+                </FieldRow>
 
-                  <div className="space-y-5">
-                    <h5 className="text-[11px] font-bold uppercase tracking-widest text-primary flex items-center gap-2">
-                      <Cpu className="h-3 w-3" /> Hardware & Estética
-                    </h5>
+                <FieldRow label="Lucro $">
+                  <Input
+                    value={lucro.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    disabled
+                    className="bg-muted/50"
+                  />
+                </FieldRow>
+                <FieldRow label="Margem %">
+                  <Input
+                    value={form.margem || margemCalc.toFixed(2)}
+                    onChange={(e) => set("margem", e.target.value)}
+                  />
+                </FieldRow>
 
-                    <div className="grid gap-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label className="text-[11px] font-black uppercase text-muted-foreground/60 tracking-wider">
-                            Cor
-                          </Label>
-                          <Input
-                            value={formData.color}
-                            onChange={(e) => handleChange("color", e.target.value)}
-                            placeholder="Ex: Titânio Natural"
-                            className="bg-muted/10 h-10 border-border text-xs font-bold"
-                          />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label className="text-[11px] font-black uppercase text-muted-foreground/60 tracking-wider">
-                            Capacidade
-                          </Label>
-                          <Input
-                            value={formData.capacity}
-                            onChange={(e) => handleChange("capacity", e.target.value)}
-                            placeholder="Ex: 256GB"
-                            className="bg-muted/10 h-10 border-border text-xs font-bold"
-                          />
-                        </div>
-                      </div>
+                <FieldRow label="Mark-Up %">
+                  <Input
+                    value={form.markup || markupCalc.toFixed(2)}
+                    onChange={(e) => set("markup", e.target.value)}
+                  />
+                </FieldRow>
+                <div />
 
-                      <div className="grid grid-cols-1 gap-4">
-                        <div className="grid gap-2">
-                          <Label className="text-[11px] font-black uppercase text-muted-foreground/60 tracking-wider">
-                            Saúde da Bateria (%)
-                          </Label>
-                          <Input
-                            value={formData.battery_health}
-                            onChange={(e) => handleChange("battery_health", e.target.value)}
-                            placeholder="Ex: 100%"
-                            className="bg-muted/10 h-10 border-border text-xs font-bold"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4">
-                        <div className="grid gap-2">
-                          <Label className="text-[11px] font-black uppercase text-muted-foreground/60 tracking-wider">
-                            Observações
-                          </Label>
-                          <textarea
-                            value={formData.observations}
-                            onChange={(e) => handleChange("observations", e.target.value)}
-                            className="w-full bg-muted/10 border border-border rounded-xl p-3 text-xs font-bold outline-none focus:ring-4 focus:ring-primary/5 min-h-[80px] custom-scrollbar transition-all leading-relaxed"
-                            placeholder="Observações internas..."
-                          />
-                        </div>
-                      </div>
-                    </div>
+                <FieldRow label="Data de Entrada">
+                  <div className="relative">
+                    <Input
+                      type="date"
+                      value={form.data_entrada}
+                      onChange={(e) => set("data_entrada", e.target.value)}
+                    />
                   </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
+                </FieldRow>
+                <FieldRow label="Dias de Garantia">
+                  <Input
+                    type="number"
+                    value={form.dias_garantia}
+                    onChange={(e) => set("dias_garantia", e.target.value)}
+                  />
+                </FieldRow>
 
-        <DialogFooter className="p-6 gap-4 bg-muted/30 border-t border-border shrink-0">
-          <div className="mr-auto hidden md:flex items-center gap-2 text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
-            <InfoIcon className="h-3.5 w-3.5 text-primary/60" /> Verifique todos os dados antes de
-            salvar o registro
+                <FieldRow label="Valor venda 2">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.valor_venda_2}
+                    onChange={(e) => set("valor_venda_2", e.target.value)}
+                  />
+                </FieldRow>
+                <FieldRow label="Valor venda 3">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={form.valor_venda_3}
+                    onChange={(e) => set("valor_venda_3", e.target.value)}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Observação" className="xl:col-span-2 xl:grid-cols-[160px_1fr]">
+                  <Textarea
+                    rows={3}
+                    value={form.observacao}
+                    onChange={(e) => set("observacao", e.target.value)}
+                  />
+                </FieldRow>
+                <FieldRow label="Tags" className="xl:col-span-2 xl:grid-cols-[160px_1fr]">
+                  <Input
+                    value={form.tags}
+                    onChange={(e) => set("tags", e.target.value)}
+                    placeholder="Buscar (separe por vírgula)"
+                  />
+                </FieldRow>
+              </div>
+
+              {/* Dados do fornecedor */}
+              <div className="pt-4 border-t">
+                <h3 className="text-sm font-bold mb-4">Dados do fornecedor</h3>
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-3">
+                  <FieldRow label="Tipo de fornecedor">
+                    <Select
+                      value={form.tipo_fornecedor}
+                      onValueChange={(v) => set("tipo_fornecedor", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Fornecedor">Fornecedor</SelectItem>
+                        <SelectItem value="Cliente">Cliente</SelectItem>
+                        <SelectItem value="Distribuidor">Distribuidor</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FieldRow>
+                  <FieldRow label="Fornecedor">
+                    <Input
+                      value={form.fornecedor}
+                      onChange={(e) => set("fornecedor", e.target.value)}
+                      placeholder="Buscar"
+                    />
+                  </FieldRow>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* === CONTAS A PAGAR === */}
+            <TabsContent value="contas" className="mt-0 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold">Contas a pagar vinculadas</h3>
+                <Button size="sm" onClick={() => addExtraRow(setContasPagar)}>
+                  <Plus className="h-4 w-4 mr-1" /> Nova conta
+                </Button>
+              </div>
+              <ExtraRowTable rows={contasPagar} setRows={setContasPagar} withDate />
+            </TabsContent>
+
+            {/* === FORMA DE PAGAMENTO === */}
+            <TabsContent value="pagamento" className="mt-0">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-3 max-w-3xl">
+                <FieldRow label="Forma de Pagamento">
+                  <Select
+                    value={form.forma_pagamento}
+                    onValueChange={(v) => set("forma_pagamento", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["À vista", "Cartão", "Pix", "Boleto", "Crédito", "Transferência"].map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FieldRow>
+                <FieldRow label="Parcelas">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={24}
+                    value={form.parcelas}
+                    onChange={(e) => set("parcelas", e.target.value)}
+                  />
+                </FieldRow>
+              </div>
+            </TabsContent>
+
+            {/* === CUSTOS EXTRAS === */}
+            <TabsContent value="custos" className="mt-0 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold">Custos adicionais</h3>
+                <Button size="sm" onClick={() => addExtraRow(setCustosExtras)}>
+                  <Plus className="h-4 w-4 mr-1" /> Novo custo
+                </Button>
+              </div>
+              <ExtraRowTable rows={custosExtras} setRows={setCustosExtras} />
+            </TabsContent>
+
+            {/* === ANEXOS === */}
+            <TabsContent value="anexos" className="mt-0 space-y-4">
+              <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-10 cursor-pointer hover:bg-muted/30 transition">
+                <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                <span className="text-sm font-medium">Clique para anexar arquivos</span>
+                <span className="text-xs text-muted-foreground">
+                  Nota fiscal, foto do produto, garantia, etc.
+                </span>
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setAnexos((prev) => [...prev, ...files.map((f) => ({ name: f.name }))]);
+                  }}
+                />
+              </label>
+              {anexos.length > 0 && (
+                <ul className="divide-y border rounded-lg">
+                  {anexos.map((a, i) => (
+                    <li key={i} className="flex items-center justify-between px-4 py-2 text-sm">
+                      <span className="flex items-center gap-2">
+                        <Paperclip className="h-4 w-4 text-muted-foreground" /> {a.name}
+                      </span>
+                      <button
+                        onClick={() => setAnexos((p) => p.filter((_, j) => j !== i))}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </TabsContent>
+
+            {/* === MOVIMENTAÇÃO === */}
+            <TabsContent value="movimentacao" className="mt-0">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-3 max-w-3xl">
+                <FieldRow label="Tipo">
+                  <Select value={form.mov_tipo} onValueChange={(v) => set("mov_tipo", v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="entrada">Entrada</SelectItem>
+                      <SelectItem value="saida">Saída</SelectItem>
+                      <SelectItem value="ajuste">Ajuste</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FieldRow>
+                <FieldRow label="Motivo">
+                  <Input value={form.mov_motivo} onChange={(e) => set("mov_motivo", e.target.value)} />
+                </FieldRow>
+                <FieldRow label="Observação" className="xl:col-span-2">
+                  <Textarea
+                    rows={3}
+                    value={form.mov_obs}
+                    onChange={(e) => set("mov_obs", e.target.value)}
+                  />
+                </FieldRow>
+              </div>
+            </TabsContent>
+
+            {/* === CHECKLIST === */}
+            <TabsContent value="checklist" className="mt-0 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold">Checklist de conferência</h3>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    setChecklist((p) => [
+                      ...p,
+                      { id: crypto.randomUUID(), item: "", ok: false },
+                    ])
+                  }
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Novo item
+                </Button>
+              </div>
+              <ul className="space-y-2">
+                {checklist.map((c) => (
+                  <li key={c.id} className="flex items-center gap-3 border rounded-lg px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={c.ok}
+                      onChange={(e) =>
+                        setChecklist((p) =>
+                          p.map((x) => (x.id === c.id ? { ...x, ok: e.target.checked } : x)),
+                        )
+                      }
+                      className="h-4 w-4"
+                    />
+                    <Input
+                      value={c.item}
+                      onChange={(e) =>
+                        setChecklist((p) =>
+                          p.map((x) => (x.id === c.id ? { ...x, item: e.target.value } : x)),
+                        )
+                      }
+                      className="border-0 shadow-none focus-visible:ring-0 px-0"
+                      placeholder="Descrição do item..."
+                    />
+                    <button
+                      onClick={() => setChecklist((p) => p.filter((x) => x.id !== c.id))}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </TabsContent>
+
+            {/* === OUTRAS INFORMAÇÕES === */}
+            <TabsContent value="outras" className="mt-0">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-3 max-w-4xl">
+                <FieldRow label="NCM">
+                  <Input value={form.ncm} onChange={(e) => set("ncm", e.target.value)} />
+                </FieldRow>
+                <FieldRow label="CEST">
+                  <Input value={form.cest} onChange={(e) => set("cest", e.target.value)} />
+                </FieldRow>
+                <FieldRow label="Origem">
+                  <Select value={form.origem} onValueChange={(v) => set("origem", v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">0 - Nacional</SelectItem>
+                      <SelectItem value="1">1 - Estrangeira (Importação direta)</SelectItem>
+                      <SelectItem value="2">2 - Estrangeira (Mercado interno)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FieldRow>
+                <FieldRow label="Peso (kg)">
+                  <Input
+                    type="number"
+                    step="0.001"
+                    value={form.peso}
+                    onChange={(e) => set("peso", e.target.value)}
+                  />
+                </FieldRow>
+              </div>
+            </TabsContent>
           </div>
-          <Button
-            variant="ghost"
-            onClick={() => onOpenChange(false)}
-            className="rounded-2xl h-12 px-8 font-black text-[10px] uppercase tracking-widest hover:bg-destructive/10 hover:text-destructive transition-all"
-          >
-            Descartar
+        </Tabs>
+
+        <DialogFooter className="px-6 py-3 border-t bg-muted/20">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="bg-gradient-primary shadow-glow gap-3 px-10 rounded-2xl h-12 font-black text-[10px] uppercase tracking-widest group"
-          >
+          <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : product ? (
-              <CheckCircle2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Salvando...
+              </>
             ) : (
-              <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform" />
+              "Salvar produto"
             )}
-            {isSaving ? "Salvando..." : product ? "Salvar Registro" : "Concluir Cadastro"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ExtraRowTable({
+  rows,
+  setRows,
+  withDate,
+}: {
+  rows: ExtraRow[];
+  setRows: React.Dispatch<React.SetStateAction<ExtraRow[]>>;
+  withDate?: boolean;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="border border-dashed rounded-xl p-10 text-center text-sm text-muted-foreground">
+        Nenhum registro. Clique em "Novo" para adicionar.
+      </div>
+    );
+  }
+  return (
+    <div className="border rounded-xl overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-muted/40 text-xs uppercase">
+          <tr>
+            <th className="text-left px-3 py-2">Descrição</th>
+            <th className="text-left px-3 py-2 w-40">Valor</th>
+            {withDate && <th className="text-left px-3 py-2 w-44">Vencimento</th>}
+            <th className="w-10" />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id} className="border-t">
+              <td className="px-2 py-1">
+                <Input
+                  value={r.description}
+                  onChange={(e) =>
+                    setRows((p) =>
+                      p.map((x) => (x.id === r.id ? { ...x, description: e.target.value } : x)),
+                    )
+                  }
+                  className="border-0 shadow-none focus-visible:ring-0"
+                />
+              </td>
+              <td className="px-2 py-1">
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={r.amount}
+                  onChange={(e) =>
+                    setRows((p) =>
+                      p.map((x) => (x.id === r.id ? { ...x, amount: e.target.value } : x)),
+                    )
+                  }
+                  className="border-0 shadow-none focus-visible:ring-0"
+                />
+              </td>
+              {withDate && (
+                <td className="px-2 py-1">
+                  <Input
+                    type="date"
+                    value={r.dueDate}
+                    onChange={(e) =>
+                      setRows((p) =>
+                        p.map((x) => (x.id === r.id ? { ...x, dueDate: e.target.value } : x)),
+                      )
+                    }
+                    className="border-0 shadow-none focus-visible:ring-0"
+                  />
+                </td>
+              )}
+              <td className="px-2 py-1 text-right">
+                <button
+                  onClick={() => setRows((p) => p.filter((x) => x.id !== r.id))}
+                  className="text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
