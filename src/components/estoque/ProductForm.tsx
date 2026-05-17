@@ -670,7 +670,34 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
             </TabsContent>
 
             {/* === CONTAS A PAGAR === */}
-            <TabsContent value="contas" className="mt-0 space-y-4">
+            <TabsContent value="contas" className="mt-0 space-y-6">
+              <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" /> Nota vinculada
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Selecione a nota em aberto a que este produto pertence.
+                </p>
+                <Select value={form.nota_id || "none"} onValueChange={(v) => set("nota_id", v === "none" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar nota em aberto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    {openNotas.map((n) => (
+                      <SelectItem key={n.id} value={n.id}>
+                        {n.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {openNotas.length === 0 && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Nenhuma nota em aberto encontrada. Cadastre em Financeiro › Notas.
+                  </p>
+                )}
+              </div>
+
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold">Contas a pagar vinculadas</h3>
                 <Button size="sm" onClick={() => addExtraRow(setContasPagar)}>
