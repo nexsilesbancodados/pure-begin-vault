@@ -212,7 +212,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
         valor_venda_3: form.valor_venda_3,
         tags: form.tags
           .split(",")
-          .map((t) => t.trim())
+          .map((t: string) => t.trim())
           .filter(Boolean),
         tipo_fornecedor: form.tipo_fornecedor,
         ncm: form.ncm,
