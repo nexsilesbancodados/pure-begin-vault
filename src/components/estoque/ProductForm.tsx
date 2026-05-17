@@ -252,6 +252,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
         mov_tipo: form.mov_tipo,
         mov_motivo: form.mov_motivo,
         mov_obs: form.mov_obs,
+        nota_id: form.nota_id || null,
       },
     };
 
