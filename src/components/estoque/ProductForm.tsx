@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/useOrg";
 import {
   Dialog,
   DialogContent,
@@ -127,7 +128,30 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     mov_tipo: md.mov_tipo || "entrada",
     mov_motivo: md.mov_motivo || "Compra",
     mov_obs: md.mov_obs || "",
+    nota_id: md.nota_id || "",
   });
+
+  const { orgId } = useOrg();
+  const [openNotas, setOpenNotas] = useState<Array<{ id: string; label: string }>>([]);
+
+  useEffect(() => {
+    if (!open || !orgId) return;
+    supabase
+      .from("finance_transactions")
+      .select("id, invoice_number, supplier_name, amount, due_date")
+      .eq("organization_id", orgId)
+      .eq("status", "pending")
+      .order("due_date", { ascending: true })
+      .limit(200)
+      .then(({ data }) => {
+        setOpenNotas(
+          (data ?? []).map((n: any) => ({
+            id: n.id,
+            label: `${n.invoice_number || n.id.slice(0, 8)} · ${n.supplier_name || "—"} · R$ ${Number(n.amount || 0).toFixed(2)}`,
+          })),
+        );
+      });
+  }, [open, orgId]);
 
   const [contasPagar, setContasPagar] = useState<ExtraRow[]>(md.contas_pagar || []);
   const [custosExtras, setCustosExtras] = useState<ExtraRow[]>(md.custos_extras || []);
@@ -228,6 +252,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
         mov_tipo: form.mov_tipo,
         mov_motivo: form.mov_motivo,
         mov_obs: form.mov_obs,
+        nota_id: form.nota_id || null,
       },
     };
 
@@ -287,7 +312,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
           <TabsList className="h-auto rounded-none justify-start gap-0 bg-background border-b px-4 py-0">
             {[
               { v: "geral", l: "Dados gerais", i: Info },
-              { v: "contas", l: "Contas a Pagar", i: Wallet },
+              { v: "contas", l: "Financeiro", i: Wallet },
               { v: "pagamento", l: "Forma de Pagamento", i: CreditCard },
               { v: "custos", l: "Custos extras", i: Coins },
               { v: "anexos", l: "Anexos", i: Paperclip },
@@ -645,7 +670,34 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
             </TabsContent>
 
             {/* === CONTAS A PAGAR === */}
-            <TabsContent value="contas" className="mt-0 space-y-4">
+            <TabsContent value="contas" className="mt-0 space-y-6">
+              <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" /> Nota vinculada
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Selecione a nota em aberto a que este produto pertence.
+                </p>
+                <Select value={form.nota_id || "none"} onValueChange={(v) => set("nota_id", v === "none" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar nota em aberto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    {openNotas.map((n) => (
+                      <SelectItem key={n.id} value={n.id}>
+                        {n.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {openNotas.length === 0 && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Nenhuma nota em aberto encontrada. Cadastre em Financeiro › Notas.
+                  </p>
+                )}
+              </div>
+
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold">Contas a pagar vinculadas</h3>
                 <Button size="sm" onClick={() => addExtraRow(setContasPagar)}>
