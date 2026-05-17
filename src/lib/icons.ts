@@ -17,6 +17,7 @@ import {
   Clock,
   DollarSign,
   FileText,
+  FileWarning,
   Headphones,
   HelpCircle,
   Inbox,
