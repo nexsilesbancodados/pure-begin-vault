@@ -128,7 +128,30 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     mov_tipo: md.mov_tipo || "entrada",
     mov_motivo: md.mov_motivo || "Compra",
     mov_obs: md.mov_obs || "",
+    nota_id: md.nota_id || "",
   });
+
+  const { orgId } = useOrg();
+  const [openNotas, setOpenNotas] = useState<Array<{ id: string; label: string }>>([]);
+
+  useEffect(() => {
+    if (!open || !orgId) return;
+    supabase
+      .from("finance_transactions")
+      .select("id, invoice_number, supplier_name, amount, due_date")
+      .eq("organization_id", orgId)
+      .eq("status", "pending")
+      .order("due_date", { ascending: true })
+      .limit(200)
+      .then(({ data }) => {
+        setOpenNotas(
+          (data ?? []).map((n: any) => ({
+            id: n.id,
+            label: `${n.invoice_number || n.id.slice(0, 8)} · ${n.supplier_name || "—"} · R$ ${Number(n.amount || 0).toFixed(2)}`,
+          })),
+        );
+      });
+  }, [open, orgId]);
 
   const [contasPagar, setContasPagar] = useState<ExtraRow[]>(md.contas_pagar || []);
   const [custosExtras, setCustosExtras] = useState<ExtraRow[]>(md.custos_extras || []);
