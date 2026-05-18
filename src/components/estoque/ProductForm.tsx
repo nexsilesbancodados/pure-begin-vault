@@ -950,6 +950,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                   className="hidden"
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
+                    setPendingFiles((prev) => [...prev, ...files]);
                     setAnexos((prev) => [...prev, ...files.map((f) => ({ name: f.name }))]);
                   }}
                 />
