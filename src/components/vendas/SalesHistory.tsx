@@ -205,7 +205,7 @@ export function SalesHistory() {
   const [pendingReceiptPrint, setPendingReceiptPrint] = useState<"a4" | "80mm" | null>(null);
   const [warrantyDoc, setWarrantyDoc] = useState<{ title: string; html: string } | null>(null);
   const [warrantyLoading, setWarrantyLoading] = useState(false);
-  const warrantyIframeRef = React.useRef<HTMLIFrameElement | null>(null);
+  const warrantyIframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const fetchSales = useCallback(async () => {
     if (!user?.id || !orgId) return;
