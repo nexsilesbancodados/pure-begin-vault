@@ -320,7 +320,57 @@ function ProductsPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center flex-wrap">
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="h-10 px-3 rounded-xl bg-card border border-border text-sm font-medium outline-none hover:bg-muted transition cursor-pointer"
+                aria-label="Filtrar por categoria"
+              >
+                <option value="all">Todas categorias</option>
+                {categoryOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={filterStock}
+                onChange={(e) => setFilterStock(e.target.value)}
+                className="h-10 px-3 rounded-xl bg-card border border-border text-sm font-medium outline-none hover:bg-muted transition cursor-pointer"
+                aria-label="Filtrar por estoque"
+              >
+                <option value="all">Todo estoque</option>
+                <option value="in">Com estoque</option>
+                <option value="low">Estoque baixo</option>
+                <option value="out">Sem estoque</option>
+              </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="h-10 px-3 rounded-xl bg-card border border-border text-sm font-medium outline-none hover:bg-muted transition cursor-pointer"
+                aria-label="Ordenar"
+              >
+                <option value="recent">Mais recentes</option>
+                <option value="name">Nome (A-Z)</option>
+                <option value="price_asc">Menor preço</option>
+                <option value="price_desc">Maior preço</option>
+                <option value="stock_desc">Maior estoque</option>
+              </select>
+              {activeFilters > 0 && (
+                <button
+                  onClick={() => {
+                    setFilterCategory("all");
+                    setFilterStock("all");
+                    setSortBy("recent");
+                  }}
+                  className="h-10 px-3 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition flex items-center gap-1.5"
+                  title="Limpar filtros"
+                >
+                  <X className="h-3.5 w-3.5" /> Limpar ({activeFilters})
+                </button>
+              )}
+              <div className="w-px h-6 bg-border mx-1" />
               <button
                 onClick={() => setIsAddOpen(true)}
                 className="h-10 px-5 rounded-xl flex items-center gap-2 text-sm font-bold shadow-glow transition bg-gradient-primary text-white hover:opacity-95"
