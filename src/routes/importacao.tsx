@@ -239,7 +239,7 @@ function KpiCard({ label, value, color, icon }: { label: string; value: number; 
   );
 }
 
-function JobCard({ job }: { job: ImportJob }) {
+function JobCard({ job, onDelete }: { job: ImportJob; onDelete: (id: string) => void | Promise<void> }) {
   const pct = job.total > 0 ? Math.round((job.processed / job.total) * 100) : 0;
   const statusTone =
     job.status === "running" ? "bg-info/10 text-info border-info/30"
@@ -251,8 +251,16 @@ function JobCard({ job }: { job: ImportJob }) {
     : job.status === "done" ? "bg-success"
     : "bg-gradient-to-b from-info to-primary";
 
+  const handleDelete = () => {
+    const isActive = job.status === "running" || job.status === "queued";
+    const msg = isActive
+      ? `"${job.fileName}" ainda está em processamento. Remover mesmo assim?`
+      : `Remover "${job.fileName}"? Esta ação não pode ser desfeita.`;
+    if (confirm(msg)) onDelete(job.id);
+  };
+
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden flex shadow-sm hover:shadow-md transition-shadow">
+    <div className="rounded-2xl border border-border bg-card overflow-hidden flex shadow-sm hover:shadow-md transition-shadow group">
       <div className={`w-1 shrink-0 ${stripe}`} />
       <div className="flex-1 min-w-0">
         <div className="p-4 flex items-center gap-3">
@@ -276,8 +284,19 @@ function JobCard({ job }: { job: ImportJob }) {
               )}
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-black tabular-nums">{pct}%</p>
+          <div className="flex items-center gap-2">
+            <div className="text-right">
+              <p className="text-2xl font-black tabular-nums">{pct}%</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleDelete}
+              title="Remover importação"
+              aria-label="Remover importação"
+              className="h-9 w-9 rounded-xl border border-border bg-background/60 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5 flex items-center justify-center transition-colors opacity-70 group-hover:opacity-100"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
