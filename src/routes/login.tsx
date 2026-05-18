@@ -50,27 +50,48 @@ export const Route = createFileRoute("/login")({
 function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("renato@conectacrm.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
+  const [capsLock, setCapsLock] = useState(false);
+  const [shake, setShake] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus + remember email
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("conecta:lastEmail") : null;
+    if (saved) setEmail(saved);
+    const t = setTimeout(() => emailRef.current?.focus(), 150);
+    return () => clearTimeout(t);
+  }, []);
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
+    const cleanEmail = email.trim().toLowerCase();
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: cleanEmail,
       password,
     });
 
     if (signInError) {
-      setError(signInError.message);
+      setError(
+        signInError.message.toLowerCase().includes("invalid")
+          ? "E-mail ou senha incorretos. Verifique seus dados e tente novamente."
+          : signInError.message,
+      );
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
       setLoading(false);
       return;
     }
+
+    if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
+    else localStorage.removeItem("conecta:lastEmail");
 
     const uid = signInData.user?.id;
     if (uid) {
@@ -92,14 +113,21 @@ function Login() {
     navigate({ to: "/painel" });
   };
 
+  const onPwdKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (typeof e.getModifierState === "function") setCapsLock(e.getModifierState("CapsLock"));
+  };
+
   return (
     <div className="min-h-screen grid lg:grid-cols-[1fr_1.05fr] bg-background font-sans">
       {/* ============ Left — Form ============ */}
       <div className="relative flex flex-col justify-center px-6 sm:px-12 lg:px-20 py-12 bg-card">
         {/* subtle top accent */}
         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-primary" />
+        {/* ambient blobs */}
+        <div className="pointer-events-none absolute -top-20 -left-20 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 right-0 w-80 h-80 rounded-full bg-primary/5 blur-3xl" />
 
-        <div className="max-w-md w-full mx-auto">
+        <div className="relative max-w-md w-full mx-auto">
           {/* Logo */}
           <Link to="/" className="inline-flex items-center gap-3 mb-12 group">
             <div className="relative h-11 w-11">
@@ -119,20 +147,31 @@ function Login() {
             <br />
             <span className="text-gradient-primary">de volta!</span>
           </h1>
-          <p className="text-muted-foreground text-base mb-10 leading-relaxed">
+          <p className="text-muted-foreground text-base mb-8 leading-relaxed">
             Acesse sua conta para continuar gerenciando seus leads, vendas e atendimentos.
           </p>
 
-          <form onSubmit={handle} className="space-y-5">
+          <form
+            onSubmit={handle}
+            className={`space-y-5 ${shake ? "animate-[shake_0.4s_ease-in-out]" : ""}`}
+            noValidate
+          >
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-foreground">E-mail</label>
+              <label htmlFor="login-email" className="text-sm font-semibold text-foreground">
+                E-mail
+              </label>
               <div className="relative group">
                 <Mail className="h-4 w-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <input
+                  id="login-email"
+                  ref={emailRef}
                   type="email"
+                  autoComplete="email"
+                  inputMode="email"
                   placeholder="voce@empresa.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  aria-invalid={!!error}
                   className="w-full h-12 pl-11 pr-4 rounded-xl bg-input border border-border focus:border-primary focus:ring-4 focus:ring-primary/15 outline-none text-foreground transition-all placeholder:text-muted-foreground text-sm"
                   required
                 />
@@ -141,7 +180,9 @@ function Login() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-foreground">Senha</label>
+                <label htmlFor="login-password" className="text-sm font-semibold text-foreground">
+                  Senha
+                </label>
                 <Link
                   to="/esqueci-senha"
                   className="text-sm text-primary hover:underline font-semibold"
@@ -152,10 +193,15 @@ function Login() {
               <div className="relative group">
                 <Lock className="h-4 w-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <input
+                  id="login-password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={onPwdKey}
+                  onKeyUp={onPwdKey}
+                  aria-invalid={!!error}
                   className="w-full h-12 pl-11 pr-11 rounded-xl bg-input border border-border focus:border-primary focus:ring-4 focus:ring-primary/15 outline-none text-foreground transition-all placeholder:text-muted-foreground text-sm"
                   required
                 />
@@ -168,6 +214,12 @@ function Login() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {capsLock && (
+                <div className="flex items-center gap-1.5 text-xs text-warning">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  Caps Lock está ativado
+                </div>
+              )}
             </div>
 
             <label className="flex items-center gap-2.5 cursor-pointer select-none pt-1">
@@ -181,22 +233,54 @@ function Login() {
             </label>
 
             {error && (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {error}
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+              >
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 rounded-xl bg-gradient-primary text-primary-foreground font-semibold text-sm hover:shadow-glow active:scale-[0.99] transition-all disabled:opacity-50 shadow-blue flex items-center justify-center gap-2"
+              className="group/btn relative w-full h-12 rounded-xl bg-gradient-primary text-primary-foreground font-semibold text-sm hover:shadow-glow active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-blue flex items-center justify-center gap-2 overflow-hidden"
             >
-              {loading ? "Entrando..." : "Entrar"}
-              {!loading && <ArrowRight className="h-4 w-4" />}
+              <span className="absolute inset-0 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                <>
+                  Entrar
+                  <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-0.5 transition-transform" />
+                </>
+              )}
             </button>
           </form>
 
-          <p className="mt-8 text-center text-sm text-muted-foreground">
+          {/* Trust strip */}
+          <div className="mt-6 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              SSL 256-bit
+            </span>
+            <span className="h-3 w-px bg-border" />
+            <span className="inline-flex items-center gap-1">
+              <Star className="h-3.5 w-3.5 fill-warning text-warning" />
+              4.9 · +12k lojas
+            </span>
+            <span className="h-3 w-px bg-border" />
+            <span className="inline-flex items-center gap-1">
+              <LockKeyhole className="h-3.5 w-3.5 text-primary" />
+              LGPD
+            </span>
+          </div>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
             Não tem uma conta?{" "}
             <Link to="/registro" className="text-primary font-semibold hover:underline">
               Criar conta grátis
@@ -204,6 +288,7 @@ function Login() {
           </p>
         </div>
       </div>
+
 
       {/* ============ Right — Marketing ============ */}
       <div className="hidden lg:flex relative overflow-hidden bg-gradient-hero p-12 flex-col justify-between text-primary-foreground">
