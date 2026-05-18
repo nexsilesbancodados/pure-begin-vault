@@ -206,6 +206,27 @@ const toNumber = (value: string | number | null | undefined) => Number(value ?? 
 const toInteger = (value: string | number | null | undefined) =>
   Math.trunc(Number(value ?? 0)) || 0;
 
+const parseDate = (value: unknown, fallback = new Date()) => {
+  const date = value ? new Date(String(value)) : fallback;
+  return Number.isNaN(date.getTime()) ? fallback : date;
+};
+
+const getLocalNotesKey = (orgId: string) => `notas_abertas_${orgId}`;
+
+const isPurchaseNotesUnavailable = (error: unknown) => {
+  const dbError = error as Partial<DbError> | null;
+  const message = String(dbError?.message ?? error ?? "").toLowerCase();
+  return (
+    dbError?.code === "42P01" ||
+    dbError?.code === "PGRST205" ||
+    (message.includes("purchase_notes") &&
+      (message.includes("does not exist") ||
+        message.includes("could not find") ||
+        message.includes("schema cache") ||
+        message.includes("relation")))
+  );
+};
+
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
@@ -248,31 +269,31 @@ const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
 
 const readLegacyNotas = (orgId: string): Nota[] => {
   if (typeof window === "undefined") return [];
-  const candidates = [`notas_abertas_${orgId}`, "notas_abertas_default"];
+  const candidates = [getLocalNotesKey(orgId), "notas_abertas_default"];
 
   for (const key of candidates) {
     const raw = localStorage.getItem(key);
     if (!raw) continue;
 
     try {
-      const arr = JSON.parse(raw) as Array<
-        Omit<Nota, "id" | "noteNumber"> & { id: number | string }
-      >;
+      const arr = JSON.parse(raw) as Array<Partial<Nota> & { id?: number | string }>;
       if (!Array.isArray(arr) || arr.length === 0) continue;
 
       const used = new Set<number>();
       return arr.map((note, index) => {
-        let noteNumber = Number(note.id) || index + 1;
+        let noteNumber = Number(note.noteNumber ?? note.id) || index + 1;
         while (used.has(noteNumber)) noteNumber += 1;
         used.add(noteNumber);
+        const stringId = typeof note.id === "string" ? note.id : "";
 
         return {
           ...note,
-          id: crypto.randomUUID(),
+          id: stringId && !/^\d+$/.test(stringId) ? stringId : crypto.randomUUID(),
           noteNumber,
           total: Number(note.total ?? getNoteTotal(note.items ?? [])),
           items: note.items ?? [],
-          createdAt: new Date(note.createdAt),
+          createdAt: parseDate(note.createdAt),
+          updatedAt: note.updatedAt ? parseDate(note.updatedAt) : undefined,
           fornecedor: note.fornecedor ?? "",
           dataCompra: note.dataCompra ?? new Date().toISOString().slice(0, 10),
           paga: Boolean(note.paga),
@@ -285,6 +306,20 @@ const readLegacyNotas = (orgId: string): Nota[] => {
   }
 
   return [];
+};
+
+const writeLocalNotas = (orgId: string, notes: Nota[]) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(
+    getLocalNotesKey(orgId),
+    JSON.stringify(
+      notes.map((note) => ({
+        ...note,
+        createdAt: note.createdAt.toISOString(),
+        updatedAt: (note.updatedAt ?? new Date()).toISOString(),
+      })),
+    ),
+  );
 };
 
 function NotasAbertoPage() {
