@@ -363,7 +363,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
           contas_pagar: contasPagar,
           custos_extras: custosExtras,
           anexos: allAnexos,
-          image_url: firstImage || md.image_url,
+          image_url: imageUrlInput?.trim() || firstImage || md.image_url,
           checklist,
           mov_tipo: form.mov_tipo,
           mov_motivo: form.mov_motivo,
