@@ -53,6 +53,7 @@ export function InviteFlow() {
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [editing, setEditing] = useState<Invite | null>(null);
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
 
   const load = async () => {
     if (!orgId) return;
@@ -111,6 +112,28 @@ export function InviteFlow() {
   useEffect(() => {
     load();
   }, [orgId]);
+
+  // Presença em tempo real: quem está online na loja
+  useEffect(() => {
+    if (!orgId || !userId) return;
+    const channel = (supabase as any).channel(`presence-org-${orgId}`, {
+      config: { presence: { key: userId } },
+    });
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState() as Record<string, unknown[]>;
+        setOnlineIds(new Set(Object.keys(state)));
+      })
+      .subscribe(async (status: string) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ user_id: userId, online_at: new Date().toISOString() });
+        }
+      });
+    return () => {
+      (supabase as any).removeChannel(channel);
+    };
+  }, [orgId, userId]);
+
 
   const buildInviteUrl = (token: string) =>
     `${window.location.origin}/convite-loja/${token}`;
@@ -188,6 +211,39 @@ export function InviteFlow() {
     toast.success("Convite revogado");
     load();
   };
+
+  const deleteInvite = async (invite: Invite) => {
+    if (!confirm(`Excluir definitivamente o usuário ${invite.metadata?.nome || invite.email || ""}?`)) return;
+    // Se já foi aceito, remover também o vínculo na organização
+    if (invite.accepted_by) {
+      const { error: rmErr } = await (supabase as any).rpc("remove_organization_member", {
+        _org_id: orgId,
+        _user_id: invite.accepted_by,
+      });
+      if (rmErr) {
+        toast.error("Erro ao remover acesso: " + rmErr.message);
+        return;
+      }
+    }
+    const { error } = await (supabase as any)
+      .from("organization_invites")
+      .delete()
+      .eq("id", invite.id);
+    if (error) {
+      // fallback: marcar como revogado se RLS impedir delete
+      await (supabase as any).from("organization_invites").update({ status: "revoked" }).eq("id", invite.id);
+    }
+    // Limpar metadata local
+    try {
+      const map = JSON.parse(localStorage.getItem(`invite_meta_${orgId}`) || "{}");
+      delete map[invite.id];
+      localStorage.setItem(`invite_meta_${orgId}`, JSON.stringify(map));
+    } catch {}
+    toast.success("Usuário excluído");
+    load();
+  };
+
+
 
   const removeMember = async (memberId: string) => {
     if (memberId === userId) {
@@ -353,6 +409,7 @@ export function InviteFlow() {
                 : revoked
                   ? { class: "bg-muted text-muted-foreground border-border", label: "Revogado" }
                   : { class: "bg-warning/15 text-warning border-warning/30", label: "Aguardando aceite" };
+              const isOnline = !!i.accepted_by && onlineIds.has(i.accepted_by);
               return (
                 <div
                   key={i.id}
@@ -371,14 +428,41 @@ export function InviteFlow() {
                   }}
                   className="relative rounded-2xl border border-border bg-card p-4 hover:shadow-md hover:border-primary/40 cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteInvite(i);
+                    }}
+                    aria-label="Excluir usuário"
+                    title="Excluir usuário"
+                    className="absolute top-2 right-2 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                   <div className="flex items-start gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center shrink-0">
-                      {initials}
+                    <div className="relative shrink-0">
+                      <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center">
+                        {initials}
+                      </div>
+                      {accepted && (
+                        <span
+                          className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-card ${isOnline ? "bg-success" : "bg-muted-foreground/50"}`}
+                          title={isOnline ? "Online agora" : "Offline"}
+                        />
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0 pr-6">
+                      <div className="flex items-center gap-2">
                         <p className="font-bold text-sm truncate">{nome}</p>
-                        <Badge className={`${statusBadge.class} border text-[10px] font-bold`}>
+                        {accepted && (
+                          <Badge
+                            className={`${isOnline ? "bg-success/15 text-success border-success/30" : "bg-muted text-muted-foreground border-border"} border text-[10px] font-bold`}
+                          >
+                            {isOnline ? "Online" : "Offline"}
+                          </Badge>
+                        )}
+                        <Badge className={`${statusBadge.class} border text-[10px] font-bold ml-auto`}>
                           {statusBadge.label}
                         </Badge>
                       </div>
@@ -436,17 +520,6 @@ export function InviteFlow() {
                           <Send className="h-3 w-3" /> Enviar
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          revoke(i.id);
-                        }}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -486,13 +559,20 @@ export function InviteFlow() {
                 .slice(0, 2)
                 .join("")
                 .toUpperCase();
+              const isOnline = onlineIds.has(m.user_id);
               return (
                 <div
                   key={m.user_id}
                   className="flex items-center gap-3 p-3 rounded-2xl border border-border bg-card hover:shadow-md hover:border-primary/30 transition"
                 >
-                  <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center shrink-0">
-                    {initials}
+                  <div className="relative shrink-0">
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center">
+                      {initials}
+                    </div>
+                    <span
+                      className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-card ${isOnline ? "bg-success" : "bg-muted-foreground/50"}`}
+                      title={isOnline ? "Online agora" : "Offline"}
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -500,6 +580,11 @@ export function InviteFlow() {
                       {m.is_default && (
                         <Badge variant="outline" className="text-[9px]">padrão</Badge>
                       )}
+                      <Badge
+                        className={`${isOnline ? "bg-success/15 text-success border-success/30" : "bg-muted text-muted-foreground border-border"} border text-[9px] font-bold`}
+                      >
+                        {isOnline ? "Online" : "Offline"}
+                      </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground capitalize truncate">
                       {m.role}
