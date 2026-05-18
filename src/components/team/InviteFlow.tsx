@@ -129,6 +129,19 @@ export function InviteFlow() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setUserModalOpen(true)} className="gap-2 shadow-md">
+          <UserCog className="h-4 w-4" />
+          Cadastrar Usuário
+        </Button>
+      </div>
+
+      <UserRegistrationModal
+        open={userModalOpen}
+        onOpenChange={setUserModalOpen}
+        onCreated={load}
+      />
+
       <Card className="p-5">
         <h3 className="font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2">
           <UserPlus className="h-4 w-4" /> Convidar membro
