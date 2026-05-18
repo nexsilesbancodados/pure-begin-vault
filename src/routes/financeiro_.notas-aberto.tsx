@@ -61,6 +61,10 @@ interface Nota {
   items: Product[];
   total: number;
   createdAt: Date;
+  fornecedor: string;
+  dataCompra: string;
+  paga: boolean;
+  prazoPagamento: string;
 }
 
 function NotasAbertoPage() {
@@ -71,8 +75,14 @@ function NotasAbertoPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [notas, setNotas] = useState<Nota[]>([]);
+  const [addingToNotaId, setAddingToNotaId] = useState<number | null>(null);
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const detailNota = notas.find((n) => n.id === detailId) ?? null;
 
-  const loadProducts = async () => {
+  const updateNota = (id: number, patch: Partial<Nota>) => {
+    setNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+  };
+
     if (!userId) return;
     setLoading(true);
 
