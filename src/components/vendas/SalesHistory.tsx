@@ -1269,8 +1269,9 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
           <img
             src={data.org.logo_url}
             alt={data.org_name}
-            className="mx-auto my-1"
-            style={{ maxHeight: "55px", objectFit: "contain" }}
+            crossOrigin="anonymous"
+            className="mx-auto my-1 receipt-logo"
+            style={{ maxHeight: "55px", objectFit: "contain", display: "block", marginLeft: "auto", marginRight: "auto", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" } as any}
           />
         )}
         <div className="font-bold text-[13px]">{data.org_name}</div>
