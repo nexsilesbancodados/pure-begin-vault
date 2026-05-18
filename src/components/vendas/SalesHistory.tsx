@@ -67,7 +67,7 @@ type ReceiptData = {
   items: any[];
   payments: any[];
   org_name: string;
-  org: { address?: string | null; cnpj?: string | null; phone?: string | null; website?: string | null };
+  org: { address?: string | null; cnpj?: string | null; phone?: string | null; website?: string | null; logo_url?: string | null };
   seller?: { name?: string | null } | null;
   customer?: any | null;
 };
@@ -318,6 +318,7 @@ ul{font-size:12px;line-height:1.6;}
           cnpj: settings.cnpj ?? settings.document ?? null,
           phone: settings.phone ?? settings.telefone ?? null,
           website: settings.website ?? null,
+          logo_url: settings.brand_logo_url ?? null,
         },
         seller: seller ? { name: seller.full_name || seller.email } : null,
         customer: customer || sale.customers || null,
@@ -1089,6 +1090,13 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
         <tbody>
           <tr>
             <td className="border border-black px-3 py-2 text-center align-top w-[60%]">
+              {data.org?.logo_url && (
+                <img
+                  src={data.org.logo_url}
+                  alt={data.org_name}
+                  className="mx-auto mb-1 max-h-16 object-contain"
+                />
+              )}
               <p className="font-bold">{data.org_name}</p>
               {data.org?.cnpj && <p>CNPJ: {data.org.cnpj}</p>}
               {data.org?.phone && <p>Telefone: {data.org.phone}</p>}
