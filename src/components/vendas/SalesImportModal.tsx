@@ -266,13 +266,22 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     setFile(f);
     try {
       const parsed = await processFile(f);
-      if (parsed.length === 0) {
+      if (parsed.rows.length === 0) {
         toast.error("Arquivo vazio ou sem registros válidos.");
         return;
       }
-      setRows(parsed);
+      setRows(parsed.rows);
+      setHmap(parsed.hmap);
+      setHeaders(parsed.headers);
       setStep("preview");
-      toast.success(`${parsed.length} linhas detectadas`);
+      const validCount = parsed.rows.filter((r) => r._valid).length;
+      if (validCount === 0) {
+        toast.warning(
+          `${parsed.rows.length} linhas lidas, mas nenhuma válida. Confira o mapeamento de colunas.`,
+        );
+      } else {
+        toast.success(`${parsed.rows.length} linhas detectadas · ${validCount} válidas`);
+      }
     } catch (err: any) {
       toast.error("Erro ao ler o arquivo: " + (err.message || "formato inválido"));
     }
