@@ -47,6 +47,7 @@ type ParsedRow = {
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
+  customer_document?: string;
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
