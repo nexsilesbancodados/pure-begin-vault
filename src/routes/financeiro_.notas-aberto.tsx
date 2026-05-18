@@ -433,7 +433,7 @@ function NotasAbertoPage() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm(`Excluir Nota ${n.id}?`)) {
+                                if (window.confirm(`Excluir Nota ${n.id}?`)) {
                                   setNotas((prev) => prev.filter((x) => x.id !== n.id));
                                   toast.success(`Nota ${n.id} excluída.`);
                                 }
