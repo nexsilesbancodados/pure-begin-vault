@@ -842,11 +842,12 @@ function NotasAbertoPage() {
               {selectedCount} produto(s) selecionado(s)
             </span>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={savingSelection}>
                 Cancelar
               </Button>
-              <Button onClick={confirm} disabled={selectedCount === 0}>
-                Adicionar à Nota
+              <Button onClick={confirm} disabled={selectedCount === 0 || savingSelection}>
+                {savingSelection && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {addingToNotaId ? "Adicionar à Nota" : "Criar Nota"}
               </Button>
             </div>
           </DialogFooter>
