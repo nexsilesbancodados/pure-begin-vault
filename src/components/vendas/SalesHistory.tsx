@@ -561,34 +561,19 @@ export function SalesHistory() {
                                   </span>
                                 </div>
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    window.open(
-                                      `/pdv?print=warranty&type=seminovo&id=${sale.id}`,
-                                      "_blank",
-                                    )
-                                  }
+                                  onClick={() => openWarrantyPrint(sale, "seminovo")}
                                   className="py-2.5 rounded-lg cursor-pointer focus:bg-primary/10 font-bold text-xs"
                                 >
                                   iPhone Seminovo (7 meses)
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    window.open(
-                                      `/pdv?print=warranty&type=lacrado&id=${sale.id}`,
-                                      "_blank",
-                                    )
-                                  }
+                                  onClick={() => openWarrantyPrint(sale, "lacrado")}
                                   className="py-2.5 rounded-lg cursor-pointer focus:bg-primary/10 font-bold text-xs"
                                 >
                                   iPhone Lacrado (1 ano)
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    window.open(
-                                      `/pdv?print=warranty&type=android&id=${sale.id}`,
-                                      "_blank",
-                                    )
-                                  }
+                                  onClick={() => openWarrantyPrint(sale, "android")}
                                   className="py-2.5 rounded-lg cursor-pointer focus:bg-primary/10 font-bold text-xs"
                                 >
                                   Aparelho Android (1 ano)
