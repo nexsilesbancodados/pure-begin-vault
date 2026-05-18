@@ -37,13 +37,23 @@ export function AppSidebar({
     return () => window.removeEventListener("force-sidebar-collapse", handleForceCollapse);
   }, []);
 
+  const { activeCount } = useImport();
+
   const filteredItems = useMemo(() => {
-    return sidebarItems.filter((item: any) => {
-      if (item.type === "header") return true;
-      if (item.roleRestriction === "super_admin" && profile?.role !== "super_admin") return false;
-      return true;
-    });
-  }, [profile]);
+    return sidebarItems
+      .filter((item: any) => {
+        if (item.type === "header") return true;
+        if (item.roleRestriction === "super_admin" && profile?.role !== "super_admin") return false;
+        return true;
+      })
+      .map((item: any) => {
+        // badge dinâmico para "Importações": mostra contagem de jobs em andamento
+        if (item.url === "/importacao") {
+          return { ...item, badge: activeCount > 0 ? String(activeCount) : undefined };
+        }
+        return item;
+      });
+  }, [profile, activeCount]);
 
   const isSmall = isCollapsed || !!flyout || isForcedCollapsed;
 
