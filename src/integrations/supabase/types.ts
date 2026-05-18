@@ -1249,6 +1249,68 @@ export type Database = {
         }
         Relationships: []
       }
+      import_jobs: {
+        Row: {
+          created_at: string
+          error: string | null
+          file_name: string
+          finished_at: string | null
+          id: string
+          organization_id: string
+          payload: Json
+          processed: number
+          result: Json | null
+          started_at: string | null
+          status: string
+          step: string
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          file_name: string
+          finished_at?: string | null
+          id?: string
+          organization_id: string
+          payload?: Json
+          processed?: number
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          step?: string
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          file_name?: string
+          finished_at?: string | null
+          id?: string
+          organization_id?: string
+          payload?: Json
+          processed?: number
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          step?: string
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_jobs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_accounts: {
         Row: {
           access_token: string | null
