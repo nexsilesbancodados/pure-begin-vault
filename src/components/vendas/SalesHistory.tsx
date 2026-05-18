@@ -394,7 +394,7 @@ ul{font-size:12px;line-height:1.6;}
         customer: customer || sale.customers || null,
       });
 
-      if (autoPrint) setTimeout(() => window.print(), 500);
+      if (autoPrint) setTimeout(() => void printReceiptArea(mode), 700);
     } catch (error) {
       console.error("Erro ao carregar recibo:", error);
       setReceiptError("Não foi possível carregar o recibo desta venda.");
@@ -1085,37 +1085,7 @@ ul{font-size:12px;line-height:1.6;}
             </div>
             <Button
               disabled={!receiptData || receiptLoading}
-              onClick={async () => {
-                const node = document.querySelector(".receipt-print-area") as HTMLElement | null;
-                if (!node) { window.print(); return; }
-                // Convert logo to data URL to bypass CORS/print issues
-                const imgs = Array.from(node.querySelectorAll<HTMLImageElement>("img"));
-                await Promise.all(imgs.map(async (img) => {
-                  try {
-                    const res = await fetch(img.src, { mode: "cors" });
-                    const blob = await res.blob();
-                    img.src = await new Promise<string>((resolve) => {
-                      const reader = new FileReader();
-                      reader.onloadend = () => resolve(reader.result as string);
-                      reader.readAsDataURL(blob);
-                    });
-                  } catch { /* keep original src */ }
-                }));
-                const win = window.open("", "_blank", "width=420,height=720");
-                if (!win) { window.print(); return; }
-                const isThermal = receiptMode === "80mm";
-                win.document.write(`<!doctype html><html><head><title>Recibo</title>
-                  <style>
-                    @page { margin: 0; size: ${isThermal ? "80mm auto" : "A4"}; }
-                    body { margin: 0; font-family: 'Courier New', ui-monospace, monospace; color: #000; background: #fff; }
-                    img { max-width: 100%; display: block; }
-                    table { border-collapse: collapse; width: 100%; }
-                    .receipt-print-area { box-shadow: none !important; }
-                  </style></head><body>${node.outerHTML}
-                  <script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 300); };<\/script>
-                  </body></html>`);
-                win.document.close();
-              }}
+              onClick={() => void printReceiptArea(receiptMode)}
               className="rounded-xl font-bold gap-2"
             >
               <Printer className="h-4 w-4" /> Imprimir
