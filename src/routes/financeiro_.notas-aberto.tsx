@@ -321,7 +321,8 @@ function NotasAbertoPage() {
                     <TableHead>Produto</TableHead>
                     <TableHead>SKU</TableHead>
                     <TableHead>IMEI</TableHead>
-                    <TableHead className="text-right">Preço</TableHead>
+                    <TableHead className="text-right">Custo</TableHead>
+                    <TableHead className="text-right">Venda</TableHead>
                     <TableHead className="text-right">Estoque</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -340,9 +341,20 @@ function NotasAbertoPage() {
                           onClick={(e) => e.stopPropagation()}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell
+                        className="font-medium text-primary hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingProduct(p);
+                        }}
+                      >
+                        {p.name}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{p.sku ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{p.imei ?? "—"}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {p.cost_price != null ? `R$ ${Number(p.cost_price).toFixed(2)}` : "—"}
+                      </TableCell>
                       <TableCell className="text-right">
                         {p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : "—"}
                       </TableCell>
