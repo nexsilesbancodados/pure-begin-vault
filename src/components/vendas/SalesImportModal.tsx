@@ -51,26 +51,141 @@ type ParsedRow = {
 
 const TEMPLATE_HEADERS = ["data", "valor", "metodo_pagamento", "status", "observacao"];
 
-function parseRow(row: any): ParsedRow {
-  const total = parseFloat(
-    String(row.valor ?? row.total ?? row.Amount ?? row.amount ?? "0").replace(",", "."),
-  );
-  const dateRaw = row.data ?? row.date ?? row.Data;
-  let created_at = new Date().toISOString();
-  if (dateRaw) {
-    const d = new Date(dateRaw);
-    if (!isNaN(d.getTime())) created_at = d.toISOString();
+// Normaliza string (remove acentos, baixa caixa, trim)
+const norm = (s: any) =>
+  String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+// Aliases por campo — qualquer coluna que contenha um destes termos é considerada match
+const FIELD_ALIASES: Record<string, string[]> = {
+  amount: [
+    "valor",
+    "total",
+    "vlr",
+    "preco",
+    "amount",
+    "value",
+    "price",
+    "subtotal",
+    "venda",
+    "faturamento",
+  ],
+  date: ["data", "date", "dt", "emissao", "vencimento", "created", "criado"],
+  payment: ["pagamento", "pagto", "metodo", "method", "forma", "payment"],
+  status: ["status", "situacao", "estado"],
+  notes: ["obs", "observacao", "observacoes", "notes", "descricao", "description", "nota"],
+  customer: ["cliente", "customer", "comprador", "nome"],
+};
+
+// Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
+function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
+  const map: Record<string, string> = {};
+  const headers = Object.keys(sample);
+  for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
+    const match = headers.find((h) => {
+      const n = norm(h);
+      return aliases.some((a) => n === a || n.includes(a));
+    });
+    if (match) map[field] = match;
   }
-  const valid = !isNaN(total) && total > 0;
+  return map;
+}
+
+// Parser de moeda robusto: aceita "R$ 1.234,56", "1234.56", "1,234.56", "1.234,56"
+function parseCurrency(raw: any): number {
+  if (raw === null || raw === undefined || raw === "") return NaN;
+  if (typeof raw === "number") return raw;
+  let s = String(raw).trim();
+  // remove R$, espaços, e qualquer letra
+  s = s.replace(/[R$\s\u00A0]/gi, "").replace(/[^\d.,\-]/g, "");
+  if (!s) return NaN;
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+  if (hasComma && hasDot) {
+    // formato brasileiro: ponto = milhar, vírgula = decimal
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else {
+      // formato americano: vírgula = milhar
+      s = s.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    s = s.replace(",", ".");
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? NaN : n;
+}
+
+// Parser de data: aceita Date, número serial Excel, "DD/MM/YYYY", "YYYY-MM-DD", ISO
+function parseDate(raw: any): Date | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  if (raw instanceof Date && !isNaN(raw.getTime())) return raw;
+  // número serial Excel (dias desde 1900-01-01)
+  if (typeof raw === "number" && raw > 25000 && raw < 80000) {
+    const ms = (raw - 25569) * 86400 * 1000;
+    const d = new Date(ms);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const s = String(raw).trim();
+  // DD/MM/YYYY ou DD-MM-YYYY
+  const br = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (br) {
+    const [, d, m, y] = br;
+    const year = y.length === 2 ? 2000 + parseInt(y) : parseInt(y);
+    const dt = new Date(year, parseInt(m) - 1, parseInt(d));
+    if (!isNaN(dt.getTime())) return dt;
+  }
+  const dt = new Date(s);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function normalizePayment(raw: any): string {
+  const n = norm(raw);
+  if (!n) return "Pix";
+  if (n.includes("pix")) return "Pix";
+  if (n.includes("dinh") || n.includes("cash") || n === "esp") return "Dinheiro";
+  if (n.includes("debit")) return "Débito";
+  if (n.includes("cred") || n.includes("card")) return "Crédito";
+  if (n.includes("boleto")) return "Boleto";
+  if (n.includes("transf")) return "Transferência";
+  return String(raw).slice(0, 30);
+}
+
+function normalizeStatus(raw: any): string {
+  const n = norm(raw);
+  if (!n) return "concluded";
+  if (n.includes("cancel")) return "cancelled";
+  if (n.includes("pend") || n.includes("aberto") || n.includes("open")) return "pending";
+  return "concluded";
+}
+
+function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRow {
+  const get = (field: string) => (hmap[field] ? row[hmap[field]] : undefined);
+
+  const rawAmount = get("amount");
+  const amount = parseCurrency(rawAmount);
+  const date = parseDate(get("date"));
+
+  const errors: string[] = [];
+  if (!hmap.amount) errors.push("coluna de valor não encontrada");
+  else if (isNaN(amount)) errors.push("valor inválido");
+  else if (amount <= 0) errors.push("valor deve ser maior que zero");
+
+  const customer = get("customer");
+  const notes = get("notes") || (customer ? `Cliente: ${customer}` : "Importado via sistema");
+
   return {
-    total_amount: total,
-    payment_method: String(row.metodo_pagamento ?? row.payment_method ?? "Pix"),
-    status: String(row.status ?? "concluded"),
-    notes: String(row.observacao ?? row.notes ?? "Importado via sistema"),
-    created_at,
+    total_amount: isNaN(amount) ? 0 : amount,
+    payment_method: normalizePayment(get("payment")),
+    status: normalizeStatus(get("status")),
+    notes: String(notes).slice(0, 500),
+    created_at: (date ?? new Date()).toISOString(),
     _raw: row,
-    _valid: valid,
-    _error: valid ? undefined : "Valor inválido ou ausente",
+    _valid: errors.length === 0,
+    _error: errors.length ? `Linha ${idx + 2}: ${errors.join(", ")}` : undefined,
   };
 }
 
