@@ -102,6 +102,9 @@ const FIELD_ALIASES: Record<string, string[]> = {
   product: ["produto", "item", "product", "mercadoria", "descricao produto"],
   quantity: ["qtd", "quantidade", "qty", "quantity"],
   unit_price: ["preco", "preço", "preco unit", "valor unitario", "unit price"],
+  description: ["descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título"],
+  fin_type: ["tipo", "natureza", "type", "operacao", "operação", "movimento", "credito/debito", "c/d"],
+  category: ["categoria", "category", "classe", "classificacao", "classificação", "centro de custo", "grupo", "plano"],
 };
 
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
