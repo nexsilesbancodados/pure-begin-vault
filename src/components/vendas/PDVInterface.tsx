@@ -753,9 +753,12 @@ export function PDVInterface() {
 
   const totalReceived = useMemo(() => {
     return (
-      (parseFloat(moneyAmount) || 0) + (parseFloat(cardAmount) || 0) + (parseFloat(pixAmount) || 0)
+      (parseFloat(moneyAmount) || 0) +
+      (parseFloat(cardAmount) || 0) +
+      (parseFloat(pixAmount) || 0) +
+      (parseFloat(prazoAmount) || 0)
     );
-  }, [moneyAmount, cardAmount, pixAmount]);
+  }, [moneyAmount, cardAmount, pixAmount, prazoAmount]);
 
   const change = useMemo(() => Math.max(0, totalReceived - total), [totalReceived, total]);
 
