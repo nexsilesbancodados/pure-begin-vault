@@ -802,6 +802,18 @@ ul{font-size:12px;line-height:1.6;}
                               onClick: () => openReceiptPopup(sale, "80mm", true),
                             },
                             {
+                              icon: ShieldCheck,
+                              iconClass: "text-blue-600",
+                              label: "Garantia - Lacrado (1 ano)",
+                              onClick: () => openWarrantyPrint(sale, "lacrado"),
+                            },
+                            {
+                              icon: ShieldCheck,
+                              iconClass: "text-amber-600",
+                              label: "Garantia - Seminovo (7 meses)",
+                              onClick: () => openWarrantyPrint(sale, "seminovo"),
+                            },
+                            {
                               icon: MessageSquare,
                               iconClass: "text-green-600",
                               label: "Whatsapp",
