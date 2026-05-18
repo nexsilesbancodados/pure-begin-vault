@@ -226,6 +226,7 @@ function SettingsPage() {
     display_name: "",
     role: "",
     phone: "",
+    email: "",
   });
 
   useEffect(() => {
@@ -234,10 +235,11 @@ function SettingsPage() {
         display_name: profile.display_name || "",
         role: profile.role || "",
         phone: (profile as { phone?: string | null }).phone || "",
+        email: profile.email || user?.email || "",
       });
       setAvatarUrl(profile.avatar_url || null);
     }
-  }, [profile]);
+  }, [profile, user?.email]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -272,11 +274,24 @@ function SettingsPage() {
 
   const handleSaveProfile = async () => {
     if (!user?.id) return;
+    const newEmail = formData.email.trim();
+    const emailChanged = newEmail && newEmail.toLowerCase() !== (user.email || "").toLowerCase();
+
+    if (emailChanged) {
+      const { error: authErr } = await supabase.auth.updateUser({ email: newEmail });
+      if (authErr) {
+        toast.error("Erro ao atualizar e-mail: " + authErr.message);
+        return;
+      }
+      toast.info("Enviamos um link de confirmação para o novo e-mail.");
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({
         display_name: formData.display_name,
         role: formData.role,
+        email: newEmail || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
@@ -287,6 +302,7 @@ function SettingsPage() {
       toast.success("Perfil atualizado!");
     }
   };
+
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -472,7 +488,12 @@ function SettingsPage() {
                         </div>
                         <div className="space-y-2">
                           <Label>E-mail Profissional</Label>
-                          <Input value={user?.email || ""} disabled />
+                          <Input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            placeholder="seu@email.com"
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label>Cargo / Função</Label>
