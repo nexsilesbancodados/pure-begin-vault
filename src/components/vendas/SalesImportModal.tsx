@@ -60,6 +60,10 @@ type ParsedRow = {
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
+  // Financeiro
+  description?: string;
+  fin_type?: "income" | "expense";
+  category?: string;
   _raw: Record<string, any>;
   _valid: boolean;
   _error?: string;
@@ -98,6 +102,9 @@ const FIELD_ALIASES: Record<string, string[]> = {
   product: ["produto", "item", "product", "mercadoria", "descricao produto"],
   quantity: ["qtd", "quantidade", "qty", "quantity"],
   unit_price: ["preco", "preço", "preco unit", "valor unitario", "unit price"],
+  description: ["descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título"],
+  fin_type: ["tipo", "natureza", "type", "operacao", "operação", "movimento", "credito/debito", "c/d"],
+  category: ["categoria", "category", "classe", "classificacao", "classificação", "centro de custo", "grupo", "plano"],
 };
 
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
@@ -122,7 +129,8 @@ function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
   const fieldOrder = [
     "customer_document", "customer_email", "customer_phone", "customer",
     "amount", "date", "payment", "status",
-    "unit_price", "quantity", "product", "notes",
+    "unit_price", "quantity", "product",
+    "fin_type", "category", "description", "notes",
   ];
   for (const field of fieldOrder) {
     const aliases = FIELD_ALIASES[field];
@@ -240,11 +248,23 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     ? parseCurrency(unitPriceRaw)
     : undefined;
 
+  const description = get("description") ? String(get("description")).trim() : undefined;
+  const categoryRaw = get("category") ? String(get("category")).trim() : undefined;
+  const finTypeRaw = get("fin_type") ? norm(get("fin_type")) : "";
+  // infere tipo: entrada/receita/credito/venda/recebimento → income; saida/despesa/debito/compra/pagamento → expense
+  let finType: "income" | "expense" | undefined;
+  if (finTypeRaw) {
+    if (/(entrada|receit|credit|venda|recebi|income|^c$)/.test(finTypeRaw)) finType = "income";
+    else if (/(saida|saída|despes|debit|compra|pagame|expense|^d$)/.test(finTypeRaw)) finType = "expense";
+  }
+  // fallback por valor: negativo = expense, positivo = income
+  if (!finType && !isNaN(amount)) finType = amount < 0 ? "expense" : "income";
+
   const notes =
-    get("notes") || (customerName ? `Cliente: ${customerName}` : "Importado via sistema");
+    get("notes") || description || (customerName ? `Cliente: ${customerName}` : "Importado via sistema");
 
   return {
-    total_amount: isNaN(amount) ? 0 : amount,
+    total_amount: isNaN(amount) ? 0 : Math.abs(amount),
     payment_method: normalizePayment(get("payment")),
     status: normalizeStatus(get("status")),
     notes: String(notes).slice(0, 500),
@@ -256,6 +276,9 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     product_name: productName || undefined,
     product_quantity: productQty,
     product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
+    description: description,
+    fin_type: finType,
+    category: categoryRaw,
     _raw: row,
     _valid: errors.length === 0,
     _error: errors.length ? `Linha ${idx + 2}: ${errors.join(", ")}` : undefined,
@@ -407,6 +430,9 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         product_name: r.product_name,
         product_quantity: r.product_quantity,
         product_price: r.product_price,
+        description: r.description,
+        fin_type: r.fin_type,
+        category: r.category,
       })),
     );
     if (!jobId) return;
@@ -747,35 +773,59 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                   )}
                 </div>
                 <div className="p-3 space-y-4">
-                  {[
-                    {
-                      title: "Venda",
-                      fields: [
-                        { field: "amount", label: "Valor *", required: true },
-                        { field: "date", label: "Data" },
-                        { field: "payment", label: "Pagamento" },
-                        { field: "status", label: "Status" },
-                      ],
-                    },
-                    {
-                      title: "Cliente",
-                      fields: [
-                        { field: "customer", label: "Nome do cliente" },
-                        { field: "customer_document", label: "CPF / CNPJ" },
-                        { field: "customer_phone", label: "Telefone" },
-                        { field: "customer_email", label: "E-mail" },
-                      ],
-                    },
-                    {
-                      title: "Produto",
-                      fields: [
-                        { field: "product", label: "Produto" },
-                        { field: "quantity", label: "Quantidade" },
-                        { field: "unit_price", label: "Preço unitário" },
-                        { field: "notes", label: "Observação" },
-                      ],
-                    },
-                  ].map((group) => (
+                  {(kind === "financeiro"
+                    ? [
+                        {
+                          title: "Lançamento financeiro",
+                          fields: [
+                            { field: "description", label: "Descrição" },
+                            { field: "fin_type", label: "Tipo (compra/despesa)" },
+                            { field: "category", label: "Categoria" },
+                            { field: "date", label: "Data" },
+                            { field: "amount", label: "Valor *", required: true },
+                            { field: "payment", label: "Pagamento" },
+                          ],
+                        },
+                        {
+                          title: "Complementar",
+                          fields: [
+                            { field: "customer", label: "Cliente / Fornecedor" },
+                            { field: "customer_document", label: "CPF / CNPJ" },
+                            { field: "status", label: "Status" },
+                            { field: "notes", label: "Observação" },
+                          ],
+                        },
+                      ]
+                    : [
+                        {
+                          title: "Venda",
+                          fields: [
+                            { field: "amount", label: "Valor *", required: true },
+                            { field: "date", label: "Data" },
+                            { field: "payment", label: "Pagamento" },
+                            { field: "status", label: "Status" },
+                          ],
+                        },
+                        {
+                          title: "Cliente",
+                          fields: [
+                            { field: "customer", label: "Nome do cliente" },
+                            { field: "customer_document", label: "CPF / CNPJ" },
+                            { field: "customer_phone", label: "Telefone" },
+                            { field: "customer_email", label: "E-mail" },
+                          ],
+                        },
+                        {
+                          title: "Produto",
+                          fields: [
+                            { field: "product", label: "Produto" },
+                            { field: "quantity", label: "Quantidade" },
+                            { field: "unit_price", label: "Preço unitário" },
+                            { field: "notes", label: "Observação" },
+                          ],
+                        },
+                      ]
+                  ).map((group) => (
                     <div key={group.title} className="space-y-2">
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">
                         {group.title}
@@ -870,9 +920,19 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                         <th className="text-left p-2.5 font-black w-10 text-[10px] uppercase tracking-wider text-muted-foreground">#</th>
                         <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Status</th>
                         <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
-                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
-                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">CPF / CNPJ</th>
-                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
+                        {kind === "financeiro" ? (
+                          <>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Descrição</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Tipo</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</th>
+                          </>
+                        ) : (
+                          <>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">CPF / CNPJ</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
+                          </>
+                        )}
                         <th className="text-right p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
                       </tr>
                     </thead>
@@ -890,6 +950,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                           : /prazo|boleto/i.test(pm)
                           ? "bg-info/10 text-info border-info/20"
                           : "bg-muted text-muted-foreground border-border";
+                        const isIncome = r.fin_type === "income";
                         return (
                           <tr
                             key={i}
@@ -921,38 +982,78 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             <td className="p-2.5 font-mono text-[11px]">
                               {dateOk ? dt!.toLocaleDateString("pt-BR") : <span className="text-muted-foreground">—</span>}
                             </td>
-                            <td className="p-2.5 text-[11px] max-w-[160px] truncate">
-                              {r.customer_name ? (
-                                <span className="font-semibold">{r.customer_name}</span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            <td className="p-2.5 font-mono text-[11px]">
-                              {r.customer_document ? (
-                                <span className="px-1.5 py-0.5 rounded-md bg-primary/5 border border-primary/20 text-primary">
-                                  {r.customer_document.length === 11
-                                    ? r.customer_document.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
-                                    : r.customer_document.length === 14
-                                    ? r.customer_document.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
-                                    : r.customer_document}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            <td className="p-2.5">
-                              {pm ? (
-                                <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-bold ${pmColor}`}>
-                                  {pm}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
+                            {kind === "financeiro" ? (
+                              <>
+                                <td className="p-2.5 text-[11px] max-w-[200px] truncate" title={r.description || r.notes}>
+                                  {r.description || r.notes ? (
+                                    <span className="font-semibold">{r.description || r.notes}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="p-2.5">
+                                  {r.fin_type ? (
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-black ${
+                                        isIncome
+                                          ? "bg-success/10 text-success border-success/30"
+                                          : "bg-destructive/10 text-destructive border-destructive/30"
+                                      }`}
+                                    >
+                                      {isIncome ? "↑ Receita" : "↓ Despesa"}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="p-2.5 text-[11px] max-w-[140px] truncate" title={r.category}>
+                                  {r.category ? (
+                                    <span className="px-2 py-0.5 rounded-full bg-primary/5 border border-primary/20 text-primary text-[10px] font-bold">
+                                      {r.category}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="p-2.5 text-[11px] max-w-[160px] truncate">
+                                  {r.customer_name ? (
+                                    <span className="font-semibold">{r.customer_name}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="p-2.5 font-mono text-[11px]">
+                                  {r.customer_document ? (
+                                    <span className="px-1.5 py-0.5 rounded-md bg-primary/5 border border-primary/20 text-primary">
+                                      {r.customer_document.length === 11
+                                        ? r.customer_document.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
+                                        : r.customer_document.length === 14
+                                        ? r.customer_document.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+                                        : r.customer_document}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="p-2.5">
+                                  {pm ? (
+                                    <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-bold ${pmColor}`}>
+                                      {pm}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                              </>
+                            )}
                             <td className="p-2.5 text-right font-black tabular-nums">
                               {r._valid ? (
-                                <span className="text-foreground">{brl(r.total_amount)}</span>
+                                <span className={kind === "financeiro" && r.fin_type === "expense" ? "text-destructive" : "text-foreground"}>
+                                  {kind === "financeiro" && r.fin_type === "expense" ? "−" : ""}{brl(r.total_amount)}
+                                </span>
                               ) : (
                                 <span className="text-muted-foreground">—</span>
                               )}
