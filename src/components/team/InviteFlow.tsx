@@ -212,6 +212,39 @@ export function InviteFlow() {
     load();
   };
 
+  const deleteInvite = async (invite: Invite) => {
+    if (!confirm(`Excluir definitivamente o usuário ${invite.metadata?.nome || invite.email || ""}?`)) return;
+    // Se já foi aceito, remover também o vínculo na organização
+    if (invite.accepted_by) {
+      const { error: rmErr } = await (supabase as any).rpc("remove_organization_member", {
+        _org_id: orgId,
+        _user_id: invite.accepted_by,
+      });
+      if (rmErr) {
+        toast.error("Erro ao remover acesso: " + rmErr.message);
+        return;
+      }
+    }
+    const { error } = await (supabase as any)
+      .from("organization_invites")
+      .delete()
+      .eq("id", invite.id);
+    if (error) {
+      // fallback: marcar como revogado se RLS impedir delete
+      await (supabase as any).from("organization_invites").update({ status: "revoked" }).eq("id", invite.id);
+    }
+    // Limpar metadata local
+    try {
+      const map = JSON.parse(localStorage.getItem(`invite_meta_${orgId}`) || "{}");
+      delete map[invite.id];
+      localStorage.setItem(`invite_meta_${orgId}`, JSON.stringify(map));
+    } catch {}
+    toast.success("Usuário excluído");
+    load();
+  };
+
+
+
   const removeMember = async (memberId: string) => {
     if (memberId === userId) {
       toast.error("Use o botão 'Sair da loja' em /lojas");
