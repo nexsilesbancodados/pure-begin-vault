@@ -345,6 +345,17 @@ function LojasPage() {
           </Card>
         </main>
       </div>
+
+      {detailsOrg && (
+        <StoreDetailsDialog
+          open={!!detailsOrg}
+          onOpenChange={(v) => !v && setDetailsOrg(null)}
+          orgId={detailsOrg.id}
+          orgName={detailsOrg.name}
+          role={detailsOrg.role}
+          onSaved={reload}
+        />
+      )}
     </div>
   );
 }
