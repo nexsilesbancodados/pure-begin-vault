@@ -80,6 +80,7 @@ function NotasAbertoPage() {
   const [notas, setNotas] = useState<Nota[]>([]);
   const [addingToNotaId, setAddingToNotaId] = useState<number | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const detailNota = notas.find((n) => n.id === detailId) ?? null;
 
   const updateNota = (id: number, patch: Partial<Nota>) => {
