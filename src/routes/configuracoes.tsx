@@ -488,7 +488,12 @@ function SettingsPage() {
                         </div>
                         <div className="space-y-2">
                           <Label>E-mail Profissional</Label>
-                          <Input value={user?.email || ""} disabled />
+                          <Input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            placeholder="seu@email.com"
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label>Cargo / Função</Label>
