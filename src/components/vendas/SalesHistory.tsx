@@ -102,6 +102,7 @@ export function SalesHistory() {
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [receiptMode, setReceiptMode] = useState<"a4" | "80mm">("a4");
 
   const fetchSales = useCallback(async () => {
     if (!user?.id || !orgId) return;
@@ -268,9 +269,10 @@ ul{font-size:12px;line-height:1.6;}
     w.document.close();
   }, []);
 
-  const openReceiptPopup = useCallback(async (sale: any, autoPrint = false) => {
+  const openReceiptPopup = useCallback(async (sale: any, mode: "a4" | "80mm" = "a4", autoPrint = false) => {
     setIsDetailsOpen(false);
     setSelectedSale(null);
+    setReceiptMode(mode);
     setIsReceiptOpen(true);
     setReceiptLoading(true);
     setReceiptError(null);
@@ -673,7 +675,7 @@ ul{font-size:12px;line-height:1.6;}
                             {
                               icon: Printer,
                               label: "Recibo 80mm",
-                              onClick: () => openReceiptPopup(sale, true),
+                              onClick: () => openReceiptPopup(sale, "80mm", true),
                             },
                             {
                               icon: MessageSquare,
@@ -721,7 +723,7 @@ ul{font-size:12px;line-height:1.6;}
                             {
                               icon: Truck,
                               label: "Imprimir Delivery",
-                              onClick: () => openReceiptPopup(sale, true),
+                              onClick: () => openReceiptPopup(sale, "a4", true),
                             },
                             {
                               icon: PenLine,
@@ -957,7 +959,7 @@ ul{font-size:12px;line-height:1.6;}
                       className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
                       onClick={() => {
                         toast.info("Preparando cupom...");
-                        openReceiptPopup(selectedSale, true);
+                        openReceiptPopup(selectedSale, "a4", true);
                       }}
                     >
                       <Printer className="h-4 w-4" />
@@ -1005,10 +1007,12 @@ ul{font-size:12px;line-height:1.6;}
 
       {/* Modal do Recibo */}
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
-        <DialogContent className="max-w-[940px] max-h-[92vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60">
+        <DialogContent className={`${receiptMode === "80mm" ? "max-w-[420px]" : "max-w-[940px]"} max-h-[92vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60`}>
           <div className="print:hidden flex items-center justify-between gap-3 px-5 py-4 border-b border-border/60 bg-muted/30">
             <div>
-              <DialogTitle className="text-lg font-black tracking-tight">Recibo da venda</DialogTitle>
+              <DialogTitle className="text-lg font-black tracking-tight">
+                {receiptMode === "80mm" ? "Cupom 80mm" : "Recibo da venda"}
+              </DialogTitle>
               <DialogDescription>Confira o recibo antes de imprimir.</DialogDescription>
             </div>
             <Button
@@ -1034,7 +1038,7 @@ ul{font-size:12px;line-height:1.6;}
                 </Button>
               </div>
             ) : receiptData ? (
-              <ReceiptPreview data={receiptData} />
+              receiptMode === "80mm" ? <Receipt80mm data={receiptData} /> : <ReceiptPreview data={receiptData} />
             ) : null}
           </div>
         </DialogContent>
@@ -1228,6 +1232,146 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
           body * { visibility: hidden !important; }
           .receipt-print-area, .receipt-print-area * { visibility: visible !important; }
           .receipt-print-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: none !important; border-color: #000 !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function Receipt80mm({ data }: { data: ReceiptData }) {
+  const sale = data.sale || {};
+  const customer = data.customer || {};
+  const total = Number(sale.total_amount ?? 0);
+  const subtotal = Number(sale.subtotal ?? total);
+  const discount = Number(sale.discount ?? 0);
+  const receiptNumber = sale.sale_number
+    ? String(sale.sale_number).padStart(7, "0")
+    : String(sale.id || "").slice(0, 7).toUpperCase();
+  const saleDate = sale.created_at ? new Date(sale.created_at).toLocaleDateString("pt-BR") : "";
+  const sellerName = data.seller?.name || "—";
+  const customerDocument = customer.document ?? customer.cpf ?? customer.cnpj ?? "";
+  const customerAddress = [
+    customer.address ?? customer.endereco,
+    customer.neighborhood ?? customer.bairro,
+    customer.city ?? customer.cidade,
+    customer.state ?? customer.estado ?? customer.uf,
+  ].filter(Boolean).join(", ");
+  const payments = data.payments.length
+    ? data.payments
+    : [{ method: sale.payment_method || "—", amount: total, installments: 1 }];
+  const deliveryType = sale.delivery_type || sale.channel || "Retirada";
+
+  return (
+    <div className="receipt-print-area mx-auto bg-white text-black shadow-xl print:shadow-none" style={{ width: "80mm", padding: "4mm", fontFamily: "'Courier New', ui-monospace, monospace", fontSize: "11px", lineHeight: 1.35 }}>
+      <div className="text-center">
+        <div className="font-bold text-[12px]">Nº {receiptNumber}</div>
+        {data.org?.logo_url && (
+          <img
+            src={data.org.logo_url}
+            alt={data.org_name}
+            className="mx-auto my-1"
+            style={{ maxHeight: "55px", objectFit: "contain" }}
+          />
+        )}
+        <div className="font-bold text-[13px]">{data.org_name}</div>
+      </div>
+
+      <div className="mt-2 space-y-0.5">
+        {data.org?.cnpj && <div><span className="font-bold">CNPJ:</span> {data.org.cnpj}</div>}
+        {data.org?.address && <div><span className="font-bold">Endereço:</span> {data.org.address}</div>}
+        {data.org?.phone && <div><span className="font-bold">Fone:</span> {data.org.phone}</div>}
+      </div>
+
+      <div className="mt-2 space-y-0.5">
+        <div><span className="font-bold">Vendedor(a):</span> {sellerName}</div>
+        <div><span className="font-bold">Data da venda:</span> {saleDate}</div>
+        <div><span className="font-bold">Tipo de Entrega:</span> {deliveryType}</div>
+      </div>
+
+      <div className="mt-2">
+        <div className="font-bold">DADOS DO CLIENTE</div>
+        <div><span className="font-bold">Cliente:</span> {customer.name || "—"}</div>
+        {customerDocument && <div><span className="font-bold">CNPJ/CPF:</span> {customerDocument}</div>}
+        {customerAddress && <div><span className="font-bold">Endereço:</span> {customerAddress}</div>}
+        {customer.phone && <div><span className="font-bold">Fone:</span> {customer.phone}</div>}
+      </div>
+
+      <div className="mt-2">
+        <div className="font-bold">PRODUTOS</div>
+        <table className="w-full text-[10.5px]" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr className="border-b border-black">
+              <th className="text-left font-bold py-0.5">Produto</th>
+              <th className="text-center font-bold w-7">Qtd</th>
+              <th className="text-right font-bold w-12">Valor</th>
+              <th className="text-right font-bold w-12">Desc</th>
+              <th className="text-right font-bold w-14">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(data.items.length ? data.items : [{ id: "empty", product_name: "Itens da venda", quantity: 1, unit_price: total, total, discount: 0 }]).map((item: any) => {
+              const description = [item.product_name, item.imei ? `IMEI: ${item.imei}` : null, item.sku ? `Id: ${item.sku}` : null]
+                .filter(Boolean)
+                .join(" - ");
+              return (
+                <tr key={item.id} className="align-top">
+                  <td className="py-0.5 pr-1 break-words">{description}</td>
+                  <td className="text-center">{item.quantity}</td>
+                  <td className="text-right">{formatCurrency(Number(item.unit_price))}</td>
+                  <td className="text-right">{item.discount ? formatCurrency(Number(item.discount)) : "-"}</td>
+                  <td className="text-right">{formatCurrency(Number(item.total))}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div className="border-t border-black mt-1 pt-1 flex justify-between font-bold">
+          <span>Total (R$):</span>
+          <span>{formatCurrency(subtotal - discount || total)}</span>
+        </div>
+      </div>
+
+      <div className="mt-2">
+        <div className="font-bold">PAGAMENTO</div>
+        <table className="w-full text-[10.5px]" style={{ borderCollapse: "collapse" }}>
+          <thead>
+            <tr className="border-b border-black">
+              <th className="text-left font-bold py-0.5">Forma de pagamento</th>
+              <th className="text-left font-bold">Detalhes</th>
+              <th className="text-right font-bold w-14">Valor (R$)</th>
+              <th className="text-center font-bold w-10">Parc.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {payments.map((payment: any, index: number) => (
+              <tr key={index} className="align-top">
+                <td className="py-0.5 pr-1">{METHOD_LABEL[payment.method] || payment.method}</td>
+                <td className="pr-1">{payment.reference || ""}</td>
+                <td className="text-right">{formatCurrency(Number(payment.amount))}</td>
+                <td className="text-center">{payment.installments ?? 1}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-3">
+        <div>Obs: {sale.notes || ""}</div>
+        <div className="mt-6 border-t border-black pt-1 text-center text-[10px]">Assinatura do cliente</div>
+      </div>
+
+      <div className="mt-3 text-center text-[10px] border-t border-dashed border-black pt-2">
+        Atenção! Esse documento não possui valor fiscal.
+        <br />
+        Obrigado!
+      </div>
+
+      <style>{`
+        @media print {
+          @page { margin: 0; size: 80mm auto; }
+          body * { visibility: hidden !important; }
+          .receipt-print-area, .receipt-print-area * { visibility: visible !important; }
+          .receipt-print-area { position: absolute !important; left: 0 !important; top: 0 !important; box-shadow: none !important; width: 80mm !important; }
         }
       `}</style>
     </div>
