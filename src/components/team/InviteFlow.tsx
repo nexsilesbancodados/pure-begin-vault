@@ -148,6 +148,100 @@ export function InviteFlow() {
         onCreated={load}
       />
 
+      {invites.length > 0 && (
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-black text-sm uppercase tracking-widest">
+              Usuários cadastrados
+            </h3>
+            <Badge variant="outline">{invites.length}</Badge>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {invites.map((i) => {
+              const nome = i.metadata?.nome || i.email || "Sem nome";
+              const accepted = i.status === "accepted";
+              const revoked = i.status === "revoked";
+              const initials = nome
+                .split(" ")
+                .map((n) => n[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase();
+              const statusBadge = accepted
+                ? { class: "bg-success/15 text-success border-success/30", label: "Aceito" }
+                : revoked
+                  ? { class: "bg-muted text-muted-foreground border-border", label: "Revogado" }
+                  : { class: "bg-warning/15 text-warning border-warning/30", label: "Aguardando aceite" };
+              return (
+                <div
+                  key={i.id}
+                  className="relative rounded-2xl border border-border bg-card p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center shrink-0">
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-bold text-sm truncate">{nome}</p>
+                        <Badge className={`${statusBadge.class} border text-[10px] font-bold`}>
+                          {statusBadge.label}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{i.email}</p>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        <Badge variant="outline" className="text-[10px] capitalize">
+                          {i.metadata?.perfil_rapido || i.role}
+                        </Badge>
+                        {i.metadata?.tela_inicial && (
+                          <Badge variant="outline" className="text-[10px]">
+                            {i.metadata.tela_inicial}
+                          </Badge>
+                        )}
+                        {i.metadata?.ativo === false && (
+                          <Badge className="bg-destructive/15 text-destructive border-destructive/30 text-[10px]">
+                            Inativo
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        Criado {new Date(i.created_at).toLocaleDateString("pt-BR")}
+                        {accepted && i.accepted_at &&
+                          ` · aceito ${new Date(i.accepted_at).toLocaleDateString("pt-BR")}`}
+                      </p>
+                    </div>
+                  </div>
+                  {!accepted && !revoked && (
+                    <div className="mt-3 flex items-center gap-2 pt-3 border-t border-border">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => copyLink(i.token)}
+                      >
+                        {copiedToken === i.token ? (
+                          <><Check className="h-3 w-3 mr-1" /> Copiado</>
+                        ) : (
+                          <><Copy className="h-3 w-3 mr-1" /> Copiar link</>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => revoke(i.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       <Card className="p-5">
         <h3 className="font-black text-sm uppercase tracking-widest mb-3 flex items-center gap-2">
           <UserPlus className="h-4 w-4" /> Convidar membro
