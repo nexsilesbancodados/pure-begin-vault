@@ -961,7 +961,7 @@ function NotasAbertoPage() {
             </div>
             <Button
               variant="outline"
-              onClick={() => setEditingProduct({} as any)}
+              onClick={() => setEditingProduct({} as Product)}
               className="shrink-0 gap-1"
             >
               <Plus className="h-4 w-4" /> Cadastrar Produto
