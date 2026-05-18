@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const SaveSchema = z.object({
   orgId: z.string().uuid(),
@@ -15,15 +16,16 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
   .inputValidator((input) => SaveSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const admin = supabaseAdmin;
 
     // Verifica permissão: super_admin OU owner/admin da org
     const [saRes, memRes] = await Promise.all([
-      (supabase as any)
+      (admin as any)
         .from("super_admins")
         .select("user_id")
         .eq("user_id", userId)
         .maybeSingle(),
-      supabase
+      (admin as any)
         .from("user_organizations")
         .select("role")
         .eq("user_id", userId)
@@ -38,7 +40,7 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
 
     // Atualiza nome da loja
     if (data.name) {
-      const { error: e1 } = await supabase
+      const { error: e1 } = await (admin as any)
         .from("organizations")
         .update({ name: data.name, updated_at: new Date().toISOString() })
         .eq("id", data.orgId);
@@ -52,7 +54,7 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
     if (data.support_email !== undefined) payload.support_email = data.support_email;
     if (data.support_whatsapp !== undefined) payload.support_whatsapp = data.support_whatsapp;
 
-    const { error: e2 } = await (supabase as any)
+    const { error: e2 } = await (admin as any)
       .from("organization_settings")
       .upsert(payload, { onConflict: "organization_id" });
     if (e2) throw new Error(e2.message);
