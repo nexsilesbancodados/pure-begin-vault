@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Search,
   Filter,
@@ -203,6 +203,9 @@ export function SalesHistory() {
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const [receiptMode, setReceiptMode] = useState<"a4" | "80mm">("a4");
   const [pendingReceiptPrint, setPendingReceiptPrint] = useState<"a4" | "80mm" | null>(null);
+  const [warrantyDoc, setWarrantyDoc] = useState<{ title: string; html: string } | null>(null);
+  const [warrantyLoading, setWarrantyLoading] = useState(false);
+  const warrantyIframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const fetchSales = useCallback(async () => {
     if (!user?.id || !orgId) return;
@@ -627,24 +630,40 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
 
 <div class="thanks">OBRIGADO PELA PREFERÊNCIA.</div>
 
-<script>window.onload=function(){setTimeout(function(){window.print();},400);}</script>
+<script>window.onload=function(){};</script>
 </body></html>`;
 
-        const w = window.open("", "_blank");
-        if (!w) {
-          toast.error("Pop-up bloqueado pelo navegador.");
-          return;
-        }
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
+        setWarrantyDoc({ title: titles[type], html });
       } catch (e) {
         console.error("Erro ao gerar termo de garantia:", e);
         toast.error("Não foi possível gerar o termo de garantia.");
+      } finally {
+        setWarrantyLoading(false);
       }
     },
     [],
   );
+
+  const openWarrantyDialog = useCallback(
+    async (sale: any, type: "seminovo" | "lacrado" | "android") => {
+      setWarrantyDoc(null);
+      setWarrantyLoading(true);
+      await openWarrantyPrint(sale, type);
+    },
+    [openWarrantyPrint],
+  );
+
+  const printWarranty = useCallback(() => {
+    const iframe = warrantyIframeRef.current;
+    if (!iframe?.contentWindow) return;
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao acionar impressão.");
+    }
+  }, []);
 
 
   const openReceiptPopup = useCallback(
@@ -1074,13 +1093,13 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                               icon: ShieldCheck,
                               iconClass: "text-blue-600",
                               label: "Garantia - Lacrado (1 ano)",
-                              onClick: () => openWarrantyPrint(sale, "lacrado"),
+                              onClick: () => openWarrantyDialog(sale, "lacrado"),
                             },
                             {
                               icon: ShieldCheck,
                               iconClass: "text-amber-600",
                               label: "Garantia - Seminovo (7 meses)",
-                              onClick: () => openWarrantyPrint(sale, "seminovo"),
+                              onClick: () => openWarrantyDialog(sale, "seminovo"),
                             },
                             {
                               icon: MessageSquare,
@@ -1459,6 +1478,50 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                 <ReceiptPreview data={receiptData} />
               )
             ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal do Termo de Garantia */}
+      <Dialog
+        open={!!warrantyDoc || warrantyLoading}
+        onOpenChange={(open) => {
+          if (!open) {
+            setWarrantyDoc(null);
+            setWarrantyLoading(false);
+          }
+        }}
+      >
+        <DialogContent className="max-w-[960px] max-h-[92vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60">
+          <div className="print:hidden flex items-center justify-between gap-3 px-5 py-4 border-b border-border/60 bg-muted/30">
+            <div className="min-w-0">
+              <DialogTitle className="text-lg font-black tracking-tight truncate">
+                {warrantyDoc?.title || "Termo de Garantia"}
+              </DialogTitle>
+              <DialogDescription>Revise o termo antes de imprimir.</DialogDescription>
+            </div>
+            <Button
+              disabled={!warrantyDoc || warrantyLoading}
+              onClick={printWarranty}
+              className="rounded-xl font-bold gap-2"
+            >
+              <Printer className="h-4 w-4" /> Imprimir
+            </Button>
+          </div>
+          <div className="bg-muted/40 p-4 h-[calc(92vh-73px)]">
+            {warrantyLoading || !warrantyDoc ? (
+              <div className="h-full flex flex-col items-center justify-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm font-bold text-muted-foreground">Gerando termo...</p>
+              </div>
+            ) : (
+              <iframe
+                ref={warrantyIframeRef}
+                title={warrantyDoc.title}
+                srcDoc={warrantyDoc.html}
+                className="w-full h-full bg-white rounded-xl border border-border/60 shadow-sm"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
