@@ -709,11 +709,12 @@ function DespesasPage() {
           </Card>
         </main>
 
-        <TransactionForm
+        <ExpenseForm
           open={isFormOpen}
           onOpenChange={setIsFormOpen}
           onSave={handleSave}
-          transaction={editing}
+          expense={editing}
+          variant="expense"
         />
       </div>
     </div>
