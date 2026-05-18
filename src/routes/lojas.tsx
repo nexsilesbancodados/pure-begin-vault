@@ -32,6 +32,8 @@ export const Route = createFileRoute("/lojas")({
 
 function LojasPage() {
   const { orgs, loading, activeOrgId, switchOrg, createOrg, reload } = useUserOrgs();
+  const { profile } = useAuth();
+  const isSuperAdmin = (profile as any)?.role === "super_admin";
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
