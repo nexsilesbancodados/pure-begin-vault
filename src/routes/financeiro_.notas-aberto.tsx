@@ -160,7 +160,10 @@ interface DbError {
   code?: string;
 }
 
-interface PurchaseNotesQuery<TData> extends PromiseLike<{ data: TData | null; error: DbError | null }> {
+interface PurchaseNotesQuery<TData> extends PromiseLike<{
+  data: TData | null;
+  error: DbError | null;
+}> {
   eq(column: string, value: unknown): PurchaseNotesQuery<TData>;
   order(column: string, options?: { ascending?: boolean }): PurchaseNotesQuery<TData>;
   limit(count: number): PurchaseNotesQuery<TData>;
@@ -186,7 +189,8 @@ const purchaseNotesTable = () =>
   (supabase.from as unknown as (table: string) => PurchaseNotesTable)("purchase_notes");
 
 const toJson = (value: unknown): Json => {
-  if (value === null || ["string", "number", "boolean"].includes(typeof value)) return value as Json;
+  if (value === null || ["string", "number", "boolean"].includes(typeof value))
+    return value as Json;
   if (Array.isArray(value)) return value.map(toJson);
   if (typeof value === "object") {
     return Object.fromEntries(
@@ -199,7 +203,8 @@ const toJson = (value: unknown): Json => {
 };
 
 const toNumber = (value: string | number | null | undefined) => Number(value ?? 0) || 0;
-const toInteger = (value: string | number | null | undefined) => Math.trunc(Number(value ?? 0)) || 0;
+const toInteger = (value: string | number | null | undefined) =>
+  Math.trunc(Number(value ?? 0)) || 0;
 
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
