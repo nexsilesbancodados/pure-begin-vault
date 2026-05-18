@@ -1037,3 +1037,187 @@ ul{font-size:12px;line-height:1.6;}
     </div>
   );
 }
+
+function ReceiptPreview({ data }: { data: ReceiptData }) {
+  const sale = data.sale || {};
+  const customer = data.customer || {};
+  const total = Number(sale.total_amount ?? 0);
+  const receiptId = sale.sale_number
+    ? `MP${String(sale.sale_number).padStart(10, "0")}`
+    : `MP${String(sale.id || "").slice(0, 8).toUpperCase()}`;
+  const saleDate = sale.created_at ? new Date(sale.created_at).toLocaleDateString("pt-BR") : "";
+  const sellerName = data.seller?.name || "—";
+  const customerDocument = customer.document ?? customer.cpf ?? customer.cnpj ?? "";
+  const customerAddress = customer.address ?? customer.endereco ?? "";
+  const customerZip = customer.zip ?? customer.cep ?? "";
+  const customerCity = customer.city ?? customer.cidade ?? "";
+  const customerState = customer.state ?? customer.estado ?? customer.uf ?? "";
+  const payments = data.payments.length
+    ? data.payments
+    : [{ method: sale.payment_method || "—", amount: total, installments: 1 }];
+
+  return (
+    <div className="receipt-print-area mx-auto w-full max-w-[820px] bg-white text-black border border-black/80 shadow-xl print:shadow-none print:border-black">
+      <div className="border-b border-black px-3 py-2">
+        <p className="text-[13px] font-bold uppercase">
+          RECIBO DE {data.org_name} OS PRODUTOS E/OU SERVIÇOS CONSTANTES NO PEDIDO
+        </p>
+      </div>
+
+      <table className="w-full border-collapse text-[12px]">
+        <tbody>
+          <tr>
+            <td className="border border-black px-2 py-1 w-[28%]">Data de recebimento</td>
+            <td className="border border-black px-2 py-1">Identificação e assinatura do recebedor</td>
+            <td className="border border-black px-2 py-1 w-[28%]">
+              Recibo da venda: <span className="font-bold">{receiptId}</span>
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-black px-2 py-6"></td>
+            <td className="border border-black px-2 py-6"></td>
+            <td className="border border-black px-2 py-6"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table className="w-full border-collapse text-[12px] border-t-0">
+        <tbody>
+          <tr>
+            <td className="border border-black px-3 py-2 text-center align-top w-[60%]">
+              <p className="font-bold">{data.org_name}</p>
+              {data.org?.cnpj && <p>CNPJ: {data.org.cnpj}</p>}
+              {data.org?.phone && <p>Telefone: {data.org.phone}</p>}
+            </td>
+            <td className="border border-black px-3 py-2 align-top">
+              <p><span className="font-bold">{saleDate}</span></p>
+              <p><span className="font-bold">VENDEDOR:</span> {sellerName}</p>
+              <p><span className="font-bold">RECIBO DA VENDA:</span> {receiptId}</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="px-3 pt-3 pb-1">
+        <p className="text-[12px] font-bold">DESTINATÁRIO/REMETENTE</p>
+      </div>
+      <table className="w-full border-collapse text-[12px]">
+        <thead>
+          <tr className="bg-neutral-50">
+            <th className="border border-black px-2 py-1 text-center font-bold">Nome/Razão social</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[18%]">Telefone</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[18%]">CPF/CNPJ</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[22%]">E-mail</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="border border-black px-2 py-1">{customer.name || "—"}</td>
+            <td className="border border-black px-2 py-1">{customer.phone || ""}</td>
+            <td className="border border-black px-2 py-1">{customerDocument}</td>
+            <td className="border border-black px-2 py-1">{customer.email || ""}</td>
+          </tr>
+          <tr className="bg-neutral-50">
+            <th className="border border-black px-2 py-1 text-center font-bold">Endereço</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">CEP</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">Cidade</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">Estado</th>
+          </tr>
+          <tr>
+            <td className="border border-black px-2 py-1">{customerAddress}</td>
+            <td className="border border-black px-2 py-1">{customerZip}</td>
+            <td className="border border-black px-2 py-1">{customerCity}</td>
+            <td className="border border-black px-2 py-1">{customerState}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="px-3 pt-3 pb-1">
+        <p className="text-[12px] font-bold">DADOS DO PRODUTO</p>
+      </div>
+      <table className="w-full border-collapse text-[12px]">
+        <thead>
+          <tr className="bg-neutral-50">
+            <th className="border border-black px-2 py-1 text-center font-bold w-[10%]">Cód</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">Produto</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[6%]">Qtd</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[14%]">Valor Unitário</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[12%]">Desconto</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[14%]">Valor Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(data.items.length ? data.items : [{ id: "empty", product_name: "Itens da venda", quantity: 1, unit_price: total, total }]).map((item: any) => {
+            const description = [item.product_name, item.imei ? `IMEI: ${item.imei}` : null, item.model]
+              .filter(Boolean)
+              .join(" - ");
+            return (
+              <tr key={item.id}>
+                <td className="border border-black px-2 py-1 align-top">{item.sku || (item.product_id ? item.product_id.slice(0, 7) : "")}</td>
+                <td className="border border-black px-2 py-1 align-top">{description}</td>
+                <td className="border border-black px-2 py-1 align-top text-center">{item.quantity}</td>
+                <td className="border border-black px-2 py-1 align-top text-right">{formatCurrency(Number(item.unit_price))}</td>
+                <td className="border border-black px-2 py-1 align-top text-right">{item.discount ? formatCurrency(Number(item.discount)) : "R$"}</td>
+                <td className="border border-black px-2 py-1 align-top text-right">{formatCurrency(Number(item.total))}</td>
+              </tr>
+            );
+          })}
+          <tr>
+            <td className="border border-black px-2 py-1 text-right font-bold" colSpan={3}>Total</td>
+            <td className="border border-black px-2 py-1 text-right font-bold">{formatCurrency(Number(sale.subtotal ?? total))}</td>
+            <td className="border border-black px-2 py-1 text-right font-bold">{sale.discount ? formatCurrency(Number(sale.discount)) : "R$"}</td>
+            <td className="border border-black px-2 py-1 text-right font-bold">{formatCurrency(total)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="px-3 pt-3 pb-1"><p className="text-[12px] font-bold">PAGAMENTO</p></div>
+      <table className="w-full border-collapse text-[12px]">
+        <thead>
+          <tr className="bg-neutral-50">
+            <th className="border border-black px-2 py-1 text-center font-bold w-[25%]">Forma de Pagamento</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">Detalhes</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[20%]">Valor Pago</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[12%]">Parcelas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {payments.map((payment: any, index: number) => (
+            <tr key={index}>
+              <td className="border border-black px-2 py-1">{METHOD_LABEL[payment.method] || payment.method}</td>
+              <td className="border border-black px-2 py-1"></td>
+              <td className="border border-black px-2 py-1 text-right">{formatCurrency(Number(payment.amount))}</td>
+              <td className="border border-black px-2 py-1 text-center">{payment.installments ?? 1}</td>
+            </tr>
+          ))}
+          <tr>
+            <td className="border border-black px-2 py-1 text-right font-bold" colSpan={2}>Total</td>
+            <td className="border border-black px-2 py-1 text-right font-bold">{formatCurrency(total)}</td>
+            <td className="border border-black px-2 py-1"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="px-3 pt-4">
+        <p className="text-[12px] font-bold">OBSERVAÇÃO</p>
+        <div className="h-6"></div>
+        <p className="text-[12px] font-bold">DADOS ADICIONAIS</p>
+        <div className="h-10"></div>
+      </div>
+      <div className="px-6 pb-3 pt-6 grid grid-cols-2 gap-10 text-center text-[12px]">
+        <div><div className="border-t border-black pt-1">{customer.name || ""}</div></div>
+        <div><div className="border-t border-black pt-1">{data.org_name}</div></div>
+      </div>
+      <div className="text-center text-[12px] py-3">OBRIGADO PELA PREFERÊNCIA.</div>
+
+      <style>{`
+        @media print {
+          @page { margin: 10mm; size: A4; }
+          body * { visibility: hidden !important; }
+          .receipt-print-area, .receipt-print-area * { visibility: visible !important; }
+          .receipt-print-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: none !important; border-color: #000 !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
