@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const SaveSchema = z.object({
   orgId: z.string().uuid(),
@@ -15,26 +14,31 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => SaveSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { userId } = context;
+    const { supabase, userId } = context;
 
     // Verifica permissão: super_admin OU owner/admin da org
-    const [{ data: sa }, { data: memberships }] = await Promise.all([
-      supabaseAdmin.from("super_admins").select("user_id").eq("user_id", userId).maybeSingle(),
-      supabaseAdmin
+    const [saRes, memRes] = await Promise.all([
+      (supabase as any)
+        .from("super_admins")
+        .select("user_id")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
         .from("user_organizations")
         .select("role")
         .eq("user_id", userId)
-        .eq("organization_id", data.orgId),
+        .eq("organization_id", data.orgId)
+        .maybeSingle(),
     ]);
 
-    const isSuper = !!sa;
-    const role = memberships?.[0]?.role;
+    const isSuper = !!saRes.data;
+    const role = (memRes.data as any)?.role;
     const canEdit = isSuper || role === "owner" || role === "admin";
     if (!canEdit) throw new Error("Sem permissão para editar esta loja");
 
     // Atualiza nome da loja
     if (data.name) {
-      const { error: e1 } = await supabaseAdmin
+      const { error: e1 } = await supabase
         .from("organizations")
         .update({ name: data.name, updated_at: new Date().toISOString() })
         .eq("id", data.orgId);
@@ -48,7 +52,7 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
     if (data.support_email !== undefined) payload.support_email = data.support_email;
     if (data.support_whatsapp !== undefined) payload.support_whatsapp = data.support_whatsapp;
 
-    const { error: e2 } = await supabaseAdmin
+    const { error: e2 } = await (supabase as any)
       .from("organization_settings")
       .upsert(payload, { onConflict: "organization_id" });
     if (e2) throw new Error(e2.message);
