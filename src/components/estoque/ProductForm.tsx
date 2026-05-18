@@ -156,6 +156,17 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     localStorage.setItem("product_custom_tipos", JSON.stringify(customTipos));
   }, [customTipos]);
 
+  const [customModelos, setCustomModelos] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("product_custom_modelos") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem("product_custom_modelos", JSON.stringify(customModelos));
+  }, [customModelos]);
+
   useEffect(() => {
     if (!open || !orgId) return;
     supabase
