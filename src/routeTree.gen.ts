@@ -36,6 +36,7 @@ import { Route as InventarioRouteImport } from './routes/inventario'
 import { Route as IntegracoesRouteImport } from './routes/integracoes'
 import { Route as InstagramRouteImport } from './routes/instagram'
 import { Route as InboxRouteImport } from './routes/inbox'
+import { Route as ImportacaoRouteImport } from './routes/importacao'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as HardwareRouteImport } from './routes/hardware'
 import { Route as GoogleReviewsRouteImport } from './routes/google-reviews'
@@ -245,6 +246,11 @@ const InstagramRoute = InstagramRouteImport.update({
 const InboxRoute = InboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImportacaoRoute = ImportacaoRouteImport.update({
+  id: '/importacao',
+  path: '/importacao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HelpRoute = HelpRouteImport.update({
@@ -651,6 +657,7 @@ export interface FileRoutesByFullPath {
   '/google-reviews': typeof GoogleReviewsRoute
   '/hardware': typeof HardwareRoute
   '/help': typeof HelpRoute
+  '/importacao': typeof ImportacaoRoute
   '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
   '/integracoes': typeof IntegracoesRoute
@@ -755,6 +762,7 @@ export interface FileRoutesByTo {
   '/google-reviews': typeof GoogleReviewsRoute
   '/hardware': typeof HardwareRoute
   '/help': typeof HelpRoute
+  '/importacao': typeof ImportacaoRoute
   '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
   '/integracoes': typeof IntegracoesRoute
@@ -860,6 +868,7 @@ export interface FileRoutesById {
   '/google-reviews': typeof GoogleReviewsRoute
   '/hardware': typeof HardwareRoute
   '/help': typeof HelpRoute
+  '/importacao': typeof ImportacaoRoute
   '/inbox': typeof InboxRoute
   '/instagram': typeof InstagramRoute
   '/integracoes': typeof IntegracoesRoute
@@ -966,6 +975,7 @@ export interface FileRouteTypes {
     | '/google-reviews'
     | '/hardware'
     | '/help'
+    | '/importacao'
     | '/inbox'
     | '/instagram'
     | '/integracoes'
@@ -1070,6 +1080,7 @@ export interface FileRouteTypes {
     | '/google-reviews'
     | '/hardware'
     | '/help'
+    | '/importacao'
     | '/inbox'
     | '/instagram'
     | '/integracoes'
@@ -1174,6 +1185,7 @@ export interface FileRouteTypes {
     | '/google-reviews'
     | '/hardware'
     | '/help'
+    | '/importacao'
     | '/inbox'
     | '/instagram'
     | '/integracoes'
@@ -1279,6 +1291,7 @@ export interface RootRouteChildren {
   GoogleReviewsRoute: typeof GoogleReviewsRoute
   HardwareRoute: typeof HardwareRoute
   HelpRoute: typeof HelpRoute
+  ImportacaoRoute: typeof ImportacaoRoute
   InboxRoute: typeof InboxRoute
   InstagramRoute: typeof InstagramRoute
   IntegracoesRoute: typeof IntegracoesRoute
@@ -1515,6 +1528,13 @@ declare module '@tanstack/react-router' {
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/importacao': {
+      id: '/importacao'
+      path: '/importacao'
+      fullPath: '/importacao'
+      preLoaderRoute: typeof ImportacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help': {
@@ -2201,6 +2221,7 @@ const rootRouteChildren: RootRouteChildren = {
   GoogleReviewsRoute: GoogleReviewsRoute,
   HardwareRoute: HardwareRoute,
   HelpRoute: HelpRoute,
+  ImportacaoRoute: ImportacaoRoute,
   InboxRoute: InboxRoute,
   InstagramRoute: InstagramRoute,
   IntegracoesRoute: IntegracoesRoute,
