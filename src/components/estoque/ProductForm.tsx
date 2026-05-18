@@ -90,6 +90,7 @@ function FieldRow({
 interface ProductFormData {
   // Core (mapped to columns)
   name: string;
+  reference?: string;
   sku?: string;
   ean?: string;
   category?: string;
