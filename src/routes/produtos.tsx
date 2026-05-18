@@ -406,7 +406,16 @@ function ProductsPage() {
               filteredProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="rounded-2xl bg-card border border-border overflow-hidden shadow-card hover:shadow-elegant transition-all group"
+                  onClick={() => setEditingProduct(product)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setEditingProduct(product);
+                    }
+                  }}
+                  className="rounded-2xl bg-card border border-border overflow-hidden shadow-card hover:shadow-elegant transition-all group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="h-40 bg-muted grid place-items-center relative overflow-hidden">
                     {(product.image_url || product.metadata?.image_url) ? (
