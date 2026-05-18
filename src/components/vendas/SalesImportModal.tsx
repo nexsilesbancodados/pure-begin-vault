@@ -373,20 +373,6 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     }
   };
 
-  // Executa promessas em paralelo com limite de concorrência (acelera muito o insert)
-  const runWithConcurrency = async <T,>(tasks: (() => Promise<T>)[], concurrency = 4) => {
-    const results: T[] = [];
-    let cursor = 0;
-    const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, async () => {
-      while (cursor < tasks.length) {
-        const idx = cursor++;
-        results[idx] = await tasks[idx]();
-      }
-    });
-    await Promise.all(workers);
-    return results;
-  };
-
   const handleImport = () => {
     if (!user?.id || rows.length === 0) return;
     const validRows = rows.filter((r) => r._valid);
