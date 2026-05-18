@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
@@ -63,15 +63,109 @@ const getImeiFromMetadata = (metadata: unknown) => {
 };
 
 interface Nota {
-  id: number;
+  id: string;
+  noteNumber: number;
   items: Product[];
   total: number;
   createdAt: Date;
+  updatedAt?: Date;
   fornecedor: string;
   dataCompra: string;
   paga: boolean;
   prazoPagamento: string;
 }
+
+interface PurchaseNoteRow {
+  id: string;
+  note_number: number;
+  items: unknown;
+  total: number | string | null;
+  created_at: string;
+  updated_at?: string | null;
+  fornecedor: string | null;
+  data_compra: string | null;
+  paga: boolean | null;
+  prazo_pagamento: string | null;
+}
+
+const getNoteTotal = (items: Product[]) =>
+  items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
+
+const serializeItems = (items: Product[]) =>
+  items.map((p) => ({
+    id: p.id,
+    name: p.name,
+    organization_id: p.organization_id ?? null,
+    sku: p.sku ?? null,
+    imei: p.imei ?? getImeiFromMetadata(p.metadata),
+    price: p.price ?? null,
+    cost_price: p.cost_price ?? null,
+    stock_quantity: p.stock_quantity ?? null,
+    metadata: p.metadata ?? null,
+  }));
+
+const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
+  const rawItems = Array.isArray(row.items) ? row.items : [];
+  const items = rawItems.map((item) => {
+    const product = item as Product;
+    return {
+      ...product,
+      imei: product.imei ?? getImeiFromMetadata(product.metadata),
+    };
+  });
+
+  return {
+    id: row.id,
+    noteNumber: Number(row.note_number),
+    items,
+    total: Number(row.total ?? getNoteTotal(items)),
+    createdAt: new Date(row.created_at),
+    updatedAt: row.updated_at ? new Date(row.updated_at) : undefined,
+    fornecedor: row.fornecedor ?? "",
+    dataCompra: row.data_compra ?? new Date().toISOString().slice(0, 10),
+    paga: Boolean(row.paga),
+    prazoPagamento: row.prazo_pagamento ?? "",
+  };
+};
+
+const readLegacyNotas = (orgId: string): Nota[] => {
+  if (typeof window === "undefined") return [];
+  const candidates = [`notas_abertas_${orgId}`, "notas_abertas_default"];
+
+  for (const key of candidates) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+
+    try {
+      const arr = JSON.parse(raw) as Array<Omit<Nota, "id" | "noteNumber"> & { id: number | string }>;
+      if (!Array.isArray(arr) || arr.length === 0) continue;
+
+      const used = new Set<number>();
+      return arr.map((note, index) => {
+        let noteNumber = Number(note.id) || index + 1;
+        while (used.has(noteNumber)) noteNumber += 1;
+        used.add(noteNumber);
+
+        return {
+          ...note,
+          id: crypto.randomUUID(),
+          noteNumber,
+          total: Number(note.total ?? getNoteTotal(note.items ?? [])),
+          items: note.items ?? [],
+          createdAt: new Date(note.createdAt),
+          fornecedor: note.fornecedor ?? "",
+          dataCompra: note.dataCompra ?? new Date().toISOString().slice(0, 10),
+          paga: Boolean(note.paga),
+          prazoPagamento: note.prazoPagamento ?? "",
+        };
+      });
+    } catch {
+      // ignore invalid legacy cache
+    }
+  }
+
+  return [];
+};
 
 function NotasAbertoPage() {
   const { orgId, userId } = useOrg();
@@ -82,63 +176,201 @@ function NotasAbertoPage() {
   const [listSearch, setListSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "overdue" | "paid">("all");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const storageKey = `notas_abertas_${orgId ?? "default"}`;
   const [notas, setNotas] = useState<Nota[]>([]);
-  const loadedRef = useRef(false);
-
-  // Carregar notas salvas — procura na chave atual e em chaves legadas
-  useEffect(() => {
-    loadedRef.current = false;
-    try {
-      const candidates = [storageKey, "notas_abertas_default"];
-      // varre todas as chaves notas_abertas_* (caso a nota tenha sido salva sob outra loja)
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith("notas_abertas_") && !candidates.includes(k)) candidates.push(k);
-      }
-      let parsed: Nota[] = [];
-      for (const key of candidates) {
-        const raw = localStorage.getItem(key);
-        if (!raw) continue;
-        try {
-          const arr = JSON.parse(raw) as Nota[];
-          if (Array.isArray(arr) && arr.length > 0) {
-            parsed = arr;
-            break;
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-      setNotas(parsed.map((n) => ({ ...n, createdAt: new Date(n.createdAt) })));
-    } catch {
-      setNotas([]);
-    } finally {
-      // libera o persist na próxima renderização
-      requestAnimationFrame(() => {
-        loadedRef.current = true;
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId]);
-
-  // Persistir somente após o load inicial (evita sobrescrever com [])
-  useEffect(() => {
-    if (!loadedRef.current) return;
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(notas));
-    } catch {
-      /* ignore */
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notas, orgId]);
-  const [addingToNotaId, setAddingToNotaId] = useState<number | null>(null);
-  const [detailId, setDetailId] = useState<number | null>(null);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [savingSelection, setSavingSelection] = useState(false);
+  const [addingToNotaId, setAddingToNotaId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const detailNota = notas.find((n) => n.id === detailId) ?? null;
 
-  const updateNota = (id: number, patch: Partial<Nota>) => {
+  const updateNota = (id: string, patch: Partial<Nota>) => {
     setNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+  };
+
+  const persistNota = useCallback(
+    async (nota: Nota) => {
+      if (!orgId) return false;
+
+      const { error } = await (supabase as any)
+        .from("purchase_notes")
+        .update({
+          fornecedor: nota.fornecedor,
+          data_compra: nota.dataCompra,
+          prazo_pagamento: nota.prazoPagamento || null,
+          paga: nota.paga,
+          total: getNoteTotal(nota.items),
+          items: serializeItems(nota.items),
+          updated_by: userId,
+        })
+        .eq("id", nota.id)
+        .eq("organization_id", orgId);
+
+      if (error) {
+        toast.error("Erro ao salvar nota: " + error.message);
+        return false;
+      }
+
+      return true;
+    },
+    [orgId, userId],
+  );
+
+  const loadNotes = useCallback(
+    async (options?: { silent?: boolean; skipMigration?: boolean }) => {
+      if (!orgId || !userId) {
+        setNotas([]);
+        return;
+      }
+
+      if (!options?.silent) setNotesLoading(true);
+
+      try {
+        const { data, error } = await (supabase as any)
+          .from("purchase_notes")
+          .select("*")
+          .eq("organization_id", orgId)
+          .order("note_number", { ascending: true });
+
+        if (error) throw error;
+
+        let mapped = ((data ?? []) as PurchaseNoteRow[]).map(mapPurchaseNote);
+        const migratedKey = `purchase_notes_migrated_${orgId}`;
+
+        if (mapped.length === 0 && !options?.skipMigration && !localStorage.getItem(migratedKey)) {
+          const legacyNotes = readLegacyNotas(orgId);
+
+          if (legacyNotes.length > 0) {
+            const rows = legacyNotes.map((note) => ({
+              id: note.id,
+              organization_id: orgId,
+              note_number: note.noteNumber,
+              fornecedor: note.fornecedor,
+              data_compra: note.dataCompra,
+              prazo_pagamento: note.prazoPagamento || null,
+              paga: note.paga,
+              total: getNoteTotal(note.items),
+              items: serializeItems(note.items),
+              created_by: userId,
+              updated_by: userId,
+              created_at: note.createdAt.toISOString(),
+            }));
+
+            const migration = await (supabase as any)
+              .from("purchase_notes")
+              .insert(rows)
+              .select("*")
+              .order("note_number", { ascending: true });
+
+            if (migration.error) throw migration.error;
+
+            mapped = ((migration.data ?? []) as PurchaseNoteRow[]).map(mapPurchaseNote);
+            localStorage.setItem(migratedKey, "true");
+            toast.success("Notas antigas sincronizadas no banco de dados.");
+          }
+        }
+
+        if (mapped.length > 0) localStorage.setItem(migratedKey, "true");
+        setNotas(mapped);
+      } catch (error) {
+        if (!options?.silent) {
+          toast.error("Erro ao carregar notas: " + (error as Error).message);
+          setNotas([]);
+        }
+      } finally {
+        if (!options?.silent) setNotesLoading(false);
+      }
+    },
+    [orgId, userId],
+  );
+
+  useEffect(() => {
+    void loadNotes();
+  }, [loadNotes]);
+
+  useEffect(() => {
+    if (!orgId) return;
+
+    const channel = supabase
+      .channel(`purchase_notes:${orgId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "purchase_notes", filter: `organization_id=eq.${orgId}` },
+        () => void loadNotes({ silent: true, skipMigration: true }),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [orgId, loadNotes]);
+
+  const createNota = useCallback(
+    async (items: Product[]) => {
+      if (!orgId) {
+        toast.error("Selecione uma loja antes de cadastrar notas.");
+        return null;
+      }
+
+      const latest = await (supabase as any)
+        .from("purchase_notes")
+        .select("note_number")
+        .eq("organization_id", orgId)
+        .order("note_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      let nextNumber = Number(latest.data?.note_number ?? 0) + 1;
+      const total = getNoteTotal(items);
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const { data, error } = await (supabase as any)
+          .from("purchase_notes")
+          .insert({
+            organization_id: orgId,
+            note_number: nextNumber,
+            items: serializeItems(items),
+            total,
+            fornecedor: "",
+            data_compra: new Date().toISOString().slice(0, 10),
+            paga: false,
+            prazo_pagamento: null,
+            created_by: userId,
+            updated_by: userId,
+          })
+          .select("*")
+          .single();
+
+        if (!error) return mapPurchaseNote(data as PurchaseNoteRow);
+        if (error.code !== "23505") {
+          toast.error("Erro ao criar nota: " + error.message);
+          return null;
+        }
+        nextNumber += 1;
+      }
+
+      toast.error("Não foi possível gerar a numeração da nota.");
+      return null;
+    },
+    [orgId, userId],
+  );
+
+  const deleteNota = async (nota: Nota) => {
+    if (!window.confirm(`Excluir Nota ${nota.noteNumber}?`)) return;
+
+    const { error } = await (supabase as any)
+      .from("purchase_notes")
+      .delete()
+      .eq("id", nota.id)
+      .eq("organization_id", orgId);
+
+    if (error) {
+      toast.error("Erro ao excluir nota: " + error.message);
+      return;
+    }
+
+    setNotas((prev) => prev.filter((x) => x.id !== nota.id));
+    toast.success(`Nota ${nota.noteNumber} excluída.`);
   };
 
   const handleSaveProduct = async (data: any) => {
