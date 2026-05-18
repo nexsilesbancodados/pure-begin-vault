@@ -113,15 +113,24 @@ Deno.serve(async (req) => {
         user_id: userId!,
         organization_id,
         role: role || "employee",
-        is_default: false,
+        is_default: true,
       },
       { onConflict: "user_id,organization_id" }
     );
 
-    // Atualiza profile
+    // Atualiza profile (já define organization_id ativa + role)
     await admin
       .from("profiles")
-      .upsert({ id: userId!, email, nome: nome || email }, { onConflict: "id" });
+      .upsert(
+        {
+          id: userId!,
+          email,
+          nome: nome || email,
+          organization_id,
+          role: role || "employee",
+        },
+        { onConflict: "id" }
+      );
 
     // Marca convite como aceito (se houver)
     if (invite_id) {
