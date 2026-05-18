@@ -945,15 +945,50 @@ export function PDVInterface() {
   };
 
   const handleCreateCustomer = async () => {
-    if (!user?.id || !orgId || !newCustomerName) return;
+    if (!user?.id || !orgId) return;
+    const f = customerForm;
+    const nome = (f.nome || newCustomerName).trim();
+    if (!nome) {
+      toast.error("Informe o nome.");
+      return;
+    }
+    const enderecoCompleto = [
+      f.rua,
+      f.numero && `nº ${f.numero}`,
+      f.bairro,
+      f.complemento,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    const extras = {
+      categoria: f.categoria,
+      tipo_pessoa: f.tipo_pessoa,
+      data_nascimento: f.data_nascimento || undefined,
+      profissao: f.profissao || undefined,
+      genero: f.genero || undefined,
+      origem: f.origem || undefined,
+      telefone_alt: f.telefone_alt || undefined,
+      telefone_extra: f.telefone_extra || undefined,
+      instagram: f.instagram || undefined,
+      cep: f.cep || undefined,
+      tags: f.tags || undefined,
+      observacoes: f.observacoes || undefined,
+    };
+    const notesPayload = JSON.stringify(extras);
     try {
       const { data, error } = await supabase
         .from("customers")
         .insert({
           user_id: user.id,
           organization_id: orgId,
-          name: newCustomerName,
-          phone: newCustomerPhone,
+          name: nome,
+          phone: f.telefone || newCustomerPhone || null,
+          email: f.email || null,
+          document: f.cpf_cnpj || null,
+          address: enderecoCompleto || null,
+          city: f.cidade || null,
+          state: f.estado || null,
+          notes: notesPayload,
         })
         .select()
         .single();
@@ -964,6 +999,32 @@ export function PDVInterface() {
       setSelectedCustomer({ id: data.id, name: data.name });
       setIsNewCustomerModalOpen(false);
       setIsCustomerModalOpen(false);
+      setCustomerForm({
+        categoria: "cliente",
+        tipo_pessoa: "fisica",
+        cpf_cnpj: "",
+        nome: "",
+        data_nascimento: "",
+        profissao: "",
+        genero: "",
+        origem: "",
+        telefone: "",
+        telefone_alt: "",
+        telefone_extra: "",
+        email: "",
+        instagram: "",
+        cep: "",
+        rua: "",
+        numero: "",
+        bairro: "",
+        cidade: "",
+        estado: "",
+        complemento: "",
+        observacoes: "",
+        tags: "",
+      });
+      setNewCustomerName("");
+      setNewCustomerPhone("");
       fetchCustomers();
     } catch (error: any) {
       console.error("Erro ao criar cliente:", error);
