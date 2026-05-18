@@ -125,12 +125,12 @@ const printReceiptArea = async (mode: "a4" | "80mm") => {
       .font-bold { font-weight: 700; } .font-black { font-weight: 900; } .uppercase { text-transform: uppercase; }
       .mx-auto { margin-left: auto; margin-right: auto; } .my-1 { margin-top: 4px; margin-bottom: 4px; }
       .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-6 { margin-top: 24px; }
-      .pt-1 { padding-top: 4px; } .pt-2 { padding-top: 8px; } .py-0\.5 { padding-top: 2px; padding-bottom: 2px; } .pr-1 { padding-right: 4px; }
+      .pt-1 { padding-top: 4px; } .pt-2 { padding-top: 8px; } .py-0\\.5 { padding-top: 2px; padding-bottom: 2px; } .pr-1 { padding-right: 4px; }
       .w-full { width: 100%; } .w-7 { width: 28px; } .w-10 { width: 40px; } .w-12 { width: 48px; } .w-14 { width: 56px; }
       .border-t { border-top: 1px solid #000; } .border-b { border-bottom: 1px solid #000; } .border-black { border-color: #000; }
       .border-dashed { border-style: dashed; } .flex { display: flex; } .justify-between { justify-content: space-between; }
       .break-words { overflow-wrap: anywhere; word-break: break-word; }
-      .text-\[10px\] { font-size: 10px; } .text-\[10\.5px\] { font-size: 10.5px; } .text-\[11px\] { font-size: 11px; } .text-\[12px\] { font-size: 12px; } .text-\[13px\] { font-size: 13px; }
+      .text-\\[10px\\] { font-size: 10px; } .text-\\[10\\.5px\\] { font-size: 10.5px; } .text-\\[11px\\] { font-size: 11px; } .text-\\[12px\\] { font-size: 12px; } .text-\\[13px\\] { font-size: 13px; }
     </style></head><body>${clone.outerHTML}
     <script>
       const waitImages = Promise.all(Array.from(document.images).map((img) => img.complete ? Promise.resolve() : new Promise((resolve) => { img.onload = img.onerror = resolve; })));
