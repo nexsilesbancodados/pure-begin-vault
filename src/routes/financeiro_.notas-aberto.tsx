@@ -149,12 +149,36 @@ function NotasAbertoPage() {
   const confirm = () => {
     const items = products.filter((p) => selected[p.id]);
     if (items.length === 0) return;
-    const total = items.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
-    setNotas((prev) => [
-      ...prev,
-      { id: prev.length + 1, items, total, createdAt: new Date() },
-    ]);
-    toast.success(`Nota ${notas.length + 1} criada com ${items.length} produto(s).`);
+
+    if (addingToNotaId != null) {
+      const nota = notas.find((n) => n.id === addingToNotaId);
+      if (nota) {
+        const existing = new Set(nota.items.map((i) => i.id));
+        const merged = [...nota.items, ...items.filter((i) => !existing.has(i.id))];
+        const total = merged.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+        updateNota(addingToNotaId, { items: merged, total });
+        toast.success(`Produto(s) adicionado(s) à Nota ${addingToNotaId}.`);
+      }
+      setAddingToNotaId(null);
+    } else {
+      const total = items.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+      const newId = notas.length + 1;
+      setNotas((prev) => [
+        ...prev,
+        {
+          id: newId,
+          items,
+          total,
+          createdAt: new Date(),
+          fornecedor: "",
+          dataCompra: new Date().toISOString().slice(0, 10),
+          paga: false,
+          prazoPagamento: "",
+        },
+      ]);
+      toast.success(`Nota ${newId} criada com ${items.length} produto(s).`);
+    }
+
     setSelected({});
     setOpen(false);
   };
