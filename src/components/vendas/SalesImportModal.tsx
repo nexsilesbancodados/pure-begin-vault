@@ -251,11 +251,20 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   const description = get("description") ? String(get("description")).trim() : undefined;
   const categoryRaw = get("category") ? String(get("category")).trim() : undefined;
   const finTypeRaw = get("fin_type") ? norm(get("fin_type")) : "";
-  // infere tipo: entrada/receita/credito/venda/recebimento → income; saida/despesa/debito/compra/pagamento → expense
+  const descNorm = description ? norm(description) : "";
+  const catNorm = categoryRaw ? norm(categoryRaw) : "";
+  // Palavras-chave: compra/despesa/pagamento/saída => SAÍDA (expense)
+  const EXPENSE_RE = /(saida|saída|despes|debit|compra|pagame|expense|fornecedor|aluguel|salario|salário|imposto|conta|boleto|^d$)/;
+  const INCOME_RE = /(entrada|receit|credit|venda|recebi|income|faturament|^c$)/;
   let finType: "income" | "expense" | undefined;
   if (finTypeRaw) {
-    if (/(entrada|receit|credit|venda|recebi|income|^c$)/.test(finTypeRaw)) finType = "income";
-    else if (/(saida|saída|despes|debit|compra|pagame|expense|^d$)/.test(finTypeRaw)) finType = "expense";
+    if (INCOME_RE.test(finTypeRaw)) finType = "income";
+    else if (EXPENSE_RE.test(finTypeRaw)) finType = "expense";
+  }
+  // Inferência por descrição/categoria quando o tipo não foi mapeado
+  if (!finType) {
+    if (EXPENSE_RE.test(descNorm) || EXPENSE_RE.test(catNorm)) finType = "expense";
+    else if (INCOME_RE.test(descNorm) || INCOME_RE.test(catNorm)) finType = "income";
   }
   // fallback por valor: negativo = expense, positivo = income
   if (!finType && !isNaN(amount)) finType = amount < 0 ? "expense" : "income";
