@@ -50,6 +50,7 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
   const { profile } = useAuth();
   const isSuperAdmin = (profile as any)?.role === "super_admin";
   const canEdit = isSuperAdmin || role === "owner" || role === "admin";
+  const saveFn = useServerFn(saveOrgSettings);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
