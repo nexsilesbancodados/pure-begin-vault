@@ -276,7 +276,10 @@ function LojasPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between gap-1">
+                      <div
+                        className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center gap-1">
                           {isEditing ? (
                             <>
