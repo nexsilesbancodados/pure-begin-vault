@@ -275,6 +275,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
   const [hmap, setHmap] = useState<Record<string, string>>({});
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawData, setRawData] = useState<any[]>([]);
+  const [kind, setKind] = useState<ImportKind>("vendas");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stats = useMemo(() => {
