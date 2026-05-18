@@ -227,19 +227,37 @@ function SettingsPage() {
     role: "",
     phone: "",
     email: "",
+    cpf: "",
+    address: "",
+    password: "",
+    password_confirm: "",
   });
 
   useEffect(() => {
     if (profile) {
+      const uid = user?.id ?? "";
+      let extra: { cpf?: string; address?: string } = {};
+      try {
+        extra =
+          typeof window !== "undefined"
+            ? JSON.parse(localStorage.getItem(`profile_extra_${uid}`) || "{}")
+            : {};
+      } catch {
+        extra = {};
+      }
       setFormData({
         display_name: profile.display_name || "",
         role: profile.role || "",
         phone: (profile as { phone?: string | null }).phone || "",
         email: profile.email || user?.email || "",
+        cpf: extra.cpf || "",
+        address: extra.address || "",
+        password: "",
+        password_confirm: "",
       });
       setAvatarUrl(profile.avatar_url || null);
     }
-  }, [profile, user?.email]);
+  }, [profile, user?.email, user?.id]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -277,6 +295,17 @@ function SettingsPage() {
     const newEmail = formData.email.trim();
     const emailChanged = newEmail && newEmail.toLowerCase() !== (user.email || "").toLowerCase();
 
+    if (formData.password || formData.password_confirm) {
+      if (formData.password.length < 6) {
+        toast.error("A senha precisa ter no mínimo 6 caracteres");
+        return;
+      }
+      if (formData.password !== formData.password_confirm) {
+        toast.error("As senhas não conferem");
+        return;
+      }
+    }
+
     if (emailChanged) {
       const { error: authErr } = await supabase.auth.updateUser({ email: newEmail });
       if (authErr) {
@@ -285,6 +314,21 @@ function SettingsPage() {
       }
       toast.info("Enviamos um link de confirmação para o novo e-mail.");
     }
+
+    if (formData.password) {
+      const { error: pwErr } = await supabase.auth.updateUser({ password: formData.password });
+      if (pwErr) {
+        toast.error("Erro ao atualizar senha: " + pwErr.message);
+        return;
+      }
+    }
+
+    try {
+      localStorage.setItem(
+        `profile_extra_${user.id}`,
+        JSON.stringify({ cpf: formData.cpf, address: formData.address }),
+      );
+    } catch {}
 
     const { error } = await supabase
       .from("profiles")
@@ -299,7 +343,8 @@ function SettingsPage() {
     if (error) {
       toast.error("Erro ao salvar perfil");
     } else {
-      toast.success("Perfil atualizado!");
+      toast.success("Informações salvas!");
+      setFormData((p) => ({ ...p, password: "", password_confirm: "" }));
     }
   };
 
@@ -509,6 +554,54 @@ function SettingsPage() {
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           />
                         </div>
+                        <div className="space-y-2">
+                          <Label>CPF</Label>
+                          <Input
+                            value={formData.cpf}
+                            onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                            placeholder="000.000.000-00"
+                          />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Endereço</Label>
+                          <Input
+                            value={formData.address}
+                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            placeholder="Rua, número, bairro, cidade — UF"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Nova Senha</Label>
+                          <Input
+                            type="password"
+                            value={formData.password}
+                            onChange={(e) =>
+                              setFormData({ ...formData, password: e.target.value })
+                            }
+                            placeholder="Deixe em branco para manter"
+                            autoComplete="new-password"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Confirmar Senha</Label>
+                          <Input
+                            type="password"
+                            value={formData.password_confirm}
+                            onChange={(e) =>
+                              setFormData({ ...formData, password_confirm: e.target.value })
+                            }
+                            placeholder="Repita a nova senha"
+                            autoComplete="new-password"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end pt-4 border-t border-border mt-6">
+                        <Button
+                          onClick={handleSaveProfile}
+                          className="bg-gradient-primary shadow-glow gap-2"
+                        >
+                          <CheckCircle2 className="h-4 w-4" /> Salvar Informações
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
