@@ -318,6 +318,7 @@ ul{font-size:12px;line-height:1.6;}
           cnpj: settings.cnpj ?? settings.document ?? null,
           phone: settings.phone ?? settings.telefone ?? null,
           website: settings.website ?? null,
+          logo_url: settings.brand_logo_url ?? null,
         },
         seller: seller ? { name: seller.full_name || seller.email } : null,
         customer: customer || sale.customers || null,
