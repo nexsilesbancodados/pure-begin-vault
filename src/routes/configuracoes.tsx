@@ -227,19 +227,37 @@ function SettingsPage() {
     role: "",
     phone: "",
     email: "",
+    cpf: "",
+    address: "",
+    password: "",
+    password_confirm: "",
   });
 
   useEffect(() => {
     if (profile) {
+      const uid = user?.id ?? "";
+      let extra: { cpf?: string; address?: string } = {};
+      try {
+        extra =
+          typeof window !== "undefined"
+            ? JSON.parse(localStorage.getItem(`profile_extra_${uid}`) || "{}")
+            : {};
+      } catch {
+        extra = {};
+      }
       setFormData({
         display_name: profile.display_name || "",
         role: profile.role || "",
         phone: (profile as { phone?: string | null }).phone || "",
         email: profile.email || user?.email || "",
+        cpf: extra.cpf || "",
+        address: extra.address || "",
+        password: "",
+        password_confirm: "",
       });
       setAvatarUrl(profile.avatar_url || null);
     }
-  }, [profile, user?.email]);
+  }, [profile, user?.email, user?.id]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
