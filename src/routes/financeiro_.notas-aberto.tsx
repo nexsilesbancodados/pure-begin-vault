@@ -54,6 +54,13 @@ const getImeiFromMetadata = (metadata: unknown) => {
   return value ? String(value) : null;
 };
 
+interface Nota {
+  id: number;
+  items: Product[];
+  total: number;
+  createdAt: Date;
+}
+
 function NotasAbertoPage() {
   const { orgId, userId } = useOrg();
   const [open, setOpen] = useState(false);
@@ -61,6 +68,7 @@ function NotasAbertoPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [notas, setNotas] = useState<Nota[]>([]);
 
   const loadProducts = async () => {
     if (!userId) return;
