@@ -83,6 +83,33 @@ function NotasAbertoPage() {
 
   const [newProduct, setNewProduct] = useState({ name: "", quantity: "", price: "" });
   const [productsList, setProductsList] = useState<any[]>([]);
+  const [orphanProducts, setOrphanProducts] = useState<any[]>([]);
+  const [selectedOrphanIds, setSelectedOrphanIds] = useState<string[]>([]);
+  const [orphanSearch, setOrphanSearch] = useState("");
+
+  const fetchOrphanProducts = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const base = supabase
+        .from("products")
+        .select("id, name, sku, cost_price, sale_price, stock, metadata, image_url");
+      const { data, error } = await (
+        orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id)
+      ).order("created_at", { ascending: false }).limit(200);
+      if (error) throw error;
+      const orphans = (data || []).filter((p: any) => {
+        const m = p.metadata || {};
+        return !m.nota_id || m.nota_id === "" || m.nota_id === "none";
+      });
+      setOrphanProducts(orphans);
+    } catch (err) {
+      console.error("Erro ao carregar produtos sem nota:", err);
+    }
+  }, [user?.id, orgId]);
+
+  useEffect(() => {
+    if (isDialogOpen) fetchOrphanProducts();
+  }, [isDialogOpen, fetchOrphanProducts]);
 
   const fetchTransactions = useCallback(async () => {
     if (!user?.id) return;
