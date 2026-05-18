@@ -65,7 +65,14 @@ export const Route = createFileRoute("/painel")({
 });
 
 function Dashboard() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const displayName =
+    profile?.nome ||
+    (user?.user_metadata as { display_name?: string; full_name?: string; nome?: string } | undefined)?.display_name ||
+    (user?.user_metadata as { full_name?: string } | undefined)?.full_name ||
+    (user?.user_metadata as { nome?: string } | undefined)?.nome ||
+    user?.email?.split("@")[0] ||
+    "Usuário";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [period] = useState<Period>("today");
   const { stats, loading, refresh } = useDashboardStats(period);
