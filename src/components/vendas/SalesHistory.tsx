@@ -67,7 +67,7 @@ type ReceiptData = {
   items: any[];
   payments: any[];
   org_name: string;
-  org: { address?: string | null; cnpj?: string | null; phone?: string | null; website?: string | null };
+  org: { address?: string | null; cnpj?: string | null; phone?: string | null; website?: string | null; logo_url?: string | null };
   seller?: { name?: string | null } | null;
   customer?: any | null;
 };
