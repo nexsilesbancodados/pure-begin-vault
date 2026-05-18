@@ -174,6 +174,7 @@ function RootComponent() {
             <CommandPalette />
           </Suspense>
           <KeyboardHelp />
+          <SonnerToaster position="top-right" richColors closeButton />
         </AuthProvider>
       </I18nProvider>
     </ThemeProvider>
