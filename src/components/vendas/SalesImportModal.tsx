@@ -23,6 +23,9 @@ import {
   ArrowRight,
   ArrowLeft,
   Trash2,
+  ShoppingCart,
+  Package,
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
