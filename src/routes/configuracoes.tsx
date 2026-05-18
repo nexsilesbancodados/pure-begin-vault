@@ -46,6 +46,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+type ProfileDetails = {
+  bio?: string;
+  job_title?: string;
+  role?: string;
+  phone?: string;
+  cpf?: string;
+  address?: string;
+};
+
+const parseProfileDetails = (value?: string | null): ProfileDetails => {
+  if (!value) return {};
+  try {
+    const parsed = JSON.parse(value) as ProfileDetails;
+    return parsed && typeof parsed === "object" ? parsed : { bio: value };
+  } catch {
+    return { bio: value };
+  }
+};
+
 function SettingsPage() {
   const { user, profile } = useAuth();
   const { theme, toggle } = useTheme();
@@ -236,7 +255,8 @@ function SettingsPage() {
   useEffect(() => {
     if (profile) {
       const uid = user?.id ?? "";
-      let extra: { cpf?: string; address?: string } = {};
+      const details = parseProfileDetails(profile.biografia);
+      let extra: { cpf?: string; address?: string; role?: string; phone?: string } = {};
       try {
         extra =
           typeof window !== "undefined"
@@ -247,11 +267,11 @@ function SettingsPage() {
       }
       setFormData({
         display_name: profile.display_name || "",
-        role: profile.role || "",
-        phone: (profile as { phone?: string | null }).phone || "",
+        role: details.job_title || details.role || extra.role || profile.role || "",
+        phone: details.phone || extra.phone || "",
         email: profile.email || user?.email || "",
-        cpf: extra.cpf || "",
-        address: extra.address || "",
+        cpf: details.cpf || extra.cpf || "",
+        address: details.address || extra.address || "",
         password: "",
         password_confirm: "",
       });
@@ -309,10 +329,10 @@ function SettingsPage() {
     if (emailChanged) {
       const { error: authErr } = await supabase.auth.updateUser({ email: newEmail });
       if (authErr) {
-        toast.error("Erro ao atualizar e-mail: " + authErr.message);
-        return;
+        toast.warning("Não foi possível alterar o e-mail de login agora, mas o e-mail do perfil será salvo.");
+      } else {
+        toast.info("Enviamos um link de confirmação para alterar o e-mail de login.");
       }
-      toast.info("Enviamos um link de confirmação para o novo e-mail.");
     }
 
     if (formData.password) {
@@ -326,16 +346,31 @@ function SettingsPage() {
     try {
       localStorage.setItem(
         `profile_extra_${user.id}`,
-        JSON.stringify({ cpf: formData.cpf, address: formData.address }),
+        JSON.stringify({
+          cpf: formData.cpf,
+          address: formData.address,
+          role: formData.role,
+          phone: formData.phone,
+        }),
       );
     } catch {}
+
+    const profileDetails = parseProfileDetails(profile?.biografia);
+    const biografia = JSON.stringify({
+      ...profileDetails,
+      job_title: formData.role.trim(),
+      phone: formData.phone.trim(),
+      cpf: formData.cpf.trim(),
+      address: formData.address.trim(),
+    });
 
     const { error } = await supabase
       .from("profiles")
       .update({
-        display_name: formData.display_name,
-        role: formData.role,
+        display_name: formData.display_name.trim(),
+        nome: formData.display_name.trim(),
         email: newEmail || null,
+        biografia,
         updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
