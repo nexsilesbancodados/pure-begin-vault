@@ -1,5 +1,8 @@
 project_id = "irjzfrhvjrvvwnxygufo"
 
+[functions.create-team-user]
+verify_jwt = true
+
 [functions.bot-webhook]
 verify_jwt = false
 
