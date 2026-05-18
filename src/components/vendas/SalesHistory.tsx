@@ -997,6 +997,43 @@ ul{font-size:12px;line-height:1.6;}
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Modal do Recibo */}
+      <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
+        <DialogContent className="max-w-[940px] max-h-[92vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60">
+          <div className="print:hidden flex items-center justify-between gap-3 px-5 py-4 border-b border-border/60 bg-muted/30">
+            <div>
+              <DialogTitle className="text-lg font-black tracking-tight">Recibo da venda</DialogTitle>
+              <DialogDescription>Confira o recibo antes de imprimir.</DialogDescription>
+            </div>
+            <Button
+              disabled={!receiptData || receiptLoading}
+              onClick={() => window.print()}
+              className="rounded-xl font-bold gap-2"
+            >
+              <Printer className="h-4 w-4" /> Imprimir
+            </Button>
+          </div>
+          <div className="max-h-[calc(92vh-73px)] overflow-auto bg-muted/40 p-4 print:max-h-none print:overflow-visible print:bg-white print:p-0">
+            {receiptLoading ? (
+              <div className="h-[420px] flex flex-col items-center justify-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm font-bold text-muted-foreground">Carregando recibo...</p>
+              </div>
+            ) : receiptError ? (
+              <div className="h-[420px] flex flex-col items-center justify-center gap-3 text-center">
+                <AlertCircle className="h-10 w-10 text-destructive" />
+                <p className="font-bold">{receiptError}</p>
+                <Button variant="outline" onClick={() => setIsReceiptOpen(false)}>
+                  Fechar
+                </Button>
+              </div>
+            ) : receiptData ? (
+              <ReceiptPreview data={receiptData} />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
