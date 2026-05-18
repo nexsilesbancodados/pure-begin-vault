@@ -60,19 +60,18 @@ export function useUserOrgs() {
     }
 
     const ids = base.map((o) => o.organization_id);
-    let logoMap = new Map<string, string | null>();
+    let logoMap: Record<string, string | null> = {};
     if (ids.length > 0) {
-      const { data: settings } = await (supabase as any)
-        .from("organization_settings")
-        .select("organization_id, brand_logo_url")
-        .in("organization_id", ids);
-      logoMap = new Map(
-        ((settings as any[]) ?? []).map((s) => [s.organization_id, s.brand_logo_url ?? null]),
-      );
+      try {
+        const res = await fetchLogos({ data: { orgIds: ids } });
+        logoMap = res.logos ?? {};
+      } catch (e) {
+        console.warn("Falha ao carregar logos das lojas", e);
+      }
     }
-    setOrgs(base.map((o) => ({ ...o, logo_url: logoMap.get(o.organization_id) ?? null })));
+    setOrgs(base.map((o) => ({ ...o, logo_url: logoMap[o.organization_id] ?? null })));
     setLoading(false);
-  }, [user?.id, isSuperAdmin]);
+  }, [user?.id, isSuperAdmin, fetchLogos]);
 
   useEffect(() => {
     load();
