@@ -213,7 +213,15 @@ export function InviteFlow() {
   };
 
   const deleteInvite = async (invite: Invite) => {
-    if (!confirm(`Excluir definitivamente o usuário ${invite.metadata?.nome || invite.email || ""}?`)) return;
+    const nome = invite.metadata?.nome || invite.email || "este usuário";
+    const ok = typeof window !== "undefined" && typeof window.confirm === "function"
+      ? window.confirm(`Excluir definitivamente ${nome}?`)
+      : true;
+    if (!ok) return;
+
+    // Remoção otimista da UI
+    setInvites((prev) => prev.filter((x) => x.id !== invite.id));
+
     // Se já foi aceito, remover também o vínculo na organização
     if (invite.accepted_by) {
       const { error: rmErr } = await (supabase as any).rpc("remove_organization_member", {
@@ -222,16 +230,26 @@ export function InviteFlow() {
       });
       if (rmErr) {
         toast.error("Erro ao remover acesso: " + rmErr.message);
+        load();
         return;
       }
     }
+
     const { error } = await (supabase as any)
       .from("organization_invites")
       .delete()
       .eq("id", invite.id);
     if (error) {
       // fallback: marcar como revogado se RLS impedir delete
-      await (supabase as any).from("organization_invites").update({ status: "revoked" }).eq("id", invite.id);
+      const { error: upErr } = await (supabase as any)
+        .from("organization_invites")
+        .update({ status: "revoked" })
+        .eq("id", invite.id);
+      if (upErr) {
+        toast.error("Erro ao excluir: " + upErr.message);
+        load();
+        return;
+      }
     }
     // Limpar metadata local
     try {
@@ -240,7 +258,6 @@ export function InviteFlow() {
       localStorage.setItem(`invite_meta_${orgId}`, JSON.stringify(map));
     } catch {}
     toast.success("Usuário excluído");
-    load();
   };
 
 
