@@ -1481,6 +1481,50 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Modal do Termo de Garantia */}
+      <Dialog
+        open={!!warrantyDoc || warrantyLoading}
+        onOpenChange={(open) => {
+          if (!open) {
+            setWarrantyDoc(null);
+            setWarrantyLoading(false);
+          }
+        }}
+      >
+        <DialogContent className="max-w-[960px] max-h-[92vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60">
+          <div className="print:hidden flex items-center justify-between gap-3 px-5 py-4 border-b border-border/60 bg-muted/30">
+            <div className="min-w-0">
+              <DialogTitle className="text-lg font-black tracking-tight truncate">
+                {warrantyDoc?.title || "Termo de Garantia"}
+              </DialogTitle>
+              <DialogDescription>Revise o termo antes de imprimir.</DialogDescription>
+            </div>
+            <Button
+              disabled={!warrantyDoc || warrantyLoading}
+              onClick={printWarranty}
+              className="rounded-xl font-bold gap-2"
+            >
+              <Printer className="h-4 w-4" /> Imprimir
+            </Button>
+          </div>
+          <div className="bg-muted/40 p-4 h-[calc(92vh-73px)]">
+            {warrantyLoading || !warrantyDoc ? (
+              <div className="h-full flex flex-col items-center justify-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm font-bold text-muted-foreground">Gerando termo...</p>
+              </div>
+            ) : (
+              <iframe
+                ref={warrantyIframeRef}
+                title={warrantyDoc.title}
+                srcDoc={warrantyDoc.html}
+                className="w-full h-full bg-white rounded-xl border border-border/60 shadow-sm"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
