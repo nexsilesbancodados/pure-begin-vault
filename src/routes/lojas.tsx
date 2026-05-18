@@ -200,7 +200,7 @@ function LojasPage() {
                 {filtered.map((o) => {
                   const isActive = o.organization_id === activeOrgId;
                   const isEditing = editingId === o.organization_id;
-                  const canEdit = o.role === "owner" || o.role === "admin";
+                  const canEdit = isSuperAdmin || o.role === "owner" || o.role === "admin";
                   return (
                     <div
                       key={o.organization_id}
