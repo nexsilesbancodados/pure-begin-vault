@@ -153,18 +153,24 @@ function NotasAbertoPage() {
       cost_price: parseFloat(data.cost_price) || 0,
       stock_quantity: parseInt(stock ?? data.stock_quantity) || 0,
     };
-    const { data: updated, error } = await supabase
-      .from("products")
-      .update(payload)
-      .eq("id", editingProduct.id)
-      .select("*")
-      .single();
+    const isNew = !editingProduct.id;
+    if (isNew) {
+      if (orgId) payload.organization_id = orgId;
+      payload.active = true;
+    }
+    const query = isNew
+      ? supabase.from("products").insert(payload).select("*").single()
+      : supabase.from("products").update(payload).eq("id", editingProduct.id).select("*").single();
+    const { data: saved, error } = await query;
     if (error) {
       toast.error("Erro ao salvar produto: " + error.message);
       return;
     }
-    const merged: Product = { ...(updated as any), imei: getImeiFromMetadata((updated as any)?.metadata) };
-    setProducts((prev) => prev.map((p) => (p.id === merged.id ? merged : p)));
+    const merged: Product = { ...(saved as any), imei: getImeiFromMetadata((saved as any)?.metadata) };
+    setProducts((prev) =>
+      isNew ? [merged, ...prev] : prev.map((p) => (p.id === merged.id ? merged : p)),
+    );
+    if (isNew) toast.success("Produto cadastrado!");
     setNotas((prev) =>
       prev.map((n) => {
         if (!n.items.some((i) => i.id === merged.id)) return n;
@@ -520,14 +526,23 @@ function NotasAbertoPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, SKU ou IMEI..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, SKU ou IMEI..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setEditingProduct({} as any)}
+              className="shrink-0 gap-1"
+            >
+              <Plus className="h-4 w-4" /> Cadastrar Produto
+            </Button>
           </div>
 
           <div className="flex-1 overflow-auto border rounded-md">
