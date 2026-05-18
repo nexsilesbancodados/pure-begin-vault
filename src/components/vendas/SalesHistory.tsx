@@ -168,6 +168,70 @@ export function SalesHistory() {
     };
   }, [sales]);
 
+  const openWarrantyPrint = useCallback((sale: any, type: "seminovo" | "lacrado" | "android") => {
+    const titles: Record<string, string> = {
+      seminovo: "Termo de Garantia - iPhone Seminovo (7 meses)",
+      lacrado: "Termo de Garantia - iPhone Lacrado (1 ano)",
+      android: "Termo de Garantia - Aparelho Android (1 ano)",
+    };
+    const periodDays = type === "seminovo" ? 210 : 365;
+    const start = new Date(sale.created_at || Date.now());
+    const end = new Date(start.getTime() + periodDays * 86400000);
+    const fmt = (d: Date) => d.toLocaleDateString("pt-BR");
+    const cliente = sale.customers?.name || "Consumidor";
+    const total = (sale.total_amount || 0).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${titles[type]}</title>
+<style>
+body{font-family:Arial,sans-serif;padding:40px;color:#111;max-width:800px;margin:0 auto;}
+h1{font-size:20px;text-align:center;margin-bottom:8px;}
+h2{font-size:13px;text-align:center;color:#555;margin-top:0;font-weight:normal;}
+.box{border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0;}
+.row{display:flex;justify-content:space-between;margin:6px 0;font-size:13px;}
+.label{color:#666;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px;}
+ul{font-size:12px;line-height:1.6;}
+.sign{margin-top:60px;display:flex;justify-content:space-between;gap:40px;}
+.sign div{flex:1;text-align:center;border-top:1px solid #333;padding-top:6px;font-size:11px;}
+@media print{body{padding:20px;}}
+</style></head><body>
+<h1>${titles[type]}</h1>
+<h2>Documento gerado em ${fmt(new Date())}</h2>
+<div class="box">
+<div class="row"><span class="label">Venda</span><span>#${String(sale.id).slice(0, 8).toUpperCase()}</span></div>
+<div class="row"><span class="label">Cliente</span><span>${cliente}</span></div>
+<div class="row"><span class="label">Valor</span><span>${total}</span></div>
+<div class="row"><span class="label">Início da garantia</span><span>${fmt(start)}</span></div>
+<div class="row"><span class="label">Término da garantia</span><span>${fmt(end)}</span></div>
+</div>
+<div class="box">
+<p class="label">Cobertura</p>
+<ul>
+<li>Defeitos de fabricação em componentes internos.</li>
+<li>Funcionamento normal de placa, bateria e tela (conforme tipo).</li>
+<li>Atendimento em assistência técnica autorizada.</li>
+</ul>
+<p class="label">Não cobre</p>
+<ul>
+<li>Danos por queda, líquidos, oxidação ou uso indevido.</li>
+<li>Violação do aparelho por terceiros não autorizados.</li>
+<li>Acessórios e desgaste natural de bateria.</li>
+</ul>
+</div>
+<div class="sign"><div>Assinatura do Cliente</div><div>Assinatura da Loja</div></div>
+<script>window.onload=function(){setTimeout(function(){window.print();},300);}</script>
+</body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) {
+      toast.error("Pop-up bloqueado pelo navegador.");
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  }, []);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Resumo de Vendas - Novo Design */}
@@ -488,7 +552,11 @@ export function SalesHistory() {
 
                           <DropdownMenuItem
                             onClick={() => {
-                              toast.info("Carregando venda para edição...");
+                              if (sale.status === "cancelled" || sale.status === "canceled") {
+                                toast.error("Vendas canceladas não podem ser editadas.");
+                                return;
+                              }
+                              toast.info("Abrindo PDV para edição...");
                               window.open(`/pdv?edit=${sale.id}`, "_blank");
                             }}
                             className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
@@ -505,7 +573,7 @@ export function SalesHistory() {
                           </DropdownMenuItem>
 
                           <DropdownMenuItem
-                            onClick={() => window.open(`/pdv?view=${sale.id}`, "_blank")}
+                            onClick={() => window.open(`/recibo/${sale.id}`, "_blank")}
                             className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
                           >
                             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
@@ -522,8 +590,7 @@ export function SalesHistory() {
                           <DropdownMenuItem
                             onClick={() => {
                               toast.info("Preparando cupom...");
-                              // Simulação de abertura do componente PDVInterface com a venda carregada
-                              window.open(`/pdv?print=receipt&id=${sale.id}`, "_blank");
+                              window.open(`/recibo/${sale.id}?auto=1`, "_blank");
                             }}
                             className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
                           >
@@ -558,34 +625,19 @@ export function SalesHistory() {
                                   </span>
                                 </div>
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    window.open(
-                                      `/pdv?print=warranty&type=seminovo&id=${sale.id}`,
-                                      "_blank",
-                                    )
-                                  }
+                                  onClick={() => openWarrantyPrint(sale, "seminovo")}
                                   className="py-2.5 rounded-lg cursor-pointer focus:bg-primary/10 font-bold text-xs"
                                 >
                                   iPhone Seminovo (7 meses)
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    window.open(
-                                      `/pdv?print=warranty&type=lacrado&id=${sale.id}`,
-                                      "_blank",
-                                    )
-                                  }
+                                  onClick={() => openWarrantyPrint(sale, "lacrado")}
                                   className="py-2.5 rounded-lg cursor-pointer focus:bg-primary/10 font-bold text-xs"
                                 >
                                   iPhone Lacrado (1 ano)
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                  onClick={() =>
-                                    window.open(
-                                      `/pdv?print=warranty&type=android&id=${sale.id}`,
-                                      "_blank",
-                                    )
-                                  }
+                                  onClick={() => openWarrantyPrint(sale, "android")}
                                   className="py-2.5 rounded-lg cursor-pointer focus:bg-primary/10 font-bold text-xs"
                                 >
                                   Aparelho Android (1 ano)
