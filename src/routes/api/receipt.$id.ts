@@ -42,7 +42,7 @@ async function fetchReceipt(id: string) {
       sale.customer_id
         ? (supabaseAdmin as any)
             .from("customers")
-            .select("name, document, phone")
+            .select("*")
             .eq("id", sale.customer_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
