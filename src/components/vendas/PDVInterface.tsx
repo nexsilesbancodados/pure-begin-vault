@@ -38,6 +38,7 @@ import {
   Truck,
   Wrench,
   IdCard,
+  CalendarClock,
 } from "lucide-react";
 import { Product } from "@/lib/mock";
 import { ProductForm } from "@/components/estoque/ProductForm";
@@ -185,6 +186,7 @@ export function PDVInterface() {
   const [moneyAmount, setMoneyAmount] = useState<string>("");
   const [cardAmount, setCardAmount] = useState<string>("");
   const [pixAmount, setPixAmount] = useState<string>("");
+  const [prazoAmount, setPrazoAmount] = useState<string>("");
   const [barcode, setBarcode] = useState("");
   const [vendedorId, setVendedorId] = useState<string>("");
   const [obs, setObs] = useState("");
@@ -751,9 +753,12 @@ export function PDVInterface() {
 
   const totalReceived = useMemo(() => {
     return (
-      (parseFloat(moneyAmount) || 0) + (parseFloat(cardAmount) || 0) + (parseFloat(pixAmount) || 0)
+      (parseFloat(moneyAmount) || 0) +
+      (parseFloat(cardAmount) || 0) +
+      (parseFloat(pixAmount) || 0) +
+      (parseFloat(prazoAmount) || 0)
     );
-  }, [moneyAmount, cardAmount, pixAmount]);
+  }, [moneyAmount, cardAmount, pixAmount, prazoAmount]);
 
   const change = useMemo(() => Math.max(0, totalReceived - total), [totalReceived, total]);
 
@@ -780,6 +785,7 @@ export function PDVInterface() {
     if (parseFloat(moneyAmount) > 0) usedMethods.push("Dinheiro");
     if (parseFloat(cardAmount) > 0) usedMethods.push("Cartão");
     if (parseFloat(pixAmount) > 0) usedMethods.push("PIX");
+    if (parseFloat(prazoAmount) > 0) usedMethods.push("Prazo 7 dias");
 
     const finalPaymentMethod =
       usedMethods.length > 1
@@ -824,9 +830,21 @@ export function PDVInterface() {
       const moneyN = parseFloat(moneyAmount) || 0;
       const cardN = parseFloat(cardAmount) || 0;
       const pixN = parseFloat(pixAmount) || 0;
+      const prazoN = parseFloat(prazoAmount) || 0;
       if (moneyN > 0) payments.push({ method: "cash", amount: moneyN });
       if (cardN > 0) payments.push({ method: "card", amount: cardN });
       if (pixN > 0) payments.push({ method: "pix", amount: pixN });
+      if (prazoN > 0) {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7);
+        payments.push({
+          method: "credit",
+          amount: prazoN,
+          due_date: dueDate.toISOString(),
+          term_days: 7,
+          label: "Prazo 7 dias",
+        });
+      }
       if (payments.length === 0) {
         const fallback =
           paymentMethod === "money"
@@ -924,6 +942,7 @@ export function PDVInterface() {
       setMoneyAmount("");
       setCardAmount("");
       setPixAmount("");
+      setPrazoAmount("");
       setDiscountValue(0);
       setEditingSaleId(null);
       setLastSaleId(saleId);
@@ -2441,7 +2460,7 @@ export function PDVInterface() {
             </div>
 
             <div className="space-y-3 py-2">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   {
                     id: "money",
@@ -2464,6 +2483,13 @@ export function PDVInterface() {
                     color: "text-purple-600",
                     bg: "bg-purple-500/10",
                   },
+                  {
+                    id: "prazo",
+                    icon: CalendarClock,
+                    label: "Prazo 7d",
+                    color: "text-amber-600",
+                    bg: "bg-amber-500/10",
+                  },
                 ].map((method) => (
                   <button
                     key={method.id}
@@ -2474,6 +2500,7 @@ export function PDVInterface() {
                         if (method.id === "money") setMoneyAmount(total.toFixed(2));
                         if (method.id === "card") setCardAmount(total.toFixed(2));
                         if (method.id === "pix") setPixAmount(total.toFixed(2));
+                        if (method.id === "prazo") setPrazoAmount(total.toFixed(2));
                       }
                     }}
                     className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition text-[11px] font-bold uppercase
@@ -2485,7 +2512,8 @@ export function PDVInterface() {
                   >
                     {(method.id === "money" && parseFloat(moneyAmount) > 0) ||
                     (method.id === "card" && parseFloat(cardAmount) > 0) ||
-                    (method.id === "pix" && parseFloat(pixAmount) > 0) ? (
+                    (method.id === "pix" && parseFloat(pixAmount) > 0) ||
+                    (method.id === "prazo" && parseFloat(prazoAmount) > 0) ? (
                       <div className="absolute -top-2 -right-2 h-5 w-5 bg-primary text-white text-[10px] rounded-full flex items-center justify-center border-2 border-card">
                         ✓
                       </div>
@@ -2503,6 +2531,9 @@ export function PDVInterface() {
                       {paymentMethod === "money" && <Banknote className="h-4 w-4 text-primary" />}
                       {paymentMethod === "card" && <CreditCard className="h-4 w-4 text-primary" />}
                       {paymentMethod === "pix" && <QrCode className="h-4 w-4 text-primary" />}
+                      {paymentMethod === "prazo" && (
+                        <CalendarClock className="h-4 w-4 text-amber-600" />
+                      )}
                       <span className="text-xs font-bold text-muted-foreground">R$</span>
                     </div>
                     <Input
@@ -2517,13 +2548,16 @@ export function PDVInterface() {
                             ? cardAmount
                             : paymentMethod === "pix"
                               ? pixAmount
-                              : ""
+                              : paymentMethod === "prazo"
+                                ? prazoAmount
+                                : ""
                       }
                       onChange={(e) => {
                         const val = e.target.value;
                         if (paymentMethod === "money") setMoneyAmount(val);
                         if (paymentMethod === "card") setCardAmount(val);
                         if (paymentMethod === "pix") setPixAmount(val);
+                        if (paymentMethod === "prazo") setPrazoAmount(val);
                       }}
                     />
                     <button
@@ -2531,12 +2565,21 @@ export function PDVInterface() {
                         if (paymentMethod === "money") setMoneyAmount("");
                         if (paymentMethod === "card") setCardAmount("");
                         if (paymentMethod === "pix") setPixAmount("");
+                        if (paymentMethod === "prazo") setPrazoAmount("");
                       }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
+                  {paymentMethod === "prazo" && parseFloat(prazoAmount) > 0 && (
+                    <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-700">
+                      <CalendarClock className="h-3.5 w-3.5" />
+                      Vencimento em{" "}
+                      {new Date(Date.now() + 7 * 86400000).toLocaleDateString("pt-BR")} · será
+                      lançado em Contas a Receber.
+                    </div>
+                  )}
                   <div className="flex justify-between items-center px-1 mt-1.5">
                     <p className="text-[10px] text-muted-foreground font-medium italic">
                       Informe o valor recebido em{" "}
@@ -2544,7 +2587,9 @@ export function PDVInterface() {
                         ? "dinheiro"
                         : paymentMethod === "card"
                           ? "cartão"
-                          : "PIX"}
+                          : paymentMethod === "pix"
+                            ? "PIX"
+                            : "prazo (7 dias)"}
                     </p>
                     {totalReceived > 0 && totalReceived < total && (
                       <Button
@@ -2558,12 +2603,15 @@ export function PDVInterface() {
                                 ? moneyAmount
                                 : paymentMethod === "card"
                                   ? cardAmount
-                                  : pixAmount,
+                                  : paymentMethod === "pix"
+                                    ? pixAmount
+                                    : prazoAmount,
                             ) || 0;
                           const remaining = (total - (totalReceived - currentVal)).toFixed(2);
                           if (paymentMethod === "money") setMoneyAmount(remaining);
                           if (paymentMethod === "card") setCardAmount(remaining);
                           if (paymentMethod === "pix") setPixAmount(remaining);
+                          if (paymentMethod === "prazo") setPrazoAmount(remaining);
                         }}
                       >
                         Completar Restante
