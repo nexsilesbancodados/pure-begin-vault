@@ -39,6 +39,13 @@ interface SalesImportModalProps {
 }
 
 type Step = "upload" | "preview" | "done";
+type ImportKind = "vendas" | "estoque" | "financeiro";
+
+const KIND_META: Record<ImportKind, { label: string; desc: string; icon: typeof ShoppingCart; tone: string }> = {
+  vendas: { label: "Vendas", desc: "Histórico de pedidos e tickets", icon: ShoppingCart, tone: "from-info/15 to-primary/10 border-info/30 text-info" },
+  estoque: { label: "Estoque", desc: "Produtos, SKUs e quantidades", icon: Package, tone: "from-emerald-500/15 to-teal-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" },
+  financeiro: { label: "Financeiro", desc: "Contas, despesas e receitas", icon: DollarSign, tone: "from-amber-500/15 to-orange-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400" },
+};
 
 type ParsedRow = {
   total_amount: number;
