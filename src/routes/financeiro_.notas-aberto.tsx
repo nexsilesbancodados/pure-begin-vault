@@ -854,7 +854,7 @@ function NotasAbertoPage() {
             <div className="flex flex-col max-h-[90vh]">
               {/* Header */}
               <div className="px-6 py-4 border-b flex items-center gap-3">
-                <DialogTitle className="text-xl font-bold">Nota {detailNota.id}</DialogTitle>
+                <DialogTitle className="text-xl font-bold">Nota {detailNota.noteNumber}</DialogTitle>
                 <span
                   className={
                     "px-2.5 py-0.5 rounded-full text-xs font-semibold border " +
@@ -1012,8 +1012,10 @@ function NotasAbertoPage() {
                   Fechar
                 </Button>
                 <Button
-                  onClick={() => {
-                    toast.success(`Nota ${detailNota.id} salva.`);
+                  onClick={async () => {
+                    const ok = await persistNota(detailNota);
+                    if (!ok) return;
+                    toast.success(`Nota ${detailNota.noteNumber} salva.`);
                     setDetailId(null);
                   }}
                   className="shadow-md shadow-primary/20"
