@@ -907,8 +907,6 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                       </div>
                     </div>
                   ))}
-                    </div>
-                  ))}
                 </div>
               </div>
 
