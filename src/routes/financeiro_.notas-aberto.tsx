@@ -329,6 +329,128 @@ function NotasAbertoPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={detailId != null} onOpenChange={(o) => !o && setDetailId(null)}>
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-auto">
+          {detailNota && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Nota {detailNota.id}</DialogTitle>
+                <DialogDescription>
+                  Preencha as informações da nota e gerencie os produtos.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="fornecedor">Fornecedor</Label>
+                  <Input
+                    id="fornecedor"
+                    placeholder="Nome do fornecedor"
+                    value={detailNota.fornecedor}
+                    onChange={(e) => updateNota(detailNota.id, { fornecedor: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dataCompra">Data da compra</Label>
+                  <Input
+                    id="dataCompra"
+                    type="date"
+                    value={detailNota.dataCompra}
+                    onChange={(e) => updateNota(detailNota.id, { dataCompra: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="prazo">Prazo para pagamento</Label>
+                  <Input
+                    id="prazo"
+                    type="date"
+                    value={detailNota.prazoPagamento}
+                    onChange={(e) =>
+                      updateNota(detailNota.id, { prazoPagamento: e.target.value })
+                    }
+                    disabled={detailNota.paga}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status do pagamento</Label>
+                  <div className="flex items-center gap-3 h-9">
+                    <Switch
+                      id="paga"
+                      checked={detailNota.paga}
+                      onCheckedChange={(v) => updateNota(detailNota.id, { paga: v })}
+                    />
+                    <Label htmlFor="paga" className="cursor-pointer">
+                      {detailNota.paga ? "Paga" : "Em aberto"}
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Produtos ({detailNota.items.length})</Label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      setAddingToNotaId(detailNota.id);
+                      setDetailId(null);
+                      setOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar produto
+                  </Button>
+                </div>
+                <div className="border rounded-md max-h-64 overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produto</TableHead>
+                        <TableHead>IMEI</TableHead>
+                        <TableHead className="text-right">Preço</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {detailNota.items.map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium">{p.name}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {p.imei ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex justify-between pt-2 text-sm font-medium">
+                  <span>Total</span>
+                  <span>R$ {detailNota.total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDetailId(null)}>
+                  Fechar
+                </Button>
+                <Button
+                  onClick={() => {
+                    toast.success(`Nota ${detailNota.id} salva.`);
+                    setDetailId(null);
+                  }}
+                >
+                  Salvar
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
