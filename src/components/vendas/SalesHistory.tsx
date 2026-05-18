@@ -102,6 +102,7 @@ export function SalesHistory() {
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
+  const [receiptMode, setReceiptMode] = useState<"a4" | "80mm">("a4");
 
   const fetchSales = useCallback(async () => {
     if (!user?.id || !orgId) return;
