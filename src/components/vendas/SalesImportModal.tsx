@@ -51,26 +51,141 @@ type ParsedRow = {
 
 const TEMPLATE_HEADERS = ["data", "valor", "metodo_pagamento", "status", "observacao"];
 
-function parseRow(row: any): ParsedRow {
-  const total = parseFloat(
-    String(row.valor ?? row.total ?? row.Amount ?? row.amount ?? "0").replace(",", "."),
-  );
-  const dateRaw = row.data ?? row.date ?? row.Data;
-  let created_at = new Date().toISOString();
-  if (dateRaw) {
-    const d = new Date(dateRaw);
-    if (!isNaN(d.getTime())) created_at = d.toISOString();
+// Normaliza string (remove acentos, baixa caixa, trim)
+const norm = (s: any) =>
+  String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+// Aliases por campo — qualquer coluna que contenha um destes termos é considerada match
+const FIELD_ALIASES: Record<string, string[]> = {
+  amount: [
+    "valor",
+    "total",
+    "vlr",
+    "preco",
+    "amount",
+    "value",
+    "price",
+    "subtotal",
+    "venda",
+    "faturamento",
+  ],
+  date: ["data", "date", "dt", "emissao", "vencimento", "created", "criado"],
+  payment: ["pagamento", "pagto", "metodo", "method", "forma", "payment"],
+  status: ["status", "situacao", "estado"],
+  notes: ["obs", "observacao", "observacoes", "notes", "descricao", "description", "nota"],
+  customer: ["cliente", "customer", "comprador", "nome"],
+};
+
+// Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
+function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
+  const map: Record<string, string> = {};
+  const headers = Object.keys(sample);
+  for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
+    const match = headers.find((h) => {
+      const n = norm(h);
+      return aliases.some((a) => n === a || n.includes(a));
+    });
+    if (match) map[field] = match;
   }
-  const valid = !isNaN(total) && total > 0;
+  return map;
+}
+
+// Parser de moeda robusto: aceita "R$ 1.234,56", "1234.56", "1,234.56", "1.234,56"
+function parseCurrency(raw: any): number {
+  if (raw === null || raw === undefined || raw === "") return NaN;
+  if (typeof raw === "number") return raw;
+  let s = String(raw).trim();
+  // remove R$, espaços, e qualquer letra
+  s = s.replace(/[R$\s\u00A0]/gi, "").replace(/[^\d.,\-]/g, "");
+  if (!s) return NaN;
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+  if (hasComma && hasDot) {
+    // formato brasileiro: ponto = milhar, vírgula = decimal
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else {
+      // formato americano: vírgula = milhar
+      s = s.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    s = s.replace(",", ".");
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? NaN : n;
+}
+
+// Parser de data: aceita Date, número serial Excel, "DD/MM/YYYY", "YYYY-MM-DD", ISO
+function parseDate(raw: any): Date | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  if (raw instanceof Date && !isNaN(raw.getTime())) return raw;
+  // número serial Excel (dias desde 1900-01-01)
+  if (typeof raw === "number" && raw > 25000 && raw < 80000) {
+    const ms = (raw - 25569) * 86400 * 1000;
+    const d = new Date(ms);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const s = String(raw).trim();
+  // DD/MM/YYYY ou DD-MM-YYYY
+  const br = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+  if (br) {
+    const [, d, m, y] = br;
+    const year = y.length === 2 ? 2000 + parseInt(y) : parseInt(y);
+    const dt = new Date(year, parseInt(m) - 1, parseInt(d));
+    if (!isNaN(dt.getTime())) return dt;
+  }
+  const dt = new Date(s);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function normalizePayment(raw: any): string {
+  const n = norm(raw);
+  if (!n) return "Pix";
+  if (n.includes("pix")) return "Pix";
+  if (n.includes("dinh") || n.includes("cash") || n === "esp") return "Dinheiro";
+  if (n.includes("debit")) return "Débito";
+  if (n.includes("cred") || n.includes("card")) return "Crédito";
+  if (n.includes("boleto")) return "Boleto";
+  if (n.includes("transf")) return "Transferência";
+  return String(raw).slice(0, 30);
+}
+
+function normalizeStatus(raw: any): string {
+  const n = norm(raw);
+  if (!n) return "concluded";
+  if (n.includes("cancel")) return "cancelled";
+  if (n.includes("pend") || n.includes("aberto") || n.includes("open")) return "pending";
+  return "concluded";
+}
+
+function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRow {
+  const get = (field: string) => (hmap[field] ? row[hmap[field]] : undefined);
+
+  const rawAmount = get("amount");
+  const amount = parseCurrency(rawAmount);
+  const date = parseDate(get("date"));
+
+  const errors: string[] = [];
+  if (!hmap.amount) errors.push("coluna de valor não encontrada");
+  else if (isNaN(amount)) errors.push("valor inválido");
+  else if (amount <= 0) errors.push("valor deve ser maior que zero");
+
+  const customer = get("customer");
+  const notes = get("notes") || (customer ? `Cliente: ${customer}` : "Importado via sistema");
+
   return {
-    total_amount: total,
-    payment_method: String(row.metodo_pagamento ?? row.payment_method ?? "Pix"),
-    status: String(row.status ?? "concluded"),
-    notes: String(row.observacao ?? row.notes ?? "Importado via sistema"),
-    created_at,
+    total_amount: isNaN(amount) ? 0 : amount,
+    payment_method: normalizePayment(get("payment")),
+    status: normalizeStatus(get("status")),
+    notes: String(notes).slice(0, 500),
+    created_at: (date ?? new Date()).toISOString(),
     _raw: row,
-    _valid: valid,
-    _error: valid ? undefined : "Valor inválido ou ausente",
+    _valid: errors.length === 0,
+    _error: errors.length ? `Linha ${idx + 2}: ${errors.join(", ")}` : undefined,
   };
 }
 
@@ -84,6 +199,9 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
   const [progress, setProgress] = useState(0);
   const [imported, setImported] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [hmap, setHmap] = useState<Record<string, string>>({});
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rawData, setRawData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stats = useMemo(() => {
@@ -96,9 +214,22 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     };
   }, [rows]);
 
+  const remap = (field: string, header: string) => {
+    const newMap = { ...hmap };
+    if (!header) delete newMap[field];
+    else newMap[field] = header;
+    setHmap(newMap);
+    if (rawData.length) {
+      setRows(rawData.map((r, i) => parseRow(r, newMap, i)));
+    }
+  };
+
   const reset = () => {
     setFile(null);
     setRows([]);
+    setHmap({});
+    setHeaders([]);
+    setRawData([]);
     setStep("upload");
     setProgress(0);
     setImported(0);
@@ -110,16 +241,30 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     onClose();
   };
 
-  const processFile = async (file: File) => {
-    return new Promise<ParsedRow[]>((resolve, reject) => {
+  const processFile = async (
+    file: File,
+  ): Promise<{
+    rows: ParsedRow[];
+    hmap: Record<string, string>;
+    headers: string[];
+    raw: any[];
+  }> => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const wb = XLSX.read(data, { type: "array" });
+          const wb = XLSX.read(data, { type: "array", cellDates: true });
           const ws = wb.Sheets[wb.SheetNames[0]];
-          const json = XLSX.utils.sheet_to_json<any>(ws);
-          resolve(json.map(parseRow));
+          const json = XLSX.utils.sheet_to_json<any>(ws, { defval: "", raw: false });
+          if (json.length === 0) {
+            resolve({ rows: [], hmap: {}, headers: [], raw: [] });
+            return;
+          }
+          const hmap = buildHeaderMap(json[0]);
+          const headers = Object.keys(json[0]);
+          const rows = json.map((r, i) => parseRow(r, hmap, i));
+          resolve({ rows, hmap, headers, raw: json });
         } catch (err) {
           reject(err);
         }
@@ -142,13 +287,23 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     setFile(f);
     try {
       const parsed = await processFile(f);
-      if (parsed.length === 0) {
+      if (parsed.rows.length === 0) {
         toast.error("Arquivo vazio ou sem registros válidos.");
         return;
       }
-      setRows(parsed);
+      setRows(parsed.rows);
+      setHmap(parsed.hmap);
+      setHeaders(parsed.headers);
+      setRawData(parsed.raw);
       setStep("preview");
-      toast.success(`${parsed.length} linhas detectadas`);
+      const validCount = parsed.rows.filter((r) => r._valid).length;
+      if (validCount === 0) {
+        toast.warning(
+          `${parsed.rows.length} linhas lidas, mas nenhuma válida. Confira o mapeamento de colunas.`,
+        );
+      } else {
+        toast.success(`${parsed.rows.length} linhas detectadas · ${validCount} válidas`);
+      }
     } catch (err: any) {
       toast.error("Erro ao ler o arquivo: " + (err.message || "formato inválido"));
     }
@@ -439,6 +594,83 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                   <p className="text-lg font-black mt-1 truncate">{brl(stats.total)}</p>
                 </div>
               </div>
+
+              {/* Mapeamento de colunas */}
+              <div className="rounded-2xl border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                    Mapeamento de colunas
+                  </span>
+                  {!hmap.amount && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30">
+                      Valor obrigatório
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 p-3">
+                  {[
+                    { field: "amount", label: "Valor *", required: true },
+                    { field: "date", label: "Data" },
+                    { field: "payment", label: "Pagamento" },
+                    { field: "status", label: "Status" },
+                  ].map(({ field, label, required }) => (
+                    <div key={field} className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                        {label}
+                      </label>
+                      <select
+                        value={hmap[field] || ""}
+                        onChange={(e) => remap(field, e.target.value)}
+                        className={`w-full text-xs px-2.5 py-1.5 rounded-lg bg-background border ${
+                          required && !hmap[field]
+                            ? "border-destructive/50"
+                            : "border-border"
+                        } focus:outline-none focus:ring-2 focus:ring-primary/30`}
+                      >
+                        <option value="">— não usar —</option>
+                        {headers.map((h) => (
+                          <option key={h} value={h}>
+                            {h}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Erros agregados */}
+              {stats.invalid > 0 && (
+                <details className="rounded-2xl border border-destructive/20 bg-destructive/5 overflow-hidden">
+                  <summary className="cursor-pointer px-4 py-2.5 flex items-center gap-2 text-xs font-black">
+                    <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                    <span className="text-destructive">
+                      {stats.invalid} linhas com problemas
+                    </span>
+                    <span className="ml-auto text-[10px] font-bold text-muted-foreground">
+                      (clique para detalhes)
+                    </span>
+                  </summary>
+                  <div className="max-h-32 overflow-y-auto border-t border-destructive/20 bg-background/50">
+                    {rows
+                      .filter((r) => !r._valid)
+                      .slice(0, 20)
+                      .map((r, i) => (
+                        <p
+                          key={i}
+                          className="px-4 py-1.5 text-[11px] text-destructive border-b border-destructive/10 last:border-0"
+                        >
+                          {r._error}
+                        </p>
+                      ))}
+                    {stats.invalid > 20 && (
+                      <p className="px-4 py-2 text-[10px] text-center text-muted-foreground">
+                        + {stats.invalid - 20} erros adicionais
+                      </p>
+                    )}
+                  </div>
+                </details>
+              )}
 
               {/* Preview table */}
               <div className="rounded-2xl border border-border overflow-hidden">
