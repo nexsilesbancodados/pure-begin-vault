@@ -138,13 +138,56 @@ export function InviteFlow() {
     toast.success("Link copiado");
   };
 
+  const pendingCount = invites.filter((i) => i.status === "pending").length;
+  const acceptedCount = invites.filter((i) => i.status === "accepted").length;
+  const totalSeats = members.length + pendingCount;
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button onClick={() => setUserModalOpen(true)} className="gap-2 shadow-md">
-          <UserCog className="h-4 w-4" />
-          Cadastrar Usuário
-        </Button>
+    <div className="space-y-6">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-6 md:p-8">
+        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl" aria-hidden />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="max-w-xl">
+            <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3">
+              <Sparkles className="h-3 w-3" /> Gestão de equipe
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight">
+              Construa um time produtivo
+            </h2>
+            <p className="text-sm text-muted-foreground mt-2">
+              Cadastre usuários, envie convites e controle permissões de cada membro da loja.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <div className="rounded-2xl border border-border bg-card/70 backdrop-blur px-4 py-3 min-w-[110px]">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <Users className="h-3 w-3" /> Equipe
+              </div>
+              <p className="text-2xl font-black mt-1">{members.length}</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-card/70 backdrop-blur px-4 py-3 min-w-[110px]">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-warning">
+                <Clock className="h-3 w-3" /> Pendentes
+              </div>
+              <p className="text-2xl font-black mt-1">{pendingCount}</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-card/70 backdrop-blur px-4 py-3 min-w-[110px]">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-success">
+                <ShieldCheck className="h-3 w-3" /> Aceitos
+              </div>
+              <p className="text-2xl font-black mt-1">{acceptedCount}</p>
+            </div>
+            <Button
+              onClick={() => setUserModalOpen(true)}
+              size="lg"
+              className="gap-2 shadow-lg shadow-primary/20 h-auto px-5"
+            >
+              <UserCog className="h-4 w-4" />
+              Cadastrar Usuário
+            </Button>
+          </div>
+        </div>
       </div>
 
       <UserRegistrationModal
@@ -153,6 +196,46 @@ export function InviteFlow() {
         onCreated={load}
       />
 
+      {/* Convite rápido */}
+      <Card className="p-5 md:p-6 border-border/60">
+        <h3 className="font-black text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
+          <UserPlus className="h-4 w-4 text-primary" /> Convite rápido por link
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          <div className="md:col-span-6">
+            <Label htmlFor="invite-email" className="text-xs">Email (opcional, só para identificação)</Label>
+            <Input
+              id="invite-email"
+              type="email"
+              placeholder="vendedor@empresa.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-11"
+            />
+          </div>
+          <div className="md:col-span-3">
+            <Label htmlFor="invite-role" className="text-xs">Papel</Label>
+            <select
+              id="invite-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full h-11 px-3 rounded-lg border border-border bg-background text-sm capitalize"
+            >
+              {ROLES.map((r) => (
+                <option key={r} value={r} className="capitalize">
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="md:col-span-3">
+            <Button onClick={createInvite} disabled={saving} className="w-full h-11 gap-2">
+              <Mail className="h-4 w-4" />
+              {saving ? "Gerando..." : "Gerar link"}
+            </Button>
+          </div>
+        </div>
+      </Card>
       {invites.length > 0 && (
         <Card className="p-5">
           <div className="flex items-center justify-between mb-4">
