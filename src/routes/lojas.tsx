@@ -234,8 +234,10 @@ function LojasPage() {
                           {isEditing ? (
                             <Input
                               value={editName}
+                              onClick={(e) => e.stopPropagation()}
                               onChange={(e) => setEditName(e.target.value)}
                               onKeyDown={(e) => {
+                                e.stopPropagation();
                                 if (e.key === "Enter") saveEdit();
                                 if (e.key === "Escape") setEditingId(null);
                               }}
