@@ -314,169 +314,338 @@ export function SalesHistory() {
     };
   }, [sales]);
 
-  const openWarrantyPrint = useCallback((sale: any, type: "seminovo" | "lacrado" | "android") => {
-    const titles: Record<string, string> = {
-      seminovo: "Termo de Garantia - iPhone Seminovo (7 meses)",
-      lacrado: "Termo de Garantia - iPhone Lacrado (1 ano)",
-      android: "Termo de Garantia - Aparelho Android (1 ano)",
-    };
-    const periodDays = type === "seminovo" ? 210 : 365;
-    const periodLabel =
-      type === "seminovo" ? "7 (sete) meses" : "12 (doze) meses";
-    const start = new Date(sale.created_at || Date.now());
-    const end = new Date(start.getTime() + periodDays * 86400000);
-    const fmt = (d: Date) => d.toLocaleDateString("pt-BR");
-    const cliente = sale.customers?.name || "Consumidor";
-    const documento =
-      sale.customers?.document || sale.customers?.cpf || sale.customers?.cnpj || "—";
-    const telefone = sale.customers?.phone || "—";
-    const total = (sale.total_amount || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-    const items: any[] = Array.isArray(sale.sale_items)
-      ? sale.sale_items
-      : Array.isArray(sale.items)
-        ? sale.items
-        : [];
-    const itemsRows = items.length
-      ? items
+  const openWarrantyPrint = useCallback(
+    async (sale: any, type: "seminovo" | "lacrado" | "android") => {
+      try {
+        // Carrega dados completos da venda + organização + cliente + vendedor
+        const [saleRes, itemsRes, paymentsRes] = await Promise.all([
+          (supabase as any).from("sales_orders").select("*").eq("id", sale.id).maybeSingle(),
+          (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id),
+          (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id),
+        ]);
+        const fullSale = saleRes.data || sale;
+        const [{ data: org }, { data: orgSettings }, { data: customer }, { data: seller }] =
+          await Promise.all([
+            fullSale.organization_id
+              ? (supabase as any)
+                  .from("organizations")
+                  .select("name")
+                  .eq("id", fullSale.organization_id)
+                  .maybeSingle()
+              : Promise.resolve({ data: null }),
+            fullSale.organization_id
+              ? (supabase as any)
+                  .from("organization_settings")
+                  .select("*")
+                  .eq("organization_id", fullSale.organization_id)
+                  .maybeSingle()
+              : Promise.resolve({ data: null }),
+            fullSale.customer_id
+              ? (supabase as any)
+                  .from("customers")
+                  .select("*")
+                  .eq("id", fullSale.customer_id)
+                  .maybeSingle()
+              : Promise.resolve({ data: sale.customers || null }),
+            fullSale.seller_id
+              ? (supabase as any)
+                  .from("profiles")
+                  .select("full_name, email")
+                  .eq("id", fullSale.seller_id)
+                  .maybeSingle()
+              : Promise.resolve({ data: null }),
+          ]);
+
+        const settings = orgSettings || {};
+        const orgName = org?.name || "Loja";
+        const cnpj = settings.cnpj ?? settings.document ?? "";
+        const phone = settings.phone ?? settings.telefone ?? "";
+        const logo = settings.brand_logo_url ?? "";
+        const sellerName = seller?.full_name || seller?.email || "—";
+        const cust = customer || sale.customers || {};
+
+        const titles: Record<string, string> = {
+          seminovo: "Termo de Garantia - Seminovo (7 meses)",
+          lacrado: "Termo de Garantia - Lacrado (1 ano)",
+          android: "Termo de Garantia - Aparelho Android (1 ano)",
+        };
+
+        const start = new Date(fullSale.created_at || Date.now());
+        const fmt = (d: Date) => d.toLocaleDateString("pt-BR");
+        const receiptId = fullSale.sale_number
+          ? `MP${String(fullSale.sale_number).padStart(10, "0")}`
+          : `#${String(fullSale.id).slice(0, 8).toUpperCase()}`;
+        const brl = (n: number) =>
+          `R$ ${Number(n || 0).toFixed(2).replace(".", ",")}`;
+
+        const items: any[] = itemsRes.data || [];
+        const payments: any[] = paymentsRes.data || [];
+        const total = Number(fullSale.total_amount ?? 0);
+        const subtotal = Number(fullSale.subtotal ?? total);
+        const discount = Number(fullSale.discount ?? 0);
+
+        const itemsRows = items.length
+          ? items
+              .map(
+                (it: any) => `
+            <tr>
+              <td>${it.sku || (it.product_id ? String(it.product_id).slice(0, 7) : "")}</td>
+              <td>${[it.product_name, it.imei ? `IMEI: ${it.imei}` : "", it.model || ""]
+                .filter(Boolean)
+                .join(" - ")}</td>
+              <td style="text-align:center;">${it.quantity ?? 1}</td>
+              <td style="text-align:right;">${brl(Number(it.unit_price))}</td>
+              <td style="text-align:right;">${it.discount ? brl(Number(it.discount)) : "R$"}</td>
+              <td style="text-align:right;">${brl(Number(it.total))}</td>
+            </tr>`,
+              )
+              .join("")
+          : `<tr><td colspan="6" style="text-align:center;color:#777;">Sem itens</td></tr>`;
+
+        const paymentRows = (
+          payments.length
+            ? payments
+            : [{ method: fullSale.payment_method || "—", amount: total, installments: 1 }]
+        )
           .map(
-            (it: any) => `
-        <tr>
-          <td>${it.product_name || it.name || "—"}</td>
-          <td>${it.imei || it.serial || "—"}</td>
-          <td style="text-align:center;">${it.quantity ?? 1}</td>
-          <td style="text-align:right;">${Number(it.unit_price || it.total || 0).toLocaleString(
-            "pt-BR",
-            { style: "currency", currency: "BRL" },
-          )}</td>
-        </tr>`,
+            (p: any) => `
+          <tr>
+            <td>${METHOD_LABEL[p.method] || p.method}</td>
+            <td></td>
+            <td style="text-align:right;">${brl(Number(p.amount))}</td>
+            <td style="text-align:center;">${p.installments ?? ""}</td>
+          </tr>`,
           )
-          .join("")
-      : `<tr><td colspan="4" style="text-align:center;color:#777;">Sem itens detalhados</td></tr>`;
+          .join("");
 
-    // Cláusulas específicas por tipo
-    const seminovoClauses = `
-      <li><b>Período de garantia:</b> 7 (sete) meses contados da data da emissão deste termo, conforme art. 26 do CDC e garantia contratual adicional concedida pela loja.</li>
-      <li><b>Cobertura:</b> defeitos de funcionamento da placa lógica, falhas internas de software original do fabricante e mau funcionamento de componentes internos não relacionados a desgaste natural.</li>
-      <li><b>Bateria:</b> garantia de 90 (noventa) dias somente para defeitos de fabricação. Desgaste natural (saúde da bateria) NÃO é coberto.</li>
-      <li><b>Tela e estética:</b> aparelho entregue como <i>seminovo</i> — eventuais marcas de uso já existentes na entrega NÃO são consideradas defeito.</li>
-      <li><b>Acessórios:</b> cabos, fontes, fones e capas têm garantia de 30 (trinta) dias contra defeito de fabricação.</li>
-      <li><b>Conferência:</b> o cliente declara ter testado o aparelho no ato da compra (tela, botões, câmeras, alto-falantes, conectividade e ID/Face).</li>
-    `;
-    const lacradoClauses = `
-      <li><b>Período de garantia:</b> 12 (doze) meses contados da emissão deste termo, sendo 3 (três) meses de garantia legal (art. 26 do CDC) + 9 (nove) meses de garantia contratual do fabricante.</li>
-      <li><b>Cobertura:</b> defeitos de fabricação em quaisquer componentes internos, conforme política oficial do fabricante.</li>
-      <li><b>Atendimento:</b> realizado preferencialmente nas Assistências Técnicas Autorizadas do fabricante, mediante apresentação deste termo e nota fiscal.</li>
-      <li><b>Aparelho lacrado:</b> deve ser apresentado com lacre original. Violação do lacre por terceiros não autorizados implica perda imediata da garantia.</li>
-      <li><b>Acessórios originais:</b> seguem a política de garantia do próprio fabricante (em geral 90 dias).</li>
-      <li><b>Conferência:</b> o cliente confere o lacre, IMEI e número de série no ato da compra.</li>
-    `;
-    const exclusions = `
-      <li>Danos por queda, impacto, exposição a líquidos, umidade ou oxidação.</li>
-      <li>Uso indevido, instalação de software pirata, jailbreak ou root.</li>
-      <li>Violação do aparelho por assistência técnica não autorizada.</li>
-      <li>Desgaste natural de bateria e componentes de consumo.</li>
-      <li>Perda, furto, roubo ou bloqueio por iCloud/Google de conta anterior do próprio cliente.</li>
-      <li>Avarias estéticas posteriores à entrega (riscos, amassados, trincados).</li>
-    `;
+        // Cláusulas EXATAS dos termos de referência (PDF)
+        const seminovoClauses = `
+<p class="ctitle">DO OBJETO</p>
+<p><b>Cláusula 1ª:</b> O comprador está adquirindo o produto descrito acima, em plenas condições de uso, devidamente testado, concordando com todas as características e estado do item, inexistindo qualquer defeito, mediante valor e forma de pagamento ajustado entre as partes.</p>
+<p><b>Cláusula 2ª:</b> Por tratar-se de um aparelho seminovo, todas as informações e características do produto foram repassadas pelo vendedor no ato da compra, mas também poderão ser extraídas diretamente no site do fabricante, sendo esse: Manual de Uso do iPhone.</p>
+<p><b>Cláusula 3ª:</b> A ${orgName} não garante que o item adquirido nunca foi aberto para reparo ou substituição de peça, estando o comprador ciente de tal condição.</p>
 
-    const clauses = type === "seminovo" ? seminovoClauses : lacradoClauses;
+<p class="ctitle">DAS OBRIGAÇÕES DO COMPRADOR</p>
+<p><b>Cláusula 4ª:</b> Trata-se de um aparelho seminovo, desta forma, a ${orgName} orienta o comprador a não expor o celular a líquidos ou poeira, tendo em vista que a própria fabricante do aparelho aduz que a resistência contra respingos, água e poeira não é uma condição permanente e pode diminuir com o tempo, gerando assim maior durabilidade do celular.</p>
+<p><b>Cláusula 5ª:</b> O consumidor se compromete a utilizar o aparelho celular com proteção adequada, itens originais do fabricante ou homologados, bem como a instalar apenas aplicativos fornecidos no sistema da fabricante (Apple Store).</p>
 
-    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${titles[type]}</title>
+<p class="ctitle">DAS OBRIGAÇÕES DA VENDEDORA</p>
+<p><b>Cláusula 6ª:</b> Na hipótese de o produto apresentar falha ou vício de fabricação dentro do prazo de garantia, o consumidor deverá procurar imediatamente a ${orgName}, não sendo permitido que terceiros avaliem ou reparem o produto, sob pena do comprador ser responsável por tal ato, eximindo a ${orgName} do dever de reparar, além da perda da garantia.</p>
+<p><b>Cláusula 7ª:</b> A ${orgName} terá o prazo de 30 dias para reparar o produto em questão, contados a partir do momento em que o produto for recebido pela mesma.</p>
+<p><b>Cláusula 8ª:</b> Caso não seja possível efetuar o reparo dentro do prazo de 30 dias e o cliente opte pela troca do produto, deverá ser analisada a disponibilidade do estoque de seminovos, não podendo o consumidor exigir outro aparelho com a mesma cor e saúde da bateria equivalente, tendo em vista tratar-se de um produto seminovo, garantindo a ${orgName} que será entregue um produto em plenas condições de uso, mesmo modelo e capacidade de armazenamento.</p>
+<p><b>Cláusula 9ª:</b> Caso seja necessário o reparo e formatação do aparelho celular, é responsabilidade do comprador manter atualizado o backup se assim entender, não sendo a ${orgName} responsável pela perda dos dados, contatos, imagens, vídeos etc.</p>
+
+<p class="ctitle">DA GARANTIA DO PRODUTO</p>
+<p><b>Cláusula 10ª:</b> A garantia será de <b>7 meses</b>, contados do recebimento ou retirada em loja do produto, respeitando o Código de Defesa do Consumidor e será prestada pela própria ${orgName} ou terceiros indicados pela mesma.</p>
+<p><b>Cláusula 11ª:</b> A garantia do produto cessará nos seguintes casos:</p>
+<ul>
+  <li>Não sejam seguidas as recomendações de conservação e uso contidas no manual de instrução do próprio fabricante;</li>
+  <li>Seja constatado defeito no produto decorrente de negligência, imperícia ou mau uso pelo próprio consumidor;</li>
+  <li>O produto seja examinado, adulterado ou consertado por terceiros sem autorização da ${orgName};</li>
+  <li>Houver remoção e/ou alteração do número de série do equipamento ou de quaisquer dos seus componentes internos;</li>
+  <li>O produto tiver o lacre/selo violado, quando houver;</li>
+  <li>Caso ocorra a utilização de hardware, peça ou componente não original ou homologadas;</li>
+  <li>Caso ocorra alteração/modificação do software ou sistema operacional original do produto;</li>
+  <li>Caso seja constatado danos físicos ou químicos internos ou externos ao produto decorrente de choque, queda, ato e efeito causado por ação de agentes da natureza, líquidos, oxidação, oscilações de tensão elétrica, exposição excessiva ao calor ou pressão excessiva na tela;</li>
+  <li>Quando for constatado que o defeito foi causado por equipamento a ele conectado;</li>
+  <li>Desgaste natural em razão do envelhecimento do produto;</li>
+  <li>Danos estéticos, incluindo arranhões, amassados e rachaduras no produto.</li>
+</ul>
+<p><b>Cláusula 12ª:</b> Caso a ${orgName} receba o aparelho celular para exercício da garantia e constate uma das ilegalidades supracitadas, o comprador será comunicado imediatamente sobre a não cobertura do reparo de forma gratuita.</p>
+<p><b>Cláusula 13ª:</b> Após a constatação e comunicação do comprador, o aparelho ficará disponível para retirada em loja mediante agendamento.</p>
+
+<p class="ctitle">DISPOSIÇÕES GERAIS</p>
+<p><b>Cláusula 15ª:</b> Ao assinar o presente contrato, o comprador concorda que a ${orgName} poderá utilizar suas imagens sejam elas mediante vídeo ou fotografia, nas redes sociais da loja, para fins comerciais e de marketing.</p>
+<p><b>Cláusula 16ª:</b> A cessão dos direitos de uso e reprodução da imagem do comprador, não gera nenhum ônus lucrativo ao cedente, ocorrendo de forma gratuita e voluntária.</p>
+<p><b>Cláusula 17ª:</b> O comprador concorda que a única empresa participante da negociação deste produto é a ${orgName}, registrada no CNPJ informado anteriormente.</p>
+<p><b>Cláusula 18ª:</b> A garantia elencada no presente contrato deverá ser exercida exclusivamente pelo comprador qualificado neste ato, o qual deverá apresentar o presente termo ao acionar a garantia.</p>
+`;
+
+        const lacradoClauses = `
+<p class="ctitle">DO OBJETO</p>
+<p><b>Cláusula 1ª:</b> O comprador está adquirindo o produto descrito acima, em plenas condições de uso, devidamente lacrado, testado, concordando com todas as características, inexistindo qualquer defeito, mediante valor e forma de pagamento ajustado entre as partes.</p>
+<p><b>Cláusula 2ª:</b> Por tratar-se de um aparelho lacrado, o item acompanha manual impresso pelo fabricante, mas também poderá ser extraído diretamente no site do fabricante, sendo esse: Manual de Uso do iPhone.</p>
+
+<p class="ctitle">DAS OBRIGAÇÕES DO COMPRADOR</p>
+<p><b>Cláusula 3ª:</b> A ${orgName} orienta o comprador a não expor o celular a líquidos ou poeira, tendo em vista que a própria fabricante do aparelho aduz que a resistência contra respingos, líquidos e poeira não é uma condição permanente e pode diminuir com o tempo, gerando assim maior durabilidade do celular.</p>
+<p><b>Cláusula 4ª:</b> O consumidor se compromete a utilizar o aparelho celular com proteção adequada, itens originais do fabricante ou homologados, bem como a instalar apenas aplicativos fornecidos no sistema da fabricante (Apple Store).</p>
+
+<p class="ctitle">DAS OBRIGAÇÕES DA VENDEDORA</p>
+<p><b>Cláusula 5ª:</b> Na hipótese de o produto apresentar falha ou vício de fabricação dentro do prazo de garantia, o consumidor deverá procurar imediatamente a fabricante Apple, não sendo permitido que terceiros avaliem ou reparem o produto, sob pena do comprador ser responsável por tal ato, eximindo a ${orgName} do dever de reparar, além da perda da garantia junto ao fabricante.</p>
+<p><b>Cláusula 6ª:</b> A ${orgName} prestará total auxílio ao comprador, informando todo o procedimento necessário para exercer sua garantia junto ao fabricante.</p>
+<p><b>Cláusula 7ª:</b> Caso seja necessário o reparo e formatação do aparelho celular, é responsabilidade do comprador manter atualizado o backup se assim entender, não sendo a ${orgName} responsável pela perda dos dados, contatos, imagens, vídeos etc.</p>
+
+<p class="ctitle">DA GARANTIA DO PRODUTO</p>
+<p><b>Cláusula 8ª:</b> A garantia do produto terá validade por <b>12 meses</b>, contados do recebimento ou retirada em loja, garantia essa fornecida pelo próprio fabricante e que deverá ser acionada seguindo os procedimentos internos da Apple.</p>
+<p><b>Cláusula 9ª:</b> A garantia do produto cessará nos seguintes casos:</p>
+<ul>
+  <li>Não sejam seguidas as recomendações de conservação e uso contidas no manual de instrução do próprio fabricante;</li>
+  <li>Seja constatado defeito no produto decorrente de negligência, imperícia ou mau uso pelo próprio consumidor;</li>
+  <li>O produto seja examinado, adulterado ou consertado por terceiros sem autorização da ${orgName};</li>
+  <li>Houver remoção e/ou alteração do número de série do equipamento ou de quaisquer dos seus componentes internos;</li>
+  <li>O produto tiver o lacre/selo violado, quando houver;</li>
+  <li>Caso ocorra a utilização de hardware, peça ou componente não original ou homologadas;</li>
+  <li>Caso ocorra alteração/modificação do software ou sistema operacional original do produto;</li>
+  <li>Caso seja constatado danos físicos ou químicos internos ou externos ao produto decorrente de choque, queda, ato e efeito causado por ação de agentes da natureza, líquidos, oxidação, oscilações de tensão elétrica, exposição excessiva ao calor ou pressão excessiva na tela;</li>
+  <li>Quando for constatado que o defeito foi causado por equipamento a ele conectado;</li>
+  <li>Desgaste natural em razão do envelhecimento do produto;</li>
+  <li>Danos estéticos, incluindo arranhões, amassados e rachaduras no produto.</li>
+</ul>
+<p><b>Cláusula 10ª:</b> Caso a ${orgName} ou a fabricante receba o aparelho celular para exercício da garantia e constate uma das ilegalidades supracitadas, o comprador será comunicado imediatamente sobre a não cobertura do reparo de forma gratuita.</p>
+<p><b>Cláusula 11ª:</b> Após a constatação e comunicação do comprador, o aparelho ficará disponível para retirada em loja mediante agendamento.</p>
+
+<p class="ctitle">DISPOSIÇÕES GERAIS</p>
+<p><b>Cláusula 13ª:</b> Ao assinar o presente contrato, o comprador concorda que a ${orgName} poderá utilizar suas imagens sejam elas mediante vídeo ou fotografia, nas redes sociais da loja, para fins comerciais e de marketing.</p>
+<p><b>Cláusula 14ª:</b> A cessão dos direitos de uso e reprodução da imagem do comprador, não gera nenhum ônus lucrativo ao cedente, ocorrendo de forma gratuita e voluntária.</p>
+<p><b>Cláusula 15ª:</b> O comprador concorda que a única empresa participante da negociação deste produto é a ${orgName}, registrada no CNPJ informado anteriormente.</p>
+<p><b>Cláusula 16ª:</b> A garantia elencada no presente contrato deverá ser exercida exclusivamente pelo comprador qualificado neste ato junto ao fabricante.</p>
+`;
+
+        const clauses = type === "seminovo" ? seminovoClauses : lacradoClauses;
+
+        const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${titles[type]}</title>
 <style>
 *{box-sizing:border-box;}
-body{font-family:Arial,Helvetica,sans-serif;padding:32px;color:#111;max-width:820px;margin:0 auto;line-height:1.5;}
-header{text-align:center;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:18px;}
-h1{font-size:20px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.5px;}
-h2{font-size:12px;margin:0;color:#555;font-weight:normal;}
-.section{margin:14px 0;}
-.section-title{font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#444;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:12.5px;}
-.row{display:flex;justify-content:space-between;border-bottom:1px dotted #ddd;padding:3px 0;}
-.label{color:#666;font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:.4px;}
-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
-th,td{border:1px solid #bbb;padding:6px 8px;text-align:left;}
-th{background:#f3f3f3;font-size:11px;text-transform:uppercase;}
-ul{font-size:12px;line-height:1.65;padding-left:18px;margin:4px 0;}
-ul li{margin-bottom:4px;}
-.box{border:1px solid #ddd;border-radius:8px;padding:14px 16px;background:#fafafa;}
-.warn{background:#fff7ed;border-color:#fdba74;}
+body{font-family:Arial,Helvetica,sans-serif;color:#000;margin:0;padding:18px;max-width:900px;margin:0 auto;line-height:1.45;font-size:12px;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th,td{border:1px solid #000;padding:5px 7px;text-align:left;vertical-align:top;}
+th{background:#fafafa;text-align:center;font-weight:bold;}
+.head-title{border:1px solid #000;border-bottom:none;padding:6px 8px;font-weight:bold;font-size:12.5px;text-transform:uppercase;}
+.recipient td{height:48px;}
+.store-info{text-align:center;}
+.store-info img{max-height:60px;display:block;margin:0 auto 4px;}
+.section-label{font-weight:bold;font-size:12px;margin:10px 2px 4px;}
+.text-right{text-align:right;}
+.text-center{text-align:center;}
+.clauses{margin-top:16px;}
+.clauses p{margin:6px 0;text-align:justify;}
+.clauses ul{margin:6px 0 6px 18px;padding:0;}
+.clauses li{margin:3px 0;text-align:justify;}
+.ctitle{font-weight:bold;text-transform:uppercase;margin-top:14px !important;text-align:center;letter-spacing:.4px;}
 .sign{margin-top:48px;display:flex;justify-content:space-between;gap:40px;}
-.sign div{flex:1;text-align:center;border-top:1px solid #333;padding-top:6px;font-size:11px;}
-footer{margin-top:24px;text-align:center;font-size:10.5px;color:#666;border-top:1px solid #ddd;padding-top:8px;}
-@media print{body{padding:18px;}.box,.warn{background:#fff;}}
+.sign div{flex:1;text-align:center;border-top:1px solid #000;padding-top:4px;font-size:11px;}
+.thanks{text-align:center;font-weight:bold;margin:18px 0 6px;font-size:12px;}
+@media print{body{padding:10mm;}@page{size:A4;margin:10mm;}}
 </style></head><body>
-<header>
-  <h1>${titles[type]}</h1>
-  <h2>Documento emitido em ${fmt(new Date())}</h2>
-</header>
 
-<div class="section">
-  <div class="section-title">Identificação da Venda</div>
-  <div class="box">
-    <div class="grid">
-      <div class="row"><span class="label">Venda nº</span><span>#${String(sale.id).slice(0, 8).toUpperCase()}</span></div>
-      <div class="row"><span class="label">Valor total</span><span>${total}</span></div>
-      <div class="row"><span class="label">Cliente</span><span>${cliente}</span></div>
-      <div class="row"><span class="label">CPF/CNPJ</span><span>${documento}</span></div>
-      <div class="row"><span class="label">Telefone</span><span>${telefone}</span></div>
-      <div class="row"><span class="label">Vigência</span><span>${periodLabel}</span></div>
-      <div class="row"><span class="label">Início da garantia</span><span>${fmt(start)}</span></div>
-      <div class="row"><span class="label">Término da garantia</span><span>${fmt(end)}</span></div>
-    </div>
-  </div>
-</div>
+<div class="head-title">RECIBO DE ${orgName.toUpperCase()} OS PRODUTOS E/OU SERVIÇOS CONSTANTES NO PEDIDO</div>
+<table>
+  <tr>
+    <td style="width:30%;">Data de recebimento</td>
+    <td>Identificação e assinatura do recebedor</td>
+    <td style="width:30%;">Recibo da venda: <b>${receiptId}</b></td>
+  </tr>
+  <tr class="recipient"><td></td><td></td><td></td></tr>
+</table>
 
-<div class="section">
-  <div class="section-title">Produtos cobertos</div>
-  <table>
-    <thead><tr><th>Produto</th><th>IMEI / Série</th><th style="width:60px;text-align:center;">Qtd</th><th style="width:110px;text-align:right;">Valor unit.</th></tr></thead>
-    <tbody>${itemsRows}</tbody>
-  </table>
-</div>
+<table>
+  <tr>
+    <td class="store-info" style="width:60%;">
+      ${logo ? `<img src="${logo}" alt="${orgName}"/>` : ""}
+      <b>${orgName}</b><br/>
+      ${cnpj ? `CNPJ: ${cnpj}<br/>` : ""}
+      ${phone ? `Telefone: ${phone}` : ""}
+    </td>
+    <td>
+      <b>${fmt(start)}</b><br/>
+      <b>VENDEDOR:</b> ${sellerName}<br/>
+      <b>RECIBO DA VENDA:</b> ${receiptId}
+    </td>
+  </tr>
+</table>
 
-<div class="section">
-  <div class="section-title">Cláusulas da Garantia</div>
-  <div class="box"><ul>${clauses}</ul></div>
-</div>
+<div class="section-label">DESTINATÁRIO/REMETENTE</div>
+<table>
+  <tr>
+    <th>Nome/Razão social</th>
+    <th style="width:18%;">Telefone</th>
+    <th style="width:18%;">CPF/CNPJ</th>
+    <th style="width:22%;">E-mail</th>
+  </tr>
+  <tr>
+    <td>${cust?.name || ""}</td>
+    <td>${cust?.phone || ""}</td>
+    <td>${cust?.document || cust?.cpf || cust?.cnpj || ""}</td>
+    <td>${cust?.email || ""}</td>
+  </tr>
+  <tr>
+    <th>Endereço</th><th>CEP</th><th>Cidade</th><th>Estado</th>
+  </tr>
+  <tr>
+    <td>${cust?.address || cust?.endereco || ""}</td>
+    <td>${cust?.zip || cust?.cep || ""}</td>
+    <td>${cust?.city || cust?.cidade || ""}</td>
+    <td>${cust?.state || cust?.uf || ""}</td>
+  </tr>
+</table>
 
-<div class="section">
-  <div class="section-title">O que NÃO está coberto</div>
-  <div class="box warn"><ul>${exclusions}</ul></div>
-</div>
+<div class="section-label">DADOS DO PRODUTO</div>
+<table>
+  <tr>
+    <th style="width:9%;">Cód</th>
+    <th>Produto</th>
+    <th style="width:6%;">Qtd</th>
+    <th style="width:13%;">Valor Unitário</th>
+    <th style="width:11%;">Desconto</th>
+    <th style="width:13%;">Valor Total</th>
+  </tr>
+  ${itemsRows}
+  <tr>
+    <td colspan="3" class="text-right"><b>Total</b></td>
+    <td class="text-right"><b>${brl(subtotal)}</b></td>
+    <td class="text-right"><b>${discount ? brl(discount) : "R$"}</b></td>
+    <td class="text-right"><b>${brl(total)}</b></td>
+  </tr>
+</table>
 
-<div class="section">
-  <div class="section-title">Como acionar</div>
-  <div class="box">
-    <ul>
-      <li>Entre em contato pelo telefone/WhatsApp da loja informando o número da venda.</li>
-      <li>Apresente este termo, nota fiscal e o aparelho com todos os acessórios originais.</li>
-      <li>O prazo de análise técnica é de até 30 (trinta) dias corridos, conforme art. 18, §1º do CDC.</li>
-      <li>Constatado defeito coberto, será realizado reparo, troca ou restituição, a critério da loja.</li>
-    </ul>
-  </div>
-</div>
+<div class="section-label">PAGAMENTO</div>
+<table>
+  <tr>
+    <th style="width:25%;">Forma de Pagamento</th>
+    <th>Detalhes</th>
+    <th style="width:20%;">Valor Pago</th>
+    <th style="width:12%;">Parcelas</th>
+  </tr>
+  ${paymentRows}
+  <tr>
+    <td colspan="2" class="text-right"><b>Total</b></td>
+    <td class="text-right"><b>${brl(total)}</b></td>
+    <td></td>
+  </tr>
+</table>
+
+<div class="section-label">OBSERVAÇÃO</div>
+<div style="border:1px solid #000;min-height:30px;padding:6px;"></div>
+
+<div class="section-label">DADOS ADICIONAIS</div>
+<div class="clauses">${clauses}</div>
 
 <div class="sign">
-  <div>Assinatura do Cliente<br/><small>${cliente}</small></div>
-  <div>Assinatura da Loja</div>
+  <div>${cust?.name || ""}</div>
+  <div>${orgName}</div>
 </div>
 
-<footer>Este termo é parte integrante da venda nº #${String(sale.id).slice(0, 8).toUpperCase()} e deve ser apresentado sempre que houver acionamento de garantia.</footer>
+<div class="thanks">OBRIGADO PELA PREFERÊNCIA.</div>
 
-<script>window.onload=function(){setTimeout(function(){window.print();},300);}</script>
+<script>window.onload=function(){setTimeout(function(){window.print();},400);}</script>
 </body></html>`;
-    const w = window.open("", "_blank");
-    if (!w) {
-      toast.error("Pop-up bloqueado pelo navegador.");
-      return;
-    }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-  }, []);
+
+        const w = window.open("", "_blank");
+        if (!w) {
+          toast.error("Pop-up bloqueado pelo navegador.");
+          return;
+        }
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      } catch (e) {
+        console.error("Erro ao gerar termo de garantia:", e);
+        toast.error("Não foi possível gerar o termo de garantia.");
+      }
+    },
+    [],
+  );
+
 
   const openReceiptPopup = useCallback(
     async (sale: any, mode: "a4" | "80mm" = "a4", autoPrint = false) => {
