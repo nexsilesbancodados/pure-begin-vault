@@ -21,6 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Plus, FileText, Search, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
@@ -59,6 +61,10 @@ interface Nota {
   items: Product[];
   total: number;
   createdAt: Date;
+  fornecedor: string;
+  dataCompra: string;
+  paga: boolean;
+  prazoPagamento: string;
 }
 
 function NotasAbertoPage() {
@@ -69,6 +75,13 @@ function NotasAbertoPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [notas, setNotas] = useState<Nota[]>([]);
+  const [addingToNotaId, setAddingToNotaId] = useState<number | null>(null);
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const detailNota = notas.find((n) => n.id === detailId) ?? null;
+
+  const updateNota = (id: number, patch: Partial<Nota>) => {
+    setNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+  };
 
   const loadProducts = async () => {
     if (!userId) return;
@@ -136,12 +149,36 @@ function NotasAbertoPage() {
   const confirm = () => {
     const items = products.filter((p) => selected[p.id]);
     if (items.length === 0) return;
-    const total = items.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
-    setNotas((prev) => [
-      ...prev,
-      { id: prev.length + 1, items, total, createdAt: new Date() },
-    ]);
-    toast.success(`Nota ${notas.length + 1} criada com ${items.length} produto(s).`);
+
+    if (addingToNotaId != null) {
+      const nota = notas.find((n) => n.id === addingToNotaId);
+      if (nota) {
+        const existing = new Set(nota.items.map((i) => i.id));
+        const merged = [...nota.items, ...items.filter((i) => !existing.has(i.id))];
+        const total = merged.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+        updateNota(addingToNotaId, { items: merged, total });
+        toast.success(`Produto(s) adicionado(s) à Nota ${addingToNotaId}.`);
+      }
+      setAddingToNotaId(null);
+    } else {
+      const total = items.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+      const newId = notas.length + 1;
+      setNotas((prev) => [
+        ...prev,
+        {
+          id: newId,
+          items,
+          total,
+          createdAt: new Date(),
+          fornecedor: "",
+          dataCompra: new Date().toISOString().slice(0, 10),
+          paga: false,
+          prazoPagamento: "",
+        },
+      ]);
+      toast.success(`Nota ${newId} criada com ${items.length} produto(s).`);
+    }
+
     setSelected({});
     setOpen(false);
   };
@@ -174,7 +211,11 @@ function NotasAbertoPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {notas.map((n) => (
-                <Card key={n.id} className="p-4 space-y-3">
+                <Card
+                  key={n.id}
+                  className="p-4 space-y-3 cursor-pointer hover:border-primary/50 transition"
+                  onClick={() => setDetailId(n.id)}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-primary" />
@@ -286,6 +327,128 @@ function NotasAbertoPage() {
               </Button>
             </div>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={detailId != null} onOpenChange={(o) => !o && setDetailId(null)}>
+        <DialogContent className="sm:max-w-[700px] max-h-[85vh] overflow-auto">
+          {detailNota && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Nota {detailNota.id}</DialogTitle>
+                <DialogDescription>
+                  Preencha as informações da nota e gerencie os produtos.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="fornecedor">Fornecedor</Label>
+                  <Input
+                    id="fornecedor"
+                    placeholder="Nome do fornecedor"
+                    value={detailNota.fornecedor}
+                    onChange={(e) => updateNota(detailNota.id, { fornecedor: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dataCompra">Data da compra</Label>
+                  <Input
+                    id="dataCompra"
+                    type="date"
+                    value={detailNota.dataCompra}
+                    onChange={(e) => updateNota(detailNota.id, { dataCompra: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="prazo">Prazo para pagamento</Label>
+                  <Input
+                    id="prazo"
+                    type="date"
+                    value={detailNota.prazoPagamento}
+                    onChange={(e) =>
+                      updateNota(detailNota.id, { prazoPagamento: e.target.value })
+                    }
+                    disabled={detailNota.paga}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status do pagamento</Label>
+                  <div className="flex items-center gap-3 h-9">
+                    <Switch
+                      id="paga"
+                      checked={detailNota.paga}
+                      onCheckedChange={(v) => updateNota(detailNota.id, { paga: v })}
+                    />
+                    <Label htmlFor="paga" className="cursor-pointer">
+                      {detailNota.paga ? "Paga" : "Em aberto"}
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Produtos ({detailNota.items.length})</Label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      setAddingToNotaId(detailNota.id);
+                      setDetailId(null);
+                      setOpen(true);
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar produto
+                  </Button>
+                </div>
+                <div className="border rounded-md max-h-64 overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produto</TableHead>
+                        <TableHead>IMEI</TableHead>
+                        <TableHead className="text-right">Preço</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {detailNota.items.map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium">{p.name}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {p.imei ?? "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex justify-between pt-2 text-sm font-medium">
+                  <span>Total</span>
+                  <span>R$ {detailNota.total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDetailId(null)}>
+                  Fechar
+                </Button>
+                <Button
+                  onClick={() => {
+                    toast.success(`Nota ${detailNota.id} salva.`);
+                    setDetailId(null);
+                  }}
+                >
+                  Salvar
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
