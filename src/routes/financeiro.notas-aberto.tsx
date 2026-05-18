@@ -1,30 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useCallback, Fragment } from "react";
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Search,
-  Filter,
-  MoreHorizontal,
   Download,
   Calendar,
-  ArrowUpRight,
-  ArrowDownLeft,
   Loader2,
   FileText,
   Clock,
   AlertCircle,
   CheckCircle2,
-  Truck,
   Package,
-  Receipt,
-  ChevronDown,
-  ChevronUp,
   Plus,
-  X,
   Trash2,
+  Store,
+  Hash,
+  StickyNote,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,12 +26,6 @@ import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { format, isAfter, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -60,6 +48,20 @@ export const Route = createFileRoute("/financeiro/notas-aberto")({
   component: NotasAbertoPage,
 });
 
+type ProdutoNota = {
+  quantity: number;
+  name: string;
+  cost_unit: number;
+  cost_total: number;
+  loja?: string;
+  imei?: string;
+  observacao?: string;
+  vendido?: boolean;
+  data_venda?: string;
+};
+
+const LOJAS = ["Premier", "Alfatech", "Outra"];
+
 function NotasAbertoPage() {
   const { user } = useAuth();
   const { orgId } = useOrg();
@@ -67,64 +69,50 @@ function NotasAbertoPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form states
   const [newNote, setNewNote] = useState({
     description: "",
-    amount: "",
-    due_date: "",
+    due_date: format(new Date(), "yyyy-MM-dd"),
     supplier_name: "",
     invoice_number: "",
     category: "Compra de Mercadoria",
+    loja_padrao: "Premier",
   });
 
-  const [newProduct, setNewProduct] = useState({ name: "", quantity: "", price: "" });
-  const [productsList, setProductsList] = useState<any[]>([]);
-  const [orphanProducts, setOrphanProducts] = useState<any[]>([]);
-  const [selectedOrphanIds, setSelectedOrphanIds] = useState<string[]>([]);
-  const [orphanSearch, setOrphanSearch] = useState("");
+  const emptyProduct: ProdutoNota = {
+    quantity: 1,
+    name: "",
+    cost_unit: 0,
+    cost_total: 0,
+    loja: "Premier",
+    imei: "",
+    observacao: "",
+  };
+  const [productsList, setProductsList] = useState<ProdutoNota[]>([emptyProduct]);
 
-  const fetchOrphanProducts = useCallback(async () => {
-    if (!user?.id) return;
-    try {
-      const base = supabase
-        .from("products")
-        .select("id, name, sku, cost_price, sale_price, stock, metadata, image_url");
-      const { data, error } = await (
-        orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id)
-      ).order("created_at", { ascending: false }).limit(200);
-      if (error) throw error;
-      const orphans = (data || []).filter((p: any) => {
-        const m = p.metadata || {};
-        return !m.nota_id || m.nota_id === "" || m.nota_id === "none";
-      });
-      setOrphanProducts(orphans);
-    } catch (err) {
-      console.error("Erro ao carregar produtos sem nota:", err);
-    }
-  }, [user?.id, orgId]);
-
-  useEffect(() => {
-    if (isDialogOpen) fetchOrphanProducts();
-  }, [isDialogOpen, fetchOrphanProducts]);
+  const totalNota = useMemo(
+    () => productsList.reduce((acc, p) => acc + (Number(p.cost_total) || 0), 0),
+    [productsList],
+  );
 
   const fetchTransactions = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const base = supabase.from("finance_transactions").select("*").eq("status", "pending");
+      const base = supabase
+        .from("finance_transactions")
+        .select("*")
+        .eq("type", "expense");
       const { data, error } = await (
         orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id)
-      ).order("due_date", { ascending: true });
-
+      ).order("due_date", { ascending: false });
       if (error) throw error;
       setTransactions(data || []);
     } catch (error) {
-      console.error("Erro ao carregar notas em aberto:", error);
-      toast.error("Erro ao carregar notas em aberto.");
+      console.error("Erro ao carregar notas:", error);
+      toast.error("Erro ao carregar notas.");
     } finally {
       setLoading(false);
     }
@@ -134,141 +122,159 @@ function NotasAbertoPage() {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  const handleMarkAsPaid = async (id: string) => {
+  const handleMarkAsPaid = async (id: string, currentlyPaid: boolean) => {
     try {
       const { error } = await supabase
         .from("finance_transactions")
         .update({
-          status: "paid",
-          payment_date: new Date().toISOString().split("T")[0],
+          status: currentlyPaid ? "pending" : "paid",
+          payment_date: currentlyPaid ? null : new Date().toISOString().split("T")[0],
         })
         .eq("id", id);
-
       if (error) throw error;
-      toast.success("Nota marcada como paga!");
+      toast.success(currentlyPaid ? "Nota reaberta" : "Nota marcada como paga!");
       fetchTransactions();
     } catch (error) {
-      console.error("Erro ao atualizar status:", error);
-      toast.error("Erro ao marcar como paga.");
+      console.error(error);
+      toast.error("Erro ao atualizar status.");
     }
   };
 
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.quantity) {
-      toast.error("Preencha o nome e a quantidade do produto");
-      return;
+  const handleDeleteNota = async (id: string) => {
+    if (!confirm("Excluir esta nota?")) return;
+    try {
+      const { error } = await supabase.from("finance_transactions").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Nota excluída");
+      fetchTransactions();
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao excluir nota.");
     }
-    setProductsList([
-      ...productsList,
-      {
-        ...newProduct,
-        quantity: Number(newProduct.quantity),
-        price: newProduct.price ? Number(newProduct.price) : 0,
-      },
+  };
+
+  const updateProductRow = (idx: number, patch: Partial<ProdutoNota>) => {
+    setProductsList((prev) =>
+      prev.map((p, i) => {
+        if (i !== idx) return p;
+        const merged = { ...p, ...patch };
+        const q = Number(merged.quantity) || 0;
+        const cu = Number(merged.cost_unit) || 0;
+        merged.cost_total = +(q * cu).toFixed(2);
+        return merged;
+      }),
+    );
+  };
+
+  const addRow = () =>
+    setProductsList((prev) => [
+      ...prev,
+      { ...emptyProduct, loja: newNote.loja_padrao },
     ]);
-    setNewProduct({ name: "", quantity: "", price: "" });
-  };
+  const removeRow = (idx: number) =>
+    setProductsList((prev) => prev.filter((_, i) => i !== idx));
 
-  const removeProduct = (index: number) => {
-    setProductsList(productsList.filter((_, i) => i !== index));
+  const toggleProductSold = async (notaId: string, productIdx: number) => {
+    const nota = transactions.find((t) => t.id === notaId);
+    if (!nota) return;
+    const updated = (nota.products_list || []).map((p: any, i: number) => {
+      if (i !== productIdx) return p;
+      const newSold = !p.vendido;
+      return {
+        ...p,
+        vendido: newSold,
+        data_venda: newSold ? format(new Date(), "yyyy-MM-dd") : null,
+      };
+    });
+    try {
+      const { error } = await supabase
+        .from("finance_transactions")
+        .update({ products_list: updated })
+        .eq("id", notaId);
+      if (error) throw error;
+      fetchTransactions();
+    } catch (e) {
+      toast.error("Erro ao atualizar venda do produto");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
-    if (!newNote.description || !newNote.amount || !newNote.due_date) {
-      toast.error("Preencha os campos obrigatórios");
+    const validProducts = productsList.filter((p) => p.name && p.quantity > 0);
+    if (validProducts.length === 0) {
+      toast.error("Adicione pelo menos um produto à nota");
+      return;
+    }
+    if (!newNote.due_date) {
+      toast.error("Informe a data da nota");
       return;
     }
 
     setSubmitting(true);
     try {
-      // Build merged products list (manual entries + selected orphans)
-      const orphanItems = orphanProducts
-        .filter((p) => selectedOrphanIds.includes(p.id))
-        .map((p) => ({
-          product_id: p.id,
-          name: p.name,
-          sku: p.sku,
-          quantity: 1,
-          price: Number(p.cost_price || p.sale_price || 0),
-        }));
-
-      const mergedProducts = [...productsList, ...orphanItems];
-
-      const { data: inserted, error } = await supabase
-        .from("finance_transactions")
-        .insert([
-          {
-            user_id: user.id,
-            organization_id: orgId,
-            description: newNote.description,
-            amount: Number(newNote.amount),
-            due_date: newNote.due_date,
-            supplier_name: newNote.supplier_name,
-            invoice_number: newNote.invoice_number,
-            category: newNote.category,
-            type: "expense",
-            status: "pending",
-            products_list: mergedProducts,
-          },
-        ])
-        .select("id")
-        .single();
-
+      const { error } = await supabase.from("finance_transactions").insert([
+        {
+          user_id: user.id,
+          organization_id: orgId,
+          description:
+            newNote.description ||
+            `Nota ${format(parseISO(newNote.due_date), "dd/MM/yyyy")}`,
+          amount: totalNota,
+          due_date: newNote.due_date,
+          supplier_name: newNote.supplier_name,
+          invoice_number: newNote.invoice_number,
+          category: newNote.category,
+          type: "expense",
+          status: "pending",
+          products_list: validProducts,
+        },
+      ]);
       if (error) throw error;
-
-      // Link selected orphan products to the newly created nota
-      if (inserted?.id && selectedOrphanIds.length > 0) {
-        await Promise.all(
-          selectedOrphanIds.map(async (pid) => {
-            const prod = orphanProducts.find((p) => p.id === pid);
-            const newMeta = { ...(prod?.metadata || {}), nota_id: inserted.id };
-            await supabase.from("products").update({ metadata: newMeta }).eq("id", pid);
-          }),
-        );
-      }
-
-      toast.success(
-        selectedOrphanIds.length > 0
-          ? `Nota cadastrada e ${selectedOrphanIds.length} produto(s) vinculado(s)!`
-          : "Nota cadastrada com sucesso!",
-      );
+      toast.success("Nota cadastrada com sucesso!");
       setIsDialogOpen(false);
       setNewNote({
         description: "",
-        amount: "",
-        due_date: "",
+        due_date: format(new Date(), "yyyy-MM-dd"),
         supplier_name: "",
         invoice_number: "",
         category: "Compra de Mercadoria",
+        loja_padrao: "Premier",
       });
-      setProductsList([]);
-      setSelectedOrphanIds([]);
+      setProductsList([emptyProduct]);
       fetchTransactions();
     } catch (error) {
-      console.error("Erro ao cadastrar nota:", error);
+      console.error(error);
       toast.error("Erro ao cadastrar nota.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const filteredTransactions = transactions.filter(
-    (t) =>
-      t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (t.category && t.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.supplier_name && t.supplier_name.toLowerCase().includes(searchTerm.toLowerCase())),
-  );
+  const filteredTransactions = transactions.filter((t) => {
+    const q = searchTerm.toLowerCase();
+    if (!q) return true;
+    return (
+      t.description?.toLowerCase().includes(q) ||
+      t.supplier_name?.toLowerCase().includes(q) ||
+      t.invoice_number?.toLowerCase().includes(q) ||
+      (t.products_list || []).some(
+        (p: any) =>
+          p.name?.toLowerCase().includes(q) ||
+          p.imei?.toLowerCase().includes(q) ||
+          p.loja?.toLowerCase().includes(q),
+      )
+    );
+  });
 
   const stats = {
-    totalPending: transactions.reduce((acc, curr) => acc + (curr.amount || 0), 0),
+    totalPending: transactions
+      .filter((t) => t.status !== "paid")
+      .reduce((acc, c) => acc + (c.amount || 0), 0),
     overdueCount: transactions.filter(
-      (t) => t.due_date && isAfter(new Date(), parseISO(t.due_date)),
+      (t) => t.status !== "paid" && t.due_date && isAfter(new Date(), parseISO(t.due_date)),
     ).length,
-    overdueAmount: transactions
-      .filter((t) => t.due_date && isAfter(new Date(), parseISO(t.due_date)))
-      .reduce((acc, curr) => acc + (curr.amount || 0), 0),
+    paidCount: transactions.filter((t) => t.status === "paid").length,
     count: transactions.length,
   };
 
@@ -277,94 +283,74 @@ function NotasAbertoPage() {
       <AppSidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar
-          title="Notas em Aberto"
-          subtitle="Gestão de contas a pagar e receber pendentes"
+          title="Notas"
+          subtitle="Planilha de notas de compra — produtos, custos, IMEI e baixa"
           toggleSidebar={() => setSidebarOpen(true)}
         />
         <main className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card className="p-5 border-none bg-gradient-to-br from-amber-500/10 to-transparent shadow-sm border border-amber-100 rounded-2xl">
+          {/* KPIs */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card className="p-5 rounded-2xl border bg-gradient-to-br from-amber-500/10 to-transparent">
               <div className="flex justify-between items-start mb-2">
-                <div className="h-9 w-9 rounded-xl bg-amber-500 text-white grid place-items-center shadow-lg shadow-amber-200">
+                <div className="h-9 w-9 rounded-xl bg-amber-500 text-white grid place-items-center">
                   <Clock className="h-5 w-5" />
                 </div>
-                <span className="text-[10px] font-black text-amber-600 uppercase tracking-tighter bg-amber-50 px-2 py-1 rounded-full">
-                  Total em Aberto
-                </span>
               </div>
               <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Valor Pendente
+                Em Aberto
               </div>
               <div className="text-xl font-black text-foreground mt-1">
-                {stats.totalPending.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-              </div>
-              <div className="text-[10px] text-muted-foreground mt-1 font-bold">
-                {stats.count} registros pendentes
-              </div>
-            </Card>
-
-            <Card className="p-5 border-none bg-gradient-to-br from-red-500/10 to-transparent shadow-sm border border-red-100 rounded-2xl">
-              <div className="flex justify-between items-start mb-2">
-                <div className="h-9 w-9 rounded-xl bg-red-500 text-white grid place-items-center shadow-lg shadow-red-200">
-                  <AlertCircle className="h-5 w-5" />
-                </div>
-                <span className="text-[10px] font-black text-red-600 uppercase tracking-tighter bg-red-50 px-2 py-1 rounded-full">
-                  Atenção
-                </span>
-              </div>
-              <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Valor Vencido
-              </div>
-              <div className="text-xl font-black text-foreground mt-1">
-                {stats.overdueAmount.toLocaleString("pt-BR", {
+                {stats.totalPending.toLocaleString("pt-BR", {
                   style: "currency",
                   currency: "BRL",
                 })}
               </div>
-              <div className="text-[10px] text-red-600 mt-1 font-bold">
-                {stats.overdueCount} contas em atraso
-              </div>
             </Card>
-
-            <Card className="p-5 border-border shadow-sm rounded-2xl">
+            <Card className="p-5 rounded-2xl border bg-gradient-to-br from-red-500/10 to-transparent">
+              <div className="flex justify-between items-start mb-2">
+                <div className="h-9 w-9 rounded-xl bg-red-500 text-white grid place-items-center">
+                  <AlertCircle className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                Vencidas
+              </div>
+              <div className="text-xl font-black text-foreground mt-1">{stats.overdueCount}</div>
+            </Card>
+            <Card className="p-5 rounded-2xl border bg-gradient-to-br from-emerald-500/10 to-transparent">
+              <div className="flex justify-between items-start mb-2">
+                <div className="h-9 w-9 rounded-xl bg-emerald-500 text-white grid place-items-center">
+                  <CheckCircle2 className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                Pagas
+              </div>
+              <div className="text-xl font-black text-foreground mt-1">{stats.paidCount}</div>
+            </Card>
+            <Card className="p-5 rounded-2xl border">
               <div className="flex justify-between items-start mb-2">
                 <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary grid place-items-center">
                   <FileText className="h-5 w-5" />
                 </div>
               </div>
               <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                Projeção Próximos 7 dias
+                Total de Notas
               </div>
-              <div className="text-xl font-black text-foreground mt-1">
-                {transactions
-                  .filter(
-                    (t) =>
-                      t.due_date &&
-                      !isAfter(new Date(), parseISO(t.due_date)) &&
-                      isAfter(
-                        parseISO(
-                          format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), "yyyy-MM-dd"),
-                        ),
-                        parseISO(t.due_date),
-                      ),
-                  )
-                  .reduce((acc, curr) => acc + (curr.amount || 0), 0)
-                  .toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-              </div>
+              <div className="text-xl font-black text-foreground mt-1">{stats.count}</div>
             </Card>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="relative flex-1 md:max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  placeholder="Buscar notas..."
-                  className="w-full h-11 pl-10 pr-4 rounded-xl bg-card border border-border text-sm font-medium outline-none focus:ring-2 focus:ring-primary/15 focus:border-primary transition shadow-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
+          {/* Toolbar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+            <div className="relative flex-1 md:max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                placeholder="Buscar por nota, produto, IMEI, loja..."
+                className="w-full h-11 pl-10 pr-4 rounded-xl bg-card border border-border text-sm font-medium outline-none focus:ring-2 focus:ring-primary/15"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
             <div className="flex gap-2">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -373,271 +359,206 @@ function NotasAbertoPage() {
                     <Plus className="h-4 w-4 mr-2" /> Nova Nota
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle className="text-xl font-black text-foreground">
                       Cadastrar Nova Nota
                     </DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-6 py-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="description"
-                          className="text-[10px] font-black uppercase text-muted-foreground"
-                        >
-                          Descrição/Título *
+                  <form onSubmit={handleSubmit} className="space-y-5 py-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground">
+                          Data da Nota *
                         </Label>
                         <Input
-                          id="description"
-                          placeholder="Ex: Compra de Telas iPhone 13"
-                          value={newNote.description}
-                          onChange={(e) => setNewNote({ ...newNote, description: e.target.value })}
-                          className="h-11 rounded-xl"
+                          type="date"
+                          value={newNote.due_date}
+                          onChange={(e) => setNewNote({ ...newNote, due_date: e.target.value })}
+                          className="h-10 rounded-lg"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="amount"
-                          className="text-[10px] font-black uppercase text-muted-foreground"
-                        >
-                          Valor Total (R$) *
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground">
+                          Loja Padrão
                         </Label>
-                        <Input
-                          id="amount"
-                          type="number"
-                          step="0.01"
-                          placeholder="0,00"
-                          value={newNote.amount}
-                          onChange={(e) => setNewNote({ ...newNote, amount: e.target.value })}
-                          className="h-11 rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="supplier"
-                          className="text-[10px] font-black uppercase text-muted-foreground"
+                        <Select
+                          value={newNote.loja_padrao}
+                          onValueChange={(v) => setNewNote({ ...newNote, loja_padrao: v })}
                         >
+                          <SelectTrigger className="h-10 rounded-lg">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {LOJAS.map((l) => (
+                              <SelectItem key={l} value={l}>
+                                {l}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground">
                           Fornecedor
                         </Label>
                         <Input
-                          id="supplier"
-                          placeholder="Nome do Fornecedor"
+                          placeholder="Nome do fornecedor"
                           value={newNote.supplier_name}
                           onChange={(e) =>
                             setNewNote({ ...newNote, supplier_name: e.target.value })
                           }
-                          className="h-11 rounded-xl"
+                          className="h-10 rounded-lg"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="invoice"
-                          className="text-[10px] font-black uppercase text-muted-foreground"
-                        >
-                          Número da NF
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground">
+                          Nº NF
                         </Label>
                         <Input
-                          id="invoice"
                           placeholder="000.000.000"
                           value={newNote.invoice_number}
                           onChange={(e) =>
                             setNewNote({ ...newNote, invoice_number: e.target.value })
                           }
-                          className="h-11 rounded-xl"
+                          className="h-10 rounded-lg"
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label
-                          htmlFor="due_date"
-                          className="text-[10px] font-black uppercase text-muted-foreground"
-                        >
-                          Data de Vencimento *
-                        </Label>
-                        <Input
-                          id="due_date"
-                          type="date"
-                          value={newNote.due_date}
-                          onChange={(e) => setNewNote({ ...newNote, due_date: e.target.value })}
-                          className="h-11 rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground">
-                          Categoria
-                        </Label>
-                        <Select
-                          value={newNote.category}
-                          onValueChange={(v) => setNewNote({ ...newNote, category: v })}
-                        >
-                          <SelectTrigger className="h-11 rounded-xl">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Compra de Mercadoria">
-                              Compra de Mercadoria
-                            </SelectItem>
-                            <SelectItem value="Ferramentas">Ferramentas</SelectItem>
-                            <SelectItem value="Insumos">Insumos</SelectItem>
-                            <SelectItem value="Outros">Outros</SelectItem>
-                          </SelectContent>
-                        </Select>
                       </div>
                     </div>
 
-                    <div className="space-y-4 border-t pt-6">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-black text-foreground uppercase tracking-tight flex items-center gap-2">
+                    {/* Planilha de produtos */}
+                    <div className="border border-border rounded-xl overflow-hidden">
+                      <div className="flex items-center justify-between bg-muted/50 px-4 py-2 border-b">
+                        <div className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-2">
                           <Package className="h-4 w-4" /> Produtos da Nota
-                        </h3>
-                        <span className="text-[10px] text-muted-foreground font-bold">
-                          {productsList.length} itens adicionados
-                        </span>
+                        </div>
+                        <div className="text-xs font-black text-foreground">
+                          T.NOTA:{" "}
+                          <span className="text-primary">
+                            {totalNota.toLocaleString("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            })}
+                          </span>
+                        </div>
                       </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
-                        <div className="md:col-span-2 space-y-1">
-                          <Label className="text-[9px] uppercase font-bold text-muted-foreground">
-                            Nome do Produto
-                          </Label>
-                          <Input
-                            placeholder="Ex: Tela iPhone 11 Incell"
-                            value={newProduct.name}
-                            onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                            className="h-9 rounded-lg text-xs"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[9px] uppercase font-bold text-muted-foreground">
-                            Qtd
-                          </Label>
-                          <Input
-                            type="number"
-                            placeholder="1"
-                            value={newProduct.quantity}
-                            onChange={(e) =>
-                              setNewProduct({ ...newProduct, quantity: e.target.value })
-                            }
-                            className="h-9 rounded-lg text-xs"
-                          />
-                        </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead className="bg-muted/30">
+                            <tr className="text-[10px] uppercase font-black text-muted-foreground">
+                              <th className="px-2 py-2 w-12 text-center">Qtd</th>
+                              <th className="px-2 py-2 text-left min-w-[200px]">Produto</th>
+                              <th className="px-2 py-2 text-right w-28">C.U (R$)</th>
+                              <th className="px-2 py-2 text-right w-28">C.T (R$)</th>
+                              <th className="px-2 py-2 w-28">Loja</th>
+                              <th className="px-2 py-2 text-left w-44">IMEI</th>
+                              <th className="px-2 py-2 text-left">Observação</th>
+                              <th className="px-2 py-2 w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {productsList.map((p, idx) => (
+                              <tr key={idx} className="border-t border-border/60">
+                                <td className="px-1 py-1">
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    value={p.quantity}
+                                    onChange={(e) =>
+                                      updateProductRow(idx, { quantity: Number(e.target.value) })
+                                    }
+                                    className="h-8 text-xs text-center px-1"
+                                  />
+                                </td>
+                                <td className="px-1 py-1">
+                                  <Input
+                                    placeholder="Ex: iPhone 14 Pro 128Gb Roxo"
+                                    value={p.name}
+                                    onChange={(e) =>
+                                      updateProductRow(idx, { name: e.target.value })
+                                    }
+                                    className="h-8 text-xs"
+                                  />
+                                </td>
+                                <td className="px-1 py-1">
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={p.cost_unit || ""}
+                                    onChange={(e) =>
+                                      updateProductRow(idx, { cost_unit: Number(e.target.value) })
+                                    }
+                                    className="h-8 text-xs text-right"
+                                  />
+                                </td>
+                                <td className="px-1 py-1 text-right font-black text-foreground">
+                                  {p.cost_total.toLocaleString("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </td>
+                                <td className="px-1 py-1">
+                                  <Select
+                                    value={p.loja || newNote.loja_padrao}
+                                    onValueChange={(v) => updateProductRow(idx, { loja: v })}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {LOJAS.map((l) => (
+                                        <SelectItem key={l} value={l}>
+                                          {l}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                <td className="px-1 py-1">
+                                  <Input
+                                    placeholder="35 418313 626409 6"
+                                    value={p.imei || ""}
+                                    onChange={(e) =>
+                                      updateProductRow(idx, { imei: e.target.value })
+                                    }
+                                    className="h-8 text-xs font-mono"
+                                  />
+                                </td>
+                                <td className="px-1 py-1">
+                                  <Input
+                                    placeholder="Vendido 06-05..."
+                                    value={p.observacao || ""}
+                                    onChange={(e) =>
+                                      updateProductRow(idx, { observacao: e.target.value })
+                                    }
+                                    className="h-8 text-xs"
+                                  />
+                                </td>
+                                <td className="px-1 py-1 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => removeRow(idx)}
+                                    className="text-red-500 hover:text-red-700 disabled:opacity-30"
+                                    disabled={productsList.length === 1}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="px-4 py-2 border-t bg-muted/20">
                         <Button
                           type="button"
-                          onClick={handleAddProduct}
-                          variant="outline"
-                          className="h-9 rounded-lg border-dashed"
+                          onClick={addRow}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs font-bold"
                         >
-                          Adicionar
+                          <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar linha
                         </Button>
-                      </div>
-
-                      {productsList.length > 0 && (
-                        <div className="bg-muted/50 rounded-xl p-3 space-y-2 border border-border/60 max-h-40 overflow-y-auto">
-                          {productsList.map((p, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center justify-between bg-white p-2 rounded-lg border border-border text-xs"
-                            >
-                              <span className="font-bold text-foreground/80">
-                                {p.quantity}x {p.name}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => removeProduct(i)}
-                                className="text-red-500 hover:text-red-700"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Produtos sem nota — vincular existentes */}
-                    <div className="space-y-3 border-t pt-6">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-black text-foreground uppercase tracking-tight flex items-center gap-2">
-                          <Package className="h-4 w-4 text-primary" /> Produtos sem nota no estoque
-                        </h3>
-                        <span className="text-[10px] text-muted-foreground font-bold">
-                          {selectedOrphanIds.length} selecionado(s) • {orphanProducts.length} disponíveis
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        Selecione produtos já cadastrados no estoque que ainda não estão vinculados a nenhuma nota.
-                      </p>
-
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                        <Input
-                          placeholder="Buscar produto por nome ou SKU..."
-                          value={orphanSearch}
-                          onChange={(e) => setOrphanSearch(e.target.value)}
-                          className="h-9 pl-9 rounded-lg text-xs"
-                        />
-                      </div>
-
-                      <div className="bg-muted/30 rounded-xl border border-border/60 max-h-56 overflow-y-auto divide-y divide-border/40">
-                        {orphanProducts.length === 0 ? (
-                          <div className="p-6 text-center text-[11px] text-muted-foreground italic">
-                            Nenhum produto sem nota encontrado.
-                          </div>
-                        ) : (
-                          orphanProducts
-                            .filter((p) => {
-                              const q = orphanSearch.toLowerCase();
-                              return (
-                                !q ||
-                                p.name?.toLowerCase().includes(q) ||
-                                p.sku?.toLowerCase().includes(q)
-                              );
-                            })
-                            .map((p) => {
-                              const checked = selectedOrphanIds.includes(p.id);
-                              return (
-                                <label
-                                  key={p.id}
-                                  className={`flex items-center gap-3 p-2.5 cursor-pointer transition hover:bg-background ${checked ? "bg-primary/5" : ""}`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={(e) => {
-                                      setSelectedOrphanIds((prev) =>
-                                        e.target.checked
-                                          ? [...prev, p.id]
-                                          : prev.filter((id) => id !== p.id),
-                                      );
-                                    }}
-                                    className="h-4 w-4 rounded border-border accent-primary"
-                                  />
-                                  <div className="h-8 w-8 rounded bg-muted overflow-hidden flex items-center justify-center text-muted-foreground shrink-0">
-                                    {p.image_url ? (
-                                      <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
-                                    ) : (
-                                      <Package className="h-4 w-4" />
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="text-xs font-bold text-foreground truncate">
-                                      {p.name}
-                                    </div>
-                                    <div className="text-[10px] text-muted-foreground font-medium">
-                                      {p.sku && <>SKU: {p.sku} • </>}
-                                      Estoque: {p.stock ?? 0}
-                                    </div>
-                                  </div>
-                                  <div className="text-[11px] font-black text-foreground">
-                                    {Number(p.cost_price || p.sale_price || 0).toLocaleString("pt-BR", {
-                                      style: "currency",
-                                      currency: "BRL",
-                                    })}
-                                  </div>
-                                </label>
-                              );
-                            })
-                        )}
                       </div>
                     </div>
 
@@ -655,7 +576,11 @@ function NotasAbertoPage() {
                         className="bg-primary hover:bg-primary/90 font-bold px-8"
                         disabled={submitting}
                       >
-                        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Nota"}
+                        {submitting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          `Salvar Nota (${totalNota.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })})`
+                        )}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -666,17 +591,26 @@ function NotasAbertoPage() {
                 className="h-11 rounded-xl border-border font-bold px-6"
                 onClick={() => {
                   import("@/lib/exportCsv").then(({ exportToCsv }) => {
-                    exportToCsv(
-                      "notas-abertas.csv",
-                      (transactions ?? []).map((t: any) => ({
-                        descricao: t.description,
-                        fornecedor: t.supplier_name,
-                        valor: t.amount,
-                        vencimento: t.due_date,
-                        status: t.status,
-                        criado_em: t.created_at,
-                      })),
-                    );
+                    const rows: any[] = [];
+                    (transactions ?? []).forEach((t: any) => {
+                      (t.products_list || []).forEach((p: any) => {
+                        rows.push({
+                          data_nota: t.due_date,
+                          fornecedor: t.supplier_name,
+                          nf: t.invoice_number,
+                          qtd: p.quantity,
+                          produto: p.name,
+                          cu: p.cost_unit,
+                          ct: p.cost_total,
+                          loja: p.loja,
+                          imei: p.imei,
+                          observacao: p.observacao,
+                          vendido: p.vendido ? "Sim" : "Não",
+                          pago: t.status === "paid" ? "Sim" : "Não",
+                        });
+                      });
+                    });
+                    exportToCsv("notas.csv", rows);
                   });
                 }}
               >
@@ -685,194 +619,203 @@ function NotasAbertoPage() {
             </div>
           </div>
 
-          <Card className="border-border shadow-sm overflow-hidden rounded-2xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-border/60 bg-muted/40">
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                      Vencimento
-                    </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                      Descrição
-                    </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                      Categoria
-                    </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">
-                      Valor
-                    </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-center">
-                      Produtos
-                    </th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest text-right">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-20 text-center">
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-                        <p className="text-muted-foreground mt-2 text-xs">
-                          Carregando notas em aberto...
-                        </p>
-                      </td>
-                    </tr>
-                  ) : filteredTransactions.length > 0 ? (
-                    filteredTransactions.map((t) => {
-                      const isOverdue = t.due_date && isAfter(new Date(), parseISO(t.due_date));
-                      const isExpanded = expandedRow === t.id;
-                      return (
-                        <Fragment key={t.id}>
-                          <tr className="hover:bg-muted/40 transition-colors group">
-                            <td
-                              className={`px-6 py-4 text-xs font-bold ${isOverdue ? "text-red-600" : "text-muted-foreground"}`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-3.5 w-3.5" />
-                                {t.due_date
-                                  ? format(parseISO(t.due_date), "dd/MM/yyyy", { locale: ptBR })
-                                  : "—"}
-                                {isOverdue && (
-                                  <span className="bg-red-50 text-[8px] px-1.5 py-0.5 rounded text-red-600 border border-red-100">
-                                    VENCIDO
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div
-                                  className={`h-8 w-8 rounded-lg flex items-center justify-center ${t.type === "income" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}
-                                >
-                                  {t.type === "income" ? (
-                                    <ArrowUpRight className="h-4 w-4" />
-                                  ) : (
-                                    <ArrowDownLeft className="h-4 w-4" />
-                                  )}
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-sm text-foreground">
-                                    {t.description}
-                                  </span>
-                                  {t.supplier_name && (
-                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium mt-0.5">
-                                      <Truck className="h-3 w-3" />
-                                      Fornecedor: {t.supplier_name}
-                                    </div>
-                                  )}
-                                  {t.invoice_number && (
-                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
-                                      <Receipt className="h-3 w-3" />
-                                      NF: {t.invoice_number}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="px-2.5 py-1 rounded-full bg-muted text-slate-600 text-[10px] font-black uppercase tracking-tight border border-border">
-                                {t.category || "Geral"}
-                              </span>
-                            </td>
-                            <td
-                              className={`px-6 py-4 text-right font-black text-sm ${t.type === "income" ? "text-green-600" : "text-red-600"}`}
-                            >
-                              {t.type === "income" ? "+" : "-"}{" "}
-                              {(t.amount || 0).toLocaleString("pt-BR", {
-                                style: "currency",
-                                currency: "BRL",
-                              })}
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              <span className="px-2 py-1 rounded-md text-[10px] font-black uppercase bg-amber-100 text-amber-700">
-                                Pendente
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-center">
-                              {t.products_list && t.products_list.length > 0 ? (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 text-[10px] font-bold gap-1"
-                                  onClick={() => setExpandedRow(isExpanded ? null : t.id)}
-                                >
-                                  <Package className="h-3 w-3" />
-                                  {t.products_list.length}{" "}
-                                  {t.products_list.length === 1 ? "item" : "itens"}
-                                  {isExpanded ? (
-                                    <ChevronUp className="h-3 w-3" />
-                                  ) : (
-                                    <ChevronDown className="h-3 w-3" />
-                                  )}
-                                </Button>
-                              ) : (
-                                <span className="text-[10px] text-muted-foreground italic">—</span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <div className="flex items-center justify-end">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 text-green-600 hover:bg-green-50"
-                                  onClick={() => handleMarkAsPaid(t.id)}
-                                >
-                                  <CheckCircle2 className="h-4 w-4 mr-1.5" /> Baixar
-                                </Button>
-                              </div>
-                            </td>
+          {/* Planilha de notas */}
+          {loading ? (
+            <Card className="p-20 rounded-2xl text-center">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground mt-2 text-xs">Carregando notas...</p>
+            </Card>
+          ) : filteredTransactions.length === 0 ? (
+            <Card className="p-20 rounded-2xl text-center text-muted-foreground italic">
+              Nenhuma nota cadastrada ainda.
+            </Card>
+          ) : (
+            <div className="space-y-5">
+              {filteredTransactions.map((t) => {
+                const isOverdue =
+                  t.status !== "paid" && t.due_date && isAfter(new Date(), parseISO(t.due_date));
+                const isPaid = t.status === "paid";
+                const items: any[] = t.products_list || [];
+                return (
+                  <Card
+                    key={t.id}
+                    className="rounded-2xl overflow-hidden border-border shadow-sm"
+                  >
+                    {/* Cabeçalho da nota — estilo planilha */}
+                    <div
+                      className={`px-5 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-b ${isPaid ? "bg-emerald-50/60" : isOverdue ? "bg-red-50/60" : "bg-muted/40"}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Data
+                        </span>
+                        <span className="text-sm font-black text-foreground">
+                          {t.due_date
+                            ? format(parseISO(t.due_date), "dd/MM/yyyy", { locale: ptBR })
+                            : "—"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          T.NOTA
+                        </span>
+                        <span className="text-sm font-black text-foreground">
+                          {(t.amount || 0).toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          })}
+                        </span>
+                      </div>
+                      {t.supplier_name && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            Fornecedor
+                          </span>
+                          <span className="text-xs font-bold text-foreground">
+                            {t.supplier_name}
+                          </span>
+                        </div>
+                      )}
+                      {t.invoice_number && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            NF
+                          </span>
+                          <span className="text-xs font-bold text-foreground">
+                            {t.invoice_number}
+                          </span>
+                        </div>
+                      )}
+                      <div className="ml-auto flex items-center gap-2">
+                        {isOverdue && (
+                          <span className="text-[9px] font-black uppercase px-2 py-1 rounded bg-red-100 text-red-700">
+                            Vencida
+                          </span>
+                        )}
+                        <Button
+                          size="sm"
+                          variant={isPaid ? "outline" : "default"}
+                          onClick={() => handleMarkAsPaid(t.id, isPaid)}
+                          className="h-8 text-[11px] font-bold"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                          {isPaid ? "Pago" : "Marcar como Pago"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteNota(t.id)}
+                          className="h-8 text-red-500 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Tabela de produtos */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/20 border-b border-border/60">
+                          <tr className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">
+                            <th className="px-3 py-2 w-12 text-center">Qtd</th>
+                            <th className="px-3 py-2 text-left">Produto</th>
+                            <th className="px-3 py-2 text-right w-28">C.U</th>
+                            <th className="px-3 py-2 text-right w-28">C.T</th>
+                            <th className="px-3 py-2 w-28">
+                              <Store className="h-3 w-3 inline mr-1" />
+                              Loja
+                            </th>
+                            <th className="px-3 py-2 text-left w-44">
+                              <Hash className="h-3 w-3 inline mr-1" />
+                              IMEI
+                            </th>
+                            <th className="px-3 py-2 text-left">
+                              <StickyNote className="h-3 w-3 inline mr-1" />
+                              Observação
+                            </th>
+                            <th className="px-3 py-2 w-24 text-center">Vendido?</th>
                           </tr>
-                          {isExpanded && t.products_list && (
-                            <tr className="bg-muted/60">
-                              <td colSpan={7} className="px-6 py-3">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {t.products_list.map((item: any, idx: number) => (
-                                    <div
-                                      key={idx}
-                                      className="flex items-center gap-3 bg-white p-2 rounded-lg border border-border shadow-sm"
-                                    >
-                                      <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-muted-foreground">
-                                        <Package className="h-4 w-4" />
-                                      </div>
-                                      <div className="flex-1">
-                                        <div className="text-[11px] font-bold text-foreground leading-tight">
-                                          {item.name || item.description || "Produto"}
-                                        </div>
-                                        <div className="text-[10px] text-muted-foreground font-medium">
-                                          {item.quantity && `${item.quantity} un`}
-                                          {item.price &&
-                                            ` • R$ ${item.price.toLocaleString("pt-BR")}`}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
+                        </thead>
+                        <tbody className="divide-y divide-border/40">
+                          {items.length === 0 ? (
+                            <tr>
+                              <td
+                                colSpan={8}
+                                className="px-3 py-6 text-center text-muted-foreground italic text-[11px]"
+                              >
+                                Sem produtos cadastrados nesta nota
                               </td>
                             </tr>
+                          ) : (
+                            items.map((p, idx) => (
+                              <tr
+                                key={idx}
+                                className={`hover:bg-muted/20 transition ${p.vendido ? "opacity-60" : ""}`}
+                              >
+                                <td className="px-3 py-2 text-center font-bold">
+                                  {p.quantity || 1}
+                                </td>
+                                <td
+                                  className={`px-3 py-2 font-bold text-foreground ${p.vendido ? "line-through" : ""}`}
+                                >
+                                  {p.name || "—"}
+                                </td>
+                                <td className="px-3 py-2 text-right">
+                                  {Number(p.cost_unit || p.price || 0).toLocaleString("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </td>
+                                <td className="px-3 py-2 text-right font-black text-foreground">
+                                  {Number(
+                                    p.cost_total ||
+                                      (p.cost_unit || p.price || 0) * (p.quantity || 1),
+                                  ).toLocaleString("pt-BR", {
+                                    style: "currency",
+                                    currency: "BRL",
+                                  })}
+                                </td>
+                                <td className="px-3 py-2">
+                                  {p.loja ? (
+                                    <span
+                                      className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${p.loja === "Premier" ? "bg-blue-100 text-blue-700" : p.loja === "Alfatech" ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground"}`}
+                                    >
+                                      {p.loja}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
+                                  {p.imei || "—"}
+                                </td>
+                                <td className="px-3 py-2 text-[11px] text-muted-foreground italic">
+                                  {p.observacao ||
+                                    (p.vendido && p.data_venda
+                                      ? `Vendido ${format(parseISO(p.data_venda), "dd-MM")}`
+                                      : "—")}
+                                </td>
+                                <td className="px-3 py-2 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleProductSold(t.id, idx)}
+                                    className={`h-6 px-2 rounded text-[10px] font-black uppercase transition ${p.vendido ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"}`}
+                                  >
+                                    {p.vendido ? "Vendido" : "Marcar"}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
                           )}
-                        </Fragment>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="px-6 py-12 text-center text-sm text-muted-foreground italic"
-                      >
-                        Nenhuma nota em aberto encontrada
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
-          </Card>
+          )}
         </main>
       </div>
     </div>
