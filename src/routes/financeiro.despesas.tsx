@@ -2,35 +2,38 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
+import { HubHero } from "@/components/layout/HubHero";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Hourglass,
-  X,
-  Calendar,
+  XCircle,
+  CalendarClock,
   CheckCircle2,
   DollarSign,
   Plus,
   RefreshCw,
-  List,
   Filter,
   Eraser,
-  LayoutGrid,
   Wrench,
   Search,
-  ChevronRight,
-  Home,
   Loader2,
   MoreHorizontal,
   Trash2,
   Edit,
   ArrowRight,
   ArrowLeft,
+  Download,
+  TrendingDown,
+  Receipt,
+  FileSpreadsheet,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { format, isBefore, isToday, isAfter, startOfDay, addDays, subDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { TransactionForm } from "@/components/financeiro/TransactionForm";
 import {
   DropdownMenu,
@@ -73,26 +76,18 @@ function DespesasPage() {
   const [pageSize, setPageSize] = useState(50);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // filters
   const today = new Date();
   const [from, setFrom] = useState(format(subDays(today, 260), "yyyy-MM-dd"));
   const [to, setTo] = useState(format(addDays(today, 365), "yyyy-MM-dd"));
   const [quickFilter, setQuickFilter] = useState("");
-  const [fId, setFId] = useState("");
-  const [fOrigem, setFOrigem] = useState("");
-  const [fCategoria, setFCategoria] = useState("");
-  const [fTitulo, setFTitulo] = useState("");
+  const [search, setSearch] = useState("");
   const [fSituacao, setFSituacao] = useState("");
-  const [fPessoa, setFPessoa] = useState("");
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const base = supabase
-        .from("finance_transactions")
-        .select("*")
-        .eq("type", "expense");
+      const base = supabase.from("finance_transactions").select("*").eq("type", "expense");
       const { data, error } = await (
         orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id)
       ).order("due_date", { ascending: false, nullsFirst: false });
@@ -122,9 +117,9 @@ function DespesasPage() {
         if (error) throw error;
         toast.success("Despesa atualizada!");
       } else {
-        const { error } = await supabase.from("finance_transactions").insert([
-          { ...payload, user_id: user.id, organization_id: orgId },
-        ]);
+        const { error } = await supabase
+          .from("finance_transactions")
+          .insert([{ ...payload, user_id: user.id, organization_id: orgId }]);
         if (error) throw error;
         toast.success("Despesa criada!");
       }
@@ -143,7 +138,20 @@ function DespesasPage() {
     fetchData();
   };
 
-  // KPI calculation
+  const togglePaid = async (it: Expense) => {
+    const newStatus = it.status === "paid" ? "pending" : "paid";
+    const { error } = await supabase
+      .from("finance_transactions")
+      .update({
+        status: newStatus,
+        payment_date: newStatus === "paid" ? new Date().toISOString() : null,
+      })
+      .eq("id", it.id);
+    if (error) return toast.error("Erro ao atualizar");
+    toast.success(newStatus === "paid" ? "Marcado como pago" : "Marcado como pendente");
+    fetchData();
+  };
+
   const kpis = useMemo(() => {
     const t = startOfDay(new Date());
     let venceHoje = 0,
@@ -153,50 +161,38 @@ function DespesasPage() {
       total = 0;
     items.forEach((it) => {
       const amount = Number(it.amount) || 0;
-      const valorPago = it.status === "paid" ? amount : 0;
       const valorPendente = it.status !== "paid" ? amount : 0;
       total += amount;
-      if (it.status === "paid") {
-        pagos += amount;
-      } else if (it.due_date) {
+      if (it.status === "paid") pagos += amount;
+      else if (it.due_date) {
         const d = startOfDay(new Date(it.due_date));
         if (isToday(d)) venceHoje += valorPendente;
         else if (isBefore(d, t)) vencidos += valorPendente;
         else if (isAfter(d, t)) aVencer += valorPendente;
-      } else {
-        aVencer += valorPendente;
-      }
+      } else aVencer += valorPendente;
     });
     return { venceHoje, vencidos, aVencer, pagos, total };
   }, [items]);
 
-  // Filter rows
   const filtered = useMemo(() => {
     const fromD = from ? startOfDay(new Date(from)) : null;
     const toD = to ? startOfDay(new Date(to)) : null;
+    const q = search.toLowerCase().trim();
     return items.filter((it) => {
       if (it.due_date && fromD && toD) {
         const d = startOfDay(new Date(it.due_date));
         if (isBefore(d, fromD) || isAfter(d, toD)) return false;
       }
-      if (fId && !String(it.id).toLowerCase().includes(fId.toLowerCase())) return false;
-      if (fCategoria && !(it.category || "").toLowerCase().includes(fCategoria.toLowerCase()))
-        return false;
-      if (fTitulo && !(it.description || "").toLowerCase().includes(fTitulo.toLowerCase()))
-        return false;
-      if (fSituacao) {
-        const s = (it.status || "pending").toLowerCase();
-        if (!s.includes(fSituacao.toLowerCase())) return false;
+      if (q) {
+        const hay = `${it.description ?? ""} ${it.category ?? ""} ${it.supplier ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
       }
-      if (fPessoa && !((it.supplier as string) || "").toLowerCase().includes(fPessoa.toLowerCase()))
-        return false;
+      if (fSituacao && (it.status || "pending") !== fSituacao) return false;
       if (quickFilter === "vencidos") {
-        if (it.status === "paid") return false;
-        if (!it.due_date) return false;
+        if (it.status === "paid" || !it.due_date) return false;
         if (!isBefore(startOfDay(new Date(it.due_date)), startOfDay(new Date()))) return false;
       } else if (quickFilter === "hoje") {
-        if (it.status === "paid") return false;
-        if (!it.due_date || !isToday(new Date(it.due_date))) return false;
+        if (it.status === "paid" || !it.due_date || !isToday(new Date(it.due_date))) return false;
       } else if (quickFilter === "pagos") {
         if (it.status !== "paid") return false;
       } else if (quickFilter === "a_vencer") {
@@ -206,42 +202,125 @@ function DespesasPage() {
       }
       return true;
     });
-  }, [items, from, to, fId, fCategoria, fTitulo, fSituacao, fPessoa, quickFilter]);
+  }, [items, from, to, search, fSituacao, quickFilter]);
 
   const visible = filtered.slice(0, pageSize);
 
   const clearFilters = () => {
     setQuickFilter("");
-    setFId("");
-    setFOrigem("");
-    setFCategoria("");
-    setFTitulo("");
+    setSearch("");
     setFSituacao("");
-    setFPessoa("");
     setFrom(format(subDays(new Date(), 260), "yyyy-MM-dd"));
     setTo(format(addDays(new Date(), 365), "yyyy-MM-dd"));
   };
 
+  const exportCsv = () => {
+    const rows = [
+      ["Id", "Origem", "Categoria", "Título", "Situação", "Fornecedor", "Valor", "Vencimento", "Pago", "A pagar"],
+      ...filtered.map((it) => {
+        const amount = Number(it.amount) || 0;
+        const paid = it.status === "paid" ? amount : 0;
+        return [
+          it.id,
+          it.reference_type || "manual",
+          it.category || "",
+          it.description || "",
+          it.status || "pending",
+          it.supplier || "",
+          amount.toFixed(2),
+          it.due_date || "",
+          paid.toFixed(2),
+          (amount - paid).toFixed(2),
+        ];
+      }),
+    ];
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `despesas-${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${filtered.length} despesas exportadas`);
+  };
+
   const kpiCards = [
-    { label: "Vencem hoje (R$)", value: kpis.venceHoje, icon: Hourglass, key: "hoje" },
-    { label: "Vencidos (R$)", value: kpis.vencidos, icon: X, key: "vencidos" },
-    { label: "A vencer (R$)", value: kpis.aVencer, icon: Calendar, key: "a_vencer" },
-    { label: "Pagos (R$)", value: kpis.pagos, icon: CheckCircle2, key: "pagos" },
-    { label: "Total no período (R$)", value: kpis.total, icon: DollarSign, key: "" },
+    {
+      label: "Vencem hoje",
+      value: kpis.venceHoje,
+      icon: Hourglass,
+      key: "hoje",
+      tone: "from-amber-500/15 to-amber-500/5 border-amber-500/20",
+      iconBg: "bg-amber-500",
+      text: "text-amber-700 dark:text-amber-400",
+    },
+    {
+      label: "Vencidos",
+      value: kpis.vencidos,
+      icon: XCircle,
+      key: "vencidos",
+      tone: "from-red-500/15 to-red-500/5 border-red-500/20",
+      iconBg: "bg-red-500",
+      text: "text-red-700 dark:text-red-400",
+    },
+    {
+      label: "A vencer",
+      value: kpis.aVencer,
+      icon: CalendarClock,
+      key: "a_vencer",
+      tone: "from-sky-500/15 to-sky-500/5 border-sky-500/20",
+      iconBg: "bg-sky-500",
+      text: "text-sky-700 dark:text-sky-400",
+    },
+    {
+      label: "Pagos",
+      value: kpis.pagos,
+      icon: CheckCircle2,
+      key: "pagos",
+      tone: "from-emerald-500/15 to-emerald-500/5 border-emerald-500/20",
+      iconBg: "bg-emerald-500",
+      text: "text-emerald-700 dark:text-emerald-400",
+    },
+    {
+      label: "Total no período",
+      value: kpis.total,
+      icon: DollarSign,
+      key: "",
+      tone: "from-primary/15 to-primary/5 border-primary/20",
+      iconBg: "bg-primary",
+      text: "text-primary",
+    },
   ];
 
   const statusBadge = (status: string | null, due: string | null) => {
     if (status === "paid")
-      return <span className="px-3 py-1 rounded-md bg-emerald-500 text-white text-[11px] font-bold">Pago</span>;
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold border border-emerald-500/30">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Pago
+        </span>
+      );
     if (due) {
       const d = startOfDay(new Date(due));
       const t = startOfDay(new Date());
       if (isBefore(d, t))
-        return <span className="px-3 py-1 rounded-md bg-red-500 text-white text-[11px] font-bold">Vencido</span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/10 text-red-700 dark:text-red-400 text-[11px] font-bold border border-red-500/30">
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" /> Vencido
+          </span>
+        );
       if (isToday(d))
-        return <span className="px-3 py-1 rounded-md bg-amber-500 text-white text-[11px] font-bold">Vence hoje</span>;
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[11px] font-bold border border-amber-500/30">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" /> Vence hoje
+          </span>
+        );
     }
-    return <span className="px-3 py-1 rounded-md bg-slate-400 text-white text-[11px] font-bold">A pagar</span>;
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-[11px] font-bold border border-border">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" /> A pagar
+      </span>
+    );
   };
 
   return (
@@ -253,269 +332,334 @@ function DespesasPage() {
           subtitle="Gerencie todas as despesas e contas a pagar"
           toggleSidebar={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold">
-            <Home className="h-3.5 w-3.5" />
-            <span>Financeiro</span>
-            <ChevronRight className="h-3 w-3" />
-            <span>Despesas</span>
-          </div>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+          <HubHero
+            eyebrow="Financeiro · Despesas"
+            title="Controle total das suas contas a pagar"
+            description="Acompanhe vencimentos, marque pagamentos e exporte relatórios em tempo real. Tudo sincronizado com o caixa, DRE e fornecedores."
+            icon={TrendingDown}
+            actions={[
+              {
+                label: "Nova despesa",
+                icon: Plus,
+                onClick: () => {
+                  setEditing(null);
+                  setIsFormOpen(true);
+                },
+              },
+              { label: "Atualizar", icon: RefreshCw, onClick: () => fetchData(), variant: "ghost" },
+              { label: "Exportar CSV", icon: Download, onClick: exportCsv, variant: "ghost" },
+            ]}
+          />
 
           {/* KPI cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {kpiCards.map((k) => {
               const Icon = k.icon;
               const active = quickFilter === k.key && k.key !== "";
               return (
-                <div
+                <button
                   key={k.label}
+                  onClick={() => k.key && setQuickFilter(quickFilter === k.key ? "" : k.key)}
                   className={cn(
-                    "rounded-md overflow-hidden border border-emerald-600 bg-emerald-500 text-white shadow-sm transition hover:shadow-md",
-                    active && "ring-2 ring-emerald-900",
+                    "group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-4 text-left transition-all hover:shadow-lg hover:-translate-y-0.5",
+                    k.tone,
+                    active && "ring-2 ring-primary shadow-lg",
                   )}
                 >
-                  <div className="px-4 py-3 flex items-start justify-between">
-                    <div>
-                      <div className="text-2xl font-black leading-tight">{fmt(k.value)}</div>
-                      <div className="text-[11px] opacity-90 mt-1 font-medium">{k.label}</div>
+                  <div className="flex items-start justify-between mb-3">
+                    <div
+                      className={cn(
+                        "h-9 w-9 rounded-xl grid place-items-center text-white shadow-md transition-transform group-hover:scale-110",
+                        k.iconBg,
+                      )}
+                    >
+                      <Icon className="h-4.5 w-4.5" />
                     </div>
-                    <Icon className="h-7 w-7 opacity-70" strokeWidth={2.2} />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-foreground group-hover:translate-x-0.5 transition" />
                   </div>
-                  <button
-                    onClick={() => k.key && setQuickFilter(quickFilter === k.key ? "" : k.key)}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-[11px] font-bold uppercase tracking-wide py-2 flex items-center justify-center gap-1 transition border-t border-emerald-700"
-                  >
-                    Ver detalhes <ArrowRight className="h-3 w-3" />
-                  </button>
-                </div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
+                    {k.label}
+                  </div>
+                  <div className={cn("text-xl md:text-2xl font-black tabular-nums", k.text)}>
+                    R$ {fmt(k.value)}
+                  </div>
+                </button>
               );
             })}
           </div>
 
-          {/* Action toolbar */}
-          <div className="bg-slate-50 border border-slate-200 rounded-md p-3 flex flex-wrap items-center gap-2 justify-end">
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setIsFormOpen(true);
-              }}
-              className="h-9 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-md"
-            >
-              <Plus className="h-4 w-4 mr-1" /> Nova despesa
-            </Button>
-            <Button variant="outline" className="h-9 text-xs border-emerald-500 text-emerald-700 hover:bg-emerald-50 font-bold rounded-md">
-              <RefreshCw className="h-4 w-4 mr-1" /> Despesas Fixas
-            </Button>
-            <Button variant="outline" className="h-9 text-xs font-bold rounded-md">
-              <List className="h-4 w-4 mr-1" /> Modelo de lista
-            </Button>
-            <Button variant="outline" className="h-9 text-xs font-bold rounded-md">
-              <Filter className="h-4 w-4 mr-1" /> Filtros
-            </Button>
-            <Button
-              variant="outline"
-              onClick={clearFilters}
-              className="h-9 text-xs font-bold rounded-md text-amber-700 border-amber-300"
-            >
-              <Eraser className="h-4 w-4 mr-1" /> Limpar filtros
-            </Button>
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="h-9 px-3 rounded-md border border-slate-300 text-xs font-bold bg-white"
-            >
-              {[25, 50, 100, 200].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <Button variant="outline" className="h-9 text-xs font-bold rounded-md">
-              <LayoutGrid className="h-4 w-4 mr-1" /> Ações em lote
-            </Button>
-            <Button variant="outline" className="h-9 text-xs font-bold rounded-md">
-              <Wrench className="h-4 w-4 mr-1" /> Ferramentas
-            </Button>
-          </div>
-
-          {/* Filter row */}
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">
-                Filtro rápido
-              </label>
-              <select
-                value={quickFilter}
-                onChange={(e) => setQuickFilter(e.target.value)}
-                className="h-9 w-52 px-3 rounded-md border border-slate-300 text-xs bg-white"
-              >
-                <option value="">Selecionar</option>
-                <option value="hoje">Vencem hoje</option>
-                <option value="vencidos">Vencidos</option>
-                <option value="a_vencer">A vencer</option>
-                <option value="pagos">Pagos</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">
-                Período de vencimento
-              </label>
-              <div className="flex items-center gap-2">
-                <button className="h-9 w-9 grid place-items-center border border-slate-300 rounded-md hover:bg-slate-50">
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
-                <input
-                  type="date"
-                  value={from}
-                  onChange={(e) => setFrom(e.target.value)}
-                  className="h-9 px-3 rounded-md border border-slate-300 text-xs"
-                />
-                <input
-                  type="date"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                  className="h-9 px-3 rounded-md border border-slate-300 text-xs"
-                />
-                <button className="h-9 w-9 grid place-items-center border border-slate-300 rounded-md hover:bg-slate-50">
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+          {/* Toolbar */}
+          <Card className="p-4 rounded-2xl border-border/60 shadow-sm">
+            <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                  Buscar
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Título, categoria ou fornecedor..."
+                    className="w-full h-10 pl-10 pr-3 rounded-xl bg-background border border-border text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                  Situação
+                </label>
+                <select
+                  value={fSituacao}
+                  onChange={(e) => setFSituacao(e.target.value)}
+                  className="h-10 w-44 px-3 rounded-xl border border-border bg-background text-sm"
+                >
+                  <option value="">Todas</option>
+                  <option value="paid">Pagas</option>
+                  <option value="pending">Pendentes</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
+                  Vencimento
+                </label>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      setFrom(format(subDays(new Date(from), 30), "yyyy-MM-dd"));
+                      setTo(format(subDays(new Date(to), 30), "yyyy-MM-dd"));
+                    }}
+                    className="h-10 w-10 grid place-items-center border border-border rounded-xl hover:bg-muted transition"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="date"
+                    value={from}
+                    onChange={(e) => setFrom(e.target.value)}
+                    className="h-10 px-3 rounded-xl border border-border bg-background text-sm"
+                  />
+                  <input
+                    type="date"
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
+                    className="h-10 px-3 rounded-xl border border-border bg-background text-sm"
+                  />
+                  <button
+                    onClick={() => {
+                      setFrom(format(addDays(new Date(from), 30), "yyyy-MM-dd"));
+                      setTo(format(addDays(new Date(to), 30), "yyyy-MM-dd"));
+                    }}
+                    className="h-10 w-10 grid place-items-center border border-border rounded-xl hover:bg-muted transition"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="h-10 rounded-xl text-xs font-bold"
+                >
+                  <Eraser className="h-4 w-4 mr-1.5" /> Limpar
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditing(null);
+                    setIsFormOpen(true);
+                  }}
+                  className="h-10 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs shadow-md shadow-primary/20"
+                >
+                  <Plus className="h-4 w-4 mr-1.5" /> Nova despesa
+                </Button>
               </div>
             </div>
-            <Button
-              onClick={() => fetchData()}
-              className="h-9 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-md"
-            >
-              <Search className="h-4 w-4 mr-1" /> Buscar
-            </Button>
-          </div>
+          </Card>
 
           {/* Table */}
-          <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
+          <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border/60 bg-muted/30">
+              <div className="flex items-center gap-2">
+                <Receipt className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-bold">
+                  {filtered.length} despesa{filtered.length === 1 ? "" : "s"}
+                </h3>
+                {selected.size > 0 && (
+                  <span className="ml-2 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px] font-bold">
+                    {selected.size} selecionada(s)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="h-8 px-2 rounded-lg border border-border bg-background text-xs font-bold"
+                >
+                  {[25, 50, 100, 200].map((n) => (
+                    <option key={n} value={n}>
+                      {n} / página
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportCsv}
+                  className="h-8 rounded-lg text-xs font-bold"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 mr-1" /> CSV
+                </Button>
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr className="text-[11px] font-bold text-slate-600">
-                    <th className="px-3 py-2 w-10"></th>
-                    <th className="px-3 py-2 w-10">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/20 border-b border-border/60">
+                  <tr className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-3 py-3 w-10">
                       <input
                         type="checkbox"
+                        checked={visible.length > 0 && selected.size === visible.length}
                         onChange={(e) => {
                           if (e.target.checked) setSelected(new Set(visible.map((i) => i.id)));
                           else setSelected(new Set());
                         }}
+                        className="rounded"
                       />
                     </th>
-                    <th className="px-3 py-2">Id</th>
-                    <th className="px-3 py-2">Origem</th>
-                    <th className="px-3 py-2">Categoria</th>
-                    <th className="px-3 py-2">Título</th>
-                    <th className="px-3 py-2">Situação</th>
-                    <th className="px-3 py-2">Pessoa</th>
-                    <th className="px-3 py-2 text-right">Valor Total (R$)</th>
-                    <th className="px-3 py-2">Data de Vencimento</th>
-                    <th className="px-3 py-2 text-right">Valor Pagamento (R$)</th>
-                    <th className="px-3 py-2 text-right">Valor a pagar (R$)</th>
-                  </tr>
-                  {/* inline filter row */}
-                  <tr className="bg-white border-b border-slate-200">
-                    <th></th>
-                    <th></th>
-                    <th className="px-2 py-1.5">
-                      <input
-                        value={fId}
-                        onChange={(e) => setFId(e.target.value)}
-                        placeholder="Ex: Cód."
-                        className="w-full h-7 px-2 rounded border border-slate-200 text-[11px]"
-                      />
-                    </th>
-                    <th className="px-2 py-1.5">
-                      <select
-                        value={fOrigem}
-                        onChange={(e) => setFOrigem(e.target.value)}
-                        className="w-full h-7 px-1 rounded border border-slate-200 text-[11px] bg-white"
-                      >
-                        <option value="">Selecionar</option>
-                        <option value="manual">Manual</option>
-                      </select>
-                    </th>
-                    <th className="px-2 py-1.5">
-                      <input
-                        value={fCategoria}
-                        onChange={(e) => setFCategoria(e.target.value)}
-                        placeholder="Selecionar"
-                        className="w-full h-7 px-2 rounded border border-slate-200 text-[11px]"
-                      />
-                    </th>
-                    <th className="px-2 py-1.5">
-                      <input
-                        value={fTitulo}
-                        onChange={(e) => setFTitulo(e.target.value)}
-                        className="w-full h-7 px-2 rounded border border-slate-200 text-[11px]"
-                      />
-                    </th>
-                    <th className="px-2 py-1.5">
-                      <input
-                        value={fSituacao}
-                        onChange={(e) => setFSituacao(e.target.value)}
-                        placeholder="Buscar"
-                        className="w-full h-7 px-2 rounded border border-slate-200 text-[11px]"
-                      />
-                    </th>
-                    <th className="px-2 py-1.5">
-                      <input
-                        value={fPessoa}
-                        onChange={(e) => setFPessoa(e.target.value)}
-                        placeholder="Buscar"
-                        className="w-full h-7 px-2 rounded border border-slate-200 text-[11px]"
-                      />
-                    </th>
-                    <th></th>
-                    <th className="px-2 py-1.5">
-                      <input
-                        placeholder="Inicial"
-                        className="w-full h-7 px-2 rounded border border-slate-200 text-[11px] mb-0.5"
-                      />
-                      <input
-                        placeholder="Final"
-                        className="w-full h-7 px-2 rounded border border-slate-200 text-[11px]"
-                      />
-                    </th>
-                    <th></th>
-                    <th></th>
+                    <th className="px-3 py-3">Despesa</th>
+                    <th className="px-3 py-3">Categoria</th>
+                    <th className="px-3 py-3">Fornecedor</th>
+                    <th className="px-3 py-3">Situação</th>
+                    <th className="px-3 py-3">Vencimento</th>
+                    <th className="px-3 py-3 text-right">Valor</th>
+                    <th className="px-3 py-3 text-right">A pagar</th>
+                    <th className="px-3 py-3 w-10"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border/40">
                   {loading ? (
                     <tr>
-                      <td colSpan={12} className="px-3 py-16 text-center">
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-emerald-500" />
-                        <p className="text-slate-500 mt-2 text-xs">Carregando despesas...</p>
+                      <td colSpan={9} className="px-3 py-20 text-center">
+                        <Loader2 className="h-7 w-7 animate-spin mx-auto text-primary" />
+                        <p className="text-muted-foreground mt-3 text-xs">Carregando despesas...</p>
                       </td>
                     </tr>
                   ) : visible.length === 0 ? (
                     <tr>
-                      <td colSpan={12} className="px-3 py-16 text-center text-slate-400 italic">
-                        Nenhuma despesa encontrada
+                      <td colSpan={9} className="px-3 py-20 text-center">
+                        <div className="mx-auto h-14 w-14 rounded-2xl bg-muted grid place-items-center mb-3">
+                          <Receipt className="h-7 w-7 text-muted-foreground" />
+                        </div>
+                        <p className="font-bold text-sm">Nenhuma despesa encontrada</p>
+                        <p className="text-muted-foreground text-xs mt-1">
+                          Ajuste os filtros ou cadastre sua primeira despesa
+                        </p>
                       </td>
                     </tr>
                   ) : (
-                    visible.map((it, idx) => {
+                    visible.map((it) => {
                       const amount = Number(it.amount) || 0;
                       const paid = it.status === "paid" ? amount : 0;
                       const aPagar = amount - paid;
-                      const shortId = String(it.id).replace(/-/g, "").slice(0, 6).toUpperCase();
+                      const isPaid = it.status === "paid";
                       const origem = (it.reference_type || "manual").toLowerCase();
                       return (
-                        <tr key={it.id} className={cn("hover:bg-emerald-50/40", idx % 2 && "bg-slate-50/40")}>
-                          <td className="px-3 py-2">
+                        <tr
+                          key={it.id}
+                          className={cn(
+                            "hover:bg-muted/30 transition-colors group",
+                            selected.has(it.id) && "bg-primary/5",
+                          )}
+                        >
+                          <td className="px-3 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selected.has(it.id)}
+                              onChange={(e) => {
+                                const s = new Set(selected);
+                                if (e.target.checked) s.add(it.id);
+                                else s.delete(it.id);
+                                setSelected(s);
+                              }}
+                              className="rounded"
+                            />
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={cn(
+                                  "h-9 w-9 rounded-xl grid place-items-center shrink-0",
+                                  isPaid
+                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                    : "bg-red-500/10 text-red-600 dark:text-red-400",
+                                )}
+                              >
+                                <TrendingDown className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-bold text-sm truncate max-w-[260px]">
+                                  {it.description || "Sem título"}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground font-mono">
+                                  #{String(it.id).replace(/-/g, "").slice(0, 6).toUpperCase()} ·{" "}
+                                  <span className="capitalize">{origem}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className="px-2 py-1 rounded-md bg-muted text-foreground/80 text-[11px] font-semibold border border-border">
+                              {it.category || "Geral"}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-sm text-muted-foreground">
+                            {it.supplier || "—"}
+                          </td>
+                          <td className="px-3 py-3">{statusBadge(it.status, it.due_date)}</td>
+                          <td className="px-3 py-3 text-sm">
+                            {it.due_date ? (
+                              <div>
+                                <div className="font-semibold">
+                                  {format(new Date(it.due_date), "dd MMM yyyy", { locale: ptBR })}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-right font-bold tabular-nums">
+                            R$ {fmt(amount)}
+                          </td>
+                          <td
+                            className={cn(
+                              "px-3 py-3 text-right font-bold tabular-nums",
+                              aPagar > 0
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-emerald-600 dark:text-emerald-400",
+                            )}
+                          >
+                            R$ {fmt(aPagar)}
+                          </td>
+                          <td className="px-3 py-3 text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-lg opacity-50 group-hover:opacity-100 transition"
+                                >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start">
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => togglePaid(it)}>
+                                  <CheckCircle2 className="h-3.5 w-3.5 mr-2" />
+                                  {isPaid ? "Marcar pendente" : "Marcar como pago"}
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => {
                                     setEditing(it);
@@ -533,66 +677,22 @@ function DespesasPage() {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="checkbox"
-                              checked={selected.has(it.id)}
-                              onChange={(e) => {
-                                const s = new Set(selected);
-                                if (e.target.checked) s.add(it.id);
-                                else s.delete(it.id);
-                                setSelected(s);
-                              }}
-                            />
-                          </td>
-                          <td className="px-3 py-2 font-mono text-[11px]">{shortId}</td>
-                          <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded bg-slate-500 text-white text-[10px] font-bold capitalize">
-                              {origem}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 font-bold text-slate-700 uppercase">
-                            {(it.category || "DESPESA").toUpperCase()}
-                          </td>
-                          <td className="px-3 py-2 text-emerald-700 font-semibold uppercase">
-                            {it.description}
-                          </td>
-                          <td className="px-3 py-2">{statusBadge(it.status, it.due_date)}</td>
-                          <td className="px-3 py-2 uppercase">{it.supplier || "—"}</td>
-                          <td className="px-3 py-2 text-right font-semibold">{fmt(amount)}</td>
-                          <td className="px-3 py-2">
-                            {it.due_date ? format(new Date(it.due_date), "dd/MM/yyyy") : "—"}
-                          </td>
-                          <td className="px-3 py-2 text-right font-semibold text-emerald-600">
-                            {fmt(paid)}
-                          </td>
-                          <td className="px-3 py-2 text-right font-semibold text-red-600">
-                            {fmt(aPagar)}
-                          </td>
                         </tr>
                       );
                     })
                   )}
                 </tbody>
                 {!loading && visible.length > 0 && (
-                  <tfoot className="bg-slate-100 border-t-2 border-slate-300 font-bold text-xs">
+                  <tfoot className="bg-muted/30 border-t-2 border-border font-bold text-sm">
                     <tr>
-                      <td colSpan={8} className="px-3 py-2 text-right">
-                        Totais ({visible.length} de {filtered.length}):
+                      <td colSpan={6} className="px-3 py-3 text-right text-xs uppercase tracking-wider text-muted-foreground">
+                        Totais ({visible.length} de {filtered.length})
                       </td>
-                      <td className="px-3 py-2 text-right">
-                        {fmt(visible.reduce((s, i) => s + (Number(i.amount) || 0), 0))}
+                      <td className="px-3 py-3 text-right tabular-nums">
+                        R$ {fmt(visible.reduce((s, i) => s + (Number(i.amount) || 0), 0))}
                       </td>
-                      <td></td>
-                      <td className="px-3 py-2 text-right text-emerald-700">
-                        {fmt(
-                          visible.reduce(
-                            (s, i) => s + (i.status === "paid" ? Number(i.amount) || 0 : 0),
-                            0,
-                          ),
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-right text-red-700">
+                      <td className="px-3 py-3 text-right tabular-nums text-red-600 dark:text-red-400">
+                        R${" "}
                         {fmt(
                           visible.reduce(
                             (s, i) => s + (i.status !== "paid" ? Number(i.amount) || 0 : 0),
@@ -600,12 +700,13 @@ function DespesasPage() {
                           ),
                         )}
                       </td>
+                      <td></td>
                     </tr>
                   </tfoot>
                 )}
               </table>
             </div>
-          </div>
+          </Card>
         </main>
 
         <TransactionForm
