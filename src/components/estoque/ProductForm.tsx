@@ -65,6 +65,28 @@ const IPHONE_CORES = [
   "Laranja Cósmico", "Azul Profundo",
 ];
 
+function FieldRow({
+  label,
+  required,
+  children,
+  className = "",
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`grid grid-cols-[160px_1fr] items-center gap-3 ${className}`}>
+      <Label className="text-xs font-semibold text-muted-foreground text-right">
+        {required && <span className="text-destructive mr-1">*</span>}
+        {label}:
+      </Label>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
 interface ProductFormData {
   // Core (mapped to columns)
   name: string;
