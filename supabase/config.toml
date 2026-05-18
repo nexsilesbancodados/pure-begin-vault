@@ -46,3 +46,6 @@ verify_jwt = false
 
 [functions.daily-automations]
 verify_jwt = false
+
+[functions.process-import-job]
+verify_jwt = true
