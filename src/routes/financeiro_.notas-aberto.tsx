@@ -54,6 +54,13 @@ const getImeiFromMetadata = (metadata: unknown) => {
   return value ? String(value) : null;
 };
 
+interface Nota {
+  id: number;
+  items: Product[];
+  total: number;
+  createdAt: Date;
+}
+
 function NotasAbertoPage() {
   const { orgId, userId } = useOrg();
   const [open, setOpen] = useState(false);
@@ -61,6 +68,7 @@ function NotasAbertoPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [notas, setNotas] = useState<Nota[]>([]);
 
   const loadProducts = async () => {
     if (!userId) return;
@@ -127,7 +135,13 @@ function NotasAbertoPage() {
 
   const confirm = () => {
     const items = products.filter((p) => selected[p.id]);
-    toast.success(`${items.length} produto(s) adicionado(s) à nota.`);
+    if (items.length === 0) return;
+    const total = items.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+    setNotas((prev) => [
+      ...prev,
+      { id: prev.length + 1, items, total, createdAt: new Date() },
+    ]);
+    toast.success(`Nota ${notas.length + 1} criada com ${items.length} produto(s).`);
     setSelected({});
     setOpen(false);
   };
@@ -151,11 +165,41 @@ function NotasAbertoPage() {
             </Button>
           </div>
 
-          <Card className="p-12 flex flex-col items-center justify-center text-center text-muted-foreground border-dashed">
-            <FileText className="h-10 w-10 mb-3 opacity-60" />
-            <p className="text-sm">Nenhuma nota cadastrada ainda.</p>
-            <p className="text-xs">Clique em "Cadastrar Nota" para começar.</p>
-          </Card>
+          {notas.length === 0 ? (
+            <Card className="p-12 flex flex-col items-center justify-center text-center text-muted-foreground border-dashed">
+              <FileText className="h-10 w-10 mb-3 opacity-60" />
+              <p className="text-sm">Nenhuma nota cadastrada ainda.</p>
+              <p className="text-xs">Clique em "Cadastrar Nota" para começar.</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {notas.map((n) => (
+                <Card key={n.id} className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <h3 className="font-semibold">Nota {n.id}</h3>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {n.createdAt.toLocaleDateString("pt-BR")}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {n.items.length} produto(s)
+                  </div>
+                  <ul className="text-sm space-y-1 max-h-32 overflow-auto">
+                    {n.items.map((p) => (
+                      <li key={p.id} className="truncate">• {p.name}</li>
+                    ))}
+                  </ul>
+                  <div className="pt-2 border-t flex justify-between text-sm font-medium">
+                    <span>Total</span>
+                    <span>R$ {n.total.toFixed(2)}</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </main>
       </div>
 
