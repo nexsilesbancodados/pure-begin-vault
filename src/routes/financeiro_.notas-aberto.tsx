@@ -629,7 +629,7 @@ function NotasAbertoPage() {
               if (statusFilter === "overdue" && !isOverdue) return false;
               if (listSearch) {
                 const s = listSearch.toLowerCase();
-                if (!n.fornecedor.toLowerCase().includes(s) && !`nota ${n.id}`.includes(s)) return false;
+                if (!n.fornecedor.toLowerCase().includes(s) && !`nota ${n.noteNumber}`.includes(s)) return false;
               }
               return true;
             });
@@ -668,7 +668,7 @@ function NotasAbertoPage() {
                               <FileText className="h-4 w-4" />
                             </div>
                             <div className="min-w-0">
-                              <h3 className="font-semibold truncate">Nota {n.id}</h3>
+                              <h3 className="font-semibold truncate">Nota {n.noteNumber}</h3>
                               <p className="text-[11px] text-muted-foreground">
                                 {n.createdAt.toLocaleDateString("pt-BR")}
                               </p>
@@ -688,10 +688,7 @@ function NotasAbertoPage() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (window.confirm(`Excluir Nota ${n.id}?`)) {
-                                  setNotas((prev) => prev.filter((x) => x.id !== n.id));
-                                  toast.success(`Nota ${n.id} excluída.`);
-                                }
+                                void deleteNota(n);
                               }}
                               className="opacity-0 group-hover:opacity-100 transition h-7 w-7 rounded-md hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 flex items-center justify-center text-muted-foreground"
                               aria-label="Excluir nota"
