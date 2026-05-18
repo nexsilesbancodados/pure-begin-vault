@@ -2603,12 +2603,15 @@ export function PDVInterface() {
                                 ? moneyAmount
                                 : paymentMethod === "card"
                                   ? cardAmount
-                                  : pixAmount,
+                                  : paymentMethod === "pix"
+                                    ? pixAmount
+                                    : prazoAmount,
                             ) || 0;
                           const remaining = (total - (totalReceived - currentVal)).toFixed(2);
                           if (paymentMethod === "money") setMoneyAmount(remaining);
                           if (paymentMethod === "card") setCardAmount(remaining);
                           if (paymentMethod === "pix") setPixAmount(remaining);
+                          if (paymentMethod === "prazo") setPrazoAmount(remaining);
                         }}
                       >
                         Completar Restante
