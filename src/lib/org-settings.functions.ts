@@ -32,12 +32,21 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
     const canEdit = isSuper || role === "owner" || role === "admin";
     if (!canEdit) throw new Error("Sem permissão para editar esta loja");
 
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", userId)
+      .maybeSingle();
+    const previousOrgId = currentProfile?.organization_id ?? null;
+
     // As policies atuais de organization_settings validam pela loja ativa em
     // profiles.organization_id. Garante que a loja alvo esteja ativa antes do upsert.
-    const { error: switchError } = await supabase.rpc("switch_organization", {
-      _org_id: data.orgId,
-    });
-    if (switchError) throw new Error(switchError.message);
+    if (previousOrgId !== data.orgId) {
+      const { error: switchError } = await supabase.rpc("switch_organization", {
+        _org_id: data.orgId,
+      });
+      if (switchError) throw new Error(switchError.message);
+    }
 
     if (data.name) {
       const { error: e1 } = await supabase.rpc("update_organization_name", {
@@ -63,6 +72,10 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
       .from("organization_settings")
       .upsert(payload, { onConflict: "organization_id" });
     if (e2) throw new Error(e2.message);
+
+    if (previousOrgId && previousOrgId !== data.orgId) {
+      await supabase.rpc("switch_organization", { _org_id: previousOrgId });
+    }
 
     return { ok: true };
   });
