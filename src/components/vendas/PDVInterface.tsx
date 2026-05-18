@@ -83,6 +83,34 @@ export function PDVInterface() {
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [customerForm, setCustomerForm] = useState({
+    categoria: "cliente" as "cliente" | "fornecedor" | "tecnico" | "motoboy",
+    tipo_pessoa: "fisica" as "fisica" | "juridica",
+    cpf_cnpj: "",
+    nome: "",
+    data_nascimento: "",
+    profissao: "",
+    genero: "",
+    origem: "",
+    telefone: "",
+    telefone_alt: "",
+    telefone_extra: "",
+    email: "",
+    instagram: "",
+    cep: "",
+    rua: "",
+    numero: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
+    complemento: "",
+    observacoes: "",
+    tags: "",
+  });
+  const updateCustomerField = <K extends keyof typeof customerForm>(
+    k: K,
+    v: (typeof customerForm)[K],
+  ) => setCustomerForm((p) => ({ ...p, [k]: v }));
   const [newProductName, setNewProductName] = useState("");
   const [newProductPrice, setNewProductPrice] = useState("");
   const [newProductCategory, setNewProductCategory] = useState("Geral");
