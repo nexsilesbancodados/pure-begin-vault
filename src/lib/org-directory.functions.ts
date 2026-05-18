@@ -13,13 +13,15 @@ export const getOrgSummaries = createServerFn({ method: "POST" })
     };
     if (data.orgIds.length === 0) return empty;
 
-    // Try admin client first (bypasses RLS); fall back to authenticated client.
+    // Prefer admin client (bypasses RLS) when env is configured; otherwise use user client.
     let client: typeof context.supabase = context.supabase;
-    try {
-      const mod = await import("@/integrations/supabase/client.server");
-      client = mod.supabaseAdmin as unknown as typeof context.supabase;
-    } catch {
-      // env vars missing — use the authenticated user client (RLS applies)
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const mod = await import("@/integrations/supabase/client.server");
+        client = mod.supabaseAdmin as unknown as typeof context.supabase;
+      } catch {
+        // fall back to authenticated user client
+      }
     }
 
     const [{ data: memberships }, { data: profile }] = await Promise.all([
