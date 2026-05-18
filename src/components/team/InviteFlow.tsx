@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Check, UserPlus, Mail, Trash2, Clock, CheckCircle2 } from "lucide-react";
+import { Copy, Check, UserPlus, Mail, Trash2, Clock, CheckCircle2, UserCog } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { UserRegistrationModal } from "./UserRegistrationModal";
 
 type Invite = {
   id: string;
