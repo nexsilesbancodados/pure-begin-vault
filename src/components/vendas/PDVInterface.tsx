@@ -27,6 +27,17 @@ import {
   CheckCircle2,
   Eraser,
   ChevronDown,
+  MapPin,
+  Phone,
+  Mail,
+  Instagram,
+  Calendar,
+  Briefcase,
+  AtSign,
+  Building2,
+  Truck,
+  Wrench,
+  IdCard,
 } from "lucide-react";
 import { Product } from "@/lib/mock";
 import { ProductForm } from "@/components/estoque/ProductForm";
@@ -111,6 +122,61 @@ export function PDVInterface() {
     k: K,
     v: (typeof customerForm)[K],
   ) => setCustomerForm((p) => ({ ...p, [k]: v }));
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [isLookingUpCep, setIsLookingUpCep] = useState(false);
+
+  const lookupCep = async (rawCep: string) => {
+    const cep = rawCep.replace(/\D/g, "");
+    if (cep.length !== 8) return;
+    setIsLookingUpCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data?.erro) {
+        toast.error("CEP não encontrado.");
+        return;
+      }
+      setCustomerForm((p) => ({
+        ...p,
+        rua: data.logradouro || p.rua,
+        bairro: data.bairro || p.bairro,
+        cidade: data.localidade || p.cidade,
+        estado: data.uf || p.estado,
+        complemento: data.complemento || p.complemento,
+      }));
+      toast.success("Endereço preenchido automaticamente.");
+    } catch {
+      toast.error("Falha ao consultar CEP.");
+    } finally {
+      setIsLookingUpCep(false);
+    }
+  };
+
+  const resetCustomerForm = () =>
+    setCustomerForm({
+      categoria: "cliente",
+      tipo_pessoa: "fisica",
+      cpf_cnpj: "",
+      nome: "",
+      data_nascimento: "",
+      profissao: "",
+      genero: "",
+      origem: "",
+      telefone: "",
+      telefone_alt: "",
+      telefone_extra: "",
+      email: "",
+      instagram: "",
+      cep: "",
+      rua: "",
+      numero: "",
+      bairro: "",
+      cidade: "",
+      estado: "",
+      complemento: "",
+      observacoes: "",
+      tags: "",
+    });
   const [newProductName, setNewProductName] = useState("");
   const [newProductPrice, setNewProductPrice] = useState("");
   const [newProductCategory, setNewProductCategory] = useState("Geral");
@@ -975,6 +1041,7 @@ export function PDVInterface() {
       observacoes: f.observacoes || undefined,
     };
     const notesPayload = JSON.stringify(extras);
+    setIsCreatingCustomer(true);
     try {
       const { data, error } = await supabase
         .from("customers")
@@ -999,36 +1066,15 @@ export function PDVInterface() {
       setSelectedCustomer({ id: data.id, name: data.name });
       setIsNewCustomerModalOpen(false);
       setIsCustomerModalOpen(false);
-      setCustomerForm({
-        categoria: "cliente",
-        tipo_pessoa: "fisica",
-        cpf_cnpj: "",
-        nome: "",
-        data_nascimento: "",
-        profissao: "",
-        genero: "",
-        origem: "",
-        telefone: "",
-        telefone_alt: "",
-        telefone_extra: "",
-        email: "",
-        instagram: "",
-        cep: "",
-        rua: "",
-        numero: "",
-        bairro: "",
-        cidade: "",
-        estado: "",
-        complemento: "",
-        observacoes: "",
-        tags: "",
-      });
+      resetCustomerForm();
       setNewCustomerName("");
       setNewCustomerPhone("");
       fetchCustomers();
     } catch (error: any) {
       console.error("Erro ao criar cliente:", error);
       toast.error("Erro ao cadastrar cliente.");
+    } finally {
+      setIsCreatingCustomer(false);
     }
   };
 
@@ -1413,288 +1459,489 @@ export function PDVInterface() {
         />
 
         <Dialog open={isNewCustomerModalOpen} onOpenChange={setIsNewCustomerModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 gap-0">
-            <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-4">
-              <DialogHeader>
-                <DialogTitle className="text-primary-foreground text-lg">
-                  Cadastro de Pessoa
-                </DialogTitle>
-              </DialogHeader>
-            </div>
-
-            <div className="px-6 pt-4 overflow-y-auto max-h-[calc(90vh-180px)]">
-              {/* Categoria + Tipo */}
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <div className="inline-flex rounded-lg border border-border overflow-hidden">
-                  {(["cliente", "fornecedor", "tecnico", "motoboy"] as const).map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => updateCustomerField("categoria", c)}
-                      className={`px-4 py-1.5 text-sm font-medium capitalize transition ${
-                        customerForm.categoria === c
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-background hover:bg-muted"
-                      }`}
-                    >
-                      {c === "tecnico" ? "Técnico" : c}
-                    </button>
-                  ))}
+          <DialogContent className="max-w-5xl max-h-[92vh] overflow-hidden p-0 gap-0 border-0 shadow-2xl">
+            {/* HEADER com gradiente + avatar */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/70 px-6 py-5">
+              <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-12 -left-12 h-40 w-40 rounded-full bg-white/10 blur-3xl pointer-events-none" />
+              <div className="relative flex items-center gap-4">
+                <div className="h-14 w-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-primary-foreground text-xl font-bold shadow-lg ring-2 ring-white/30">
+                  {(customerForm.nome || "?").trim().charAt(0).toUpperCase()}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs whitespace-nowrap">Tipo:</Label>
-                  <select
-                    value={customerForm.tipo_pessoa}
-                    onChange={(e) =>
-                      updateCustomerField("tipo_pessoa", e.target.value as "fisica" | "juridica")
-                    }
-                    className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-                  >
-                    <option value="fisica">Pessoa Física</option>
-                    <option value="juridica">Pessoa Jurídica</option>
-                  </select>
+                <div className="flex-1 min-w-0">
+                  <DialogHeader className="space-y-0.5">
+                    <DialogTitle className="text-primary-foreground text-xl font-bold">
+                      {customerForm.nome.trim() || "Cadastro de Pessoa"}
+                    </DialogTitle>
+                    <p className="text-primary-foreground/80 text-xs">
+                      Preencha os dados para criar e vincular o cliente à venda atual.
+                    </p>
+                  </DialogHeader>
                 </div>
               </div>
 
+              {/* Categoria pills + Tipo pessoa */}
+              <div className="relative mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="inline-flex rounded-xl bg-white/15 backdrop-blur-sm p-1 gap-1">
+                  {(
+                    [
+                      { key: "cliente", label: "Cliente", Icon: User },
+                      { key: "fornecedor", label: "Fornecedor", Icon: Building2 },
+                      { key: "tecnico", label: "Técnico", Icon: Wrench },
+                      { key: "motoboy", label: "Motoboy", Icon: Truck },
+                    ] as const
+                  ).map(({ key, label, Icon }) => {
+                    const active = customerForm.categoria === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => updateCustomerField("categoria", key)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                          active
+                            ? "bg-white text-primary shadow"
+                            : "text-primary-foreground/90 hover:bg-white/10"
+                        }`}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="inline-flex rounded-xl bg-white/15 backdrop-blur-sm p-1 gap-1">
+                  {(
+                    [
+                      { key: "fisica", label: "Pessoa Física" },
+                      { key: "juridica", label: "Pessoa Jurídica" },
+                    ] as const
+                  ).map(({ key, label }) => {
+                    const active = customerForm.tipo_pessoa === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => updateCustomerField("tipo_pessoa", key)}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                          active
+                            ? "bg-white text-primary shadow"
+                            : "text-primary-foreground/90 hover:bg-white/10"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* BODY */}
+            <div className="overflow-y-auto max-h-[calc(92vh-220px)] bg-muted/20">
               <Tabs defaultValue="gerais" className="w-full">
-                <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
-                  <TabsTrigger
-                    value="gerais"
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2"
-                  >
-                    Dados gerais
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="adicionais"
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2"
-                  >
-                    Dados adicionais
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="telefones"
-                    className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2"
-                  >
-                    Telefones extras
-                  </TabsTrigger>
+                <TabsList className="w-full justify-start rounded-none border-b bg-background px-6 p-0 h-auto sticky top-0 z-10">
+                  {[
+                    { v: "gerais", label: "Dados gerais", Icon: User },
+                    { v: "endereco", label: "Endereço", Icon: MapPin },
+                    { v: "adicionais", label: "Dados adicionais", Icon: FileText },
+                    { v: "telefones", label: "Telefones extras", Icon: Phone },
+                  ].map(({ v, label, Icon }) => (
+                    <TabsTrigger
+                      key={v}
+                      value={v}
+                      className="gap-2 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-4 py-3 text-xs font-semibold"
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
+                    </TabsTrigger>
+                  ))}
                 </TabsList>
 
-                <TabsContent value="gerais" className="space-y-5 pt-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">CPF/CNPJ</Label>
-                      <Input
-                        value={customerForm.cpf_cnpj}
-                        onChange={(e) => updateCustomerField("cpf_cnpj", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Origem</Label>
-                      <select
-                        value={customerForm.origem}
-                        onChange={(e) => updateCustomerField("origem", e.target.value)}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-                      >
-                        <option value="">Selecionar</option>
-                        <option value="indicacao">Indicação</option>
-                        <option value="instagram">Instagram</option>
-                        <option value="google">Google</option>
-                        <option value="whatsapp">WhatsApp</option>
-                        <option value="loja">Loja física</option>
-                        <option value="outro">Outro</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">
-                        <span className="text-destructive">*</span> Nome
-                      </Label>
-                      <Input
-                        value={customerForm.nome}
-                        onChange={(e) => updateCustomerField("nome", e.target.value)}
-                        placeholder="Ex: João Silva"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Profissão</Label>
-                      <Input
-                        value={customerForm.profissao}
-                        onChange={(e) => updateCustomerField("profissao", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Data de nascimento</Label>
-                      <Input
-                        type="date"
-                        value={customerForm.data_nascimento}
-                        onChange={(e) => updateCustomerField("data_nascimento", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Gênero</Label>
-                      <select
-                        value={customerForm.genero}
-                        onChange={(e) => updateCustomerField("genero", e.target.value)}
-                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-                      >
-                        <option value="">Selecionar</option>
-                        <option value="masculino">Masculino</option>
-                        <option value="feminino">Feminino</option>
-                        <option value="outro">Outro</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3">Dados de contato</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Telefone / WhatsApp</Label>
-                        <Input
-                          value={customerForm.telefone}
-                          onChange={(e) => updateCustomerField("telefone", e.target.value)}
-                          placeholder="Ex: 11999999999"
-                        />
+                {/* DADOS GERAIS */}
+                <TabsContent value="gerais" className="p-6 space-y-5 mt-0">
+                  <div className="bg-background rounded-2xl border p-5 space-y-4 shadow-sm">
+                    <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
+                      <IdCard className="h-3.5 w-3.5" /> Identificação
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                      <div className="md:col-span-7 space-y-1.5">
+                        <Label className="text-xs font-medium">
+                          Nome completo <span className="text-destructive">*</span>
+                        </Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            className="pl-9"
+                            value={customerForm.nome}
+                            onChange={(e) => updateCustomerField("nome", e.target.value)}
+                            placeholder="Ex: João Silva"
+                            maxLength={120}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Email</Label>
-                        <Input
-                          type="email"
-                          value={customerForm.email}
-                          onChange={(e) => updateCustomerField("email", e.target.value)}
-                        />
+                      <div className="md:col-span-5 space-y-1.5">
+                        <Label className="text-xs font-medium">
+                          {customerForm.tipo_pessoa === "juridica" ? "CNPJ" : "CPF"}
+                        </Label>
+                        <div className="relative">
+                          <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            className="pl-9"
+                            value={customerForm.cpf_cnpj}
+                            onChange={(e) => updateCustomerField("cpf_cnpj", e.target.value)}
+                            placeholder={
+                              customerForm.tipo_pessoa === "juridica"
+                                ? "00.000.000/0000-00"
+                                : "000.000.000-00"
+                            }
+                            maxLength={20}
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Telefone Alternativo</Label>
-                        <Input
-                          value={customerForm.telefone_alt}
-                          onChange={(e) => updateCustomerField("telefone_alt", e.target.value)}
-                        />
+                      <div className="md:col-span-4 space-y-1.5">
+                        <Label className="text-xs font-medium">Data de nascimento</Label>
+                        <div className="relative">
+                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="date"
+                            className="pl-9"
+                            value={customerForm.data_nascimento}
+                            onChange={(e) =>
+                              updateCustomerField("data_nascimento", e.target.value)
+                            }
+                          />
+                        </div>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Instagram</Label>
-                        <Input
-                          value={customerForm.instagram}
-                          onChange={(e) => updateCustomerField("instagram", e.target.value)}
-                          placeholder="@usuario"
-                        />
+                      <div className="md:col-span-4 space-y-1.5">
+                        <Label className="text-xs font-medium">Profissão</Label>
+                        <div className="relative">
+                          <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            className="pl-9"
+                            value={customerForm.profissao}
+                            onChange={(e) => updateCustomerField("profissao", e.target.value)}
+                            maxLength={80}
+                          />
+                        </div>
+                      </div>
+                      <div className="md:col-span-4 space-y-1.5">
+                        <Label className="text-xs font-medium">Gênero</Label>
+                        <select
+                          value={customerForm.genero}
+                          onChange={(e) => updateCustomerField("genero", e.target.value)}
+                          className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                        >
+                          <option value="">Selecionar</option>
+                          <option value="masculino">Masculino</option>
+                          <option value="feminino">Feminino</option>
+                          <option value="outro">Outro</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-12 space-y-1.5">
+                        <Label className="text-xs font-medium">Origem do cliente</Label>
+                        <select
+                          value={customerForm.origem}
+                          onChange={(e) => updateCustomerField("origem", e.target.value)}
+                          className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                        >
+                          <option value="">Como conheceu a loja?</option>
+                          <option value="indicacao">Indicação</option>
+                          <option value="instagram">Instagram</option>
+                          <option value="google">Google</option>
+                          <option value="whatsapp">WhatsApp</option>
+                          <option value="loja">Loja física</option>
+                          <option value="outro">Outro</option>
+                        </select>
                       </div>
                     </div>
                   </div>
 
-                  <div>
-                    <h4 className="text-sm font-semibold mb-3">Dados de endereço</h4>
+                  <div className="bg-background rounded-2xl border p-5 space-y-4 shadow-sm">
+                    <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
+                      <Phone className="h-3.5 w-3.5" /> Contato
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <Label className="text-xs">CEP</Label>
-                        <Input
-                          value={customerForm.cep}
-                          onChange={(e) => updateCustomerField("cep", e.target.value)}
-                        />
+                        <Label className="text-xs font-medium">Telefone / WhatsApp</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-success" />
+                          <Input
+                            className="pl-9"
+                            value={customerForm.telefone}
+                            onChange={(e) => updateCustomerField("telefone", e.target.value)}
+                            placeholder="(11) 99999-9999"
+                            maxLength={20}
+                          />
+                        </div>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs">Rua</Label>
+                        <Label className="text-xs font-medium">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="email"
+                            className="pl-9"
+                            value={customerForm.email}
+                            onChange={(e) => updateCustomerField("email", e.target.value)}
+                            placeholder="cliente@email.com"
+                            maxLength={120}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Telefone alternativo</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            className="pl-9"
+                            value={customerForm.telefone_alt}
+                            onChange={(e) => updateCustomerField("telefone_alt", e.target.value)}
+                            maxLength={20}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Instagram</Label>
+                        <div className="relative">
+                          <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            className="pl-9"
+                            value={customerForm.instagram}
+                            onChange={(e) =>
+                              updateCustomerField(
+                                "instagram",
+                                e.target.value.replace(/^@?/, "@"),
+                              )
+                            }
+                            placeholder="@usuario"
+                            maxLength={40}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* ENDEREÇO */}
+                <TabsContent value="endereco" className="p-6 space-y-5 mt-0">
+                  <div className="bg-background rounded-2xl border p-5 space-y-4 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5" /> Endereço
+                      </h4>
+                      <span className="text-[11px] text-muted-foreground">
+                        Digite o CEP para preencher automaticamente
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                      <div className="md:col-span-4 space-y-1.5">
+                        <Label className="text-xs font-medium">CEP</Label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            className="pl-9 pr-9"
+                            value={customerForm.cep}
+                            onChange={(e) => updateCustomerField("cep", e.target.value)}
+                            onBlur={(e) => lookupCep(e.target.value)}
+                            placeholder="00000-000"
+                            maxLength={10}
+                          />
+                          {isLookingUpCep && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-primary" />
+                          )}
+                        </div>
+                      </div>
+                      <div className="md:col-span-6 space-y-1.5">
+                        <Label className="text-xs font-medium">Rua</Label>
                         <Input
                           value={customerForm.rua}
                           onChange={(e) => updateCustomerField("rua", e.target.value)}
+                          maxLength={150}
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Número</Label>
+                      <div className="md:col-span-2 space-y-1.5">
+                        <Label className="text-xs font-medium">Número</Label>
                         <Input
                           value={customerForm.numero}
                           onChange={(e) => updateCustomerField("numero", e.target.value)}
+                          maxLength={10}
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Bairro</Label>
+                      <div className="md:col-span-5 space-y-1.5">
+                        <Label className="text-xs font-medium">Bairro</Label>
                         <Input
                           value={customerForm.bairro}
                           onChange={(e) => updateCustomerField("bairro", e.target.value)}
+                          maxLength={80}
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Cidade</Label>
+                      <div className="md:col-span-5 space-y-1.5">
+                        <Label className="text-xs font-medium">Cidade</Label>
                         <Input
                           value={customerForm.cidade}
                           onChange={(e) => updateCustomerField("cidade", e.target.value)}
+                          maxLength={80}
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">Estado</Label>
+                      <div className="md:col-span-2 space-y-1.5">
+                        <Label className="text-xs font-medium">UF</Label>
                         <Input
                           value={customerForm.estado}
-                          onChange={(e) => updateCustomerField("estado", e.target.value)}
+                          onChange={(e) =>
+                            updateCustomerField(
+                              "estado",
+                              e.target.value.toUpperCase().slice(0, 2),
+                            )
+                          }
                           maxLength={2}
-                          placeholder="UF"
+                          placeholder="SP"
                         />
                       </div>
-                      <div className="space-y-1.5 md:col-span-2">
-                        <Label className="text-xs">Complemento</Label>
+                      <div className="md:col-span-12 space-y-1.5">
+                        <Label className="text-xs font-medium">Complemento</Label>
                         <Input
                           value={customerForm.complemento}
                           onChange={(e) => updateCustomerField("complemento", e.target.value)}
+                          placeholder="Apto, bloco, referência..."
+                          maxLength={120}
                         />
                       </div>
                     </div>
                   </div>
                 </TabsContent>
 
-                <TabsContent value="adicionais" className="space-y-4 pt-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Observações</Label>
-                      <textarea
-                        value={customerForm.observacoes}
-                        onChange={(e) => updateCustomerField("observacoes", e.target.value)}
-                        rows={6}
-                        className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Tags</Label>
-                      <Input
-                        value={customerForm.tags}
-                        onChange={(e) => updateCustomerField("tags", e.target.value)}
-                        placeholder="Ex: vip, atacado, fiel"
-                      />
-                      <p className="text-[11px] text-muted-foreground">
-                        Separe as tags por vírgula.
-                      </p>
+                {/* DADOS ADICIONAIS */}
+                <TabsContent value="adicionais" className="p-6 space-y-5 mt-0">
+                  <div className="bg-background rounded-2xl border p-5 space-y-4 shadow-sm">
+                    <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
+                      <FileText className="h-3.5 w-3.5" /> Notas e tags
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Observações</Label>
+                        <textarea
+                          value={customerForm.observacoes}
+                          onChange={(e) => updateCustomerField("observacoes", e.target.value)}
+                          rows={6}
+                          maxLength={1000}
+                          placeholder="Preferências, histórico, observações internas..."
+                          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm resize-none"
+                        />
+                        <p className="text-[11px] text-muted-foreground text-right">
+                          {customerForm.observacoes.length}/1000
+                        </p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Tags</Label>
+                        <div className="relative">
+                          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            className="pl-9"
+                            value={customerForm.tags}
+                            onChange={(e) => updateCustomerField("tags", e.target.value)}
+                            placeholder="vip, atacado, fiel"
+                            maxLength={200}
+                          />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          Separe as tags por vírgula.
+                        </p>
+                        {customerForm.tags.trim() && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {customerForm.tags
+                              .split(",")
+                              .map((t) => t.trim())
+                              .filter(Boolean)
+                              .map((t) => (
+                                <Badge key={t} variant="secondary" className="text-[10px]">
+                                  {t}
+                                </Badge>
+                              ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
 
-                <TabsContent value="telefones" className="space-y-4 pt-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Telefone Alternativo</Label>
-                      <Input
-                        value={customerForm.telefone_alt}
-                        onChange={(e) => updateCustomerField("telefone_alt", e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Telefone Extra</Label>
-                      <Input
-                        value={customerForm.telefone_extra}
-                        onChange={(e) => updateCustomerField("telefone_extra", e.target.value)}
-                      />
+                {/* TELEFONES EXTRAS */}
+                <TabsContent value="telefones" className="p-6 space-y-5 mt-0">
+                  <div className="bg-background rounded-2xl border p-5 space-y-4 shadow-sm">
+                    <h4 className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
+                      <Phone className="h-3.5 w-3.5" /> Telefones adicionais
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Telefone alternativo</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            className="pl-9"
+                            value={customerForm.telefone_alt}
+                            onChange={(e) => updateCustomerField("telefone_alt", e.target.value)}
+                            maxLength={20}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">Telefone extra</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            className="pl-9"
+                            value={customerForm.telefone_extra}
+                            onChange={(e) =>
+                              updateCustomerField("telefone_extra", e.target.value)
+                            }
+                            maxLength={20}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
               </Tabs>
             </div>
 
-            <DialogFooter className="px-6 py-3 border-t bg-muted/30 gap-2 sm:gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsNewCustomerModalOpen(false)}
-                className="gap-1"
-              >
-                <ArrowLeft className="h-4 w-4" /> Voltar
-              </Button>
-              <Button onClick={handleCreateCustomer} disabled={!customerForm.nome.trim()}>
-                Salvar e Vincular
-              </Button>
+            {/* FOOTER sticky */}
+            <DialogFooter className="px-6 py-3 border-t bg-background flex-row items-center justify-between gap-2 sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetCustomerForm}
+                  disabled={isCreatingCustomer}
+                  className="gap-1.5 text-muted-foreground"
+                >
+                  <Eraser className="h-4 w-4" /> Limpar
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsNewCustomerModalOpen(false)}
+                  disabled={isCreatingCustomer}
+                  className="gap-1.5"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Voltar
+                </Button>
+                <Button
+                  onClick={handleCreateCustomer}
+                  disabled={!customerForm.nome.trim() || isCreatingCustomer}
+                  className="gap-1.5 bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 min-w-[180px]"
+                >
+                  {isCreatingCustomer ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" /> Salvar e Vincular
+                    </>
+                  )}
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
