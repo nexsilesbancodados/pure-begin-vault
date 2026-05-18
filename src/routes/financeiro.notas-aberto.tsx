@@ -83,6 +83,33 @@ function NotasAbertoPage() {
 
   const [newProduct, setNewProduct] = useState({ name: "", quantity: "", price: "" });
   const [productsList, setProductsList] = useState<any[]>([]);
+  const [orphanProducts, setOrphanProducts] = useState<any[]>([]);
+  const [selectedOrphanIds, setSelectedOrphanIds] = useState<string[]>([]);
+  const [orphanSearch, setOrphanSearch] = useState("");
+
+  const fetchOrphanProducts = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const base = supabase
+        .from("products")
+        .select("id, name, sku, cost_price, sale_price, stock, metadata, image_url");
+      const { data, error } = await (
+        orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id)
+      ).order("created_at", { ascending: false }).limit(200);
+      if (error) throw error;
+      const orphans = (data || []).filter((p: any) => {
+        const m = p.metadata || {};
+        return !m.nota_id || m.nota_id === "" || m.nota_id === "none";
+      });
+      setOrphanProducts(orphans);
+    } catch (err) {
+      console.error("Erro ao carregar produtos sem nota:", err);
+    }
+  }, [user?.id, orgId]);
+
+  useEffect(() => {
+    if (isDialogOpen) fetchOrphanProducts();
+  }, [isDialogOpen, fetchOrphanProducts]);
 
   const fetchTransactions = useCallback(async () => {
     if (!user?.id) return;
@@ -156,24 +183,57 @@ function NotasAbertoPage() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("finance_transactions").insert([
-        {
-          user_id: user.id,
-          organization_id: orgId,
-          description: newNote.description,
-          amount: Number(newNote.amount),
-          due_date: newNote.due_date,
-          supplier_name: newNote.supplier_name,
-          invoice_number: newNote.invoice_number,
-          category: newNote.category,
-          type: "expense",
-          status: "pending",
-          products_list: productsList,
-        },
-      ]);
+      // Build merged products list (manual entries + selected orphans)
+      const orphanItems = orphanProducts
+        .filter((p) => selectedOrphanIds.includes(p.id))
+        .map((p) => ({
+          product_id: p.id,
+          name: p.name,
+          sku: p.sku,
+          quantity: 1,
+          price: Number(p.cost_price || p.sale_price || 0),
+        }));
+
+      const mergedProducts = [...productsList, ...orphanItems];
+
+      const { data: inserted, error } = await supabase
+        .from("finance_transactions")
+        .insert([
+          {
+            user_id: user.id,
+            organization_id: orgId,
+            description: newNote.description,
+            amount: Number(newNote.amount),
+            due_date: newNote.due_date,
+            supplier_name: newNote.supplier_name,
+            invoice_number: newNote.invoice_number,
+            category: newNote.category,
+            type: "expense",
+            status: "pending",
+            products_list: mergedProducts,
+          },
+        ])
+        .select("id")
+        .single();
 
       if (error) throw error;
-      toast.success("Nota cadastrada com sucesso!");
+
+      // Link selected orphan products to the newly created nota
+      if (inserted?.id && selectedOrphanIds.length > 0) {
+        await Promise.all(
+          selectedOrphanIds.map(async (pid) => {
+            const prod = orphanProducts.find((p) => p.id === pid);
+            const newMeta = { ...(prod?.metadata || {}), nota_id: inserted.id };
+            await supabase.from("products").update({ metadata: newMeta }).eq("id", pid);
+          }),
+        );
+      }
+
+      toast.success(
+        selectedOrphanIds.length > 0
+          ? `Nota cadastrada e ${selectedOrphanIds.length} produto(s) vinculado(s)!`
+          : "Nota cadastrada com sucesso!",
+      );
       setIsDialogOpen(false);
       setNewNote({
         description: "",
@@ -184,6 +244,7 @@ function NotasAbertoPage() {
         category: "Compra de Mercadoria",
       });
       setProductsList([]);
+      setSelectedOrphanIds([]);
       fetchTransactions();
     } catch (error) {
       console.error("Erro ao cadastrar nota:", error);
@@ -491,6 +552,93 @@ function NotasAbertoPage() {
                           ))}
                         </div>
                       )}
+                    </div>
+
+                    {/* Produtos sem nota — vincular existentes */}
+                    <div className="space-y-3 border-t pt-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-black text-foreground uppercase tracking-tight flex items-center gap-2">
+                          <Package className="h-4 w-4 text-primary" /> Produtos sem nota no estoque
+                        </h3>
+                        <span className="text-[10px] text-muted-foreground font-bold">
+                          {selectedOrphanIds.length} selecionado(s) • {orphanProducts.length} disponíveis
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Selecione produtos já cadastrados no estoque que ainda não estão vinculados a nenhuma nota.
+                      </p>
+
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar produto por nome ou SKU..."
+                          value={orphanSearch}
+                          onChange={(e) => setOrphanSearch(e.target.value)}
+                          className="h-9 pl-9 rounded-lg text-xs"
+                        />
+                      </div>
+
+                      <div className="bg-muted/30 rounded-xl border border-border/60 max-h-56 overflow-y-auto divide-y divide-border/40">
+                        {orphanProducts.length === 0 ? (
+                          <div className="p-6 text-center text-[11px] text-muted-foreground italic">
+                            Nenhum produto sem nota encontrado.
+                          </div>
+                        ) : (
+                          orphanProducts
+                            .filter((p) => {
+                              const q = orphanSearch.toLowerCase();
+                              return (
+                                !q ||
+                                p.name?.toLowerCase().includes(q) ||
+                                p.sku?.toLowerCase().includes(q)
+                              );
+                            })
+                            .map((p) => {
+                              const checked = selectedOrphanIds.includes(p.id);
+                              return (
+                                <label
+                                  key={p.id}
+                                  className={`flex items-center gap-3 p-2.5 cursor-pointer transition hover:bg-background ${checked ? "bg-primary/5" : ""}`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                      setSelectedOrphanIds((prev) =>
+                                        e.target.checked
+                                          ? [...prev, p.id]
+                                          : prev.filter((id) => id !== p.id),
+                                      );
+                                    }}
+                                    className="h-4 w-4 rounded border-border accent-primary"
+                                  />
+                                  <div className="h-8 w-8 rounded bg-muted overflow-hidden flex items-center justify-center text-muted-foreground shrink-0">
+                                    {p.image_url ? (
+                                      <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <Package className="h-4 w-4" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-bold text-foreground truncate">
+                                      {p.name}
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground font-medium">
+                                      {p.sku && <>SKU: {p.sku} • </>}
+                                      Estoque: {p.stock ?? 0}
+                                    </div>
+                                  </div>
+                                  <div className="text-[11px] font-black text-foreground">
+                                    {Number(p.cost_price || p.sale_price || 0).toLocaleString("pt-BR", {
+                                      style: "currency",
+                                      currency: "BRL",
+                                    })}
+                                  </div>
+                                </label>
+                              );
+                            })
+                        )}
+                      </div>
                     </div>
 
                     <DialogFooter className="pt-4 border-t">
