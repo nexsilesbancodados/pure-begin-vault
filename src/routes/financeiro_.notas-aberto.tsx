@@ -79,6 +79,8 @@ function NotasAbertoPage() {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
+  const [listSearch, setListSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "overdue" | "paid">("all");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const storageKey = `notas_abertas_${orgId ?? "default"}`;
   const [notas, setNotas] = useState<Nota[]>([]);
