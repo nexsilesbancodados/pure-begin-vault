@@ -334,18 +334,37 @@ function NotasAbertoPage() {
   const [notas, setNotas] = useState<Nota[]>([]);
   const [notesLoading, setNotesLoading] = useState(false);
   const [savingSelection, setSavingSelection] = useState(false);
+  const [notesDbUnavailable, setNotesDbUnavailable] = useState(false);
   const [addingToNotaId, setAddingToNotaId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const detailNota = notas.find((n) => n.id === detailId) ?? null;
 
+  const replaceNotas = useCallback(
+    (next: Nota[] | ((prev: Nota[]) => Nota[])) => {
+      setNotas((prev) => {
+        const resolved = typeof next === "function" ? next(prev) : next;
+        if (orgId) writeLocalNotas(orgId, resolved);
+        return resolved;
+      });
+    },
+    [orgId],
+  );
+
   const updateNota = (id: string, patch: Partial<Nota>) => {
-    setNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+    replaceNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
   };
 
   const persistNota = useCallback(
     async (nota: Nota) => {
       if (!orgId) return false;
+
+      writeLocalNotas(
+        orgId,
+        notas.map((n) => (n.id === nota.id ? { ...nota, updatedAt: new Date() } : n)),
+      );
+
+      if (notesDbUnavailable) return true;
 
       const { error } = await purchaseNotesTable()
         .update({
@@ -361,13 +380,18 @@ function NotasAbertoPage() {
         .eq("organization_id", orgId);
 
       if (error) {
+        if (isPurchaseNotesUnavailable(error)) {
+          setNotesDbUnavailable(true);
+          toast.warning("Banco de notas ainda não aplicado. Mantive a nota salva localmente.");
+          return true;
+        }
         toast.error("Erro ao salvar nota: " + error.message);
         return false;
       }
 
       return true;
     },
-    [orgId, userId],
+    [orgId, userId, notas, notesDbUnavailable],
   );
 
   const loadNotes = useCallback(
