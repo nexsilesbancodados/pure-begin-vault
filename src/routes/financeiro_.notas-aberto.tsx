@@ -530,7 +530,7 @@ function NotasAbertoPage() {
                   Cadastre notas de fornecedores, vincule produtos e acompanhe vencimentos de pagamento.
                 </p>
               </div>
-              <Button onClick={() => setOpen(true)} size="lg" className="gap-2 shadow-lg shadow-primary/20">
+              <Button onClick={() => setOpen(true)} size="lg" className="gap-2 shadow-lg shadow-primary/20" disabled={!orgId}>
                 <Plus className="h-4 w-4" />
                 Cadastrar Nota
               </Button>
