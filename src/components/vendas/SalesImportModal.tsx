@@ -47,6 +47,7 @@ type ParsedRow = {
   customer_name?: string;
   customer_phone?: string;
   customer_email?: string;
+  customer_document?: string;
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
@@ -81,24 +82,56 @@ const FIELD_ALIASES: Record<string, string[]> = {
   payment: ["pagamento", "pagto", "metodo", "method", "forma", "payment"],
   status: ["status", "situacao", "estado"],
   notes: ["obs", "observacao", "observacoes", "notes", "descricao", "description"],
-  customer: ["cliente", "customer", "comprador", "nome cliente", "nome do cliente"],
-  customer_phone: ["telefone", "celular", "whatsapp", "fone", "phone"],
+  customer: ["cliente", "customer", "comprador", "nome cliente", "nome do cliente", "razao social"],
+  customer_phone: ["telefone", "celular", "whatsapp", "fone", "phone", "tel"],
   customer_email: ["email", "e-mail", "mail"],
+  customer_document: ["cpf", "cnpj", "documento", "doc", "cpf/cnpj", "cpf cnpj", "rg"],
   product: ["produto", "item", "product", "mercadoria", "descricao produto"],
   quantity: ["qtd", "quantidade", "qty", "quantity"],
   unit_price: ["preco", "preço", "preco unit", "valor unitario", "unit price"],
 };
 
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
+// Estratégia: prioridade exato > startsWith > inclui, e cada header só pode
+// ser atribuído a um único campo (evita "Data Venda" virar VALOR).
 function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
   const map: Record<string, string> = {};
   const headers = Object.keys(sample);
-  for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
-    const match = headers.find((h) => {
-      const n = norm(h);
-      return aliases.some((a) => n === a || n.includes(a));
-    });
-    if (match) map[field] = match;
+  const used = new Set<string>();
+  const score = (h: string, aliases: string[]): number => {
+    const n = norm(h);
+    let best = 0;
+    for (const a of aliases) {
+      if (n === a) best = Math.max(best, 100);
+      else if (n.startsWith(a + " ") || n.startsWith(a + "_")) best = Math.max(best, 80);
+      else if (new RegExp(`(^|\\s|_)${a}(\\s|_|$)`).test(n)) best = Math.max(best, 60);
+      else if (n.includes(a)) best = Math.max(best, 30);
+    }
+    return best;
+  };
+  // Ordena campos por prioridade: campos mais específicos primeiro
+  const fieldOrder = [
+    "customer_document", "customer_email", "customer_phone", "customer",
+    "amount", "date", "payment", "status",
+    "unit_price", "quantity", "product", "notes",
+  ];
+  for (const field of fieldOrder) {
+    const aliases = FIELD_ALIASES[field];
+    if (!aliases) continue;
+    let bestHeader: string | undefined;
+    let bestScore = 0;
+    for (const h of headers) {
+      if (used.has(h)) continue;
+      const s = score(h, aliases);
+      if (s > bestScore) {
+        bestScore = s;
+        bestHeader = h;
+      }
+    }
+    if (bestHeader && bestScore >= 30) {
+      map[field] = bestHeader;
+      used.add(bestHeader);
+    }
   }
   return map;
 }
@@ -186,6 +219,10 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   const customerName = get("customer") ? String(get("customer")).trim() : undefined;
   const customerPhone = get("customer_phone") ? String(get("customer_phone")).trim() : undefined;
   const customerEmail = get("customer_email") ? String(get("customer_email")).trim() : undefined;
+  const customerDocRaw = get("customer_document");
+  const customerDocument = customerDocRaw
+    ? String(customerDocRaw).replace(/\D/g, "").trim() || undefined
+    : undefined;
   const productName = get("product") ? String(get("product")).trim() : undefined;
   const qtyRaw = get("quantity");
   const productQty = qtyRaw != null && qtyRaw !== "" ? Number(parseCurrency(qtyRaw)) || 1 : 1;
@@ -206,6 +243,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     customer_name: customerName || undefined,
     customer_phone: customerPhone || undefined,
     customer_email: customerEmail || undefined,
+    customer_document: customerDocument,
     product_name: productName || undefined,
     product_quantity: productQty,
     product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
@@ -349,7 +387,10 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
 
     try {
       // 1) CLIENTES — dedupe pelos que aparecem nas linhas
-      const uniqueCustomers = new Map<string, { name: string; phone?: string; email?: string }>();
+      const uniqueCustomers = new Map<
+        string,
+        { name: string; phone?: string; email?: string; document?: string }
+      >();
       for (const r of validRows) {
         if (r.customer_name) {
           const key = r.customer_name.toLowerCase();
@@ -358,7 +399,11 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
               name: r.customer_name,
               phone: r.customer_phone,
               email: r.customer_email,
+              document: r.customer_document,
             });
+          } else if (r.customer_document) {
+            const ex = uniqueCustomers.get(key)!;
+            if (!ex.document) ex.document = r.customer_document;
           }
         }
       }
@@ -389,6 +434,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                 name: c.name,
                 phone: c.phone || null,
                 email: c.email || null,
+                document: c.document || null,
               })),
             )
             .select("id, name");
@@ -795,33 +841,70 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 p-3">
+                <div className="p-3 space-y-4">
                   {[
-                    { field: "amount", label: "Valor *", required: true },
-                    { field: "date", label: "Data" },
-                    { field: "payment", label: "Pagamento" },
-                    { field: "status", label: "Status" },
-                  ].map(({ field, label, required }) => (
-                    <div key={field} className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-                        {label}
-                      </label>
-                      <select
-                        value={hmap[field] || ""}
-                        onChange={(e) => remap(field, e.target.value)}
-                        className={`w-full text-xs px-2.5 py-1.5 rounded-lg bg-background border ${
-                          required && !hmap[field]
-                            ? "border-destructive/50"
-                            : "border-border"
-                        } focus:outline-none focus:ring-2 focus:ring-primary/30`}
-                      >
-                        <option value="">— não usar —</option>
-                        {headers.map((h) => (
-                          <option key={h} value={h}>
-                            {h}
-                          </option>
+                    {
+                      title: "Venda",
+                      fields: [
+                        { field: "amount", label: "Valor *", required: true },
+                        { field: "date", label: "Data" },
+                        { field: "payment", label: "Pagamento" },
+                        { field: "status", label: "Status" },
+                      ],
+                    },
+                    {
+                      title: "Cliente",
+                      fields: [
+                        { field: "customer", label: "Nome do cliente" },
+                        { field: "customer_document", label: "CPF / CNPJ" },
+                        { field: "customer_phone", label: "Telefone" },
+                        { field: "customer_email", label: "E-mail" },
+                      ],
+                    },
+                    {
+                      title: "Produto",
+                      fields: [
+                        { field: "product", label: "Produto" },
+                        { field: "quantity", label: "Quantidade" },
+                        { field: "unit_price", label: "Preço unitário" },
+                        { field: "notes", label: "Observação" },
+                      ],
+                    },
+                  ].map((group) => (
+                    <div key={group.title} className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">
+                        {group.title}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {group.fields.map(({ field, label, required }) => (
+                          <div key={field} className="space-y-1">
+                            <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                              {label}
+                              {hmap[field] && (
+                                <CheckCircle2 className="h-2.5 w-2.5 text-success" />
+                              )}
+                            </label>
+                            <select
+                              value={hmap[field] || ""}
+                              onChange={(e) => remap(field, e.target.value)}
+                              className={`w-full text-xs px-2.5 py-1.5 rounded-lg bg-background border ${
+                                required && !hmap[field]
+                                  ? "border-destructive/50"
+                                  : hmap[field]
+                                  ? "border-success/40"
+                                  : "border-border"
+                              } focus:outline-none focus:ring-2 focus:ring-primary/30`}
+                            >
+                              <option value="">— não usar —</option>
+                              {headers.map((h) => (
+                                <option key={h} value={h}>
+                                  {h}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         ))}
-                      </select>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -878,6 +961,8 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                         <th className="text-left p-2.5 font-black w-10 text-[10px] uppercase tracking-wider text-muted-foreground">#</th>
                         <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Status</th>
                         <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
+                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
+                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">CPF / CNPJ</th>
                         <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
                         <th className="text-right p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
                       </tr>
@@ -926,6 +1011,26 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             </td>
                             <td className="p-2.5 font-mono text-[11px]">
                               {dateOk ? dt!.toLocaleDateString("pt-BR") : <span className="text-muted-foreground">—</span>}
+                            </td>
+                            <td className="p-2.5 text-[11px] max-w-[160px] truncate">
+                              {r.customer_name ? (
+                                <span className="font-semibold">{r.customer_name}</span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="p-2.5 font-mono text-[11px]">
+                              {r.customer_document ? (
+                                <span className="px-1.5 py-0.5 rounded-md bg-primary/5 border border-primary/20 text-primary">
+                                  {r.customer_document.length === 11
+                                    ? r.customer_document.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
+                                    : r.customer_document.length === 14
+                                    ? r.customer_document.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+                                    : r.customer_document}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
                             </td>
                             <td className="p-2.5">
                               {pm ? (
