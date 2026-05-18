@@ -526,14 +526,23 @@ function NotasAbertoPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, SKU ou IMEI..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, SKU ou IMEI..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setEditingProduct({} as any)}
+              className="shrink-0 gap-1"
+            >
+              <Plus className="h-4 w-4" /> Cadastrar Produto
+            </Button>
           </div>
 
           <div className="flex-1 overflow-auto border rounded-md">
