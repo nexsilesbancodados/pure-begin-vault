@@ -335,8 +335,6 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     }
   };
 
-  const [importStats, setImportStatsLocal] = [null as any, null as any]; // placeholder removed
-
   const handleImport = async () => {
     if (!user?.id || rows.length === 0) return;
     const validRows = rows.filter((r) => r._valid);
