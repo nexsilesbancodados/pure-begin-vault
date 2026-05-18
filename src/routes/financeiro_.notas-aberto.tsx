@@ -397,7 +397,7 @@ function NotasAbertoPage() {
   const loadNotes = useCallback(
     async (options?: { silent?: boolean; skipMigration?: boolean }) => {
       if (!orgId || !userId) {
-        setNotas([]);
+        replaceNotas([]);
         return;
       }
 
@@ -655,7 +655,7 @@ function NotasAbertoPage() {
       const total = getNoteTotal(items);
       return { ...n, items, total };
     });
-    setNotas(updatedNotas);
+    replaceNotas(updatedNotas);
     await Promise.all(
       updatedNotas.filter((note) => note.items.some((i) => i.id === merged.id)).map(persistNota),
     );
@@ -742,7 +742,7 @@ function NotasAbertoPage() {
       } else {
         const created = await createNota(items);
         if (!created) return;
-        setNotas((prev) => [...prev, created].sort((a, b) => a.noteNumber - b.noteNumber));
+        replaceNotas((prev) => [...prev, created].sort((a, b) => a.noteNumber - b.noteNumber));
         toast.success(`Nota ${created.noteNumber} criada com ${items.length} produto(s).`);
       }
 
