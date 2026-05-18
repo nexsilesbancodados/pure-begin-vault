@@ -206,6 +206,27 @@ const toNumber = (value: string | number | null | undefined) => Number(value ?? 
 const toInteger = (value: string | number | null | undefined) =>
   Math.trunc(Number(value ?? 0)) || 0;
 
+const parseDate = (value: unknown, fallback = new Date()) => {
+  const date = value ? new Date(String(value)) : fallback;
+  return Number.isNaN(date.getTime()) ? fallback : date;
+};
+
+const getLocalNotesKey = (orgId: string) => `notas_abertas_${orgId}`;
+
+const isPurchaseNotesUnavailable = (error: unknown) => {
+  const dbError = error as Partial<DbError> | null;
+  const message = String(dbError?.message ?? error ?? "").toLowerCase();
+  return (
+    dbError?.code === "42P01" ||
+    dbError?.code === "PGRST205" ||
+    (message.includes("purchase_notes") &&
+      (message.includes("does not exist") ||
+        message.includes("could not find") ||
+        message.includes("schema cache") ||
+        message.includes("relation")))
+  );
+};
+
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
@@ -248,31 +269,31 @@ const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
 
 const readLegacyNotas = (orgId: string): Nota[] => {
   if (typeof window === "undefined") return [];
-  const candidates = [`notas_abertas_${orgId}`, "notas_abertas_default"];
+  const candidates = [getLocalNotesKey(orgId), "notas_abertas_default"];
 
   for (const key of candidates) {
     const raw = localStorage.getItem(key);
     if (!raw) continue;
 
     try {
-      const arr = JSON.parse(raw) as Array<
-        Omit<Nota, "id" | "noteNumber"> & { id: number | string }
-      >;
+      const arr = JSON.parse(raw) as Array<Partial<Nota> & { id?: number | string }>;
       if (!Array.isArray(arr) || arr.length === 0) continue;
 
       const used = new Set<number>();
       return arr.map((note, index) => {
-        let noteNumber = Number(note.id) || index + 1;
+        let noteNumber = Number(note.noteNumber ?? note.id) || index + 1;
         while (used.has(noteNumber)) noteNumber += 1;
         used.add(noteNumber);
+        const stringId = typeof note.id === "string" ? note.id : "";
 
         return {
           ...note,
-          id: crypto.randomUUID(),
+          id: stringId && !/^\d+$/.test(stringId) ? stringId : crypto.randomUUID(),
           noteNumber,
           total: Number(note.total ?? getNoteTotal(note.items ?? [])),
           items: note.items ?? [],
-          createdAt: new Date(note.createdAt),
+          createdAt: parseDate(note.createdAt),
+          updatedAt: note.updatedAt ? parseDate(note.updatedAt) : undefined,
           fornecedor: note.fornecedor ?? "",
           dataCompra: note.dataCompra ?? new Date().toISOString().slice(0, 10),
           paga: Boolean(note.paga),
@@ -287,6 +308,20 @@ const readLegacyNotas = (orgId: string): Nota[] => {
   return [];
 };
 
+const writeLocalNotas = (orgId: string, notes: Nota[]) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(
+    getLocalNotesKey(orgId),
+    JSON.stringify(
+      notes.map((note) => ({
+        ...note,
+        createdAt: note.createdAt.toISOString(),
+        updatedAt: (note.updatedAt ?? new Date()).toISOString(),
+      })),
+    ),
+  );
+};
+
 function NotasAbertoPage() {
   const { orgId, userId } = useOrg();
   const [open, setOpen] = useState(false);
@@ -299,18 +334,37 @@ function NotasAbertoPage() {
   const [notas, setNotas] = useState<Nota[]>([]);
   const [notesLoading, setNotesLoading] = useState(false);
   const [savingSelection, setSavingSelection] = useState(false);
+  const [notesDbUnavailable, setNotesDbUnavailable] = useState(false);
   const [addingToNotaId, setAddingToNotaId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const detailNota = notas.find((n) => n.id === detailId) ?? null;
 
+  const replaceNotas = useCallback(
+    (next: Nota[] | ((prev: Nota[]) => Nota[])) => {
+      setNotas((prev) => {
+        const resolved = typeof next === "function" ? next(prev) : next;
+        if (orgId) writeLocalNotas(orgId, resolved);
+        return resolved;
+      });
+    },
+    [orgId],
+  );
+
   const updateNota = (id: string, patch: Partial<Nota>) => {
-    setNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+    replaceNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
   };
 
   const persistNota = useCallback(
     async (nota: Nota) => {
       if (!orgId) return false;
+
+      writeLocalNotas(
+        orgId,
+        notas.map((n) => (n.id === nota.id ? { ...nota, updatedAt: new Date() } : n)),
+      );
+
+      if (notesDbUnavailable) return true;
 
       const { error } = await purchaseNotesTable()
         .update({
@@ -326,19 +380,24 @@ function NotasAbertoPage() {
         .eq("organization_id", orgId);
 
       if (error) {
+        if (isPurchaseNotesUnavailable(error)) {
+          setNotesDbUnavailable(true);
+          toast.warning("Banco de notas ainda não aplicado. Mantive a nota salva localmente.");
+          return true;
+        }
         toast.error("Erro ao salvar nota: " + error.message);
         return false;
       }
 
       return true;
     },
-    [orgId, userId],
+    [orgId, userId, notas, notesDbUnavailable],
   );
 
   const loadNotes = useCallback(
     async (options?: { silent?: boolean; skipMigration?: boolean }) => {
       if (!orgId || !userId) {
-        setNotas([]);
+        replaceNotas([]);
         return;
       }
 
@@ -388,17 +447,28 @@ function NotasAbertoPage() {
         }
 
         if (mapped.length > 0) localStorage.setItem(migratedKey, "true");
-        setNotas(mapped);
+        setNotesDbUnavailable(false);
+        replaceNotas(mapped);
       } catch (error) {
+        if (isPurchaseNotesUnavailable(error)) {
+          const legacyNotes = readLegacyNotas(orgId);
+          setNotesDbUnavailable(true);
+          replaceNotas(legacyNotes);
+          if (!options?.silent) {
+            toast.warning("Banco de notas ainda não aplicado. Exibindo as notas salvas neste navegador.");
+          }
+          return;
+        }
         if (!options?.silent) {
           toast.error("Erro ao carregar notas: " + (error as Error).message);
-          setNotas([]);
+          const legacyNotes = readLegacyNotas(orgId);
+          replaceNotas(legacyNotes);
         }
       } finally {
         if (!options?.silent) setNotesLoading(false);
       }
     },
-    [orgId, userId],
+    [orgId, userId, replaceNotas],
   );
 
   useEffect(() => {
@@ -406,7 +476,7 @@ function NotasAbertoPage() {
   }, [loadNotes]);
 
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId || notesDbUnavailable) return;
 
     const channel = supabase
       .channel(`purchase_notes:${orgId}`)
@@ -425,7 +495,7 @@ function NotasAbertoPage() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [orgId, loadNotes]);
+  }, [orgId, loadNotes, notesDbUnavailable]);
 
   const createNota = useCallback(
     async (items: Product[]) => {
@@ -434,12 +504,37 @@ function NotasAbertoPage() {
         return null;
       }
 
+      const makeLocalNote = () => {
+        const nextNumber = Math.max(0, ...notas.map((note) => note.noteNumber)) + 1;
+        const now = new Date();
+        return {
+          id: crypto.randomUUID(),
+          noteNumber: nextNumber,
+          items,
+          total: getNoteTotal(items),
+          createdAt: now,
+          updatedAt: now,
+          fornecedor: "",
+          dataCompra: now.toISOString().slice(0, 10),
+          paga: false,
+          prazoPagamento: "",
+        } satisfies Nota;
+      };
+
+      if (notesDbUnavailable) return makeLocalNote();
+
       const latest = await purchaseNotesTable()
         .select("note_number")
         .eq("organization_id", orgId)
         .order("note_number", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      if (latest.error && isPurchaseNotesUnavailable(latest.error)) {
+        setNotesDbUnavailable(true);
+        toast.warning("Banco de notas ainda não aplicado. A nota será salva localmente por enquanto.");
+        return makeLocalNote();
+      }
 
       let nextNumber = Number(latest.data?.note_number ?? 0) + 1;
       const total = getNoteTotal(items);
@@ -462,6 +557,11 @@ function NotasAbertoPage() {
           .single();
 
         if (!error) return mapPurchaseNote(data as PurchaseNoteRow);
+        if (isPurchaseNotesUnavailable(error)) {
+          setNotesDbUnavailable(true);
+          toast.warning("Banco de notas ainda não aplicado. A nota será salva localmente por enquanto.");
+          return makeLocalNote();
+        }
         if (error.code !== "23505") {
           toast.error("Erro ao criar nota: " + error.message);
           return null;
@@ -472,11 +572,17 @@ function NotasAbertoPage() {
       toast.error("Não foi possível gerar a numeração da nota.");
       return null;
     },
-    [orgId, userId],
+    [orgId, userId, notas, notesDbUnavailable],
   );
 
   const deleteNota = async (nota: Nota) => {
     if (!window.confirm(`Excluir Nota ${nota.noteNumber}?`)) return;
+
+    if (notesDbUnavailable) {
+      replaceNotas((prev) => prev.filter((x) => x.id !== nota.id));
+      toast.success(`Nota ${nota.noteNumber} excluída.`);
+      return;
+    }
 
     const { error } = await purchaseNotesTable()
       .delete()
@@ -484,11 +590,17 @@ function NotasAbertoPage() {
       .eq("organization_id", orgId);
 
     if (error) {
+      if (isPurchaseNotesUnavailable(error)) {
+        setNotesDbUnavailable(true);
+        replaceNotas((prev) => prev.filter((x) => x.id !== nota.id));
+        toast.success(`Nota ${nota.noteNumber} excluída localmente.`);
+        return;
+      }
       toast.error("Erro ao excluir nota: " + error.message);
       return;
     }
 
-    setNotas((prev) => prev.filter((x) => x.id !== nota.id));
+    replaceNotas((prev) => prev.filter((x) => x.id !== nota.id));
     toast.success(`Nota ${nota.noteNumber} excluída.`);
   };
 
@@ -543,7 +655,7 @@ function NotasAbertoPage() {
       const total = getNoteTotal(items);
       return { ...n, items, total };
     });
-    setNotas(updatedNotas);
+    replaceNotas(updatedNotas);
     await Promise.all(
       updatedNotas.filter((note) => note.items.some((i) => i.id === merged.id)).map(persistNota),
     );
@@ -630,7 +742,7 @@ function NotasAbertoPage() {
       } else {
         const created = await createNota(items);
         if (!created) return;
-        setNotas((prev) => [...prev, created].sort((a, b) => a.noteNumber - b.noteNumber));
+        replaceNotas((prev) => [...prev, created].sort((a, b) => a.noteNumber - b.noteNumber));
         toast.success(`Nota ${created.noteNumber} criada com ${items.length} produto(s).`);
       }
 
