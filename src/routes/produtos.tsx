@@ -327,9 +327,9 @@ function ProductsPage() {
                   className="rounded-2xl bg-card border border-border overflow-hidden shadow-card hover:shadow-elegant transition-all group"
                 >
                   <div className="h-40 bg-muted grid place-items-center relative overflow-hidden">
-                    {product.image_url ? (
+                    {(product.image_url || product.metadata?.image_url) ? (
                       <img
-                        src={product.image_url}
+                        src={product.image_url || product.metadata?.image_url}
                         alt={product.name}
                         loading="lazy"
                         className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition duration-300"
