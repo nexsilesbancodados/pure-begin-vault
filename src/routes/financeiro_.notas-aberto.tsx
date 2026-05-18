@@ -198,6 +198,9 @@ const toJson = (value: unknown): Json => {
   return null;
 };
 
+const toNumber = (value: string | number | null | undefined) => Number(value ?? 0) || 0;
+const toInteger = (value: string | number | null | undefined) => Math.trunc(Number(value ?? 0)) || 0;
+
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
@@ -504,9 +507,9 @@ function NotasAbertoPage() {
     } = data;
     const payload: Record<string, unknown> = {
       ...productFields,
-      price: parseFloat(data.price) || 0,
-      cost_price: parseFloat(data.cost_price) || 0,
-      stock_quantity: parseInt(stock ?? data.stock_quantity) || 0,
+      price: toNumber(data.price),
+      cost_price: toNumber(data.cost_price),
+      stock_quantity: toInteger(stock ?? data.stock_quantity),
     };
     const isNew = !editingProduct.id;
     if (isNew) {
