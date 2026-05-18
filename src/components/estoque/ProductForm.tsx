@@ -342,6 +342,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
       const payload: ProductFormData = {
         name,
+        reference: form.codigo || generateProductCode(),
         sku: form.sku || undefined,
         ean: form.ean || undefined,
         category: form.categoria || form.tipo,
