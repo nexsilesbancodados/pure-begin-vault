@@ -199,6 +199,9 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
   const [progress, setProgress] = useState(0);
   const [imported, setImported] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [hmap, setHmap] = useState<Record<string, string>>({});
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rawData, setRawData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stats = useMemo(() => {
@@ -211,9 +214,22 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     };
   }, [rows]);
 
+  const remap = (field: string, header: string) => {
+    const newMap = { ...hmap };
+    if (!header) delete newMap[field];
+    else newMap[field] = header;
+    setHmap(newMap);
+    if (rawData.length) {
+      setRows(rawData.map((r, i) => parseRow(r, newMap, i)));
+    }
+  };
+
   const reset = () => {
     setFile(null);
     setRows([]);
+    setHmap({});
+    setHeaders([]);
+    setRawData([]);
     setStep("upload");
     setProgress(0);
     setImported(0);
