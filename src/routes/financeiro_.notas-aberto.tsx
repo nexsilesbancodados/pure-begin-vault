@@ -27,6 +27,7 @@ import { Plus, FileText, Search, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
+import { ProductForm } from "@/components/estoque/ProductForm";
 
 export const Route = createFileRoute("/financeiro_/notas-aberto")({
   head: () => ({
@@ -45,8 +46,10 @@ interface Product {
   sku?: string | null;
   imei?: string | null;
   price?: number | null;
+  cost_price?: number | null;
   stock_quantity?: number | null;
   metadata?: unknown;
+  [key: string]: unknown;
 }
 
 const getImeiFromMetadata = (metadata: unknown) => {
@@ -77,10 +80,47 @@ function NotasAbertoPage() {
   const [notas, setNotas] = useState<Nota[]>([]);
   const [addingToNotaId, setAddingToNotaId] = useState<number | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const detailNota = notas.find((n) => n.id === detailId) ?? null;
 
   const updateNota = (id: number, patch: Partial<Nota>) => {
     setNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
+  };
+
+  const handleSaveProduct = async (data: any) => {
+    if (!editingProduct) return;
+    const {
+      stock, imei, imei2, color, capacity, processor, ram, display,
+      margin, markup, battery_health, observations, store, ...productFields
+    } = data;
+    const payload: any = {
+      ...productFields,
+      price: parseFloat(data.price) || 0,
+      cost_price: parseFloat(data.cost_price) || 0,
+      stock_quantity: parseInt(stock ?? data.stock_quantity) || 0,
+    };
+    const { data: updated, error } = await supabase
+      .from("products")
+      .update(payload)
+      .eq("id", editingProduct.id)
+      .select("*")
+      .single();
+    if (error) {
+      toast.error("Erro ao salvar produto: " + error.message);
+      return;
+    }
+    const merged: Product = { ...(updated as any), imei: getImeiFromMetadata((updated as any)?.metadata) };
+    setProducts((prev) => prev.map((p) => (p.id === merged.id ? merged : p)));
+    setNotas((prev) =>
+      prev.map((n) => {
+        if (!n.items.some((i) => i.id === merged.id)) return n;
+        const items = n.items.map((i) => (i.id === merged.id ? merged : i));
+        const total = items.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+        return { ...n, items, total };
+      }),
+    );
+    setEditingProduct(null);
+    toast.success("Produto atualizado.");
   };
 
   const loadProducts = async () => {
@@ -89,7 +129,7 @@ function NotasAbertoPage() {
 
     let query = supabase
       .from("products")
-      .select("id, name, organization_id, sku, price, stock_quantity, metadata")
+      .select("*")
       .eq("active", true)
       .order("name")
       .limit(500);
@@ -110,7 +150,7 @@ function NotasAbertoPage() {
       if (orgIds.length > 0) {
         const fallback = await supabase
           .from("products")
-          .select("id, name, organization_id, sku, price, stock_quantity, metadata")
+          .select("*")
           .in("organization_id", orgIds)
           .eq("active", true)
           .order("name")
@@ -281,7 +321,8 @@ function NotasAbertoPage() {
                     <TableHead>Produto</TableHead>
                     <TableHead>SKU</TableHead>
                     <TableHead>IMEI</TableHead>
-                    <TableHead className="text-right">Preço</TableHead>
+                    <TableHead className="text-right">Custo</TableHead>
+                    <TableHead className="text-right">Venda</TableHead>
                     <TableHead className="text-right">Estoque</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -300,9 +341,20 @@ function NotasAbertoPage() {
                           onClick={(e) => e.stopPropagation()}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell
+                        className="font-medium text-primary hover:underline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingProduct(p);
+                        }}
+                      >
+                        {p.name}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{p.sku ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{p.imei ?? "—"}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {p.cost_price != null ? `R$ ${Number(p.cost_price).toFixed(2)}` : "—"}
+                      </TableCell>
                       <TableCell className="text-right">
                         {p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : "—"}
                       </TableCell>
@@ -449,15 +501,24 @@ function NotasAbertoPage() {
                           <TableRow>
                             <TableHead className="font-semibold">Produto</TableHead>
                             <TableHead className="font-semibold">IMEI</TableHead>
-                            <TableHead className="font-semibold text-right">Preço</TableHead>
+                            <TableHead className="font-semibold text-right">Custo</TableHead>
+                            <TableHead className="font-semibold text-right">Venda</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {detailNota.items.map((p) => (
                             <TableRow key={p.id} className="hover:bg-muted/30">
-                              <TableCell className="font-medium">{p.name}</TableCell>
+                              <TableCell
+                                className="font-medium text-primary cursor-pointer hover:underline"
+                                onClick={() => setEditingProduct(p)}
+                              >
+                                {p.name}
+                              </TableCell>
                               <TableCell className="text-muted-foreground font-mono text-xs">
                                 {p.imei ?? "—"}
+                              </TableCell>
+                              <TableCell className="text-right text-muted-foreground">
+                                {p.cost_price != null ? `R$ ${Number(p.cost_price).toFixed(2)}` : "—"}
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : "—"}
@@ -498,6 +559,13 @@ function NotasAbertoPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ProductForm
+        open={!!editingProduct}
+        onOpenChange={(o) => !o && setEditingProduct(null)}
+        product={editingProduct}
+        onSave={handleSaveProduct}
+      />
     </div>
   );
 }
