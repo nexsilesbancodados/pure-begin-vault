@@ -666,13 +666,12 @@ ul{font-size:12px;line-height:1.6;}
                             {
                               icon: FileText,
                               label: "Recibo",
-                              onClick: () => window.open(`/recibo/${sale.id}`, "_blank"),
+                              onClick: () => openReceiptPopup(sale),
                             },
                             {
                               icon: Printer,
                               label: "Recibo 80mm",
-                              onClick: () =>
-                                window.open(`/recibo/${sale.id}?fmt=80&auto=1`, "_blank"),
+                              onClick: () => openReceiptPopup(sale, true),
                             },
                             {
                               icon: MessageSquare,
@@ -720,8 +719,7 @@ ul{font-size:12px;line-height:1.6;}
                             {
                               icon: Truck,
                               label: "Imprimir Delivery",
-                              onClick: () =>
-                                window.open(`/recibo/${sale.id}?tipo=delivery&auto=1`, "_blank"),
+                              onClick: () => openReceiptPopup(sale, true),
                             },
                             {
                               icon: PenLine,
@@ -944,17 +942,17 @@ ul{font-size:12px;line-height:1.6;}
                     </Button>
                     <Button
                       className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
-                      onClick={() => window.open(`/recibo/${selectedSale.id}`, "_blank")}
+                      onClick={() => openReceiptPopup(selectedSale)}
                     >
                       <Eye className="h-4 w-4" />
-                      Detalhes
+                      Recibo
                     </Button>
                     <Button
                       variant="outline"
                       className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
                       onClick={() => {
                         toast.info("Preparando cupom...");
-                        window.open(`/recibo/${selectedSale.id}?auto=1`, "_blank");
+                        openReceiptPopup(selectedSale, true);
                       }}
                     >
                       <Printer className="h-4 w-4" />
