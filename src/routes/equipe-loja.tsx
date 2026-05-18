@@ -13,8 +13,10 @@ function EquipeLojaPage() {
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar title="Equipe da Loja" subtitle="Convide membros e gerencie acessos" />
-        <main className="flex-1 overflow-y-auto p-6 max-w-3xl mx-auto w-full">
-          <InviteFlow />
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-6xl mx-auto w-full p-6">
+            <InviteFlow />
+          </div>
         </main>
       </div>
     </div>
