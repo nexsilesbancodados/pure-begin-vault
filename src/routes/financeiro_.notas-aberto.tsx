@@ -49,7 +49,8 @@ interface Product {
 
 const getImeiFromMetadata = (metadata: unknown) => {
   if (!metadata || typeof metadata !== "object") return null;
-  const value = (metadata as Record<string, unknown>).imei ?? (metadata as Record<string, unknown>).imei2;
+  const value =
+    (metadata as Record<string, unknown>).imei ?? (metadata as Record<string, unknown>).imei2;
   return value ? String(value) : null;
 };
 
@@ -99,7 +100,7 @@ function NotasAbertoPage() {
     }
 
     if (error) toast.error("Erro ao carregar produtos: " + error.message);
-    const mapped: Product[] = (data ?? []).map((p: any) => ({
+    const mapped: Product[] = ((data ?? []) as Product[]).map((p) => ({
       ...p,
       imei: getImeiFromMetadata(p.metadata),
     }));
@@ -204,17 +205,13 @@ function NotasAbertoPage() {
                     <TableRow
                       key={p.id}
                       className="cursor-pointer"
-                      onClick={() =>
-                        setSelected((prev) => ({ ...prev, [p.id]: !prev[p.id] }))
-                      }
+                      onClick={() => setSelected((prev) => ({ ...prev, [p.id]: !prev[p.id] }))}
                     >
                       <TableCell>
                         <input
                           type="checkbox"
                           checked={!!selected[p.id]}
-                          onChange={() =>
-                            setSelected((prev) => ({ ...prev, [p.id]: !prev[p.id] }))
-                          }
+                          onChange={() => setSelected((prev) => ({ ...prev, [p.id]: !prev[p.id] }))}
                           onClick={(e) => e.stopPropagation()}
                         />
                       </TableCell>
@@ -222,9 +219,7 @@ function NotasAbertoPage() {
                       <TableCell className="text-muted-foreground">{p.sku ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{p.imei ?? "—"}</TableCell>
                       <TableCell className="text-right">
-                        {p.price != null
-                          ? `R$ ${Number(p.price).toFixed(2)}`
-                          : "—"}
+                        {p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : "—"}
                       </TableCell>
                       <TableCell className="text-right">{p.stock_quantity ?? 0}</TableCell>
                     </TableRow>
