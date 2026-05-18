@@ -595,6 +595,83 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                 </div>
               </div>
 
+              {/* Mapeamento de colunas */}
+              <div className="rounded-2xl border border-border overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                    Mapeamento de colunas
+                  </span>
+                  {!hmap.amount && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30">
+                      Valor obrigatório
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 p-3">
+                  {[
+                    { field: "amount", label: "Valor *", required: true },
+                    { field: "date", label: "Data" },
+                    { field: "payment", label: "Pagamento" },
+                    { field: "status", label: "Status" },
+                  ].map(({ field, label, required }) => (
+                    <div key={field} className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                        {label}
+                      </label>
+                      <select
+                        value={hmap[field] || ""}
+                        onChange={(e) => remap(field, e.target.value)}
+                        className={`w-full text-xs px-2.5 py-1.5 rounded-lg bg-background border ${
+                          required && !hmap[field]
+                            ? "border-destructive/50"
+                            : "border-border"
+                        } focus:outline-none focus:ring-2 focus:ring-primary/30`}
+                      >
+                        <option value="">— não usar —</option>
+                        {headers.map((h) => (
+                          <option key={h} value={h}>
+                            {h}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Erros agregados */}
+              {stats.invalid > 0 && (
+                <details className="rounded-2xl border border-destructive/20 bg-destructive/5 overflow-hidden">
+                  <summary className="cursor-pointer px-4 py-2.5 flex items-center gap-2 text-xs font-black">
+                    <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                    <span className="text-destructive">
+                      {stats.invalid} linhas com problemas
+                    </span>
+                    <span className="ml-auto text-[10px] font-bold text-muted-foreground">
+                      (clique para detalhes)
+                    </span>
+                  </summary>
+                  <div className="max-h-32 overflow-y-auto border-t border-destructive/20 bg-background/50">
+                    {rows
+                      .filter((r) => !r._valid)
+                      .slice(0, 20)
+                      .map((r, i) => (
+                        <p
+                          key={i}
+                          className="px-4 py-1.5 text-[11px] text-destructive border-b border-destructive/10 last:border-0"
+                        >
+                          {r._error}
+                        </p>
+                      ))}
+                    {stats.invalid > 20 && (
+                      <p className="px-4 py-2 text-[10px] text-center text-muted-foreground">
+                        + {stats.invalid - 20} erros adicionais
+                      </p>
+                    )}
+                  </div>
+                </details>
+              )}
+
               {/* Preview table */}
               <div className="rounded-2xl border border-border overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
