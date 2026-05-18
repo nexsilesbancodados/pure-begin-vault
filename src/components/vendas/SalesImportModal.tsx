@@ -243,7 +243,12 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
 
   const processFile = async (
     file: File,
-  ): Promise<{ rows: ParsedRow[]; hmap: Record<string, string>; headers: string[] }> => {
+  ): Promise<{
+    rows: ParsedRow[];
+    hmap: Record<string, string>;
+    headers: string[];
+    raw: any[];
+  }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -253,13 +258,13 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
           const ws = wb.Sheets[wb.SheetNames[0]];
           const json = XLSX.utils.sheet_to_json<any>(ws, { defval: "", raw: false });
           if (json.length === 0) {
-            resolve({ rows: [], hmap: {}, headers: [] });
+            resolve({ rows: [], hmap: {}, headers: [], raw: [] });
             return;
           }
           const hmap = buildHeaderMap(json[0]);
           const headers = Object.keys(json[0]);
           const rows = json.map((r, i) => parseRow(r, hmap, i));
-          resolve({ rows, hmap, headers });
+          resolve({ rows, hmap, headers, raw: json });
         } catch (err) {
           reject(err);
         }
