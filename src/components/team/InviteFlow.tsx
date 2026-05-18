@@ -63,7 +63,12 @@ export function InviteFlow() {
         .select("user_id, role, is_default, profile:profiles(id, nome, email)")
         .eq("organization_id", orgId),
     ]);
-    setInvites((iRes.data as Invite[]) ?? []);
+    const raw = (iRes.data as Invite[]) ?? [];
+    let metaMap: Record<string, Invite["metadata"]> = {};
+    try {
+      metaMap = JSON.parse(localStorage.getItem(`invite_meta_${orgId}`) || "{}");
+    } catch {}
+    setInvites(raw.map((i) => ({ ...i, metadata: metaMap[i.id] ?? i.metadata ?? null })));
     setMembers((mRes.data as Member[]) ?? []);
     setLoading(false);
   };
