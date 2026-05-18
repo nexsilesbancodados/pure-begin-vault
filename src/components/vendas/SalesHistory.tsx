@@ -488,7 +488,11 @@ export function SalesHistory() {
 
                           <DropdownMenuItem
                             onClick={() => {
-                              toast.info("Carregando venda para edição...");
+                              if (sale.status === "cancelled" || sale.status === "canceled") {
+                                toast.error("Vendas canceladas não podem ser editadas.");
+                                return;
+                              }
+                              toast.info("Abrindo PDV para edição...");
                               window.open(`/pdv?edit=${sale.id}`, "_blank");
                             }}
                             className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
@@ -505,7 +509,7 @@ export function SalesHistory() {
                           </DropdownMenuItem>
 
                           <DropdownMenuItem
-                            onClick={() => window.open(`/pdv?view=${sale.id}`, "_blank")}
+                            onClick={() => window.open(`/recibo/${sale.id}`, "_blank")}
                             className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
                           >
                             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
@@ -522,8 +526,7 @@ export function SalesHistory() {
                           <DropdownMenuItem
                             onClick={() => {
                               toast.info("Preparando cupom...");
-                              // Simulação de abertura do componente PDVInterface com a venda carregada
-                              window.open(`/pdv?print=receipt&id=${sale.id}`, "_blank");
+                              window.open(`/recibo/${sale.id}?auto=1`, "_blank");
                             }}
                             className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
                           >
