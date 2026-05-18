@@ -48,36 +48,38 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
       if (switchError) throw new Error(switchError.message);
     }
 
-    if (data.name) {
-      const { error: e1 } = await supabase.rpc("update_organization_name", {
-        _org_id: data.orgId,
-        _name: data.name,
-      });
-      if (e1) throw new Error(e1.message);
+    try {
+      if (data.name) {
+        const { error: e1 } = await supabase.rpc("update_organization_name", {
+          _org_id: data.orgId,
+          _name: data.name,
+        });
+        if (e1) throw new Error(e1.message);
+      }
+
+      const payload: {
+        organization_id: string;
+        brand_name?: string;
+        brand_logo_url?: string | null;
+        support_email?: string | null;
+        support_whatsapp?: string | null;
+      } = { organization_id: data.orgId };
+      if (data.name !== undefined) payload.brand_name = data.name;
+      if (data.brand_logo_url !== undefined) payload.brand_logo_url = data.brand_logo_url;
+      if (data.support_email !== undefined) payload.support_email = data.support_email;
+      if (data.support_whatsapp !== undefined) payload.support_whatsapp = data.support_whatsapp;
+
+      const { error: e2 } = await supabase
+        .from("organization_settings")
+        .upsert(payload, { onConflict: "organization_id" });
+      if (e2) throw new Error(e2.message);
+
+      return { ok: true };
+    } finally {
+      if (previousOrgId && previousOrgId !== data.orgId) {
+        await supabase.rpc("switch_organization", { _org_id: previousOrgId });
+      }
     }
-
-    const payload: {
-      organization_id: string;
-      brand_name?: string;
-      brand_logo_url?: string | null;
-      support_email?: string | null;
-      support_whatsapp?: string | null;
-    } = { organization_id: data.orgId };
-    if (data.name !== undefined) payload.brand_name = data.name;
-    if (data.brand_logo_url !== undefined) payload.brand_logo_url = data.brand_logo_url;
-    if (data.support_email !== undefined) payload.support_email = data.support_email;
-    if (data.support_whatsapp !== undefined) payload.support_whatsapp = data.support_whatsapp;
-
-    const { error: e2 } = await supabase
-      .from("organization_settings")
-      .upsert(payload, { onConflict: "organization_id" });
-    if (e2) throw new Error(e2.message);
-
-    if (previousOrgId && previousOrgId !== data.orgId) {
-      await supabase.rpc("switch_organization", { _org_id: previousOrgId });
-    }
-
-    return { ok: true };
   });
 
 const LogosSchema = z.object({
