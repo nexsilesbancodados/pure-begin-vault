@@ -82,6 +82,7 @@ export const iconMap: Record<string, LucideIcon> = {
   Store,
   Trello,
   TrendingUp,
+  Upload,
   User,
   UserPlus,
   Users,
