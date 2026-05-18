@@ -8,37 +8,42 @@ export const getOrgSummaries = createServerFn({ method: "POST" })
     z.object({ orgIds: z.array(z.string().uuid()).min(0).max(200) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    if (data.orgIds.length === 0)
-      return {
-        organizations: {} as Record<string, { name: string | null; logo_url: string | null }>,
-      };
+    const empty = {
+      organizations: {} as Record<string, { name: string | null; logo_url: string | null }>,
+    };
+    if (data.orgIds.length === 0) return empty;
+
+    // Try admin client first (bypasses RLS); fall back to authenticated client.
+    let client: typeof context.supabase = context.supabase;
+    try {
+      const mod = await import("@/integrations/supabase/client.server");
+      client = mod.supabaseAdmin as unknown as typeof context.supabase;
+    } catch {
+      // env vars missing — use the authenticated user client (RLS applies)
+    }
 
     const [{ data: memberships }, { data: profile }] = await Promise.all([
-      supabaseAdmin
+      client
         .from("user_organizations")
         .select("organization_id")
         .eq("user_id", context.userId)
         .in("organization_id", data.orgIds),
-      supabaseAdmin.from("profiles").select("role").eq("id", context.userId).maybeSingle(),
+      client.from("profiles").select("role").eq("id", context.userId).maybeSingle(),
     ]);
 
     const allowedIds = new Set(
       ((memberships as { organization_id: string }[]) ?? []).map((m) => m.organization_id),
     );
-    if (String(profile?.role ?? "").toLowerCase() === "super_admin") {
+    if (String((profile as { role?: string } | null)?.role ?? "").toLowerCase() === "super_admin") {
       data.orgIds.forEach((id) => allowedIds.add(id));
     }
 
     const ids = data.orgIds.filter((id) => allowedIds.has(id));
-    if (ids.length === 0)
-      return {
-        organizations: {} as Record<string, { name: string | null; logo_url: string | null }>,
-      };
+    if (ids.length === 0) return empty;
 
     const [{ data: orgRows }, { data: settingsRows }] = await Promise.all([
-      supabaseAdmin.from("organizations").select("id, name").in("id", ids),
-      supabaseAdmin
+      client.from("organizations").select("id, name").in("id", ids),
+      client
         .from("organization_settings")
         .select("organization_id, brand_logo_url")
         .in("organization_id", ids),
