@@ -2148,6 +2148,62 @@ export type Database = {
           },
         ]
       }
+      purchase_notes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_compra: string
+          fornecedor: string
+          id: string
+          items: Json
+          note_number: number
+          organization_id: string
+          paga: boolean
+          prazo_pagamento: string | null
+          total: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_compra?: string
+          fornecedor?: string
+          id?: string
+          items?: Json
+          note_number: number
+          organization_id: string
+          paga?: boolean
+          prazo_pagamento?: string | null
+          total?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_compra?: string
+          fornecedor?: string
+          id?: string
+          items?: Json
+          note_number?: number
+          organization_id?: string
+          paga?: boolean
+          prazo_pagamento?: string | null
+          total?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotations: {
         Row: {
           converted_sale_id: string | null
