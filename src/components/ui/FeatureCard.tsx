@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
