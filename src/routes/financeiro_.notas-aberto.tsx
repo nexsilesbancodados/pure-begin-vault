@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   Plus, FileText, Search, Loader2, Trash2, AlertTriangle,
-  CheckCircle2, Clock, Wallet, Package, Building2, Calendar,
+  CheckCircle2, Clock, Package, Building2, Calendar,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
@@ -478,41 +478,36 @@ function NotasAbertoPage() {
 
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
-  const confirm = () => {
+  const confirm = async () => {
     const items = products.filter((p) => selected[p.id]);
     if (items.length === 0) return;
+    setSavingSelection(true);
 
+    try {
     if (addingToNotaId != null) {
       const nota = notas.find((n) => n.id === addingToNotaId);
       if (nota) {
         const existing = new Set(nota.items.map((i) => i.id));
         const merged = [...nota.items, ...items.filter((i) => !existing.has(i.id))];
-        const total = merged.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
-        updateNota(addingToNotaId, { items: merged, total });
-        toast.success(`Produto(s) adicionado(s) à Nota ${addingToNotaId}.`);
+        const updated = { ...nota, items: merged, total: getNoteTotal(merged) };
+        updateNota(addingToNotaId, { items: updated.items, total: updated.total });
+        const ok = await persistNota(updated);
+        if (!ok) return;
+        toast.success(`Produto(s) adicionado(s) à Nota ${nota.noteNumber}.`);
       }
       setAddingToNotaId(null);
     } else {
-      const total = items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
-      const newId = notas.length + 1;
-      setNotas((prev) => [
-        ...prev,
-        {
-          id: newId,
-          items,
-          total,
-          createdAt: new Date(),
-          fornecedor: "",
-          dataCompra: new Date().toISOString().slice(0, 10),
-          paga: false,
-          prazoPagamento: "",
-        },
-      ]);
-      toast.success(`Nota ${newId} criada com ${items.length} produto(s).`);
+      const created = await createNota(items);
+      if (!created) return;
+      setNotas((prev) => [...prev, created].sort((a, b) => a.noteNumber - b.noteNumber));
+      toast.success(`Nota ${created.noteNumber} criada com ${items.length} produto(s).`);
     }
 
     setSelected({});
     setOpen(false);
+    } finally {
+      setSavingSelection(false);
+    }
   };
 
   return (
