@@ -367,6 +367,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
         unit: "un",
         description: form.observacao || undefined,
         metadata: {
+          product_type: productType,
           tipo: form.tipo,
           imei: form.imei,
           imei2: form.imei2,
