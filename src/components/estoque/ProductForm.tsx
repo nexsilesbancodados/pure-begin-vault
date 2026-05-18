@@ -365,7 +365,21 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                 </FieldRow>
 
                 <FieldRow label="Tipo" required>
-                  <Select value={form.tipo} onValueChange={(v) => set("tipo", v)}>
+                  <Select
+                    value={form.tipo}
+                    onValueChange={(v) => {
+                      if (v === "__add__") {
+                        const nome = window.prompt("Nome do novo tipo:")?.trim();
+                        if (!nome) return;
+                        setCustomTipos((prev) =>
+                          prev.includes(nome) ? prev : [...prev, nome],
+                        );
+                        set("tipo", nome);
+                        return;
+                      }
+                      set("tipo", v);
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecionar" />
                     </SelectTrigger>
@@ -374,6 +388,17 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                       <SelectItem value="Seminovo">Seminovo</SelectItem>
                       <SelectItem value="Usado">Usado</SelectItem>
                       <SelectItem value="Vitrine">Vitrine</SelectItem>
+                      {customTipos.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                      <SelectItem
+                        value="__add__"
+                        className="text-primary font-bold border-t mt-1"
+                      >
+                        + Cadastrar novo tipo...
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </FieldRow>
