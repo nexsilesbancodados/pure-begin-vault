@@ -245,77 +245,116 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     return (lucro / c) * 100;
   }, [lucro, form.valor_custo]);
 
-  const handleSave = async () => {
-    if (!form.modelo && !form.sku && !form.ean && !form.codigo && !form.marca) {
-      // require at least a name
-    }
-    const name =
-      [form.marca, form.modelo, form.gb && `${form.gb}GB`, form.cor].filter(Boolean).join(" ") ||
-      form.modelo ||
-      form.sku ||
-      "Produto sem nome";
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
-    const payload: ProductFormData = {
-      name,
-      sku: form.sku || undefined,
-      ean: form.ean || undefined,
-      category: form.categoria || form.tipo,
-      brand: form.marca || undefined,
-      supplier: form.fornecedor || undefined,
-      model: form.modelo || undefined,
-      price: parseFloat(form.valor_venda) || 0,
-      cost_price: parseFloat(form.valor_custo) || 0,
-      stock_quantity: parseInt(form.quantidade) || 0,
-      min_stock: form.quantidade_minima ? parseInt(form.quantidade_minima) : undefined,
-      unit: "un",
-      description: form.observacao || undefined,
-      metadata: {
-        tipo: form.tipo,
-        imei: form.imei,
-        imei2: form.imei2,
-        disponibilidade: form.disponibilidade,
-        gb: form.gb,
-        serial: form.serial,
-        ram: form.ram,
-        cor: form.cor,
-        subcategoria: form.subcategoria,
-        saude_bateria: form.saude_bateria,
-        ciclo_bateria: form.ciclo_bateria,
-        estado: form.estado,
-        margem: form.margem || margemCalc.toFixed(2),
-        markup: form.markup || markupCalc.toFixed(2),
-        data_entrada: form.data_entrada,
-        dias_garantia: form.dias_garantia,
-        valor_venda_2: form.valor_venda_2,
-        valor_venda_3: form.valor_venda_3,
-        tags: form.tags
-          .split(",")
-          .map((t: string) => t.trim())
-          .filter(Boolean),
-        tipo_fornecedor: form.tipo_fornecedor,
-        ncm: form.ncm,
-        cest: form.cest,
-        origem: form.origem,
-        peso: form.peso,
-        forma_pagamento: form.forma_pagamento,
-        parcelas: form.parcelas,
-        contas_pagar: contasPagar,
-        custos_extras: custosExtras,
-        anexos,
-        checklist,
-        mov_tipo: form.mov_tipo,
-        mov_motivo: form.mov_motivo,
-        mov_obs: form.mov_obs,
-        nota_id: form.nota_id || null,
-      },
-    };
+  const uploadPendingFiles = async (): Promise<{ name: string; url: string }[]> => {
+    if (!pendingFiles.length || !orgId) return [];
+    const uploaded: { name: string; url: string }[] = [];
+    for (const file of pendingFiles) {
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `products/${orgId}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("catalog")
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (error) {
+        console.error("upload", error);
+        continue;
+      }
+      const { data } = supabase.storage.from("catalog").getPublicUrl(path);
+      uploaded.push({ name: file.name, url: data.publicUrl });
+    }
+    return uploaded;
+  };
+
+  const handleSave = async () => {
+    if (!form.modelo && !form.sku && !form.marca) {
+      alert("Informe ao menos modelo, SKU ou marca.");
+      return;
+    }
+    if (!form.valor_venda || Number(form.valor_venda) <= 0) {
+      alert("Informe o valor de venda.");
+      return;
+    }
 
     setIsSaving(true);
     try {
+      const uploaded = await uploadPendingFiles();
+      const allAnexos = [...anexos, ...uploaded];
+      const firstImage = uploaded.find((u) => /\.(png|jpe?g|webp|gif|avif)$/i.test(u.name))?.url;
+
+      const name =
+        [form.marca, form.modelo, form.gb && `${form.gb}GB`, form.cor]
+          .filter(Boolean)
+          .join(" ") ||
+        form.modelo ||
+        form.sku ||
+        "Produto sem nome";
+
+      const payload: ProductFormData = {
+        name,
+        sku: form.sku || undefined,
+        ean: form.ean || undefined,
+        category: form.categoria || form.tipo,
+        brand: form.marca || undefined,
+        supplier: form.fornecedor || undefined,
+        model: form.modelo || undefined,
+        price: parseFloat(form.valor_venda) || 0,
+        cost_price: parseFloat(form.valor_custo) || 0,
+        wholesale_price: form.valor_venda_2 ? parseFloat(form.valor_venda_2) : undefined,
+        stock_quantity: parseInt(form.quantidade) || 0,
+        min_stock: form.quantidade_minima ? parseInt(form.quantidade_minima) : undefined,
+        unit: "un",
+        description: form.observacao || undefined,
+        metadata: {
+          tipo: form.tipo,
+          imei: form.imei,
+          imei2: form.imei2,
+          disponibilidade: form.disponibilidade,
+          gb: form.gb,
+          serial: form.serial,
+          ram: form.ram,
+          cor: form.cor,
+          subcategoria: form.subcategoria,
+          saude_bateria: form.saude_bateria,
+          ciclo_bateria: form.ciclo_bateria,
+          estado: form.estado,
+          margem: form.margem || margemCalc.toFixed(2),
+          markup: form.markup || markupCalc.toFixed(2),
+          data_entrada: form.data_entrada,
+          dias_garantia: form.dias_garantia,
+          valor_venda_2: form.valor_venda_2,
+          valor_venda_3: form.valor_venda_3,
+          valor_custo: form.valor_custo,
+          quantidade: form.quantidade,
+          tags: form.tags
+            .split(",")
+            .map((t: string) => t.trim())
+            .filter(Boolean),
+          tipo_fornecedor: form.tipo_fornecedor,
+          ncm: form.ncm,
+          cest: form.cest,
+          origem: form.origem,
+          peso: form.peso,
+          forma_pagamento: form.forma_pagamento,
+          parcelas: form.parcelas,
+          contas_pagar: contasPagar,
+          custos_extras: custosExtras,
+          anexos: allAnexos,
+          image_url: firstImage || md.image_url,
+          checklist,
+          mov_tipo: form.mov_tipo,
+          mov_motivo: form.mov_motivo,
+          mov_obs: form.mov_obs,
+          nota_id: form.nota_id || null,
+        },
+      };
+
       if (onSave) await onSave(payload as any);
+      setPendingFiles([]);
       onOpenChange(false);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      alert("Erro ao salvar: " + (e?.message || e));
     } finally {
       setIsSaving(false);
     }
@@ -911,6 +950,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                   className="hidden"
                   onChange={(e) => {
                     const files = Array.from(e.target.files || []);
+                    setPendingFiles((prev) => [...prev, ...files]);
                     setAnexos((prev) => [...prev, ...files.map((f) => ({ name: f.name }))]);
                   }}
                 />
