@@ -942,7 +942,10 @@ ul{font-size:12px;line-height:1.6;}
                     </Button>
                     <Button
                       className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
-                      onClick={() => openReceiptPopup(selectedSale)}
+                      onClick={() => {
+                        setIsDetailsOpen(false);
+                        openReceiptPopup(selectedSale);
+                      }}
                     >
                       <Eye className="h-4 w-4" />
                       Recibo
