@@ -29,6 +29,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+import { useAuth } from "@/contexts/AuthContext";
+
 type Member = { user_id: string; role: string; email?: string | null; name?: string | null };
 
 interface Props {
@@ -43,7 +45,9 @@ interface Props {
 const lsKey = (orgId: string) => `store-details:${orgId}`;
 
 export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, onSaved }: Props) {
-  const canEdit = role === "owner" || role === "admin";
+  const { profile } = useAuth();
+  const isSuperAdmin = (profile as any)?.role === "super_admin";
+  const canEdit = isSuperAdmin || role === "owner" || role === "admin";
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);

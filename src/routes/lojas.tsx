@@ -21,6 +21,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useUserOrgs } from "@/lib/useUserOrgs";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StoreDetailsDialog } from "@/components/lojas/StoreDetailsDialog";
@@ -31,6 +32,8 @@ export const Route = createFileRoute("/lojas")({
 
 function LojasPage() {
   const { orgs, loading, activeOrgId, switchOrg, createOrg, reload } = useUserOrgs();
+  const { profile } = useAuth();
+  const isSuperAdmin = (profile as any)?.role === "super_admin";
   const [newName, setNewName] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -197,7 +200,7 @@ function LojasPage() {
                 {filtered.map((o) => {
                   const isActive = o.organization_id === activeOrgId;
                   const isEditing = editingId === o.organization_id;
-                  const canEdit = o.role === "owner" || o.role === "admin";
+                  const canEdit = isSuperAdmin || o.role === "owner" || o.role === "admin";
                   return (
                     <div
                       key={o.organization_id}
