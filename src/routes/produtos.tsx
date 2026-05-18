@@ -179,11 +179,40 @@ function ProductsPage() {
     }
   };
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.category?.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const categoryOptions = Array.from(
+    new Set(products.map((p) => p.category).filter(Boolean)),
+  ) as string[];
+
+  const filteredProducts = products
+    .filter((p) => {
+      const term = searchTerm.toLowerCase();
+      const matchesTerm =
+        !term ||
+        p.name?.toLowerCase().includes(term) ||
+        p.category?.toLowerCase().includes(term) ||
+        p.sku?.toLowerCase().includes(term);
+      const matchesCategory = filterCategory === "all" || p.category === filterCategory;
+      const stock = Number(p.stock_quantity ?? 0);
+      const matchesStock =
+        filterStock === "all" ||
+        (filterStock === "in" && stock > 0) ||
+        (filterStock === "out" && stock <= 0) ||
+        (filterStock === "low" && stock > 0 && stock <= (p.min_stock ?? 3));
+      return matchesTerm && matchesCategory && matchesStock;
+    })
+    .sort((a, b) => {
+      if (sortBy === "price_asc") return Number(a.price ?? 0) - Number(b.price ?? 0);
+      if (sortBy === "price_desc") return Number(b.price ?? 0) - Number(a.price ?? 0);
+      if (sortBy === "name") return (a.name ?? "").localeCompare(b.name ?? "");
+      if (sortBy === "stock_desc")
+        return Number(b.stock_quantity ?? 0) - Number(a.stock_quantity ?? 0);
+      return 0; // recent (already ordered by created_at desc)
+    });
+
+  const activeFilters =
+    (filterCategory !== "all" ? 1 : 0) +
+    (filterStock !== "all" ? 1 : 0) +
+    (sortBy !== "recent" ? 1 : 0);
 
   return (
     <div className="min-h-screen flex w-full bg-background">
