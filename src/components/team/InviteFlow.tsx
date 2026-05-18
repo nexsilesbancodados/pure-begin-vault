@@ -388,6 +388,20 @@ export function InviteFlow() {
                           <><Copy className="h-3 w-3 mr-1" /> Copiar link</>
                         )}
                       </Button>
+                      {i.email && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            resendEmail(i);
+                          }}
+                          className="gap-1"
+                          title={`Enviar email para ${i.email}`}
+                        >
+                          <Send className="h-3 w-3" /> Enviar
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
