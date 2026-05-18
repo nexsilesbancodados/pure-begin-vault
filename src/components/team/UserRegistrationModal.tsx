@@ -225,7 +225,7 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto p-0 gap-0">
         <DialogHeader className="px-6 py-4 border-b bg-muted/40">
-          <DialogTitle className="text-base font-bold">Cadastro de usuários do Sistema</DialogTitle>
+          <DialogTitle className="text-base font-bold">{isEdit ? "Editar usuário" : "Cadastro de usuários do Sistema"}</DialogTitle>
           <DialogDescription className="sr-only">
             Formulário de cadastro de usuário
           </DialogDescription>
