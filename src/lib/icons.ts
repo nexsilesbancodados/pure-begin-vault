@@ -40,6 +40,7 @@ import {
   Store,
   Trello,
   TrendingUp,
+  Upload,
   User,
   UserPlus,
   Users,
