@@ -1090,6 +1090,13 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
         <tbody>
           <tr>
             <td className="border border-black px-3 py-2 text-center align-top w-[60%]">
+              {data.org?.logo_url && (
+                <img
+                  src={data.org.logo_url}
+                  alt={data.org_name}
+                  className="mx-auto mb-1 max-h-16 object-contain"
+                />
+              )}
               <p className="font-bold">{data.org_name}</p>
               {data.org?.cnpj && <p>CNPJ: {data.org.cnpj}</p>}
               {data.org?.phone && <p>Telefone: {data.org.phone}</p>}
