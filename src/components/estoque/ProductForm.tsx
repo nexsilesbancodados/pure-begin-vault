@@ -232,6 +232,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
   const [contasPagar, setContasPagar] = useState<ExtraRow[]>(md.contas_pagar || []);
   const [custosExtras, setCustosExtras] = useState<ExtraRow[]>(md.custos_extras || []);
   const [anexos, setAnexos] = useState<{ name: string; url?: string }[]>(md.anexos || []);
+  const [imageUrlInput, setImageUrlInput] = useState<string>(md.image_url || "");
   const [checklist, setChecklist] = useState<{ id: string; item: string; ok: boolean }[]>(
     md.checklist || [
       { id: "1", item: "Tela sem riscos", ok: false },
