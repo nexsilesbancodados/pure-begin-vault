@@ -24,8 +24,17 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  Plus, FileText, Search, Loader2, Trash2, AlertTriangle,
-  CheckCircle2, Clock, Package, Building2, Calendar,
+  Plus,
+  FileText,
+  Search,
+  Loader2,
+  Trash2,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Package,
+  Building2,
+  Calendar,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
@@ -137,7 +146,9 @@ const readLegacyNotas = (orgId: string): Nota[] => {
     if (!raw) continue;
 
     try {
-      const arr = JSON.parse(raw) as Array<Omit<Nota, "id" | "noteNumber"> & { id: number | string }>;
+      const arr = JSON.parse(raw) as Array<
+        Omit<Nota, "id" | "noteNumber"> & { id: number | string }
+      >;
       if (!Array.isArray(arr) || arr.length === 0) continue;
 
       const used = new Set<number>();
@@ -295,7 +306,12 @@ function NotasAbertoPage() {
       .channel(`purchase_notes:${orgId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "purchase_notes", filter: `organization_id=eq.${orgId}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "purchase_notes",
+          filter: `organization_id=eq.${orgId}`,
+        },
         () => void loadNotes({ silent: true, skipMigration: true }),
       )
       .subscribe();
@@ -376,8 +392,20 @@ function NotasAbertoPage() {
   const handleSaveProduct = async (data: any) => {
     if (!editingProduct) return;
     const {
-      stock, imei, imei2, color, capacity, processor, ram, display,
-      margin, markup, battery_health, observations, store, ...productFields
+      stock,
+      imei,
+      imei2,
+      color,
+      capacity,
+      processor,
+      ram,
+      display,
+      margin,
+      markup,
+      battery_health,
+      observations,
+      store,
+      ...productFields
     } = data;
     const payload: any = {
       ...productFields,
@@ -398,19 +426,24 @@ function NotasAbertoPage() {
       toast.error("Erro ao salvar produto: " + error.message);
       return;
     }
-    const merged: Product = { ...(saved as any), imei: getImeiFromMetadata((saved as any)?.metadata) };
+    const merged: Product = {
+      ...(saved as any),
+      imei: getImeiFromMetadata((saved as any)?.metadata),
+    };
     setProducts((prev) =>
       isNew ? [merged, ...prev] : prev.map((p) => (p.id === merged.id ? merged : p)),
     );
     if (isNew) toast.success("Produto cadastrado!");
     const updatedNotas = notas.map((n) => {
-        if (!n.items.some((i) => i.id === merged.id)) return n;
-        const items = n.items.map((i) => (i.id === merged.id ? merged : i));
-        const total = getNoteTotal(items);
-        return { ...n, items, total };
-      });
+      if (!n.items.some((i) => i.id === merged.id)) return n;
+      const items = n.items.map((i) => (i.id === merged.id ? merged : i));
+      const total = getNoteTotal(items);
+      return { ...n, items, total };
+    });
     setNotas(updatedNotas);
-    await Promise.all(updatedNotas.filter((note) => note.items.some((i) => i.id === merged.id)).map(persistNota));
+    await Promise.all(
+      updatedNotas.filter((note) => note.items.some((i) => i.id === merged.id)).map(persistNota),
+    );
     setEditingProduct(null);
     toast.success("Produto atualizado.");
   };
@@ -419,12 +452,7 @@ function NotasAbertoPage() {
     if (!userId) return;
     setLoading(true);
 
-    let query = supabase
-      .from("products")
-      .select("*")
-      .eq("active", true)
-      .order("name")
-      .limit(500);
+    let query = supabase.from("products").select("*").eq("active", true).order("name").limit(500);
 
     if (orgId) query = query.eq("organization_id", orgId);
 
@@ -484,27 +512,27 @@ function NotasAbertoPage() {
     setSavingSelection(true);
 
     try {
-    if (addingToNotaId != null) {
-      const nota = notas.find((n) => n.id === addingToNotaId);
-      if (nota) {
-        const existing = new Set(nota.items.map((i) => i.id));
-        const merged = [...nota.items, ...items.filter((i) => !existing.has(i.id))];
-        const updated = { ...nota, items: merged, total: getNoteTotal(merged) };
-        updateNota(addingToNotaId, { items: updated.items, total: updated.total });
-        const ok = await persistNota(updated);
-        if (!ok) return;
-        toast.success(`Produto(s) adicionado(s) à Nota ${nota.noteNumber}.`);
+      if (addingToNotaId != null) {
+        const nota = notas.find((n) => n.id === addingToNotaId);
+        if (nota) {
+          const existing = new Set(nota.items.map((i) => i.id));
+          const merged = [...nota.items, ...items.filter((i) => !existing.has(i.id))];
+          const updated = { ...nota, items: merged, total: getNoteTotal(merged) };
+          updateNota(addingToNotaId, { items: updated.items, total: updated.total });
+          const ok = await persistNota(updated);
+          if (!ok) return;
+          toast.success(`Produto(s) adicionado(s) à Nota ${nota.noteNumber}.`);
+        }
+        setAddingToNotaId(null);
+      } else {
+        const created = await createNota(items);
+        if (!created) return;
+        setNotas((prev) => [...prev, created].sort((a, b) => a.noteNumber - b.noteNumber));
+        toast.success(`Nota ${created.noteNumber} criada com ${items.length} produto(s).`);
       }
-      setAddingToNotaId(null);
-    } else {
-      const created = await createNota(items);
-      if (!created) return;
-      setNotas((prev) => [...prev, created].sort((a, b) => a.noteNumber - b.noteNumber));
-      toast.success(`Nota ${created.noteNumber} criada com ${items.length} produto(s).`);
-    }
 
-    setSelected({});
-    setOpen(false);
+      setSelected({});
+      setOpen(false);
     } finally {
       setSavingSelection(false);
     }
@@ -527,10 +555,16 @@ function NotasAbertoPage() {
                 </div>
                 <h1 className="text-3xl font-bold tracking-tight">Notas em Aberto</h1>
                 <p className="text-sm text-muted-foreground max-w-xl">
-                  Cadastre notas de fornecedores, vincule produtos e acompanhe vencimentos de pagamento.
+                  Cadastre notas de fornecedores, vincule produtos e acompanhe vencimentos de
+                  pagamento.
                 </p>
               </div>
-              <Button onClick={() => setOpen(true)} size="lg" className="gap-2 shadow-lg shadow-primary/20" disabled={!orgId}>
+              <Button
+                onClick={() => setOpen(true)}
+                size="lg"
+                className="gap-2 shadow-lg shadow-primary/20"
+                disabled={!orgId}
+              >
                 <Plus className="h-4 w-4" />
                 Cadastrar Nota
               </Button>
@@ -538,45 +572,74 @@ function NotasAbertoPage() {
           </div>
 
           {/* KPIs */}
-          {notas.length > 0 && (() => {
-            const totalNotas = notas.length;
-            const emAberto = notas.filter((n) => !n.paga);
-            const pagas = notas.filter((n) => n.paga);
-            const valorAberto = emAberto.reduce((s, n) => s + n.total, 0);
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            const vencidas = emAberto.filter((n) => {
-              if (!n.prazoPagamento) return false;
-              return new Date(n.prazoPagamento) < today;
-            });
-            const valorVencido = vencidas.reduce((s, n) => s + n.total, 0);
-            const kpis = [
-              { icon: FileText, label: "Total de notas", value: totalNotas.toString(), tone: "primary" },
-              { icon: Clock, label: "Em aberto", value: emAberto.length.toString(), sub: `R$ ${valorAberto.toFixed(2)}`, tone: "warn" },
-              { icon: AlertTriangle, label: "Vencidas", value: vencidas.length.toString(), sub: `R$ ${valorVencido.toFixed(2)}`, tone: "danger" },
-              { icon: CheckCircle2, label: "Pagas", value: pagas.length.toString(), tone: "ok" },
-            ];
-            const toneClass = (t: string) =>
-              t === "warn" ? "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
-              : t === "danger" ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
-              : t === "ok" ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
-              : "bg-primary/10 text-primary";
-            return (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {kpis.map((k) => (
-                  <Card key={k.label} className="p-4 flex items-center gap-3 hover:shadow-md transition">
-                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${toneClass(k.tone)}`}>
-                      <k.icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs text-muted-foreground truncate">{k.label}</div>
-                      <div className="text-xl font-bold leading-tight">{k.value}</div>
-                      {k.sub && <div className="text-[11px] text-muted-foreground truncate">{k.sub}</div>}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            );
-          })()}
+          {notas.length > 0 &&
+            (() => {
+              const totalNotas = notas.length;
+              const emAberto = notas.filter((n) => !n.paga);
+              const pagas = notas.filter((n) => n.paga);
+              const valorAberto = emAberto.reduce((s, n) => s + n.total, 0);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const vencidas = emAberto.filter((n) => {
+                if (!n.prazoPagamento) return false;
+                return new Date(n.prazoPagamento) < today;
+              });
+              const valorVencido = vencidas.reduce((s, n) => s + n.total, 0);
+              const kpis = [
+                {
+                  icon: FileText,
+                  label: "Total de notas",
+                  value: totalNotas.toString(),
+                  tone: "primary",
+                },
+                {
+                  icon: Clock,
+                  label: "Em aberto",
+                  value: emAberto.length.toString(),
+                  sub: `R$ ${valorAberto.toFixed(2)}`,
+                  tone: "warn",
+                },
+                {
+                  icon: AlertTriangle,
+                  label: "Vencidas",
+                  value: vencidas.length.toString(),
+                  sub: `R$ ${valorVencido.toFixed(2)}`,
+                  tone: "danger",
+                },
+                { icon: CheckCircle2, label: "Pagas", value: pagas.length.toString(), tone: "ok" },
+              ];
+              const toneClass = (t: string) =>
+                t === "warn"
+                  ? "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+                  : t === "danger"
+                    ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+                    : t === "ok"
+                      ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                      : "bg-primary/10 text-primary";
+              return (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {kpis.map((k) => (
+                    <Card
+                      key={k.label}
+                      className="p-4 flex items-center gap-3 hover:shadow-md transition"
+                    >
+                      <div
+                        className={`h-10 w-10 rounded-xl flex items-center justify-center ${toneClass(k.tone)}`}
+                      >
+                        <k.icon className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs text-muted-foreground truncate">{k.label}</div>
+                        <div className="text-xl font-bold leading-tight">{k.value}</div>
+                        {k.sub && (
+                          <div className="text-[11px] text-muted-foreground truncate">{k.sub}</div>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              );
+            })()}
 
           {/* Filters */}
           {notas.length > 0 && (
@@ -596,10 +659,18 @@ function NotasAbertoPage() {
                     key={f}
                     onClick={() => setStatusFilter(f)}
                     className={`px-3 py-1.5 text-xs font-medium rounded transition ${
-                      statusFilter === f ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                      statusFilter === f
+                        ? "bg-background shadow-sm text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {f === "all" ? "Todas" : f === "open" ? "Em aberto" : f === "overdue" ? "Vencidas" : "Pagas"}
+                    {f === "all"
+                      ? "Todas"
+                      : f === "open"
+                        ? "Em aberto"
+                        : f === "overdue"
+                          ? "Vencidas"
+                          : "Pagas"}
                   </button>
                 ))}
               </div>
@@ -625,124 +696,144 @@ function NotasAbertoPage() {
                 <Plus className="h-4 w-4" /> Cadastrar primeira nota
               </Button>
             </Card>
-          ) : (() => {
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            const visible = notas.filter((n) => {
-              const isOverdue = !n.paga && n.prazoPagamento && new Date(n.prazoPagamento) < today;
-              if (statusFilter === "open" && n.paga) return false;
-              if (statusFilter === "paid" && !n.paga) return false;
-              if (statusFilter === "overdue" && !isOverdue) return false;
-              if (listSearch) {
-                const s = listSearch.toLowerCase();
-                if (!n.fornecedor.toLowerCase().includes(s) && !`nota ${n.noteNumber}`.includes(s)) return false;
+          ) : (
+            (() => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const visible = notas.filter((n) => {
+                const isOverdue = !n.paga && n.prazoPagamento && new Date(n.prazoPagamento) < today;
+                if (statusFilter === "open" && n.paga) return false;
+                if (statusFilter === "paid" && !n.paga) return false;
+                if (statusFilter === "overdue" && !isOverdue) return false;
+                if (listSearch) {
+                  const s = listSearch.toLowerCase();
+                  if (
+                    !n.fornecedor.toLowerCase().includes(s) &&
+                    !`nota ${n.noteNumber}`.includes(s)
+                  )
+                    return false;
+                }
+                return true;
+              });
+              if (visible.length === 0) {
+                return (
+                  <Card className="p-12 text-center text-sm text-muted-foreground border-dashed">
+                    Nenhuma nota corresponde aos filtros aplicados.
+                  </Card>
+                );
               }
-              return true;
-            });
-            if (visible.length === 0) {
               return (
-                <Card className="p-12 text-center text-sm text-muted-foreground border-dashed">
-                  Nenhuma nota corresponde aos filtros aplicados.
-                </Card>
-              );
-            }
-            return (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {visible.map((n) => {
-                  const isOverdue = !n.paga && n.prazoPagamento && new Date(n.prazoPagamento) < today;
-                  const daysToDue = n.prazoPagamento
-                    ? Math.ceil((new Date(n.prazoPagamento).getTime() - today.getTime()) / 86400000)
-                    : null;
-                  return (
-                    <Card
-                      key={n.id}
-                      className="group relative p-0 overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all"
-                      onClick={() => setDetailId(n.id)}
-                    >
-                      {/* Status stripe */}
-                      <div className={`h-1 w-full ${
-                        n.paga ? "bg-emerald-500"
-                        : isOverdue ? "bg-rose-500"
-                        : "bg-primary"
-                      }`} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {visible.map((n) => {
+                    const isOverdue =
+                      !n.paga && n.prazoPagamento && new Date(n.prazoPagamento) < today;
+                    const daysToDue = n.prazoPagamento
+                      ? Math.ceil(
+                          (new Date(n.prazoPagamento).getTime() - today.getTime()) / 86400000,
+                        )
+                      : null;
+                    return (
+                      <Card
+                        key={n.id}
+                        className="group relative p-0 overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all"
+                        onClick={() => setDetailId(n.id)}
+                      >
+                        {/* Status stripe */}
+                        <div
+                          className={`h-1 w-full ${
+                            n.paga ? "bg-emerald-500" : isOverdue ? "bg-rose-500" : "bg-primary"
+                          }`}
+                        />
 
-                      <div className="p-4 space-y-3">
-                        {/* Header */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                              <FileText className="h-4 w-4" />
+                        <div className="p-4 space-y-3">
+                          {/* Header */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <FileText className="h-4 w-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="font-semibold truncate">Nota {n.noteNumber}</h3>
+                                <p className="text-[11px] text-muted-foreground">
+                                  {n.createdAt.toLocaleDateString("pt-BR")}
+                                </p>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <h3 className="font-semibold truncate">Nota {n.noteNumber}</h3>
-                              <p className="text-[11px] text-muted-foreground">
-                                {n.createdAt.toLocaleDateString("pt-BR")}
-                              </p>
+                            <div className="flex items-center gap-1">
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                  n.paga
+                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-900"
+                                    : isOverdue
+                                      ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/40 dark:border-rose-900"
+                                      : "bg-primary/10 text-primary border-primary/20"
+                                }`}
+                              >
+                                {n.paga ? "Paga" : isOverdue ? "Vencida" : "Em aberto"}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  void deleteNota(n);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 transition h-7 w-7 rounded-md hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 flex items-center justify-center text-muted-foreground"
+                                aria-label="Excluir nota"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                              n.paga
-                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-900"
-                                : isOverdue
-                                ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/40 dark:border-rose-900"
-                                : "bg-primary/10 text-primary border-primary/20"
-                            }`}>
-                              {n.paga ? "Paga" : isOverdue ? "Vencida" : "Em aberto"}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void deleteNota(n);
-                              }}
-                              className="opacity-0 group-hover:opacity-100 transition h-7 w-7 rounded-md hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 flex items-center justify-center text-muted-foreground"
-                              aria-label="Excluir nota"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
 
-                        {/* Metadata */}
-                        <div className="space-y-1.5 text-xs">
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Building2 className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{n.fornecedor || "Fornecedor não informado"}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Package className="h-3.5 w-3.5 shrink-0" />
-                            <span>{n.items.length} produto(s)</span>
-                          </div>
-                          {n.prazoPagamento && !n.paga && (
-                            <div className={`flex items-center gap-1.5 ${
-                              isOverdue ? "text-rose-600 dark:text-rose-400 font-medium" : "text-muted-foreground"
-                            }`}>
-                              <Calendar className="h-3.5 w-3.5 shrink-0" />
-                              <span>
-                                {isOverdue
-                                  ? `Vencida há ${Math.abs(daysToDue ?? 0)}d`
-                                  : daysToDue === 0
-                                  ? "Vence hoje"
-                                  : `Vence em ${daysToDue}d`}
+                          {/* Metadata */}
+                          <div className="space-y-1.5 text-xs">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Building2 className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">
+                                {n.fornecedor || "Fornecedor não informado"}
                               </span>
                             </div>
-                          )}
-                        </div>
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Package className="h-3.5 w-3.5 shrink-0" />
+                              <span>{n.items.length} produto(s)</span>
+                            </div>
+                            {n.prazoPagamento && !n.paga && (
+                              <div
+                                className={`flex items-center gap-1.5 ${
+                                  isOverdue
+                                    ? "text-rose-600 dark:text-rose-400 font-medium"
+                                    : "text-muted-foreground"
+                                }`}
+                              >
+                                <Calendar className="h-3.5 w-3.5 shrink-0" />
+                                <span>
+                                  {isOverdue
+                                    ? `Vencida há ${Math.abs(daysToDue ?? 0)}d`
+                                    : daysToDue === 0
+                                      ? "Vence hoje"
+                                      : `Vence em ${daysToDue}d`}
+                                </span>
+                              </div>
+                            )}
+                          </div>
 
-                        {/* Total */}
-                        <div className="pt-3 border-t flex items-end justify-between">
-                          <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Total</span>
-                          <span className="text-lg font-bold tracking-tight">
-                            R$ {n.total.toFixed(2)}
-                          </span>
+                          {/* Total */}
+                          <div className="pt-3 border-t flex items-end justify-between">
+                            <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                              Total
+                            </span>
+                            <span className="text-lg font-bold tracking-tight">
+                              R$ {n.total.toFixed(2)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            );
-          })()}
+                      </Card>
+                    );
+                  })}
+                </div>
+              );
+            })()
+          )}
         </main>
       </div>
 
@@ -860,7 +951,9 @@ function NotasAbertoPage() {
             <div className="flex flex-col max-h-[90vh]">
               {/* Header */}
               <div className="px-6 py-4 border-b flex items-center gap-3">
-                <DialogTitle className="text-xl font-bold">Nota {detailNota.noteNumber}</DialogTitle>
+                <DialogTitle className="text-xl font-bold">
+                  Nota {detailNota.noteNumber}
+                </DialogTitle>
                 <span
                   className={
                     "px-2.5 py-0.5 rounded-full text-xs font-semibold border " +
@@ -889,9 +982,7 @@ function NotasAbertoPage() {
                         id="fornecedor"
                         placeholder="Nome do fornecedor"
                         value={detailNota.fornecedor}
-                        onChange={(e) =>
-                          updateNota(detailNota.id, { fornecedor: e.target.value })
-                        }
+                        onChange={(e) => updateNota(detailNota.id, { fornecedor: e.target.value })}
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -902,9 +993,7 @@ function NotasAbertoPage() {
                         id="dataCompra"
                         type="date"
                         value={detailNota.dataCompra}
-                        onChange={(e) =>
-                          updateNota(detailNota.id, { dataCompra: e.target.value })
-                        }
+                        onChange={(e) => updateNota(detailNota.id, { dataCompra: e.target.value })}
                       />
                     </div>
                   </div>
@@ -990,7 +1079,9 @@ function NotasAbertoPage() {
                                 {p.imei ?? "—"}
                               </TableCell>
                               <TableCell className="text-right text-muted-foreground">
-                                {p.cost_price != null ? `R$ ${Number(p.cost_price).toFixed(2)}` : "—"}
+                                {p.cost_price != null
+                                  ? `R$ ${Number(p.cost_price).toFixed(2)}`
+                                  : "—"}
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : "—"}
