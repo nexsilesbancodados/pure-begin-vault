@@ -32,19 +32,19 @@ Deno.serve(async (req) => {
     }
     const callerId = callerData.user.id;
 
-    const { email, password, nome, organization_id, role, invite_id } =
+    const { email, password, nome, organization_id, organization_ids, role, invite_id } =
       await req.json();
 
-    if (!email || !password || !organization_id) {
+    if (!email || !organization_id) {
       return new Response(
-        JSON.stringify({ error: "email, password e organization_id obrigatórios" }),
+        JSON.stringify({ error: "email e organization_id obrigatórios" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
-    if (password.length < 6) {
+    if (password && password.length < 6) {
       return new Response(JSON.stringify({ error: "Senha mínima de 6 caracteres" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -53,13 +53,7 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // Verifica se caller pertence à org (ou é super_admin)
-    const { data: membership } = await admin
-      .from("user_organizations")
-      .select("role")
-      .eq("user_id", callerId)
-      .eq("organization_id", organization_id)
-      .maybeSingle();
+    const orgIds = Array.from(new Set(Array.isArray(organization_ids) && organization_ids.length ? organization_ids : [organization_id]));
 
     const { data: superRow } = await admin
       .from("super_admins")
@@ -67,8 +61,16 @@ Deno.serve(async (req) => {
       .eq("user_id", callerId)
       .maybeSingle();
 
-    if (!membership && !superRow) {
-      return new Response(JSON.stringify({ error: "Sem permissão nesta loja" }), {
+    const { data: callerMemberships } = await admin
+      .from("user_organizations")
+      .select("organization_id, role")
+      .eq("user_id", callerId);
+    const callerOrgIds = new Set(((callerMemberships as { organization_id: string; role: string }[]) ?? [])
+      .filter((m) => ["owner", "admin"].includes(String(m.role).toLowerCase()))
+      .map((m) => m.organization_id));
+
+    if (!superRow && orgIds.some((orgId) => !callerOrgIds.has(orgId))) {
+      return new Response(JSON.stringify({ error: "Sem permissão em uma das lojas selecionadas" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -76,12 +78,21 @@ Deno.serve(async (req) => {
 
     // Cria ou recupera usuário
     let userId: string | null = null;
-    const { data: created, error: createErr } = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name: nome || email },
-    });
+    let createErr: { message?: string } | null = null;
+    let created: { user: { id: string } | null } = { user: null };
+
+    if (password) {
+      const res = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: nome || email },
+      });
+      created = res.data as typeof created;
+      createErr = res.error;
+    } else {
+      createErr = { message: "already exists" };
+    }
 
     if (createErr) {
       const msg = (createErr.message || "").toLowerCase();
@@ -96,7 +107,7 @@ Deno.serve(async (req) => {
           });
         }
         userId = existing.id;
-        await admin.auth.admin.updateUserById(userId, { password });
+        if (password) await admin.auth.admin.updateUserById(userId, { password });
       } else {
         return new Response(JSON.stringify({ error: createErr.message }), {
           status: 400,
@@ -107,16 +118,13 @@ Deno.serve(async (req) => {
       userId = created.user!.id;
     }
 
-    // Vincula à org
-    await admin.from("user_organizations").upsert(
-      {
-        user_id: userId!,
-        organization_id,
-        role: role || "employee",
-        is_default: true,
-      },
-      { onConflict: "user_id,organization_id" }
-    );
+    const memberships = orgIds.map((orgId, index) => ({
+      user_id: userId!,
+      organization_id: orgId,
+      role: role || "employee",
+      is_default: index === 0,
+    }));
+    await admin.from("user_organizations").upsert(memberships, { onConflict: "user_id,organization_id" });
 
     // Atualiza profile (já define organization_id ativa + role)
     await admin
@@ -126,7 +134,7 @@ Deno.serve(async (req) => {
           id: userId!,
           email,
           nome: nome || email,
-          organization_id,
+          organization_id: orgIds[0],
           role: role || "employee",
         },
         { onConflict: "id" }
