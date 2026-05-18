@@ -116,18 +116,16 @@ interface ProductFormProps {
 
 type ExtraRow = { id: string; description: string; amount: string; dueDate?: string };
 
-export function ProductForm({ open, onOpenChange, product, onSave }: ProductFormProps) {
-  const [activeTab, setActiveTab] = useState("geral");
-  const [isSaving, setIsSaving] = useState(false);
-  const [productType, setProductType] = useState<ProductType>(
-    (product?.metadata?.tipo as ProductType) || "Aparelho",
-  );
+function generateProductCode() {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rnd = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `PRD-${ts}-${rnd}`;
+}
 
+function buildInitialForm(product: any) {
   const md = product?.metadata || {};
-
-  const [form, setForm] = useState({
-    // dados gerais
-    codigo: product?.reference || product?.id?.slice(0, 8) || "",
+  return {
+    codigo: product?.reference || (product ? product?.id?.slice(0, 8) : generateProductCode()),
     tipo: md.tipo || "Aparelho",
     imei: md.imei || "",
     imei2: md.imei2 || "",
