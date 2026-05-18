@@ -133,6 +133,16 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
   const { orgId } = useOrg();
   const [openNotas, setOpenNotas] = useState<Array<{ id: string; label: string }>>([]);
+  const [customTipos, setCustomTipos] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("product_custom_tipos") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem("product_custom_tipos", JSON.stringify(customTipos));
+  }, [customTipos]);
 
   useEffect(() => {
     if (!open || !orgId) return;
