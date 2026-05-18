@@ -646,6 +646,8 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
 
   const openWarrantyDialog = useCallback(
     async (sale: any, type: "seminovo" | "lacrado" | "android") => {
+      setIsDetailsOpen(false);
+      setSelectedSale(null);
       setWarrantyDoc(null);
       setWarrantyLoading(true);
       await openWarrantyPrint(sale, type);
