@@ -135,7 +135,13 @@ function NotasAbertoPage() {
 
   const confirm = () => {
     const items = products.filter((p) => selected[p.id]);
-    toast.success(`${items.length} produto(s) adicionado(s) à nota.`);
+    if (items.length === 0) return;
+    const total = items.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+    setNotas((prev) => [
+      ...prev,
+      { id: prev.length + 1, items, total, createdAt: new Date() },
+    ]);
+    toast.success(`Nota ${notas.length + 1} criada com ${items.length} produto(s).`);
     setSelected({});
     setOpen(false);
   };
