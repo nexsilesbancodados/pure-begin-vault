@@ -92,15 +92,46 @@ const FIELD_ALIASES: Record<string, string[]> = {
 };
 
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
+// Estratégia: prioridade exato > startsWith > inclui, e cada header só pode
+// ser atribuído a um único campo (evita "Data Venda" virar VALOR).
 function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
   const map: Record<string, string> = {};
   const headers = Object.keys(sample);
-  for (const [field, aliases] of Object.entries(FIELD_ALIASES)) {
-    const match = headers.find((h) => {
-      const n = norm(h);
-      return aliases.some((a) => n === a || n.includes(a));
-    });
-    if (match) map[field] = match;
+  const used = new Set<string>();
+  const score = (h: string, aliases: string[]): number => {
+    const n = norm(h);
+    let best = 0;
+    for (const a of aliases) {
+      if (n === a) best = Math.max(best, 100);
+      else if (n.startsWith(a + " ") || n.startsWith(a + "_")) best = Math.max(best, 80);
+      else if (new RegExp(`(^|\\s|_)${a}(\\s|_|$)`).test(n)) best = Math.max(best, 60);
+      else if (n.includes(a)) best = Math.max(best, 30);
+    }
+    return best;
+  };
+  // Ordena campos por prioridade: campos mais específicos primeiro
+  const fieldOrder = [
+    "customer_document", "customer_email", "customer_phone", "customer",
+    "amount", "date", "payment", "status",
+    "unit_price", "quantity", "product", "notes",
+  ];
+  for (const field of fieldOrder) {
+    const aliases = FIELD_ALIASES[field];
+    if (!aliases) continue;
+    let bestHeader: string | undefined;
+    let bestScore = 0;
+    for (const h of headers) {
+      if (used.has(h)) continue;
+      const s = score(h, aliases);
+      if (s > bestScore) {
+        bestScore = s;
+        bestHeader = h;
+      }
+    }
+    if (bestHeader && bestScore >= 30) {
+      map[field] = bestHeader;
+      used.add(bestHeader);
+    }
   }
   return map;
 }
