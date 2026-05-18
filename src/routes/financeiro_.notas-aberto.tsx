@@ -115,7 +115,7 @@ function NotasAbertoPage() {
       prev.map((n) => {
         if (!n.items.some((i) => i.id === merged.id)) return n;
         const items = n.items.map((i) => (i.id === merged.id ? merged : i));
-        const total = items.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+        const total = items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
         return { ...n, items, total };
       }),
     );
@@ -195,13 +195,13 @@ function NotasAbertoPage() {
       if (nota) {
         const existing = new Set(nota.items.map((i) => i.id));
         const merged = [...nota.items, ...items.filter((i) => !existing.has(i.id))];
-        const total = merged.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+        const total = merged.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
         updateNota(addingToNotaId, { items: merged, total });
         toast.success(`Produto(s) adicionado(s) à Nota ${addingToNotaId}.`);
       }
       setAddingToNotaId(null);
     } else {
-      const total = items.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+      const total = items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
       const newId = notas.length + 1;
       setNotas((prev) => [
         ...prev,
