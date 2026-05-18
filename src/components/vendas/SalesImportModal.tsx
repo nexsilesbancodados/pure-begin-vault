@@ -1012,6 +1012,26 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             <td className="p-2.5 font-mono text-[11px]">
                               {dateOk ? dt!.toLocaleDateString("pt-BR") : <span className="text-muted-foreground">—</span>}
                             </td>
+                            <td className="p-2.5 text-[11px] max-w-[160px] truncate">
+                              {r.customer_name ? (
+                                <span className="font-semibold">{r.customer_name}</span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="p-2.5 font-mono text-[11px]">
+                              {r.customer_document ? (
+                                <span className="px-1.5 py-0.5 rounded-md bg-primary/5 border border-primary/20 text-primary">
+                                  {r.customer_document.length === 11
+                                    ? r.customer_document.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
+                                    : r.customer_document.length === 14
+                                    ? r.customer_document.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+                                    : r.customer_document}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
                             <td className="p-2.5">
                               {pm ? (
                                 <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-bold ${pmColor}`}>
