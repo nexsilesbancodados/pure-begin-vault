@@ -42,7 +42,7 @@ async function fetchReceipt(id: string) {
       sale.customer_id
         ? (supabaseAdmin as any)
             .from("customers")
-            .select("name, document, phone")
+            .select("*")
             .eq("id", sale.customer_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
@@ -69,7 +69,18 @@ async function fetchReceipt(id: string) {
       website: s.website ?? null,
     },
     seller: seller ? { name: seller.full_name || seller.email } : null,
-    customer: customer ?? null,
+    customer: customer
+      ? {
+          name: customer.name,
+          document: customer.document ?? customer.cpf ?? customer.cnpj ?? null,
+          phone: customer.phone ?? null,
+          email: customer.email ?? null,
+          address: customer.address ?? customer.endereco ?? null,
+          zip: customer.zip ?? customer.cep ?? null,
+          city: customer.city ?? customer.cidade ?? null,
+          state: customer.state ?? customer.estado ?? customer.uf ?? null,
+        }
+      : null,
   };
 }
 
