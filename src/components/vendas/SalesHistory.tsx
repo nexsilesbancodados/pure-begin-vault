@@ -102,15 +102,26 @@ const printReceiptArea = async (mode: "a4" | "80mm") => {
     }
   }));
 
-  const win = window.open("", "_blank", mode === "80mm" ? "width=420,height=720" : "width=900,height=720");
-  if (!win) {
+  const isThermal = mode === "80mm";
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  document.body.appendChild(iframe);
+
+  const printDocument = iframe.contentDocument;
+  const printWindow = iframe.contentWindow;
+  if (!printDocument || !printWindow) {
+    iframe.remove();
     window.print();
     return;
   }
 
-  const isThermal = mode === "80mm";
-  win.document.open();
-  win.document.write(`<!doctype html><html><head><title>Recibo</title>
+  printDocument.open();
+  printDocument.write(`<!doctype html><html><head><title>Recibo</title>
     <style>
       @page { margin: ${isThermal ? "0" : "10mm"}; size: ${isThermal ? "80mm auto" : "A4"}; }
       * { box-sizing: border-box; }
@@ -131,13 +142,20 @@ const printReceiptArea = async (mode: "a4" | "80mm") => {
       .border-dashed { border-style: dashed; } .flex { display: flex; } .justify-between { justify-content: space-between; }
       .break-words { overflow-wrap: anywhere; word-break: break-word; }
       .text-\\[10px\\] { font-size: 10px; } .text-\\[10\\.5px\\] { font-size: 10.5px; } .text-\\[11px\\] { font-size: 11px; } .text-\\[12px\\] { font-size: 12px; } .text-\\[13px\\] { font-size: 13px; }
-    </style></head><body>${clone.outerHTML}
-    <script>
-      const waitImages = Promise.all(Array.from(document.images).map((img) => img.complete ? Promise.resolve() : new Promise((resolve) => { img.onload = img.onerror = resolve; })));
-      window.onload = () => waitImages.finally(() => setTimeout(() => { window.print(); window.close(); }, 500));
-    <\/script>
-    </body></html>`);
-  win.document.close();
+    </style></head><body>${clone.outerHTML}</body></html>`);
+  printDocument.close();
+
+  await Promise.all(Array.from(printDocument.images).map((img) => (
+    img.complete
+      ? Promise.resolve()
+      : new Promise((resolve) => { img.onload = img.onerror = resolve; })
+  )));
+
+  window.setTimeout(() => {
+    printWindow.focus();
+    printWindow.print();
+    window.setTimeout(() => iframe.remove(), 1000);
+  }, 300);
 };
 
 const METHOD_LABEL: Record<string, string> = {
