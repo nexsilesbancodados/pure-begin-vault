@@ -60,6 +60,10 @@ type ParsedRow = {
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
+  // Financeiro
+  description?: string;
+  fin_type?: "income" | "expense";
+  category?: string;
   _raw: Record<string, any>;
   _valid: boolean;
   _error?: string;
