@@ -53,6 +53,7 @@ export function InviteFlow() {
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [editing, setEditing] = useState<Invite | null>(null);
+  const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());
 
   const load = async () => {
     if (!orgId) return;
