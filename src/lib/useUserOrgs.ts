@@ -23,6 +23,8 @@ export function useUserOrgs() {
       ? profileOrgId
       : (orgs.find((o) => o.is_default)?.organization_id ?? orgs[0]?.organization_id ?? null);
 
+  const isSuperAdmin = (profile as any)?.role === "super_admin";
+
   const load = useCallback(async () => {
     if (!user?.id) {
       setOrgs([]);
@@ -35,7 +37,25 @@ export function useUserOrgs() {
       .select("organization_id, role, is_default, organization:organizations(id, name)")
       .eq("user_id", user.id);
 
-    const base = (data as UserOrg[]) ?? [];
+    let base = (data as UserOrg[]) ?? [];
+
+    // Super admin: pode ver e gerenciar TODAS as lojas, mesmo as que não é membro
+    if (isSuperAdmin) {
+      const { data: allOrgs } = await (supabase as any)
+        .from("organizations")
+        .select("id, name");
+      const existing = new Set(base.map((o) => o.organization_id));
+      const extras: UserOrg[] = ((allOrgs as any[]) ?? [])
+        .filter((o) => !existing.has(o.id))
+        .map((o) => ({
+          organization_id: o.id,
+          role: "super_admin",
+          is_default: false,
+          organization: { id: o.id, name: o.name },
+        }));
+      base = [...base, ...extras];
+    }
+
     const ids = base.map((o) => o.organization_id);
     let logoMap = new Map<string, string | null>();
     if (ids.length > 0) {
@@ -49,7 +69,7 @@ export function useUserOrgs() {
     }
     setOrgs(base.map((o) => ({ ...o, logo_url: logoMap.get(o.organization_id) ?? null })));
     setLoading(false);
-  }, [user?.id]);
+  }, [user?.id, isSuperAdmin]);
 
   useEffect(() => {
     load();
