@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { iconMap, LogOut, PanelLeftClose, PanelLeftOpen, Sparkles, X } from "@/lib/icons";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImport } from "@/contexts/ImportContext";
 import { sidebarItems } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
