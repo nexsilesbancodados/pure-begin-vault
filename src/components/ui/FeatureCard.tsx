@@ -146,11 +146,21 @@ export function FeatureCard({
     className,
   );
 
+  const navigate = useNavigate();
   if (to) {
     return (
-      <Link to={to} className={baseClass} onClick={onClick}>
+      <a
+        href={to}
+        className={baseClass}
+        onClick={(e) => {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+          e.preventDefault();
+          onClick?.();
+          navigate({ to: to as any });
+        }}
+      >
         {content}
-      </Link>
+      </a>
     );
   }
   if (href) {
