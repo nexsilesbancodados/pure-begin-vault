@@ -194,7 +194,26 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
         localStorage.setItem(key, JSON.stringify(existing));
       } catch {}
 
-      if (isEdit) {
+      // Se há senha definida, cria a conta de fato no Supabase Auth
+      if (senha && senha.length >= 6) {
+        const { data: fnData, error: fnErr } = await (supabase as any).functions.invoke(
+          "create-team-user",
+          {
+            body: {
+              email: email.trim(),
+              password: senha,
+              nome: nome.trim(),
+              organization_id: orgId,
+              role: quickProfile === "Administrador" ? "admin" : "employee",
+              invite_id: inviteId,
+            },
+          }
+        );
+        if (fnErr || fnData?.error) {
+          throw new Error(fnData?.error || fnErr?.message || "Falha ao criar usuário");
+        }
+        toast.success("Usuário criado! Ele já pode fazer login com email e senha.");
+      } else if (isEdit) {
         toast.success("Usuário atualizado!");
       } else {
         const { data: inv } = await (supabase as any)
@@ -205,9 +224,9 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
         const url = `${window.location.origin}/aceitar-convite/${inv?.token}`;
         try {
           await navigator.clipboard.writeText(url);
-          toast.success("Usuário cadastrado! Link de convite copiado.");
+          toast.success("Convite criado! Link copiado (defina uma senha para login direto).");
         } catch {
-          toast.success("Usuário cadastrado!");
+          toast.success("Convite criado!");
         }
       }
 
