@@ -953,6 +953,39 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
             {/* === ANEXOS === */}
             <TabsContent value="anexos" className="mt-0 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Link da foto do produto</label>
+                <div className="flex gap-2">
+                  <Input
+                    type="url"
+                    placeholder="https://exemplo.com/foto.jpg"
+                    value={imageUrlInput}
+                    onChange={(e) => setImageUrlInput(e.target.value)}
+                  />
+                  {imageUrlInput && (
+                    <button
+                      type="button"
+                      onClick={() => setImageUrlInput("")}
+                      className="text-destructive px-2"
+                      aria-label="Limpar"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                {imageUrlInput && (
+                  <img
+                    src={imageUrlInput}
+                    alt="Pré-visualização"
+                    className="h-32 w-32 object-cover rounded-lg border"
+                    onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+                  />
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Cole uma URL pública da imagem. Usada como capa do produto.
+                </p>
+              </div>
+
               <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-10 cursor-pointer hover:bg-muted/30 transition">
                 <Upload className="h-8 w-8 text-muted-foreground mb-2" />
                 <span className="text-sm font-medium">Clique para anexar arquivos</span>
