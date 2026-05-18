@@ -21,6 +21,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useUserOrgs } from "@/lib/useUserOrgs";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StoreDetailsDialog } from "@/components/lojas/StoreDetailsDialog";
