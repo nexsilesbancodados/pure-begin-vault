@@ -1041,6 +1041,7 @@ export function PDVInterface() {
       observacoes: f.observacoes || undefined,
     };
     const notesPayload = JSON.stringify(extras);
+    setIsCreatingCustomer(true);
     try {
       const { data, error } = await supabase
         .from("customers")
@@ -1065,36 +1066,15 @@ export function PDVInterface() {
       setSelectedCustomer({ id: data.id, name: data.name });
       setIsNewCustomerModalOpen(false);
       setIsCustomerModalOpen(false);
-      setCustomerForm({
-        categoria: "cliente",
-        tipo_pessoa: "fisica",
-        cpf_cnpj: "",
-        nome: "",
-        data_nascimento: "",
-        profissao: "",
-        genero: "",
-        origem: "",
-        telefone: "",
-        telefone_alt: "",
-        telefone_extra: "",
-        email: "",
-        instagram: "",
-        cep: "",
-        rua: "",
-        numero: "",
-        bairro: "",
-        cidade: "",
-        estado: "",
-        complemento: "",
-        observacoes: "",
-        tags: "",
-      });
+      resetCustomerForm();
       setNewCustomerName("");
       setNewCustomerPhone("");
       fetchCustomers();
     } catch (error: any) {
       console.error("Erro ao criar cliente:", error);
       toast.error("Erro ao cadastrar cliente.");
+    } finally {
+      setIsCreatingCustomer(false);
     }
   };
 
