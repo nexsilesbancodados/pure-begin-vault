@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserOrgs } from "@/lib/useUserOrgs";
+import { useServerFn } from "@tanstack/react-start";
+import { saveTeamUserAccess } from "@/lib/team-user.functions";
 import { toast } from "sonner";
 
 interface EditInitial {
@@ -72,6 +74,7 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
   const { orgId, userId } = useOrg();
   const { user } = useAuth();
   const { orgs } = useUserOrgs();
+  const saveAccess = useServerFn(saveTeamUserAccess);
   const isEdit = !!initial?.id;
 
   const [ativo, setAtivo] = useState("Sim");
@@ -121,6 +124,13 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
     if (list) setPerfis(list);
   };
 
+  const roleFromProfile = () => {
+    if (quickProfile === "Administrador") return "admin";
+    if (quickProfile === "Financeiro") return "financeiro";
+    if (quickProfile === "Vendedor") return "vendedor";
+    return "employee";
+  };
+
   const addCustomProfile = () => {
     const name = prompt("Nome do novo perfil customizado:");
     if (!name) return;
@@ -147,30 +157,33 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
     if (!nome.trim()) return toast.error("Informe o nome");
     if (!email.trim()) return toast.error("Informe o email");
     if (senha && senha !== confirmar) return toast.error("As senhas não conferem");
+    if (senha && senha.length < 6) return toast.error("A senha precisa ter no mínimo 6 caracteres");
     if (!orgId || !userId) return toast.error("Loja não identificada");
+    if (lojas.length === 0) return toast.error("Selecione pelo menos uma loja para o usuário");
 
     setSaving(true);
     try {
       let inviteId = initial?.id;
+      const assignedRole = roleFromProfile();
 
       if (isEdit && inviteId) {
         // Atualiza email/role no convite existente
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from("organization_invites")
           .update({
             email: email.trim(),
-            role: quickProfile === "Administrador" ? "admin" : "employee",
+            role: assignedRole,
           })
           .eq("id", inviteId);
         if (error) throw error;
       } else {
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from("organization_invites")
           .insert({
             organization_id: orgId,
             invited_by: userId,
             email: email.trim(),
-            role: quickProfile === "Administrador" ? "admin" : "employee",
+            role: assignedRole,
           })
           .select()
           .single();
@@ -192,31 +205,26 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
           lojas,
         };
         localStorage.setItem(key, JSON.stringify(existing));
-      } catch {}
+      } catch {
+        // Dados locais são apenas apoio visual; falha aqui não deve bloquear o cadastro real.
+      }
 
-      // Se há senha definida, cria a conta de fato no Supabase Auth
-      if (senha && senha.length >= 6) {
-        const { data: fnData, error: fnErr } = await (supabase as any).functions.invoke(
-          "create-team-user",
-          {
-            body: {
-              email: email.trim(),
-              password: senha,
-              nome: nome.trim(),
-              organization_id: orgId,
-              role: quickProfile === "Administrador" ? "admin" : "employee",
-              invite_id: inviteId,
-            },
-          }
-        );
-        if (fnErr || fnData?.error) {
-          throw new Error(fnData?.error || fnErr?.message || "Falha ao criar usuário");
-        }
-        toast.success("Usuário criado! Ele já pode fazer login com email e senha.");
-      } else if (isEdit) {
-        toast.success("Usuário atualizado!");
+      // Cria/atualiza a conta real e sincroniza as lojas selecionadas.
+      if (isEdit || senha) {
+        await saveAccess({
+          data: {
+            email: email.trim(),
+            password: senha,
+            nome: nome.trim(),
+            organization_id: lojas[0],
+            organization_ids: lojas,
+            role: assignedRole,
+            invite_id: inviteId,
+          },
+        });
+        toast.success("Usuário atualizado! As lojas selecionadas já aparecem no login dele.");
       } else {
-        const { data: inv } = await (supabase as any)
+        const { data: inv } = await supabase
           .from("organization_invites")
           .select("token")
           .eq("id", inviteId)
@@ -233,8 +241,8 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
       onCreated?.();
       onOpenChange(false);
       limpar();
-    } catch (e: any) {
-      toast.error("Erro ao salvar: " + (e?.message || "desconhecido"));
+    } catch (e: unknown) {
+      toast.error("Erro ao salvar: " + (e instanceof Error ? e.message : "desconhecido"));
     } finally {
       setSaving(false);
     }
@@ -244,7 +252,9 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto p-0 gap-0">
         <DialogHeader className="px-6 py-4 border-b bg-muted/40">
-          <DialogTitle className="text-base font-bold">{isEdit ? "Editar usuário" : "Cadastro de usuários do Sistema"}</DialogTitle>
+          <DialogTitle className="text-base font-bold">
+            {isEdit ? "Editar usuário" : "Cadastro de usuários do Sistema"}
+          </DialogTitle>
           <DialogDescription className="sr-only">
             Formulário de cadastro de usuário
           </DialogDescription>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServerFn } from "@tanstack/react-start";
-import { getOrgLogos } from "@/lib/org-settings.functions";
+import { getOrgSummaries } from "@/lib/org-directory.functions";
 import { toast } from "sonner";
 
 export interface UserOrg {
@@ -13,12 +13,17 @@ export interface UserOrg {
   logo_url?: string | null;
 }
 
+type OrgRow = { id: string; name: string | null };
+type MembershipRow = Omit<UserOrg, "organization" | "logo_url"> & {
+  organization: OrgRow | OrgRow[] | null;
+};
+
 export function useUserOrgs() {
   const { user, profile } = useAuth();
   const [orgs, setOrgs] = useState<UserOrg[]>([]);
   const [loading, setLoading] = useState(true);
-  const fetchLogos = useServerFn(getOrgLogos);
-  const profileOrgId = (profile as any)?.organization_id ?? null;
+  const fetchOrgSummaries = useServerFn(getOrgSummaries);
+  const profileOrgId = profile?.organization_id ?? null;
   // Fallback: se profile.organization_id está vazio ou aponta pra uma org que o user
   // já não pertence, usa a primeira org de user_organizations como ativa.
   const activeOrgId =
@@ -26,7 +31,7 @@ export function useUserOrgs() {
       ? profileOrgId
       : (orgs.find((o) => o.is_default)?.organization_id ?? orgs[0]?.organization_id ?? null);
 
-  const isSuperAdmin = (profile as any)?.role === "super_admin";
+  const isSuperAdmin = profile?.role === "super_admin";
 
   const load = useCallback(async () => {
     if (!user?.id) {
@@ -35,20 +40,25 @@ export function useUserOrgs() {
       return;
     }
     setLoading(true);
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("user_organizations")
       .select("organization_id, role, is_default, organization:organizations(id, name)")
       .eq("user_id", user.id);
 
-    let base = (data as UserOrg[]) ?? [];
+    let base: UserOrg[] = ((data as unknown as MembershipRow[]) ?? []).map((row) => ({
+      organization_id: row.organization_id,
+      role: row.role,
+      is_default: row.is_default,
+      organization: Array.isArray(row.organization)
+        ? (row.organization[0] ?? null)
+        : row.organization,
+    }));
 
     // Super admin: pode ver e gerenciar TODAS as lojas, mesmo as que não é membro
     if (isSuperAdmin) {
-      const { data: allOrgs } = await (supabase as any)
-        .from("organizations")
-        .select("id, name");
+      const { data: allOrgs } = await supabase.from("organizations").select("id, name");
       const existing = new Set(base.map((o) => o.organization_id));
-      const extras: UserOrg[] = ((allOrgs as any[]) ?? [])
+      const extras: UserOrg[] = ((allOrgs as OrgRow[]) ?? [])
         .filter((o) => !existing.has(o.id))
         .map((o) => ({
           organization_id: o.id,
@@ -60,25 +70,36 @@ export function useUserOrgs() {
     }
 
     const ids = base.map((o) => o.organization_id);
-    let logoMap: Record<string, string | null> = {};
+    let orgSummaryMap: Record<string, { name: string | null; logo_url: string | null }> = {};
     if (ids.length > 0) {
       try {
-        const res = await fetchLogos({ data: { orgIds: ids } });
-        logoMap = res.logos ?? {};
+        const res = await fetchOrgSummaries({ data: { orgIds: ids } });
+        orgSummaryMap = res.organizations ?? {};
       } catch (e) {
-        console.warn("Falha ao carregar logos das lojas", e);
+        console.warn("Falha ao carregar detalhes das lojas", e);
       }
     }
-    setOrgs(base.map((o) => ({ ...o, logo_url: logoMap[o.organization_id] ?? null })));
+    setOrgs(
+      base.map((o) => {
+        const summary = orgSummaryMap[o.organization_id];
+        return {
+          ...o,
+          organization: o.organization?.name
+            ? o.organization
+            : { id: o.organization_id, name: summary?.name ?? null },
+          logo_url: summary?.logo_url ?? null,
+        };
+      }),
+    );
     setLoading(false);
-  }, [user?.id, isSuperAdmin, fetchLogos]);
+  }, [user?.id, isSuperAdmin, fetchOrgSummaries]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const switchOrg = async (orgId: string) => {
-    const { error } = await (supabase as any).rpc("switch_organization", { _org_id: orgId });
+    const { error } = await supabase.rpc("switch_organization", { _org_id: orgId });
     if (error) {
       toast.error("Erro ao trocar loja: " + error.message);
       return false;
@@ -90,7 +111,7 @@ export function useUserOrgs() {
   };
 
   const createOrg = async (name: string) => {
-    const { data, error } = await (supabase as any).rpc("create_organization_for_user", {
+    const { data, error } = await supabase.rpc("create_organization_for_user", {
       _name: name,
     });
     if (error) {
@@ -99,7 +120,7 @@ export function useUserOrgs() {
     }
     // Se o user ainda não tem profile.organization_id, seta pra esta nova loja
     if (data && user?.id && !profileOrgId) {
-      await (supabase as any).from("profiles").update({ organization_id: data }).eq("id", user.id);
+      await supabase.from("profiles").update({ organization_id: data }).eq("id", user.id);
     }
     toast.success("Loja criada");
     await load();
