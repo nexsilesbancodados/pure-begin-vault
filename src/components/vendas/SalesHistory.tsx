@@ -1370,9 +1370,11 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
       <style>{`
         @media print {
           @page { margin: 0; size: 80mm auto; }
+          html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body * { visibility: hidden !important; }
           .receipt-print-area, .receipt-print-area * { visibility: visible !important; }
           .receipt-print-area { position: absolute !important; left: 0 !important; top: 0 !important; box-shadow: none !important; width: 80mm !important; }
+          .receipt-print-area img { display: block !important; max-width: 100% !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
     </div>
