@@ -684,141 +684,226 @@ ul{font-size:12px;line-height:1.6;}
 
       {/* Modal de Detalhes da Venda */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="sm:max-w-[500px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
-          {selectedSale && (
-            <div className="flex flex-col">
-              <div className="bg-primary/5 p-6 border-b border-primary/10">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <ShoppingBag className="h-5 w-5" />
-                  </div>
-                  <Badge
-                    className={
-                      selectedSale.status === "concluded"
-                        ? "bg-success/10 text-success border-success/20"
-                        : selectedSale.status === "pending"
-                          ? "bg-warning/10 text-warning border-warning/20"
-                          : "bg-destructive/10 text-destructive border-destructive/20"
-                    }
-                  >
-                    {selectedSale.status === "concluded"
-                      ? "CONCLUÍDA"
-                      : selectedSale.status === "pending"
-                        ? "PENDENTE"
-                        : "CANCELADA"}
-                  </Badge>
-                </div>
-                <DialogHeader className="text-left">
-                  <DialogTitle className="text-xl font-black tracking-tight">
-                    Venda #{selectedSale.id.slice(0, 8).toUpperCase()}
-                  </DialogTitle>
-                  <DialogDescription className="text-sm font-medium">
-                    Realizada em{" "}
-                    {format(new Date(selectedSale.created_at), "dd 'de' MMMM 'às' HH:mm", {
-                      locale: ptBR,
-                    })}
-                  </DialogDescription>
-                </DialogHeader>
-              </div>
+        <DialogContent className="sm:max-w-[560px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card">
+          {selectedSale && (() => {
+            const status = selectedSale.status as string;
+            const statusMap: Record<string, { label: string; cls: string; dot: string }> = {
+              concluded: {
+                label: "CONCLUÍDA",
+                cls: "bg-success/10 text-success border-success/30",
+                dot: "bg-success",
+              },
+              pending: {
+                label: "PENDENTE",
+                cls: "bg-warning/10 text-warning border-warning/30",
+                dot: "bg-warning",
+              },
+              cancelled: {
+                label: "CANCELADA",
+                cls: "bg-destructive/10 text-destructive border-destructive/30",
+                dot: "bg-destructive",
+              },
+            };
+            const st = statusMap[status] || statusMap.cancelled;
+            const total = Number(selectedSale.total_amount || 0);
+            const subtotal = Number(selectedSale.subtotal ?? total);
+            const discount = Number(selectedSale.discount || 0);
+            const addition = Number(selectedSale.addition || 0);
+            const saleCode = selectedSale.sale_number
+              ? `#${String(selectedSale.sale_number).padStart(6, "0")}`
+              : `#${selectedSale.id.slice(0, 8).toUpperCase()}`;
+            const brl = (n: number) =>
+              n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            const isCancelled = status === "cancelled";
 
-              <div className="p-6 space-y-6">
-                {/* Cliente */}
-                <div className="flex items-start gap-4 p-4 rounded-2xl bg-muted/30 border border-border/50">
-                  <div className="h-10 w-10 rounded-full bg-background flex items-center justify-center border border-border/50">
-                    <User className="h-5 w-5 text-muted-foreground" />
+            return (
+              <div className="flex flex-col">
+                {/* Hero header com gradiente azul */}
+                <div className="relative p-6 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground overflow-hidden">
+                  <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+                  <div className="absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+                  <div className="relative flex items-start justify-between mb-4">
+                    <div className="h-12 w-12 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/20">
+                      <ShoppingBag className="h-6 w-6" />
+                    </div>
+                    <Badge className={`${st.cls} backdrop-blur font-black tracking-wider px-3 py-1 rounded-full`}>
+                      <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${st.dot} animate-pulse inline-block`} />
+                      {st.label}
+                    </Badge>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                      Cliente
-                    </span>
-                    <span className="font-bold text-base">
-                      {selectedSale.customers?.name || "Consumidor Final"}
-                    </span>
-                  </div>
+                  <DialogHeader className="text-left relative">
+                    <DialogTitle className="text-2xl font-black tracking-tight">
+                      Venda {saleCode}
+                    </DialogTitle>
+                    <DialogDescription className="text-sm font-medium text-primary-foreground/80 flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5" />
+                      {format(new Date(selectedSale.created_at), "dd 'de' MMMM 'às' HH:mm", {
+                        locale: ptBR,
+                      })}
+                    </DialogDescription>
+                  </DialogHeader>
                 </div>
 
-                {/* Info da Venda */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/50">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
+                <div className="p-6 space-y-4">
+                  {/* Cliente */}
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-muted/40 border border-border/60">
+                    <div className="h-11 w-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-base">
+                      {(selectedSale.customers?.name || "C")
+                        .split(" ")
+                        .map((p: string) => p[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70">
+                        Cliente
+                      </div>
+                      <div className="font-bold text-base truncate">
+                        {selectedSale.customers?.name || "Consumidor Final"}
+                      </div>
+                    </div>
+                    {selectedSale.channel && (
+                      <Badge variant="outline" className="rounded-full font-bold capitalize">
+                        {selectedSale.channel}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Pagamento + Itens */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mb-1.5">
                         Pagamento
-                      </span>
+                      </div>
                       <div className="flex items-center gap-2">
-                        <ReceiptText className="h-4 w-4 text-primary" />
-                        <span className="font-bold text-sm">
+                        <CreditCard className="h-4 w-4 text-primary" />
+                        <span className="font-bold text-sm capitalize truncate">
                           {selectedSale.payment_method || "Não informado"}
                         </span>
                       </div>
                     </div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-muted/30 border border-border/50">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
-                        Itens
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <Info className="h-4 w-4 text-primary" />
-                        <span className="font-bold text-sm">1 item(s)</span>
+                    <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                        Identificação
                       </div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(selectedSale.id);
+                          toast.success("ID copiado!");
+                        }}
+                        className="flex items-center gap-2 font-mono text-xs font-bold hover:text-primary transition"
+                        title="Copiar ID"
+                      >
+                        <Info className="h-4 w-4 text-primary" />
+                        {selectedSale.id.slice(0, 8).toUpperCase()}
+                      </button>
                     </div>
                   </div>
-                </div>
 
-                {/* Total */}
-                <div className="p-5 rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-[0.2em] opacity-80">
-                      Total da Venda
-                    </span>
-                    <span className="text-2xl font-black">
-                      {(selectedSale.total_amount || 0).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
-                    </span>
+                  {/* Resumo financeiro */}
+                  <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span className="font-bold">{brl(subtotal)}</span>
+                    </div>
+                    {discount > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <ArrowDownRight className="h-3.5 w-3.5 text-success" /> Desconto
+                        </span>
+                        <span className="font-bold text-success">- {brl(discount)}</span>
+                      </div>
+                    )}
+                    {addition > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <ArrowUpRight className="h-3.5 w-3.5 text-warning" /> Acréscimo
+                        </span>
+                        <span className="font-bold text-warning">+ {brl(addition)}</span>
+                      </div>
+                    )}
+                    <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
+                      <span className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+                        Total da Venda
+                      </span>
+                      <span className="text-2xl font-black text-primary">{brl(total)}</span>
+                    </div>
+                  </div>
+
+                  {/* Ações */}
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    <Button
+                      variant="outline"
+                      className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px] disabled:opacity-50"
+                      disabled={isCancelled}
+                      onClick={() => {
+                        if (isCancelled) {
+                          toast.error("Vendas canceladas não podem ser editadas.");
+                          return;
+                        }
+                        window.open(`/pdv?edit=${selectedSale.id}`, "_blank");
+                        setIsDetailsOpen(false);
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                      Editar
+                    </Button>
+                    <Button
+                      className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
+                      onClick={() => window.open(`/recibo/${selectedSale.id}`, "_blank")}
+                    >
+                      <Eye className="h-4 w-4" />
+                      Detalhes
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
+                      onClick={() => {
+                        toast.info("Preparando cupom...");
+                        window.open(`/recibo/${selectedSale.id}?auto=1`, "_blank");
+                      }}
+                    >
+                      <Printer className="h-4 w-4" />
+                      Imprimir
+                    </Button>
+                  </div>
+
+                  {/* Compartilhar */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 rounded-lg font-semibold text-xs gap-1.5"
+                      onClick={() => {
+                        const url = `${window.location.origin}/recibo/${selectedSale.id}`;
+                        const msg = `Olá! Segue o recibo da sua compra ${saleCode}: ${url}`;
+                        const phone = (selectedSale.customers as any)?.phone?.replace(/\D/g, "") || "";
+                        window.open(
+                          `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,
+                          "_blank",
+                        );
+                      }}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-9 rounded-lg font-semibold text-xs gap-1.5"
+                      onClick={() => {
+                        const url = `${window.location.origin}/recibo/${selectedSale.id}`;
+                        navigator.clipboard.writeText(url);
+                        toast.success("Link do recibo copiado!");
+                      }}
+                    >
+                      <Share2 className="h-3.5 w-3.5" /> Copiar link
+                    </Button>
                   </div>
                 </div>
-
-                {/* Ações Rápidas */}
-                <div className="pt-2 flex flex-col gap-2">
-                  <Button
-                    variant="outline"
-                    className="w-full h-12 rounded-xl font-bold flex items-center gap-2 border-primary/20 text-primary hover:bg-primary/5"
-                    onClick={() => {
-                      if (selectedSale.status === "cancelled") {
-                        toast.error("Vendas canceladas não podem ser editadas.");
-                        return;
-                      }
-                      toast.info("Abrindo PDV para edição...");
-                      window.open(`/pdv?edit=${selectedSale.id}`, "_blank");
-                      setIsDetailsOpen(false);
-                    }}
-                  >
-                    <Edit className="h-4 w-4" /> Editar Venda
-                  </Button>
-                  <Button
-                    className="w-full h-12 rounded-xl font-bold flex items-center gap-2"
-                    onClick={() => {
-                      window.open(`/recibo/${selectedSale.id}`, "_blank");
-                    }}
-                  >
-                    <Eye className="h-4 w-4" /> Ver Detalhes Completos
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full h-12 rounded-xl font-bold flex items-center gap-2"
-                    onClick={() => {
-                      toast.info("Preparando cupom...");
-                      window.open(`/recibo/${selectedSale.id}?auto=1`, "_blank");
-                    }}
-                  >
-                    <Printer className="h-4 w-4" /> Imprimir Cupom
-                  </Button>
-                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
