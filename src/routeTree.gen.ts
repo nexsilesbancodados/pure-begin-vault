@@ -111,6 +111,7 @@ import { Route as ApiQuoteIdRouteImport } from './routes/api/quote.$id'
 import { Route as ApiPublicSplatRouteImport } from './routes/api/public.$'
 import { Route as ApiOsPublicIdRouteImport } from './routes/api/os-public.$id'
 import { Route as ApiEvolutionSplatRouteImport } from './routes/api/evolution/$'
+import { Route as ApiPublicReceiptIdRouteImport } from './routes/api/public/receipt.$id'
 
 const WhatsappRoute = WhatsappRouteImport.update({
   id: '/whatsapp',
@@ -622,6 +623,11 @@ const ApiEvolutionSplatRoute = ApiEvolutionSplatRouteImport.update({
   path: '/api/evolution/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicReceiptIdRoute = ApiPublicReceiptIdRouteImport.update({
+  id: '/api/public/receipt/$id',
+  path: '/api/public/receipt/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -726,6 +732,7 @@ export interface FileRoutesByFullPath {
   '/api/public/$': typeof ApiPublicSplatRoute
   '/api/quote/$id': typeof ApiQuoteIdRoute
   '/api/receipt/$id': typeof ApiReceiptIdRoute
+  '/api/public/receipt/$id': typeof ApiPublicReceiptIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -830,6 +837,7 @@ export interface FileRoutesByTo {
   '/api/public/$': typeof ApiPublicSplatRoute
   '/api/quote/$id': typeof ApiQuoteIdRoute
   '/api/receipt/$id': typeof ApiReceiptIdRoute
+  '/api/public/receipt/$id': typeof ApiPublicReceiptIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -935,6 +943,7 @@ export interface FileRoutesById {
   '/api/public/$': typeof ApiPublicSplatRoute
   '/api/quote/$id': typeof ApiQuoteIdRoute
   '/api/receipt/$id': typeof ApiReceiptIdRoute
+  '/api/public/receipt/$id': typeof ApiPublicReceiptIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1041,6 +1050,7 @@ export interface FileRouteTypes {
     | '/api/public/$'
     | '/api/quote/$id'
     | '/api/receipt/$id'
+    | '/api/public/receipt/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1145,6 +1155,7 @@ export interface FileRouteTypes {
     | '/api/public/$'
     | '/api/quote/$id'
     | '/api/receipt/$id'
+    | '/api/public/receipt/$id'
   id:
     | '__root__'
     | '/'
@@ -1249,6 +1260,7 @@ export interface FileRouteTypes {
     | '/api/public/$'
     | '/api/quote/$id'
     | '/api/receipt/$id'
+    | '/api/public/receipt/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1324,6 +1336,7 @@ export interface RootRouteChildren {
   ApiPublicSplatRoute: typeof ApiPublicSplatRoute
   ApiQuoteIdRoute: typeof ApiQuoteIdRoute
   ApiReceiptIdRoute: typeof ApiReceiptIdRoute
+  ApiPublicReceiptIdRoute: typeof ApiPublicReceiptIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -2042,6 +2055,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEvolutionSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/receipt/$id': {
+      id: '/api/public/receipt/$id'
+      path: '/api/public/receipt/$id'
+      fullPath: '/api/public/receipt/$id'
+      preLoaderRoute: typeof ApiPublicReceiptIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -2246,7 +2266,18 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicSplatRoute: ApiPublicSplatRoute,
   ApiQuoteIdRoute: ApiQuoteIdRoute,
   ApiReceiptIdRoute: ApiReceiptIdRoute,
+  ApiPublicReceiptIdRoute: ApiPublicReceiptIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
