@@ -294,6 +294,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
       setRows(parsed.rows);
       setHmap(parsed.hmap);
       setHeaders(parsed.headers);
+      setRawData(parsed.raw);
       setStep("preview");
       const validCount = parsed.rows.filter((r) => r._valid).length;
       if (validCount === 0) {
