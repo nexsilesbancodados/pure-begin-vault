@@ -257,8 +257,18 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     setActiveTab("geral");
     const fresh = buildInitialForm(product);
     setForm(fresh);
-    setProductType((product?.metadata?.tipo as ProductType) || "Aparelho");
     const m = product?.metadata || {};
+    // product_type = toggle (Aparelho/Acessório/Peça)
+    // Fallback: se houver IMEI gravado, é Aparelho
+    const validTypes: ProductType[] = ["Aparelho", "Acessório", "Peça"];
+    const stored = m.product_type as ProductType | undefined;
+    const inferred: ProductType =
+      stored && validTypes.includes(stored)
+        ? stored
+        : m.imei || m.imei2 || m.saude_bateria
+          ? "Aparelho"
+          : "Aparelho";
+    setProductType(inferred);
     setContasPagar(m.contas_pagar || []);
     setCustosExtras(m.custos_extras || []);
     setAnexos(m.anexos || []);
