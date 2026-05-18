@@ -54,21 +54,28 @@ function NotasAbertoPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    if (!open || !orgId) return;
+  const loadProducts = async () => {
+    if (!orgId) return;
     setLoading(true);
-    (async () => {
-      const { data, error } = await (supabase as any)
-        .from("products")
-        .select("id, name, sku, imei, sale_price, stock_quantity")
-        .eq("organization_id", orgId)
-        .eq("active", true)
-        .order("name")
-        .limit(500);
-      if (error) toast.error("Erro ao carregar produtos: " + error.message);
-      setProducts(data ?? []);
-      setLoading(false);
-    })();
+    const { data, error } = await (supabase as any)
+      .from("products")
+      .select("id, name, sku, price, stock_quantity, metadata")
+      .eq("organization_id", orgId)
+      .eq("active", true)
+      .order("name")
+      .limit(500);
+    if (error) toast.error("Erro ao carregar produtos: " + error.message);
+    const mapped: Product[] = (data ?? []).map((p: any) => ({
+      ...p,
+      imei: p?.metadata?.imei ?? null,
+    }));
+    setProducts(mapped);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (open) loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, orgId]);
 
   const filtered = products.filter((p) => {
