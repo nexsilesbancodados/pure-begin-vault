@@ -430,6 +430,9 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         product_name: r.product_name,
         product_quantity: r.product_quantity,
         product_price: r.product_price,
+        description: r.description,
+        fin_type: r.fin_type,
+        category: r.category,
       })),
     );
     if (!jobId) return;
