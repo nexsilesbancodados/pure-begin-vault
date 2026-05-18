@@ -73,19 +73,25 @@ export function SalesHistory() {
     try {
       const { data, error } = await supabase
         .from("sales_orders")
-        .select(
-          `
-           *,
-           customers (
-             name
-           )
-         `,
-        )
+        .select("*")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setSales(data || []);
+
+      const rows = data || [];
+      const customerIds = Array.from(
+        new Set(rows.map((r: any) => r.customer_id).filter(Boolean)),
+      );
+      let customersMap: Record<string, { name: string }> = {};
+      if (customerIds.length) {
+        const { data: cs } = await supabase
+          .from("customers")
+          .select("id, name")
+          .in("id", customerIds as string[]);
+        customersMap = Object.fromEntries((cs || []).map((c: any) => [c.id, { name: c.name }]));
+      }
+      setSales(rows.map((r: any) => ({ ...r, customers: customersMap[r.customer_id] || null })));
     } catch (error) {
       console.error("Erro ao carregar vendas:", error);
       toast.error("Erro ao carregar histórico de vendas.");
