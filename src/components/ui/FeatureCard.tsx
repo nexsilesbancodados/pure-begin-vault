@@ -148,19 +148,27 @@ export function FeatureCard({
 
   const navigate = useNavigate();
   if (to) {
+    const LinkAny = Link as any;
     return (
-      <a
-        href={to}
+      <LinkAny
+        to={to}
         className={baseClass}
-        onClick={(e) => {
-          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
-          e.preventDefault();
+        onClick={(e: React.MouseEvent) => {
           onClick?.();
-          navigate({ to: to as any });
+          // Fallback: if router didn't intercept, force navigation
+          setTimeout(() => {
+            if (typeof window !== "undefined" && window.location.pathname !== to) {
+              try {
+                navigate({ to: to as any });
+              } catch {
+                window.location.href = to;
+              }
+            }
+          }, 50);
         }}
       >
         {content}
-      </a>
+      </LinkAny>
     );
   }
   if (href) {
