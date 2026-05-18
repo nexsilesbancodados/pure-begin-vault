@@ -121,9 +121,6 @@ export function PDVInterface() {
   const updateCustomerField = <K extends keyof typeof customerForm>(
     k: K,
     v: (typeof customerForm)[K],
-  const updateCustomerField = <K extends keyof typeof customerForm>(
-    k: K,
-    v: (typeof customerForm)[K],
   ) => setCustomerForm((p) => ({ ...p, [k]: v }));
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   const [isLookingUpCep, setIsLookingUpCep] = useState(false);
