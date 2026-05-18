@@ -44,6 +44,12 @@ type ParsedRow = {
   status: string;
   notes: string;
   created_at: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  product_name?: string;
+  product_quantity?: number;
+  product_price?: number;
   _raw: Record<string, any>;
   _valid: boolean;
   _error?: string;
@@ -65,19 +71,22 @@ const FIELD_ALIASES: Record<string, string[]> = {
     "valor",
     "total",
     "vlr",
-    "preco",
     "amount",
     "value",
-    "price",
-    "subtotal",
     "venda",
     "faturamento",
+    "subtotal",
   ],
   date: ["data", "date", "dt", "emissao", "vencimento", "created", "criado"],
   payment: ["pagamento", "pagto", "metodo", "method", "forma", "payment"],
   status: ["status", "situacao", "estado"],
-  notes: ["obs", "observacao", "observacoes", "notes", "descricao", "description", "nota"],
-  customer: ["cliente", "customer", "comprador", "nome"],
+  notes: ["obs", "observacao", "observacoes", "notes", "descricao", "description"],
+  customer: ["cliente", "customer", "comprador", "nome cliente", "nome do cliente"],
+  customer_phone: ["telefone", "celular", "whatsapp", "fone", "phone"],
+  customer_email: ["email", "e-mail", "mail"],
+  product: ["produto", "item", "product", "mercadoria", "descricao produto"],
+  quantity: ["qtd", "quantidade", "qty", "quantity"],
+  unit_price: ["preco", "preço", "preco unit", "valor unitario", "unit price"],
 };
 
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
@@ -174,8 +183,19 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   else if (isNaN(amount)) errors.push("valor inválido");
   else if (amount <= 0) errors.push("valor deve ser maior que zero");
 
-  const customer = get("customer");
-  const notes = get("notes") || (customer ? `Cliente: ${customer}` : "Importado via sistema");
+  const customerName = get("customer") ? String(get("customer")).trim() : undefined;
+  const customerPhone = get("customer_phone") ? String(get("customer_phone")).trim() : undefined;
+  const customerEmail = get("customer_email") ? String(get("customer_email")).trim() : undefined;
+  const productName = get("product") ? String(get("product")).trim() : undefined;
+  const qtyRaw = get("quantity");
+  const productQty = qtyRaw != null && qtyRaw !== "" ? Number(parseCurrency(qtyRaw)) || 1 : 1;
+  const unitPriceRaw = get("unit_price");
+  const productPrice = unitPriceRaw != null && unitPriceRaw !== ""
+    ? parseCurrency(unitPriceRaw)
+    : undefined;
+
+  const notes =
+    get("notes") || (customerName ? `Cliente: ${customerName}` : "Importado via sistema");
 
   return {
     total_amount: isNaN(amount) ? 0 : amount,
@@ -183,6 +203,12 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     status: normalizeStatus(get("status")),
     notes: String(notes).slice(0, 500),
     created_at: (date ?? new Date()).toISOString(),
+    customer_name: customerName || undefined,
+    customer_phone: customerPhone || undefined,
+    customer_email: customerEmail || undefined,
+    product_name: productName || undefined,
+    product_quantity: productQty,
+    product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
     _raw: row,
     _valid: errors.length === 0,
     _error: errors.length ? `Linha ${idx + 2}: ${errors.join(", ")}` : undefined,
@@ -319,27 +345,189 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
 
     setIsImporting(true);
     setImported(0);
+    const counters = { sales: 0, customers: 0, products: 0, finance: 0 };
+
     try {
+      // 1) CLIENTES — dedupe pelos que aparecem nas linhas
+      const uniqueCustomers = new Map<string, { name: string; phone?: string; email?: string }>();
+      for (const r of validRows) {
+        if (r.customer_name) {
+          const key = r.customer_name.toLowerCase();
+          if (!uniqueCustomers.has(key)) {
+            uniqueCustomers.set(key, {
+              name: r.customer_name,
+              phone: r.customer_phone,
+              email: r.customer_email,
+            });
+          }
+        }
+      }
+
+      const customerIdByName = new Map<string, string>();
+      if (uniqueCustomers.size > 0) {
+        const names = Array.from(uniqueCustomers.values()).map((c) => c.name);
+        // busca existentes
+        const { data: existing } = await supabase
+          .from("customers")
+          .select("id, name")
+          .eq("organization_id", orgId)
+          .in("name", names);
+        (existing || []).forEach((c: any) => {
+          customerIdByName.set(c.name.toLowerCase(), c.id);
+        });
+        // cria os que faltam
+        const toCreate = Array.from(uniqueCustomers.values()).filter(
+          (c) => !customerIdByName.has(c.name.toLowerCase()),
+        );
+        if (toCreate.length) {
+          const { data: created } = await supabase
+            .from("customers")
+            .insert(
+              toCreate.map((c) => ({
+                organization_id: orgId,
+                user_id: user.id,
+                name: c.name,
+                phone: c.phone || null,
+                email: c.email || null,
+              })),
+            )
+            .select("id, name");
+          (created || []).forEach((c: any) => {
+            customerIdByName.set(c.name.toLowerCase(), c.id);
+            counters.customers++;
+          });
+        }
+      }
+
+      // 2) PRODUTOS — dedupe por nome
+      const uniqueProducts = new Map<string, { name: string; price?: number }>();
+      for (const r of validRows) {
+        if (r.product_name) {
+          const key = r.product_name.toLowerCase();
+          if (!uniqueProducts.has(key)) {
+            uniqueProducts.set(key, {
+              name: r.product_name,
+              price: r.product_price ?? r.total_amount,
+            });
+          }
+        }
+      }
+
+      const productIdByName = new Map<string, string>();
+      if (uniqueProducts.size > 0) {
+        const names = Array.from(uniqueProducts.values()).map((p) => p.name);
+        const { data: existingP } = await supabase
+          .from("products")
+          .select("id, name")
+          .eq("organization_id", orgId)
+          .in("name", names);
+        (existingP || []).forEach((p: any) => {
+          productIdByName.set(p.name.toLowerCase(), p.id);
+        });
+        const toCreateP = Array.from(uniqueProducts.values()).filter(
+          (p) => !productIdByName.has(p.name.toLowerCase()),
+        );
+        if (toCreateP.length) {
+          const { data: createdP } = await supabase
+            .from("products")
+            .insert(
+              toCreateP.map((p) => ({
+                organization_id: orgId,
+                user_id: user.id,
+                name: p.name,
+                price: p.price ?? 0,
+                category: "Importado",
+                active: true,
+              })),
+            )
+            .select("id, name");
+          (createdP || []).forEach((p: any) => {
+            productIdByName.set(p.name.toLowerCase(), p.id);
+            counters.products++;
+          });
+        }
+      }
+
+      // 3) VENDAS — em lotes, com customer_id linkado
       const batchSize = 50;
-      let ok = 0;
+      const insertedSales: { id: string; row: ParsedRow }[] = [];
       for (let i = 0; i < validRows.length; i += batchSize) {
-        const batch = validRows.slice(i, i + batchSize).map((r) => ({
+        const slice = validRows.slice(i, i + batchSize);
+        const batch = slice.map((r) => ({
           user_id: user.id,
           organization_id: orgId,
           total_amount: r.total_amount,
+          subtotal: r.total_amount,
           payment_method: r.payment_method,
           status: r.status,
           notes: r.notes,
+          channel: "import",
+          customer_id: r.customer_name
+            ? customerIdByName.get(r.customer_name.toLowerCase()) || null
+            : null,
           created_at: r.created_at,
         }));
-        const { error } = await supabase.from("sales_orders").insert(batch);
-        if (!error) ok += batch.length;
-        setImported(ok);
-        setProgress(Math.round(((i + batch.length) / validRows.length) * 100));
+        const { data: createdSales, error } = await supabase
+          .from("sales_orders")
+          .insert(batch)
+          .select("id");
+        if (!error && createdSales) {
+          createdSales.forEach((s: any, idx: number) => {
+            insertedSales.push({ id: s.id, row: slice[idx] });
+            counters.sales++;
+          });
+        }
+        setImported(counters.sales);
+        setProgress(Math.round(((i + batch.length) / validRows.length) * 90));
       }
 
+      // 4) ITENS DE VENDA (quando houver produto)
+      const saleItems = insertedSales
+        .filter(({ row }) => row.product_name && productIdByName.has(row.product_name.toLowerCase()))
+        .map(({ id, row }) => ({
+          organization_id: orgId,
+          sale_id: id,
+          product_id: productIdByName.get(row.product_name!.toLowerCase())!,
+          product_name: row.product_name!,
+          quantity: row.product_quantity || 1,
+          unit_price: row.product_price ?? row.total_amount,
+          total: row.total_amount,
+        }));
+      if (saleItems.length) {
+        for (let i = 0; i < saleItems.length; i += batchSize) {
+          await supabase.from("sale_items").insert(saleItems.slice(i, i + batchSize));
+        }
+      }
+
+      // 5) FINANCEIRO — uma transação por venda concluída
+      const financeRows = insertedSales
+        .filter(({ row }) => row.status === "concluded")
+        .map(({ id, row }) => ({
+          organization_id: orgId,
+          user_id: user.id,
+          type: "income",
+          amount: row.total_amount,
+          description: `Venda importada${row.customer_name ? ` · ${row.customer_name}` : ""}`,
+          category: "sales",
+          payment_method: row.payment_method,
+          reference_type: "sale",
+          reference_id: id,
+          transaction_date: row.created_at,
+        }));
+      if (financeRows.length) {
+        for (let i = 0; i < financeRows.length; i += batchSize) {
+          const { error } = await supabase
+            .from("finance_transactions")
+            .insert(financeRows.slice(i, i + batchSize));
+          if (!error) counters.finance += Math.min(batchSize, financeRows.length - i);
+        }
+      }
+
+      setProgress(100);
       setStep("done");
-      toast.success(`${ok} vendas importadas!`);
+      toast.success(
+        `${counters.sales} vendas · ${counters.customers} clientes · ${counters.products} produtos · ${counters.finance} lançamentos`,
+      );
       onImportSuccess?.();
     } catch (err: any) {
       toast.error(err.message || "Erro ao importar.");
