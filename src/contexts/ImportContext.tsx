@@ -37,6 +37,7 @@ type Ctx = {
   activeCount: number;
   startImport: (fileName: string, rows: ImportRow[]) => Promise<string | null>;
   clearFinished: () => Promise<void>;
+  deleteJob: (jobId: string) => Promise<void>;
 };
 
 const ImportCtx = createContext<Ctx | null>(null);
