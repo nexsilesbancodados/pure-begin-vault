@@ -387,7 +387,10 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
 
     try {
       // 1) CLIENTES — dedupe pelos que aparecem nas linhas
-      const uniqueCustomers = new Map<string, { name: string; phone?: string; email?: string }>();
+      const uniqueCustomers = new Map<
+        string,
+        { name: string; phone?: string; email?: string; document?: string }
+      >();
       for (const r of validRows) {
         if (r.customer_name) {
           const key = r.customer_name.toLowerCase();
@@ -396,7 +399,11 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
               name: r.customer_name,
               phone: r.customer_phone,
               email: r.customer_email,
+              document: r.customer_document,
             });
+          } else if (r.customer_document) {
+            const ex = uniqueCustomers.get(key)!;
+            if (!ex.document) ex.document = r.customer_document;
           }
         }
       }
@@ -427,6 +434,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                 name: c.name,
                 phone: c.phone || null,
                 email: c.email || null,
+                document: c.document || null,
               })),
             )
             .select("id, name");
