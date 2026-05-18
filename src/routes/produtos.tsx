@@ -406,7 +406,16 @@ function ProductsPage() {
               filteredProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="rounded-2xl bg-card border border-border overflow-hidden shadow-card hover:shadow-elegant transition-all group"
+                  onClick={() => setEditingProduct(product)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setEditingProduct(product);
+                    }
+                  }}
+                  className="rounded-2xl bg-card border border-border overflow-hidden shadow-card hover:shadow-elegant transition-all group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <div className="h-40 bg-muted grid place-items-center relative overflow-hidden">
                     {(product.image_url || product.metadata?.image_url) ? (
@@ -422,7 +431,7 @@ function ProductsPage() {
                     ) : (
                       <ShoppingBag className="h-12 w-12 text-muted-foreground/30 group-hover:scale-110 transition duration-300" />
                     )}
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button className="h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm grid place-items-center hover:bg-white text-foreground shadow-sm">
