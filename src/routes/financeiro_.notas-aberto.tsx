@@ -92,7 +92,7 @@ function NotasAbertoPage() {
 
     let query = supabase
       .from("products")
-      .select("id, name, organization_id, sku, price, stock_quantity, metadata")
+      .select("*")
       .eq("active", true)
       .order("name")
       .limit(500);
@@ -113,7 +113,7 @@ function NotasAbertoPage() {
       if (orgIds.length > 0) {
         const fallback = await supabase
           .from("products")
-          .select("id, name, organization_id, sku, price, stock_quantity, metadata")
+          .select("*")
           .in("organization_id", orgIds)
           .eq("active", true)
           .order("name")
