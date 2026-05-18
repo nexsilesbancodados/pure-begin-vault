@@ -151,24 +151,38 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
 
     setSaving(true);
     try {
-      const { data, error } = await (supabase as any)
-        .from("organization_invites")
-        .insert({
-          organization_id: orgId,
-          invited_by: userId,
-          email: email.trim(),
-          role: quickProfile === "Administrador" ? "admin" : "employee",
-        })
-        .select()
-        .single();
+      let inviteId = initial?.id;
 
-      if (error) throw error;
+      if (isEdit && inviteId) {
+        // Atualiza email/role no convite existente
+        const { error } = await (supabase as any)
+          .from("organization_invites")
+          .update({
+            email: email.trim(),
+            role: quickProfile === "Administrador" ? "admin" : "employee",
+          })
+          .eq("id", inviteId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await (supabase as any)
+          .from("organization_invites")
+          .insert({
+            organization_id: orgId,
+            invited_by: userId,
+            email: email.trim(),
+            role: quickProfile === "Administrador" ? "admin" : "employee",
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        inviteId = data.id;
+      }
 
       // Persist extended metadata locally (no DB column required)
       try {
         const key = `invite_meta_${orgId}`;
         const existing = JSON.parse(localStorage.getItem(key) || "{}");
-        existing[data.id] = {
+        existing[inviteId!] = {
           nome,
           ativo: ativo === "Sim",
           perfis,
@@ -180,12 +194,21 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
         localStorage.setItem(key, JSON.stringify(existing));
       } catch {}
 
-      const url = `${window.location.origin}/aceitar-convite/${data.token}`;
-      try {
-        await navigator.clipboard.writeText(url);
-        toast.success("Usuário cadastrado! Link de convite copiado.");
-      } catch {
-        toast.success("Usuário cadastrado!");
+      if (isEdit) {
+        toast.success("Usuário atualizado!");
+      } else {
+        const { data: inv } = await (supabase as any)
+          .from("organization_invites")
+          .select("token")
+          .eq("id", inviteId)
+          .single();
+        const url = `${window.location.origin}/aceitar-convite/${inv?.token}`;
+        try {
+          await navigator.clipboard.writeText(url);
+          toast.success("Usuário cadastrado! Link de convite copiado.");
+        } catch {
+          toast.success("Usuário cadastrado!");
+        }
       }
 
       onCreated?.();
