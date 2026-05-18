@@ -387,7 +387,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     return results;
   };
 
-  const handleImport = async () => {
+  const handleImport = () => {
     if (!user?.id || rows.length === 0) return;
     const validRows = rows.filter((r) => r._valid);
     if (validRows.length === 0) {
@@ -395,12 +395,34 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
       return;
     }
 
-    setIsImporting(true);
-    setImported(0);
-    const counters = { sales: 0, customers: 0, products: 0, finance: 0 };
-    // Tamanho de lote maior + paralelismo: ~10x mais rápido sem sobrecarregar o Supabase
-    const BATCH = 200;
-    const CONCURRENCY = 4;
+    // Dispara o job no contexto global — roda em background, modal pode fechar
+    startImport(
+      file?.name || "Importação",
+      validRows.map((r) => ({
+        total_amount: r.total_amount,
+        payment_method: r.payment_method,
+        status: r.status,
+        notes: r.notes,
+        created_at: r.created_at,
+        customer_name: r.customer_name,
+        customer_phone: r.customer_phone,
+        customer_email: r.customer_email,
+        customer_document: r.customer_document,
+        product_name: r.product_name,
+        product_quantity: r.product_quantity,
+        product_price: r.product_price,
+      })),
+    );
+
+    toast.success(
+      `${validRows.length} vendas em processamento — acompanhe em "Importações" no menu`,
+      { duration: 5000 },
+    );
+    onImportSuccess?.();
+    reset();
+    onClose();
+  };
+
 
     try {
       // 1) CLIENTES — dedupe priorizando DOCUMENTO (CPF/CNPJ) e fallback para nome
