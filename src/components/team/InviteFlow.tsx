@@ -48,6 +48,7 @@ export function InviteFlow() {
   const [saving, setSaving] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Invite | null>(null);
 
   const load = async () => {
     if (!orgId) return;
@@ -192,8 +193,12 @@ export function InviteFlow() {
 
       <UserRegistrationModal
         open={userModalOpen}
-        onOpenChange={setUserModalOpen}
+        onOpenChange={(o) => {
+          setUserModalOpen(o);
+          if (!o) setEditing(null);
+        }}
         onCreated={load}
+        initial={editing}
       />
 
       {/* Convite rápido */}
@@ -263,7 +268,20 @@ export function InviteFlow() {
               return (
                 <div
                   key={i.id}
-                  className="relative rounded-2xl border border-border bg-card p-4 hover:shadow-md transition-shadow"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setEditing(i);
+                    setUserModalOpen(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setEditing(i);
+                      setUserModalOpen(true);
+                    }
+                  }}
+                  className="relative rounded-2xl border border-border bg-card p-4 hover:shadow-md hover:border-primary/40 cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="flex items-start gap-3">
                     <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center shrink-0">
@@ -305,7 +323,10 @@ export function InviteFlow() {
                         size="sm"
                         variant="outline"
                         className="flex-1"
-                        onClick={() => copyLink(i.token)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyLink(i.token);
+                        }}
                       >
                         {copiedToken === i.token ? (
                           <><Check className="h-3 w-3 mr-1" /> Copiado</>
@@ -316,7 +337,10 @@ export function InviteFlow() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => revoke(i.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          revoke(i.id);
+                        }}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />

@@ -16,10 +16,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserOrgs } from "@/lib/useUserOrgs";
 import { toast } from "sonner";
 
+interface EditInitial {
+  id: string;
+  email?: string | null;
+  metadata?: {
+    nome?: string;
+    ativo?: boolean;
+    perfis?: string[];
+    custom_perfis?: string[];
+    perfil_rapido?: string;
+    tela_inicial?: string;
+    lojas?: string[];
+  } | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
+  initial?: EditInitial | null;
 }
 
 const DEFAULT_PROFILES = [
@@ -53,10 +68,11 @@ const HOME_SCREENS = [
   "CRM",
 ];
 
-export function UserRegistrationModal({ open, onOpenChange, onCreated }: Props) {
+export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }: Props) {
   const { orgId, userId } = useOrg();
   const { user } = useAuth();
   const { orgs } = useUserOrgs();
+  const isEdit = !!initial?.id;
 
   const [ativo, setAtivo] = useState("Sim");
   const [nome, setNome] = useState("");
@@ -73,11 +89,23 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated }: Props) 
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      // pré-seleciona loja ativa
+    if (!open) return;
+    if (initial) {
+      const m = initial.metadata || {};
+      setAtivo(m.ativo === false ? "Não" : "Sim");
+      setNome(m.nome || "");
+      setEmail(initial.email || "");
+      setSenha("");
+      setConfirmar("");
+      setPerfis(m.perfis || []);
+      setCustomPerfis(m.custom_perfis || []);
+      setQuickProfile(m.perfil_rapido || "");
+      setTelaInicial(m.tela_inicial || "");
+      setLojas(m.lojas?.length ? m.lojas : orgId ? [orgId] : []);
+    } else {
       setLojas(orgId ? [orgId] : []);
     }
-  }, [open, orgId]);
+  }, [open, orgId, initial]);
 
   const togglePerfil = (p: string) => {
     setPerfis((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
@@ -123,24 +151,38 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated }: Props) 
 
     setSaving(true);
     try {
-      const { data, error } = await (supabase as any)
-        .from("organization_invites")
-        .insert({
-          organization_id: orgId,
-          invited_by: userId,
-          email: email.trim(),
-          role: quickProfile === "Administrador" ? "admin" : "employee",
-        })
-        .select()
-        .single();
+      let inviteId = initial?.id;
 
-      if (error) throw error;
+      if (isEdit && inviteId) {
+        // Atualiza email/role no convite existente
+        const { error } = await (supabase as any)
+          .from("organization_invites")
+          .update({
+            email: email.trim(),
+            role: quickProfile === "Administrador" ? "admin" : "employee",
+          })
+          .eq("id", inviteId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await (supabase as any)
+          .from("organization_invites")
+          .insert({
+            organization_id: orgId,
+            invited_by: userId,
+            email: email.trim(),
+            role: quickProfile === "Administrador" ? "admin" : "employee",
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        inviteId = data.id;
+      }
 
       // Persist extended metadata locally (no DB column required)
       try {
         const key = `invite_meta_${orgId}`;
         const existing = JSON.parse(localStorage.getItem(key) || "{}");
-        existing[data.id] = {
+        existing[inviteId!] = {
           nome,
           ativo: ativo === "Sim",
           perfis,
@@ -152,12 +194,21 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated }: Props) 
         localStorage.setItem(key, JSON.stringify(existing));
       } catch {}
 
-      const url = `${window.location.origin}/aceitar-convite/${data.token}`;
-      try {
-        await navigator.clipboard.writeText(url);
-        toast.success("Usuário cadastrado! Link de convite copiado.");
-      } catch {
-        toast.success("Usuário cadastrado!");
+      if (isEdit) {
+        toast.success("Usuário atualizado!");
+      } else {
+        const { data: inv } = await (supabase as any)
+          .from("organization_invites")
+          .select("token")
+          .eq("id", inviteId)
+          .single();
+        const url = `${window.location.origin}/aceitar-convite/${inv?.token}`;
+        try {
+          await navigator.clipboard.writeText(url);
+          toast.success("Usuário cadastrado! Link de convite copiado.");
+        } catch {
+          toast.success("Usuário cadastrado!");
+        }
       }
 
       onCreated?.();
@@ -174,7 +225,7 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated }: Props) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto p-0 gap-0">
         <DialogHeader className="px-6 py-4 border-b bg-muted/40">
-          <DialogTitle className="text-base font-bold">Cadastro de usuários do Sistema</DialogTitle>
+          <DialogTitle className="text-base font-bold">{isEdit ? "Editar usuário" : "Cadastro de usuários do Sistema"}</DialogTitle>
           <DialogDescription className="sr-only">
             Formulário de cadastro de usuário
           </DialogDescription>
