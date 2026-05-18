@@ -77,7 +77,34 @@ function NotasAbertoPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const storageKey = `notas_abertas_${orgId ?? "default"}`;
   const [notas, setNotas] = useState<Nota[]>([]);
+
+  // Carregar notas salvas (inclui as em aberto)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Nota[];
+        setNotas(parsed.map((n) => ({ ...n, createdAt: new Date(n.createdAt) })));
+      } else {
+        setNotas([]);
+      }
+    } catch {
+      setNotas([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
+
+  // Persistir sempre que mudar
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(notas));
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notas, orgId]);
   const [addingToNotaId, setAddingToNotaId] = useState<number | null>(null);
   const [detailId, setDetailId] = useState<number | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
