@@ -90,6 +90,7 @@ function FieldRow({
 interface ProductFormData {
   // Core (mapped to columns)
   name: string;
+  reference?: string;
   sku?: string;
   ean?: string;
   category?: string;
@@ -116,18 +117,16 @@ interface ProductFormProps {
 
 type ExtraRow = { id: string; description: string; amount: string; dueDate?: string };
 
-export function ProductForm({ open, onOpenChange, product, onSave }: ProductFormProps) {
-  const [activeTab, setActiveTab] = useState("geral");
-  const [isSaving, setIsSaving] = useState(false);
-  const [productType, setProductType] = useState<ProductType>(
-    (product?.metadata?.tipo as ProductType) || "Aparelho",
-  );
+function generateProductCode() {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rnd = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `PRD-${ts}-${rnd}`;
+}
 
+function buildInitialForm(product: any) {
   const md = product?.metadata || {};
-
-  const [form, setForm] = useState({
-    // dados gerais
-    codigo: product?.reference || product?.id?.slice(0, 8) || "",
+  return {
+    codigo: product?.reference || (product ? product?.id?.slice(0, 8) : generateProductCode()),
     tipo: md.tipo || "Aparelho",
     imei: md.imei || "",
     imei2: md.imei2 || "",
@@ -173,7 +172,18 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     mov_motivo: md.mov_motivo || "Compra",
     mov_obs: md.mov_obs || "",
     nota_id: md.nota_id || "",
-  });
+  };
+}
+
+export function ProductForm({ open, onOpenChange, product, onSave }: ProductFormProps) {
+  const [activeTab, setActiveTab] = useState("geral");
+  const [isSaving, setIsSaving] = useState(false);
+  const md = product?.metadata || {};
+  const [productType, setProductType] = useState<ProductType>(
+    (product?.metadata?.tipo as ProductType) || "Aparelho",
+  );
+
+  const [form, setForm] = useState(() => buildInitialForm(product));
 
   const { orgId } = useOrg();
   const [openNotas, setOpenNotas] = useState<Array<{ id: string; label: string }>>([]);
@@ -241,11 +251,28 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     ],
   );
 
-  // Reset when product changes
+  // Reset all state when opening with a different product (or new)
   useEffect(() => {
     if (!open) return;
     setActiveTab("geral");
-  }, [open]);
+    const fresh = buildInitialForm(product);
+    setForm(fresh);
+    setProductType((product?.metadata?.tipo as ProductType) || "Aparelho");
+    const m = product?.metadata || {};
+    setContasPagar(m.contas_pagar || []);
+    setCustosExtras(m.custos_extras || []);
+    setAnexos(m.anexos || []);
+    setImageUrlInput(m.image_url || "");
+    setChecklist(
+      m.checklist || [
+        { id: "1", item: "Tela sem riscos", ok: false },
+        { id: "2", item: "Carregador incluso", ok: false },
+        { id: "3", item: "Caixa original", ok: false },
+      ],
+    );
+    setPendingFiles([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, product?.id]);
 
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -315,6 +342,7 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
       const payload: ProductFormData = {
         name,
+        reference: form.codigo || generateProductCode(),
         sku: form.sku || undefined,
         ean: form.ean || undefined,
         category: form.categoria || form.tipo,
