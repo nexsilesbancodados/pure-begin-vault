@@ -41,6 +41,7 @@ export function InviteFlow() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [userModalOpen, setUserModalOpen] = useState(false);
 
   const load = async () => {
     if (!orgId) return;
