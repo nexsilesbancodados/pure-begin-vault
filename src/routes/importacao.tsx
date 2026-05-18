@@ -46,7 +46,7 @@ const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
 type FilterKey = "all" | "running" | "done" | "error";
 
 function ImportPage() {
-  const { jobs, activeCount, clearFinished } = useImport();
+  const { jobs, activeCount, clearFinished, deleteJob } = useImport();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
