@@ -8,6 +8,7 @@ export interface UserOrg {
   role: string;
   is_default: boolean;
   organization: { id: string; name: string | null } | null;
+  logo_url?: string | null;
 }
 
 export function useUserOrgs() {
@@ -33,7 +34,20 @@ export function useUserOrgs() {
       .from("user_organizations")
       .select("organization_id, role, is_default, organization:organizations(id, name)")
       .eq("user_id", user.id);
-    setOrgs((data as UserOrg[]) ?? []);
+
+    const base = (data as UserOrg[]) ?? [];
+    const ids = base.map((o) => o.organization_id);
+    let logoMap = new Map<string, string | null>();
+    if (ids.length > 0) {
+      const { data: settings } = await (supabase as any)
+        .from("organization_settings")
+        .select("organization_id, brand_logo_url")
+        .in("organization_id", ids);
+      logoMap = new Map(
+        ((settings as any[]) ?? []).map((s) => [s.organization_id, s.brand_logo_url ?? null]),
+      );
+    }
+    setOrgs(base.map((o) => ({ ...o, logo_url: logoMap.get(o.organization_id) ?? null })));
     setLoading(false);
   }, [user?.id]);
 
