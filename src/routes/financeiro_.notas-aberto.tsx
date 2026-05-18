@@ -188,8 +188,8 @@ function NotasAbertoPage() {
                       <TableCell className="text-muted-foreground">{p.sku ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{p.imei ?? "—"}</TableCell>
                       <TableCell className="text-right">
-                        {p.sale_price != null
-                          ? `R$ ${Number(p.sale_price).toFixed(2)}`
+                        {p.price != null
+                          ? `R$ ${Number(p.price).toFixed(2)}`
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right">{p.stock_quantity ?? 0}</TableCell>
