@@ -96,7 +96,6 @@ export const sidebarItems = [
     title: "Importações",
     url: "/importacao",
     icon: "Upload" as const,
-    badge: "live",
   },
 
   // ─── CONFIGURAÇÕES ──────────────────────────────────
