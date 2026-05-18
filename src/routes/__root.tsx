@@ -166,16 +166,18 @@ function RootComponent() {
     <ThemeProvider>
       <I18nProvider>
         <AuthProvider>
-          <ErrorBoundary>
-            <Outlet />
-          </ErrorBoundary>
-          <PwaInstallPrompt />
-          <CookieConsent />
-          <Suspense fallback={null}>
-            <CommandPalette />
-          </Suspense>
-          <KeyboardHelp />
-          <SonnerToaster position="top-right" richColors closeButton />
+          <ImportProvider>
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
+            <PwaInstallPrompt />
+            <CookieConsent />
+            <Suspense fallback={null}>
+              <CommandPalette />
+            </Suspense>
+            <KeyboardHelp />
+            <SonnerToaster position="top-right" richColors closeButton />
+          </ImportProvider>
         </AuthProvider>
       </I18nProvider>
     </ThemeProvider>
