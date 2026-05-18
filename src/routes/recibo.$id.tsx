@@ -29,6 +29,7 @@ type Receipt = {
     total: number;
     imei: string | null;
     discount: number | null;
+    model?: string | null;
   }>;
   payments: Array<{
     method: string;
@@ -36,13 +37,20 @@ type Receipt = {
     installments: number | null;
   }>;
   org_name: string;
+  org?: {
+    address?: string | null;
+    cnpj?: string | null;
+    phone?: string | null;
+    website?: string | null;
+  } | null;
+  seller?: { name?: string | null } | null;
   customer: { name: string; document: string | null; phone: string | null } | null;
 };
 
 const METHOD_LABEL: Record<string, string> = {
   cash: "Dinheiro",
   money: "Dinheiro",
-  pix: "Pix",
+  pix: "PIX",
   card: "Cartão",
   credit: "Cartão crédito",
   debit: "Cartão débito",
@@ -73,13 +81,10 @@ function ReciboPage() {
     })();
   }, [id]);
 
-  // imprime automático na 1ª carga se ?auto=1
   useEffect(() => {
     if (!data) return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("auto") === "1") {
-      setTimeout(() => window.print(), 300);
-    }
+    if (params.get("auto") === "1") setTimeout(() => window.print(), 300);
   }, [data]);
 
   if (loading) {
@@ -100,136 +105,171 @@ function ReciboPage() {
     );
   }
 
-  const dt = new Date(data.sale.created_at).toLocaleString("pt-BR");
+  const dt = new Date(data.sale.created_at).toLocaleDateString("pt-BR");
   const total = Number(data.sale.total_amount ?? 0);
   const subtotal = Number(data.sale.subtotal ?? 0);
   const discount = Number(data.sale.discount ?? 0);
   const addition = Number(data.sale.addition ?? 0);
+  const saleRef = data.sale.sale_number
+    ? `#${data.sale.sale_number}`
+    : `#${data.sale.id.slice(0, 8).toUpperCase()}`;
+  const sellerName = data.seller?.name || "—";
 
   return (
-    <div className="min-h-screen bg-gray-100 print:bg-white p-4 print:p-0">
-      <div className="receipt mx-auto bg-white text-black border border-gray-300 print:border-0 max-w-[80mm] p-3 font-mono text-[11px] leading-tight">
+    <div className="min-h-screen bg-neutral-100 print:bg-white p-4 print:p-0 flex flex-col items-center">
+      <div className="receipt w-full max-w-[360px] bg-white text-black print:border-0 border border-neutral-200 rounded-lg print:rounded-none shadow-sm print:shadow-none overflow-hidden">
         {/* Header */}
-        <div className="text-center mb-2">
-          <h1 className="font-black text-sm uppercase">{data.org_name}</h1>
-          <p className="text-[9px] mt-0.5">Cupom não-fiscal</p>
-        </div>
-
-        <div className="border-t border-dashed border-gray-400 my-2"></div>
-
-        {/* Sale info */}
-        <div className="text-[10px]">
-          <div className="flex justify-between">
-            <span>Cupom:</span>
-            <span className="font-bold">
-              {data.sale.sale_number ? `#${data.sale.sale_number}` : data.sale.id.slice(0, 8)}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span>Data:</span>
-            <span>{dt}</span>
-          </div>
-          {data.customer && (
-            <>
-              <div className="flex justify-between">
-                <span>Cliente:</span>
-                <span className="truncate ml-2">{data.customer.name}</span>
-              </div>
-              {data.customer.document && (
-                <div className="flex justify-between">
-                  <span>Doc:</span>
-                  <span>{data.customer.document}</span>
-                </div>
-              )}
-            </>
+        <div className="px-5 pt-5 pb-3 text-center">
+          <h1 className="font-black text-[18px] tracking-tight uppercase leading-tight">
+            {data.org_name}
+          </h1>
+          {data.org?.address && (
+            <p className="text-[11px] text-neutral-600 mt-1">{data.org.address}</p>
+          )}
+          {data.org?.cnpj && (
+            <p className="text-[11px] text-neutral-600 mt-0.5">CNPJ: {data.org.cnpj}</p>
+          )}
+          {data.org?.phone && (
+            <p className="text-[11px] text-neutral-600 mt-0.5">Fone: {data.org.phone}</p>
           )}
         </div>
 
-        <div className="border-t border-dashed border-gray-400 my-2"></div>
+        <div className="border-t border-dashed border-neutral-400 mx-5"></div>
 
-        {/* Items */}
-        <div className="text-[10px] space-y-1">
-          {data.items.map((it) => (
-            <div key={it.id}>
-              <div className="flex justify-between">
-                <span className="truncate flex-1 pr-1">
-                  {it.quantity}x {it.product_name}
-                </span>
-                <span className="shrink-0 font-bold">{Number(it.total).toFixed(2)}</span>
-              </div>
-              {it.imei && <p className="text-[8px] text-gray-600">IMEI: {it.imei}</p>}
-              {it.discount != null && Number(it.discount) > 0 && (
-                <p className="text-[8px] text-gray-600">
-                  Desc.: -R$ {Number(it.discount).toFixed(2)}
-                </p>
-              )}
+        {/* Sale info */}
+        <div className="px-5 py-3">
+          <p className="text-[10px] font-bold tracking-widest text-neutral-500 uppercase mb-2">
+            Comprovante de venda
+          </p>
+          <div className="text-[12px] space-y-0.5">
+            <div className="flex justify-between">
+              <span className="text-neutral-600">Nº Pedido:</span>
+              <span className="font-bold">{saleRef}</span>
             </div>
-          ))}
+            <div className="flex justify-between">
+              <span className="text-neutral-600">Data:</span>
+              <span className="font-medium">{dt}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-neutral-600">Vendedor:</span>
+              <span className="font-medium truncate ml-2">{sellerName}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="border-t border-dashed border-gray-400 my-2"></div>
+        {data.customer && (
+          <>
+            <div className="border-t border-dashed border-neutral-400 mx-5"></div>
+            <div className="px-5 py-3">
+              <p className="text-[10px] font-bold tracking-widest text-neutral-500 uppercase mb-2">
+                Cliente
+              </p>
+              <p className="text-[13px] font-bold">{data.customer.name}</p>
+              {data.customer.phone && (
+                <p className="text-[11px] text-neutral-600 mt-0.5">Tel: {data.customer.phone}</p>
+              )}
+              {data.customer.document && (
+                <p className="text-[11px] text-neutral-600 mt-0.5">Doc: {data.customer.document}</p>
+              )}
+            </div>
+          </>
+        )}
+
+        <div className="border-t border-dashed border-neutral-400 mx-5"></div>
+
+        {/* Items */}
+        <div className="px-5 py-3">
+          <p className="text-[10px] font-bold tracking-widest text-neutral-500 uppercase mb-3">
+            Itens do pedido
+          </p>
+          <div className="space-y-3">
+            {data.items.map((it) => (
+              <div key={it.id} className="flex justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-black leading-tight">{it.product_name}</p>
+                  {it.model && (
+                    <p className="text-[10px] text-neutral-500 mt-0.5">Mod: {it.model}</p>
+                  )}
+                  {it.imei && (
+                    <p className="text-[10px] text-neutral-500 mt-0.5">IMEI: {it.imei}</p>
+                  )}
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] text-neutral-500">{it.quantity}x</p>
+                  <p className="text-[14px] font-black mt-0.5">
+                    R$ {Number(it.total).toFixed(2).replace(".", ",")}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Totals */}
-        <div className="text-[11px] space-y-0.5">
-          <div className="flex justify-between">
-            <span>Subtotal:</span>
-            <span>R$ {subtotal.toFixed(2)}</span>
+        <div className="mx-5 my-2 bg-neutral-50 rounded-lg px-4 py-3">
+          <div className="flex justify-between text-[12px] py-0.5">
+            <span className="text-neutral-600">Subtotal:</span>
+            <span className="font-medium">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
           </div>
           {discount > 0 && (
-            <div className="flex justify-between">
+            <div className="flex justify-between text-[12px] py-0.5 text-red-600">
               <span>Desconto:</span>
-              <span>- R$ {discount.toFixed(2)}</span>
+              <span className="font-medium">- R$ {discount.toFixed(2).replace(".", ",")}</span>
             </div>
           )}
           {addition > 0 && (
-            <div className="flex justify-between">
-              <span>Acréscimo:</span>
-              <span>+ R$ {addition.toFixed(2)}</span>
+            <div className="flex justify-between text-[12px] py-0.5">
+              <span className="text-neutral-600">Acréscimo:</span>
+              <span className="font-medium">+ R$ {addition.toFixed(2).replace(".", ",")}</span>
             </div>
           )}
-          <div className="flex justify-between font-black text-[13px] mt-1">
-            <span>TOTAL:</span>
-            <span>R$ {total.toFixed(2)}</span>
+          <div className="border-t border-neutral-300 my-2"></div>
+          <div className="flex justify-between items-baseline">
+            <span className="text-[16px] font-black">TOTAL:</span>
+            <span className="text-[20px] font-black">
+              R$ {total.toFixed(2).replace(".", ",")}
+            </span>
+          </div>
+          <div className="mt-2 pt-2 border-t border-neutral-200 text-[11px] flex items-center justify-between">
+            <span className="text-neutral-500 font-bold tracking-wider uppercase">
+              Forma de pagto:
+            </span>
+            <span className="font-black">
+              {data.payments.length > 0
+                ? data.payments
+                    .map(
+                      (p) =>
+                        `${METHOD_LABEL[p.method] || p.method}${
+                          p.installments && p.installments > 1 ? ` ${p.installments}x` : ""
+                        }`,
+                    )
+                    .join(" + ")
+                : METHOD_LABEL[data.sale.payment_method ?? ""] ||
+                  data.sale.payment_method ||
+                  "—"}
+            </span>
           </div>
         </div>
 
-        <div className="border-t border-dashed border-gray-400 my-2"></div>
-
-        {/* Payments */}
-        <div className="text-[10px]">
-          <p className="font-bold mb-1">Pagamento{data.payments.length > 1 ? "s" : ""}:</p>
-          {data.payments.length === 0 ? (
-            <p>{METHOD_LABEL[data.sale.payment_method ?? ""] || data.sale.payment_method || "—"}</p>
-          ) : (
-            data.payments.map((p, i) => (
-              <div key={i} className="flex justify-between">
-                <span>
-                  {METHOD_LABEL[p.method] || p.method}
-                  {p.installments && p.installments > 1 && ` (${p.installments}x)`}:
-                </span>
-                <span>R$ {Number(p.amount).toFixed(2)}</span>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="border-t border-dashed border-gray-400 my-2"></div>
-
-        <div className="text-center text-[9px] mt-2">
-          <p>Obrigado pela preferência!</p>
-          <p className="mt-1 text-[8px] text-gray-600">
-            Este documento NÃO É NOTA FISCAL.
-            <br />
-            Apenas comprovante interno.
+        {/* Footer */}
+        <div className="px-5 py-4 text-center">
+          <p className="text-[10px] italic text-neutral-500">
+            Este documento não é nota fiscal.
           </p>
+          <p className="text-[11px] text-neutral-600 mt-1.5 font-medium">
+            Obrigado pela preferência!
+          </p>
+          {data.org?.website && (
+            <p className="text-[10px] text-neutral-500 mt-1">Acesse: {data.org.website}</p>
+          )}
         </div>
       </div>
 
-      {/* Botão imprimir (oculto na impressão) */}
-      <div className="print:hidden text-center mt-4">
+      {/* Botão imprimir */}
+      <div className="print:hidden w-full max-w-[360px] mt-3">
         <button
           onClick={() => window.print()}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-black text-white font-bold text-sm"
+          className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 border border-neutral-300 text-neutral-800 font-bold text-sm transition"
         >
           <Printer className="h-4 w-4" /> Imprimir
         </button>
@@ -239,7 +279,7 @@ function ReciboPage() {
         @media print {
           @page { margin: 0; size: 80mm auto; }
           body { background: white !important; }
-          .receipt { border: 0 !important; max-width: none !important; width: 100%; }
+          .receipt { border: 0 !important; max-width: none !important; width: 100%; box-shadow: none !important; }
         }
       `}</style>
     </div>
