@@ -37,6 +37,8 @@ import {
   Calendar,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { ProductForm } from "@/components/estoque/ProductForm";
@@ -97,13 +99,66 @@ interface PurchaseNoteRow {
   prazo_pagamento: string | null;
 }
 
-type ProductFormValues = Partial<Product> & {
-  stock?: string | number | null;
-  price?: string | number | null;
+interface ProductFormValues {
+  name: string;
+  reference?: string;
+  sku?: string;
+  ean?: string;
+  category?: string;
+  brand?: string;
+  supplier?: string;
+  model?: string;
+  price: string | number;
   cost_price?: string | number | null;
-};
+  wholesale_price?: number;
+  stock_quantity: number;
+  min_stock?: number;
+  unit?: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+  stock?: string | number | null;
+}
 
-const purchaseNotesTable = () => supabase.from("purchase_notes" as never);
+interface PurchaseNotesDatabase {
+  public: {
+    Tables: {
+      purchase_notes: {
+        Row: PurchaseNoteRow;
+        Insert: {
+          id?: string;
+          organization_id: string;
+          note_number: number;
+          fornecedor?: string | null;
+          data_compra?: string | null;
+          prazo_pagamento?: string | null;
+          paga?: boolean;
+          total?: number;
+          items?: Json;
+          created_by?: string | null;
+          updated_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<{
+          fornecedor: string;
+          data_compra: string;
+          prazo_pagamento: string | null;
+          paga: boolean;
+          total: number;
+          items: Json;
+          updated_by: string | null;
+        }>;
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+}
+
+const purchaseNotesClient = supabase as unknown as SupabaseClient<PurchaseNotesDatabase>;
+const purchaseNotesTable = () => purchaseNotesClient.from("purchase_notes");
 
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
