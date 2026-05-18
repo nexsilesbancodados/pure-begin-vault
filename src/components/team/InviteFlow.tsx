@@ -409,6 +409,7 @@ export function InviteFlow() {
                 : revoked
                   ? { class: "bg-muted text-muted-foreground border-border", label: "Revogado" }
                   : { class: "bg-warning/15 text-warning border-warning/30", label: "Aguardando aceite" };
+              const isOnline = !!i.accepted_by && onlineIds.has(i.accepted_by);
               return (
                 <div
                   key={i.id}
@@ -427,14 +428,41 @@ export function InviteFlow() {
                   }}
                   className="relative rounded-2xl border border-border bg-card p-4 hover:shadow-md hover:border-primary/40 cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteInvite(i);
+                    }}
+                    aria-label="Excluir usuário"
+                    title="Excluir usuário"
+                    className="absolute top-2 right-2 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                   <div className="flex items-start gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center shrink-0">
-                      {initials}
+                    <div className="relative shrink-0">
+                      <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center">
+                        {initials}
+                      </div>
+                      {accepted && (
+                        <span
+                          className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-card ${isOnline ? "bg-success" : "bg-muted-foreground/50"}`}
+                          title={isOnline ? "Online agora" : "Offline"}
+                        />
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0 pr-6">
+                      <div className="flex items-center gap-2">
                         <p className="font-bold text-sm truncate">{nome}</p>
-                        <Badge className={`${statusBadge.class} border text-[10px] font-bold`}>
+                        {accepted && (
+                          <Badge
+                            className={`${isOnline ? "bg-success/15 text-success border-success/30" : "bg-muted text-muted-foreground border-border"} border text-[10px] font-bold`}
+                          >
+                            {isOnline ? "Online" : "Offline"}
+                          </Badge>
+                        )}
+                        <Badge className={`${statusBadge.class} border text-[10px] font-bold ml-auto`}>
                           {statusBadge.label}
                         </Badge>
                       </div>
@@ -492,17 +520,6 @@ export function InviteFlow() {
                           <Send className="h-3 w-3" /> Enviar
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          revoke(i.id);
-                        }}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
                   )}
                 </div>
