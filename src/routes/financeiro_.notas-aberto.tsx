@@ -97,6 +97,14 @@ interface PurchaseNoteRow {
   prazo_pagamento: string | null;
 }
 
+type ProductFormValues = Partial<Product> & {
+  stock?: string | number | null;
+  price?: string | number | null;
+  cost_price?: string | number | null;
+};
+
+const purchaseNotesTable = () => supabase.from("purchase_notes" as never);
+
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
@@ -203,8 +211,7 @@ function NotasAbertoPage() {
     async (nota: Nota) => {
       if (!orgId) return false;
 
-      const { error } = await (supabase as any)
-        .from("purchase_notes")
+      const { error } = await purchaseNotesTable()
         .update({
           fornecedor: nota.fornecedor,
           data_compra: nota.dataCompra,
@@ -237,8 +244,7 @@ function NotasAbertoPage() {
       if (!options?.silent) setNotesLoading(true);
 
       try {
-        const { data, error } = await (supabase as any)
-          .from("purchase_notes")
+        const { data, error } = await purchaseNotesTable()
           .select("*")
           .eq("organization_id", orgId)
           .order("note_number", { ascending: true });
@@ -267,8 +273,7 @@ function NotasAbertoPage() {
               created_at: note.createdAt.toISOString(),
             }));
 
-            const migration = await (supabase as any)
-              .from("purchase_notes")
+            const migration = await purchaseNotesTable()
               .insert(rows)
               .select("*")
               .order("note_number", { ascending: true });
@@ -328,8 +333,7 @@ function NotasAbertoPage() {
         return null;
       }
 
-      const latest = await (supabase as any)
-        .from("purchase_notes")
+      const latest = await purchaseNotesTable()
         .select("note_number")
         .eq("organization_id", orgId)
         .order("note_number", { ascending: false })
@@ -340,8 +344,7 @@ function NotasAbertoPage() {
       const total = getNoteTotal(items);
 
       for (let attempt = 0; attempt < 5; attempt += 1) {
-        const { data, error } = await (supabase as any)
-          .from("purchase_notes")
+        const { data, error } = await purchaseNotesTable()
           .insert({
             organization_id: orgId,
             note_number: nextNumber,
@@ -374,8 +377,7 @@ function NotasAbertoPage() {
   const deleteNota = async (nota: Nota) => {
     if (!window.confirm(`Excluir Nota ${nota.noteNumber}?`)) return;
 
-    const { error } = await (supabase as any)
-      .from("purchase_notes")
+    const { error } = await purchaseNotesTable()
       .delete()
       .eq("id", nota.id)
       .eq("organization_id", orgId);
@@ -389,7 +391,7 @@ function NotasAbertoPage() {
     toast.success(`Nota ${nota.noteNumber} excluída.`);
   };
 
-  const handleSaveProduct = async (data: any) => {
+  const handleSaveProduct = async (data: ProductFormValues) => {
     if (!editingProduct) return;
     const {
       stock,
@@ -407,7 +409,7 @@ function NotasAbertoPage() {
       store,
       ...productFields
     } = data;
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       ...productFields,
       price: parseFloat(data.price) || 0,
       cost_price: parseFloat(data.cost_price) || 0,
@@ -427,8 +429,8 @@ function NotasAbertoPage() {
       return;
     }
     const merged: Product = {
-      ...(saved as any),
-      imei: getImeiFromMetadata((saved as any)?.metadata),
+      ...(saved as Product),
+      imei: getImeiFromMetadata((saved as Product)?.metadata),
     };
     setProducts((prev) =>
       isNew ? [merged, ...prev] : prev.map((p) => (p.id === merged.id ? merged : p)),
