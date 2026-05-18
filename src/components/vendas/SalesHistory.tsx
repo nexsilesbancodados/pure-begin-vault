@@ -723,7 +723,7 @@ ul{font-size:12px;line-height:1.6;}
                             {
                               icon: Truck,
                               label: "Imprimir Delivery",
-                              onClick: () => openReceiptPopup(sale, true),
+                              onClick: () => openReceiptPopup(sale, "a4", true),
                             },
                             {
                               icon: PenLine,
