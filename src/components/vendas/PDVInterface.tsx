@@ -27,6 +27,17 @@ import {
   CheckCircle2,
   Eraser,
   ChevronDown,
+  MapPin,
+  Phone,
+  Mail,
+  Instagram,
+  Calendar,
+  Briefcase,
+  AtSign,
+  Building2,
+  Truck,
+  Wrench,
+  IdCard,
 } from "lucide-react";
 import { Product } from "@/lib/mock";
 import { ProductForm } from "@/components/estoque/ProductForm";
