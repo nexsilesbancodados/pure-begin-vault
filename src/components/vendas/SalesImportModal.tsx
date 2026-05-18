@@ -25,9 +25,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOrg } from "@/lib/useOrg";
+import { useImport } from "@/contexts/ImportContext";
 import * as XLSX from "xlsx";
 
 interface SalesImportModalProps {
