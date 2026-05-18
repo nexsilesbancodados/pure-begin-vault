@@ -84,25 +84,47 @@ function NotasAbertoPage() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const storageKey = `notas_abertas_${orgId ?? "default"}`;
   const [notas, setNotas] = useState<Nota[]>([]);
+  const loadedRef = useRef(false);
 
-  // Carregar notas salvas (inclui as em aberto)
+  // Carregar notas salvas — procura na chave atual e em chaves legadas
   useEffect(() => {
+    loadedRef.current = false;
     try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Nota[];
-        setNotas(parsed.map((n) => ({ ...n, createdAt: new Date(n.createdAt) })));
-      } else {
-        setNotas([]);
+      const candidates = [storageKey, "notas_abertas_default"];
+      // varre todas as chaves notas_abertas_* (caso a nota tenha sido salva sob outra loja)
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("notas_abertas_") && !candidates.includes(k)) candidates.push(k);
       }
+      let parsed: Nota[] = [];
+      for (const key of candidates) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        try {
+          const arr = JSON.parse(raw) as Nota[];
+          if (Array.isArray(arr) && arr.length > 0) {
+            parsed = arr;
+            break;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      setNotas(parsed.map((n) => ({ ...n, createdAt: new Date(n.createdAt) })));
     } catch {
       setNotas([]);
+    } finally {
+      // libera o persist na próxima renderização
+      requestAnimationFrame(() => {
+        loadedRef.current = true;
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId]);
 
-  // Persistir sempre que mudar
+  // Persistir somente após o load inicial (evita sobrescrever com [])
   useEffect(() => {
+    if (!loadedRef.current) return;
     try {
       localStorage.setItem(storageKey, JSON.stringify(notas));
     } catch {
