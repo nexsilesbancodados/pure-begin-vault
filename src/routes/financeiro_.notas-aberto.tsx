@@ -185,10 +185,23 @@ interface PurchaseNotesTable {
 const purchaseNotesTable = () =>
   (supabase.from as unknown as (table: string) => PurchaseNotesTable)("purchase_notes");
 
+const toJson = (value: unknown): Json => {
+  if (value === null || ["string", "number", "boolean"].includes(typeof value)) return value as Json;
+  if (Array.isArray(value)) return value.map(toJson);
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, entry]) => entry !== undefined)
+        .map(([key, entry]) => [key, toJson(entry)]),
+    );
+  }
+  return null;
+};
+
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
-const serializeItems = (items: Product[]) =>
+const serializeItems = (items: Product[]): Json =>
   items.map((p) => ({
     id: p.id,
     name: p.name,
@@ -198,7 +211,7 @@ const serializeItems = (items: Product[]) =>
     price: p.price ?? null,
     cost_price: p.cost_price ?? null,
     stock_quantity: p.stock_quantity ?? null,
-    metadata: p.metadata ?? null,
+    metadata: toJson(p.metadata ?? null),
   }));
 
 const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
