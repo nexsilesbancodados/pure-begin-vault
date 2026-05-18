@@ -457,11 +457,43 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                       </div>
                     </FieldRow>
                     <FieldRow label="Modelo Aparelho" required>
-                      <Input
+                      <Select
                         value={form.modelo}
-                        onChange={(e) => set("modelo", e.target.value)}
-                        placeholder="Buscar"
-                      />
+                        onValueChange={(v) => {
+                          if (v === "__add__") {
+                            const nome = window.prompt("Nome do novo modelo:")?.trim();
+                            if (!nome) return;
+                            setCustomModelos((prev) =>
+                              prev.includes(nome) ? prev : [...prev, nome],
+                            );
+                            set("modelo", nome);
+                            return;
+                          }
+                          set("modelo", v);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Buscar modelo" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-80">
+                          {IPHONE_MODELS.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              {m}
+                            </SelectItem>
+                          ))}
+                          {customModelos.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              {m}
+                            </SelectItem>
+                          ))}
+                          <SelectItem
+                            value="__add__"
+                            className="text-primary font-bold border-t mt-1"
+                          >
+                            + Cadastrar novo modelo...
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FieldRow>
 
                     <FieldRow label="Serial number">
