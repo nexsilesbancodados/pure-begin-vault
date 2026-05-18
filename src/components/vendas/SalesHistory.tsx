@@ -675,7 +675,7 @@ ul{font-size:12px;line-height:1.6;}
                             {
                               icon: Printer,
                               label: "Recibo 80mm",
-                              onClick: () => openReceiptPopup(sale, true),
+                              onClick: () => openReceiptPopup(sale, "80mm", true),
                             },
                             {
                               icon: MessageSquare,
