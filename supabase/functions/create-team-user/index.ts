@@ -54,7 +54,13 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    const orgIds = Array.from(new Set(Array.isArray(organization_ids) && organization_ids.length ? organization_ids : [organization_id]));
+    const orgIds = Array.from(
+      new Set(
+        (Array.isArray(organization_ids) && organization_ids.length ? organization_ids : [organization_id])
+          .map((id) => String(id || "").trim())
+          .filter(Boolean)
+      )
+    );
 
     const [{ data: superRow }, { data: callerProfile }] = await Promise.all([
       admin.from("super_admins").select("user_id").eq("user_id", callerId).maybeSingle(),
@@ -133,6 +139,13 @@ Deno.serve(async (req) => {
     await admin.from("user_organizations").update({ is_default: false }).eq("user_id", userId!);
     const { error: upsertMembershipsError } = await admin.from("user_organizations").upsert(memberships, { onConflict: "user_id,organization_id" });
     if (upsertMembershipsError) throw upsertMembershipsError;
+
+    const { error: removeOldMembershipsError } = await admin
+      .from("user_organizations")
+      .delete()
+      .eq("user_id", userId!)
+      .not("organization_id", "in", `(${orgIds.join(",")})`);
+    if (removeOldMembershipsError) throw removeOldMembershipsError;
 
     // Atualiza profile (já define organization_id ativa + role)
     await admin
