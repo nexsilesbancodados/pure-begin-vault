@@ -44,10 +44,10 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
     if (switchError) throw new Error(switchError.message);
 
     if (data.name) {
-      const { error: e1 } = await (supabase as any)
-        .from("organizations")
-        .update({ name: data.name, updated_at: new Date().toISOString() })
-        .eq("id", data.orgId);
+      const { error: e1 } = await (supabase as any).rpc("update_organization_name", {
+        _org_id: data.orgId,
+        _name: data.name,
+      });
       if (e1) throw new Error(e1.message);
     }
 
