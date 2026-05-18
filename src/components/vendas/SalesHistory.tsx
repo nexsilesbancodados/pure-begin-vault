@@ -321,51 +321,151 @@ export function SalesHistory() {
       android: "Termo de Garantia - Aparelho Android (1 ano)",
     };
     const periodDays = type === "seminovo" ? 210 : 365;
+    const periodLabel =
+      type === "seminovo" ? "7 (sete) meses" : "12 (doze) meses";
     const start = new Date(sale.created_at || Date.now());
     const end = new Date(start.getTime() + periodDays * 86400000);
     const fmt = (d: Date) => d.toLocaleDateString("pt-BR");
     const cliente = sale.customers?.name || "Consumidor";
+    const documento =
+      sale.customers?.document || sale.customers?.cpf || sale.customers?.cnpj || "—";
+    const telefone = sale.customers?.phone || "—";
     const total = (sale.total_amount || 0).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
     });
+    const items: any[] = Array.isArray(sale.sale_items)
+      ? sale.sale_items
+      : Array.isArray(sale.items)
+        ? sale.items
+        : [];
+    const itemsRows = items.length
+      ? items
+          .map(
+            (it: any) => `
+        <tr>
+          <td>${it.product_name || it.name || "—"}</td>
+          <td>${it.imei || it.serial || "—"}</td>
+          <td style="text-align:center;">${it.quantity ?? 1}</td>
+          <td style="text-align:right;">${Number(it.unit_price || it.total || 0).toLocaleString(
+            "pt-BR",
+            { style: "currency", currency: "BRL" },
+          )}</td>
+        </tr>`,
+          )
+          .join("")
+      : `<tr><td colspan="4" style="text-align:center;color:#777;">Sem itens detalhados</td></tr>`;
+
+    // Cláusulas específicas por tipo
+    const seminovoClauses = `
+      <li><b>Período de garantia:</b> 7 (sete) meses contados da data da emissão deste termo, conforme art. 26 do CDC e garantia contratual adicional concedida pela loja.</li>
+      <li><b>Cobertura:</b> defeitos de funcionamento da placa lógica, falhas internas de software original do fabricante e mau funcionamento de componentes internos não relacionados a desgaste natural.</li>
+      <li><b>Bateria:</b> garantia de 90 (noventa) dias somente para defeitos de fabricação. Desgaste natural (saúde da bateria) NÃO é coberto.</li>
+      <li><b>Tela e estética:</b> aparelho entregue como <i>seminovo</i> — eventuais marcas de uso já existentes na entrega NÃO são consideradas defeito.</li>
+      <li><b>Acessórios:</b> cabos, fontes, fones e capas têm garantia de 30 (trinta) dias contra defeito de fabricação.</li>
+      <li><b>Conferência:</b> o cliente declara ter testado o aparelho no ato da compra (tela, botões, câmeras, alto-falantes, conectividade e ID/Face).</li>
+    `;
+    const lacradoClauses = `
+      <li><b>Período de garantia:</b> 12 (doze) meses contados da emissão deste termo, sendo 3 (três) meses de garantia legal (art. 26 do CDC) + 9 (nove) meses de garantia contratual do fabricante.</li>
+      <li><b>Cobertura:</b> defeitos de fabricação em quaisquer componentes internos, conforme política oficial do fabricante.</li>
+      <li><b>Atendimento:</b> realizado preferencialmente nas Assistências Técnicas Autorizadas do fabricante, mediante apresentação deste termo e nota fiscal.</li>
+      <li><b>Aparelho lacrado:</b> deve ser apresentado com lacre original. Violação do lacre por terceiros não autorizados implica perda imediata da garantia.</li>
+      <li><b>Acessórios originais:</b> seguem a política de garantia do próprio fabricante (em geral 90 dias).</li>
+      <li><b>Conferência:</b> o cliente confere o lacre, IMEI e número de série no ato da compra.</li>
+    `;
+    const exclusions = `
+      <li>Danos por queda, impacto, exposição a líquidos, umidade ou oxidação.</li>
+      <li>Uso indevido, instalação de software pirata, jailbreak ou root.</li>
+      <li>Violação do aparelho por assistência técnica não autorizada.</li>
+      <li>Desgaste natural de bateria e componentes de consumo.</li>
+      <li>Perda, furto, roubo ou bloqueio por iCloud/Google de conta anterior do próprio cliente.</li>
+      <li>Avarias estéticas posteriores à entrega (riscos, amassados, trincados).</li>
+    `;
+
+    const clauses = type === "seminovo" ? seminovoClauses : lacradoClauses;
+
     const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${titles[type]}</title>
 <style>
-body{font-family:Arial,sans-serif;padding:40px;color:#111;max-width:800px;margin:0 auto;}
-h1{font-size:20px;text-align:center;margin-bottom:8px;}
-h2{font-size:13px;text-align:center;color:#555;margin-top:0;font-weight:normal;}
-.box{border:1px solid #ddd;border-radius:8px;padding:16px;margin:16px 0;}
-.row{display:flex;justify-content:space-between;margin:6px 0;font-size:13px;}
-.label{color:#666;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px;}
-ul{font-size:12px;line-height:1.6;}
-.sign{margin-top:60px;display:flex;justify-content:space-between;gap:40px;}
+*{box-sizing:border-box;}
+body{font-family:Arial,Helvetica,sans-serif;padding:32px;color:#111;max-width:820px;margin:0 auto;line-height:1.5;}
+header{text-align:center;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:18px;}
+h1{font-size:20px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.5px;}
+h2{font-size:12px;margin:0;color:#555;font-weight:normal;}
+.section{margin:14px 0;}
+.section-title{font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#444;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;font-size:12.5px;}
+.row{display:flex;justify-content:space-between;border-bottom:1px dotted #ddd;padding:3px 0;}
+.label{color:#666;font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:.4px;}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
+th,td{border:1px solid #bbb;padding:6px 8px;text-align:left;}
+th{background:#f3f3f3;font-size:11px;text-transform:uppercase;}
+ul{font-size:12px;line-height:1.65;padding-left:18px;margin:4px 0;}
+ul li{margin-bottom:4px;}
+.box{border:1px solid #ddd;border-radius:8px;padding:14px 16px;background:#fafafa;}
+.warn{background:#fff7ed;border-color:#fdba74;}
+.sign{margin-top:48px;display:flex;justify-content:space-between;gap:40px;}
 .sign div{flex:1;text-align:center;border-top:1px solid #333;padding-top:6px;font-size:11px;}
-@media print{body{padding:20px;}}
+footer{margin-top:24px;text-align:center;font-size:10.5px;color:#666;border-top:1px solid #ddd;padding-top:8px;}
+@media print{body{padding:18px;}.box,.warn{background:#fff;}}
 </style></head><body>
-<h1>${titles[type]}</h1>
-<h2>Documento gerado em ${fmt(new Date())}</h2>
-<div class="box">
-<div class="row"><span class="label">Venda</span><span>#${String(sale.id).slice(0, 8).toUpperCase()}</span></div>
-<div class="row"><span class="label">Cliente</span><span>${cliente}</span></div>
-<div class="row"><span class="label">Valor</span><span>${total}</span></div>
-<div class="row"><span class="label">Início da garantia</span><span>${fmt(start)}</span></div>
-<div class="row"><span class="label">Término da garantia</span><span>${fmt(end)}</span></div>
+<header>
+  <h1>${titles[type]}</h1>
+  <h2>Documento emitido em ${fmt(new Date())}</h2>
+</header>
+
+<div class="section">
+  <div class="section-title">Identificação da Venda</div>
+  <div class="box">
+    <div class="grid">
+      <div class="row"><span class="label">Venda nº</span><span>#${String(sale.id).slice(0, 8).toUpperCase()}</span></div>
+      <div class="row"><span class="label">Valor total</span><span>${total}</span></div>
+      <div class="row"><span class="label">Cliente</span><span>${cliente}</span></div>
+      <div class="row"><span class="label">CPF/CNPJ</span><span>${documento}</span></div>
+      <div class="row"><span class="label">Telefone</span><span>${telefone}</span></div>
+      <div class="row"><span class="label">Vigência</span><span>${periodLabel}</span></div>
+      <div class="row"><span class="label">Início da garantia</span><span>${fmt(start)}</span></div>
+      <div class="row"><span class="label">Término da garantia</span><span>${fmt(end)}</span></div>
+    </div>
+  </div>
 </div>
-<div class="box">
-<p class="label">Cobertura</p>
-<ul>
-<li>Defeitos de fabricação em componentes internos.</li>
-<li>Funcionamento normal de placa, bateria e tela (conforme tipo).</li>
-<li>Atendimento em assistência técnica autorizada.</li>
-</ul>
-<p class="label">Não cobre</p>
-<ul>
-<li>Danos por queda, líquidos, oxidação ou uso indevido.</li>
-<li>Violação do aparelho por terceiros não autorizados.</li>
-<li>Acessórios e desgaste natural de bateria.</li>
-</ul>
+
+<div class="section">
+  <div class="section-title">Produtos cobertos</div>
+  <table>
+    <thead><tr><th>Produto</th><th>IMEI / Série</th><th style="width:60px;text-align:center;">Qtd</th><th style="width:110px;text-align:right;">Valor unit.</th></tr></thead>
+    <tbody>${itemsRows}</tbody>
+  </table>
 </div>
-<div class="sign"><div>Assinatura do Cliente</div><div>Assinatura da Loja</div></div>
+
+<div class="section">
+  <div class="section-title">Cláusulas da Garantia</div>
+  <div class="box"><ul>${clauses}</ul></div>
+</div>
+
+<div class="section">
+  <div class="section-title">O que NÃO está coberto</div>
+  <div class="box warn"><ul>${exclusions}</ul></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Como acionar</div>
+  <div class="box">
+    <ul>
+      <li>Entre em contato pelo telefone/WhatsApp da loja informando o número da venda.</li>
+      <li>Apresente este termo, nota fiscal e o aparelho com todos os acessórios originais.</li>
+      <li>O prazo de análise técnica é de até 30 (trinta) dias corridos, conforme art. 18, §1º do CDC.</li>
+      <li>Constatado defeito coberto, será realizado reparo, troca ou restituição, a critério da loja.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="sign">
+  <div>Assinatura do Cliente<br/><small>${cliente}</small></div>
+  <div>Assinatura da Loja</div>
+</div>
+
+<footer>Este termo é parte integrante da venda nº #${String(sale.id).slice(0, 8).toUpperCase()} e deve ser apresentado sempre que houver acionamento de garantia.</footer>
+
 <script>window.onload=function(){setTimeout(function(){window.print();},300);}</script>
 </body></html>`;
     const w = window.open("", "_blank");
