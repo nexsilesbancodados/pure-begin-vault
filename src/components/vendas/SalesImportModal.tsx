@@ -1009,7 +1009,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                                           : "bg-destructive/10 text-destructive border-destructive/30"
                                       }`}
                                     >
-                                      {isIncome ? "↑ Receita" : "↓ Despesa"}
+                                      {isIncome ? "↑ Entrada" : "↓ Saída"}
                                     </span>
                                   ) : (
                                     <span className="text-muted-foreground">—</span>
