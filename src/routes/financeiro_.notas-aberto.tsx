@@ -23,7 +23,10 @@ import {
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Plus, FileText, Search, Loader2 } from "lucide-react";
+import {
+  Plus, FileText, Search, Loader2, Trash2, AlertTriangle,
+  CheckCircle2, Clock, Wallet, Package, Building2, Calendar,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
