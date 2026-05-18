@@ -295,6 +295,17 @@ function SettingsPage() {
     const newEmail = formData.email.trim();
     const emailChanged = newEmail && newEmail.toLowerCase() !== (user.email || "").toLowerCase();
 
+    if (formData.password || formData.password_confirm) {
+      if (formData.password.length < 6) {
+        toast.error("A senha precisa ter no mínimo 6 caracteres");
+        return;
+      }
+      if (formData.password !== formData.password_confirm) {
+        toast.error("As senhas não conferem");
+        return;
+      }
+    }
+
     if (emailChanged) {
       const { error: authErr } = await supabase.auth.updateUser({ email: newEmail });
       if (authErr) {
@@ -303,6 +314,21 @@ function SettingsPage() {
       }
       toast.info("Enviamos um link de confirmação para o novo e-mail.");
     }
+
+    if (formData.password) {
+      const { error: pwErr } = await supabase.auth.updateUser({ password: formData.password });
+      if (pwErr) {
+        toast.error("Erro ao atualizar senha: " + pwErr.message);
+        return;
+      }
+    }
+
+    try {
+      localStorage.setItem(
+        `profile_extra_${user.id}`,
+        JSON.stringify({ cpf: formData.cpf, address: formData.address }),
+      );
+    } catch {}
 
     const { error } = await supabase
       .from("profiles")
@@ -317,7 +343,8 @@ function SettingsPage() {
     if (error) {
       toast.error("Erro ao salvar perfil");
     } else {
-      toast.success("Perfil atualizado!");
+      toast.success("Informações salvas!");
+      setFormData((p) => ({ ...p, password: "", password_confirm: "" }));
     }
   };
 
