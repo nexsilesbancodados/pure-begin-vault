@@ -34,7 +34,7 @@ import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { format, isBefore, isToday, isAfter, startOfDay, addDays, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { TransactionForm } from "@/components/financeiro/TransactionForm";
+import { ExpenseForm } from "@/components/financeiro/ExpenseForm";
 import {
   DropdownMenu,
   DropdownMenuContent,
