@@ -79,7 +79,7 @@ function ReciboPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/receipt/${encodeURIComponent(id)}`);
+        const res = await fetch(`/api/public/receipt/${encodeURIComponent(id)}`);
         if (!res.ok) {
           setError(res.status === 404 ? "Recibo não encontrado" : "Erro ao carregar");
           return;

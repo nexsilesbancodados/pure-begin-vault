@@ -84,7 +84,7 @@ async function fetchReceipt(id: string) {
   };
 }
 
-export const Route = createFileRoute("/api/receipt/$id")({
+export const Route = createFileRoute("/api/public/receipt/$id")({
   server: {
     handlers: {
       OPTIONS: async () => new Response(null, { status: 204, headers: corsHeaders }),
