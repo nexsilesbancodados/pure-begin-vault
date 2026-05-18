@@ -259,58 +259,231 @@ function NotasAbertoPage() {
       <div className="flex-1 flex flex-col">
         <Topbar title="Notas em Aberto" />
         <main className="flex-1 p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Notas em Aberto</h1>
-              <p className="text-sm text-muted-foreground">
-                Cadastre suas notas e acompanhe os produtos vinculados.
-              </p>
+          {/* Hero */}
+          <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6">
+            <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
+            <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                  <FileText className="h-3.5 w-3.5" />
+                  Notas de Compra
+                </div>
+                <h1 className="text-3xl font-bold tracking-tight">Notas em Aberto</h1>
+                <p className="text-sm text-muted-foreground max-w-xl">
+                  Cadastre notas de fornecedores, vincule produtos e acompanhe vencimentos de pagamento.
+                </p>
+              </div>
+              <Button onClick={() => setOpen(true)} size="lg" className="gap-2 shadow-lg shadow-primary/20">
+                <Plus className="h-4 w-4" />
+                Cadastrar Nota
+              </Button>
             </div>
-            <Button onClick={() => setOpen(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Cadastrar Nota
-            </Button>
           </div>
 
-          {notas.length === 0 ? (
-            <Card className="p-12 flex flex-col items-center justify-center text-center text-muted-foreground border-dashed">
-              <FileText className="h-10 w-10 mb-3 opacity-60" />
-              <p className="text-sm">Nenhuma nota cadastrada ainda.</p>
-              <p className="text-xs">Clique em "Cadastrar Nota" para começar.</p>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {notas.map((n) => (
-                <Card
-                  key={n.id}
-                  className="p-4 space-y-3 cursor-pointer hover:border-primary/50 transition"
-                  onClick={() => setDetailId(n.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <h3 className="font-semibold">Nota {n.id}</h3>
+          {/* KPIs */}
+          {notas.length > 0 && (() => {
+            const totalNotas = notas.length;
+            const emAberto = notas.filter((n) => !n.paga);
+            const pagas = notas.filter((n) => n.paga);
+            const valorAberto = emAberto.reduce((s, n) => s + n.total, 0);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const vencidas = emAberto.filter((n) => {
+              if (!n.prazoPagamento) return false;
+              return new Date(n.prazoPagamento) < today;
+            });
+            const valorVencido = vencidas.reduce((s, n) => s + n.total, 0);
+            const kpis = [
+              { icon: FileText, label: "Total de notas", value: totalNotas.toString(), tone: "primary" },
+              { icon: Clock, label: "Em aberto", value: emAberto.length.toString(), sub: `R$ ${valorAberto.toFixed(2)}`, tone: "warn" },
+              { icon: AlertTriangle, label: "Vencidas", value: vencidas.length.toString(), sub: `R$ ${valorVencido.toFixed(2)}`, tone: "danger" },
+              { icon: CheckCircle2, label: "Pagas", value: pagas.length.toString(), tone: "ok" },
+            ];
+            const toneClass = (t: string) =>
+              t === "warn" ? "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+              : t === "danger" ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400"
+              : t === "ok" ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+              : "bg-primary/10 text-primary";
+            return (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {kpis.map((k) => (
+                  <Card key={k.label} className="p-4 flex items-center gap-3 hover:shadow-md transition">
+                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${toneClass(k.tone)}`}>
+                      <k.icon className="h-5 w-5" />
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {n.createdAt.toLocaleDateString("pt-BR")}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {n.items.length} produto(s)
-                  </div>
-                  <ul className="text-sm space-y-1 max-h-32 overflow-auto">
-                    {n.items.map((p) => (
-                      <li key={p.id} className="truncate">• {p.name}</li>
-                    ))}
-                  </ul>
-                  <div className="pt-2 border-t flex justify-between text-sm font-medium">
-                    <span>Total</span>
-                    <span>R$ {n.total.toFixed(2)}</span>
-                  </div>
-                </Card>
-              ))}
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground truncate">{k.label}</div>
+                      <div className="text-xl font-bold leading-tight">{k.value}</div>
+                      {k.sub && <div className="text-[11px] text-muted-foreground truncate">{k.sub}</div>}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            );
+          })()}
+
+          {/* Filters */}
+          {notas.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por fornecedor ou número da nota..."
+                  value={listSearch}
+                  onChange={(e) => setListSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex gap-1 p-1 bg-muted rounded-md">
+                {(["all", "open", "overdue", "paid"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setStatusFilter(f)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded transition ${
+                      statusFilter === f ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {f === "all" ? "Todas" : f === "open" ? "Em aberto" : f === "overdue" ? "Vencidas" : "Pagas"}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* Lista */}
+          {notas.length === 0 ? (
+            <Card className="p-16 flex flex-col items-center justify-center text-center border-dashed">
+              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                <FileText className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="font-semibold mb-1">Nenhuma nota cadastrada</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+                Comece cadastrando uma nota e vinculando os produtos comprados do fornecedor.
+              </p>
+              <Button onClick={() => setOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" /> Cadastrar primeira nota
+              </Button>
+            </Card>
+          ) : (() => {
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const visible = notas.filter((n) => {
+              const isOverdue = !n.paga && n.prazoPagamento && new Date(n.prazoPagamento) < today;
+              if (statusFilter === "open" && n.paga) return false;
+              if (statusFilter === "paid" && !n.paga) return false;
+              if (statusFilter === "overdue" && !isOverdue) return false;
+              if (listSearch) {
+                const s = listSearch.toLowerCase();
+                if (!n.fornecedor.toLowerCase().includes(s) && !`nota ${n.id}`.includes(s)) return false;
+              }
+              return true;
+            });
+            if (visible.length === 0) {
+              return (
+                <Card className="p-12 text-center text-sm text-muted-foreground border-dashed">
+                  Nenhuma nota corresponde aos filtros aplicados.
+                </Card>
+              );
+            }
+            return (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {visible.map((n) => {
+                  const isOverdue = !n.paga && n.prazoPagamento && new Date(n.prazoPagamento) < today;
+                  const daysToDue = n.prazoPagamento
+                    ? Math.ceil((new Date(n.prazoPagamento).getTime() - today.getTime()) / 86400000)
+                    : null;
+                  return (
+                    <Card
+                      key={n.id}
+                      className="group relative p-0 overflow-hidden cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all"
+                      onClick={() => setDetailId(n.id)}
+                    >
+                      {/* Status stripe */}
+                      <div className={`h-1 w-full ${
+                        n.paga ? "bg-emerald-500"
+                        : isOverdue ? "bg-rose-500"
+                        : "bg-primary"
+                      }`} />
+
+                      <div className="p-4 space-y-3">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                              <FileText className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-semibold truncate">Nota {n.id}</h3>
+                              <p className="text-[11px] text-muted-foreground">
+                                {n.createdAt.toLocaleDateString("pt-BR")}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                              n.paga
+                                ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-900"
+                                : isOverdue
+                                ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/40 dark:border-rose-900"
+                                : "bg-primary/10 text-primary border-primary/20"
+                            }`}>
+                              {n.paga ? "Paga" : isOverdue ? "Vencida" : "Em aberto"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Excluir Nota ${n.id}?`)) {
+                                  setNotas((prev) => prev.filter((x) => x.id !== n.id));
+                                  toast.success(`Nota ${n.id} excluída.`);
+                                }
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition h-7 w-7 rounded-md hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 flex items-center justify-center text-muted-foreground"
+                              aria-label="Excluir nota"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Metadata */}
+                        <div className="space-y-1.5 text-xs">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Building2 className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{n.fornecedor || "Fornecedor não informado"}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Package className="h-3.5 w-3.5 shrink-0" />
+                            <span>{n.items.length} produto(s)</span>
+                          </div>
+                          {n.prazoPagamento && !n.paga && (
+                            <div className={`flex items-center gap-1.5 ${
+                              isOverdue ? "text-rose-600 dark:text-rose-400 font-medium" : "text-muted-foreground"
+                            }`}>
+                              <Calendar className="h-3.5 w-3.5 shrink-0" />
+                              <span>
+                                {isOverdue
+                                  ? `Vencida há ${Math.abs(daysToDue ?? 0)}d`
+                                  : daysToDue === 0
+                                  ? "Vence hoje"
+                                  : `Vence em ${daysToDue}d`}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Total */}
+                        <div className="pt-3 border-t flex items-end justify-between">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Total</span>
+                          <span className="text-lg font-bold tracking-tight">
+                            R$ {n.total.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </main>
       </div>
 
