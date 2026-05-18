@@ -770,35 +770,59 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                   )}
                 </div>
                 <div className="p-3 space-y-4">
-                  {[
-                    {
-                      title: "Venda",
-                      fields: [
-                        { field: "amount", label: "Valor *", required: true },
-                        { field: "date", label: "Data" },
-                        { field: "payment", label: "Pagamento" },
-                        { field: "status", label: "Status" },
-                      ],
-                    },
-                    {
-                      title: "Cliente",
-                      fields: [
-                        { field: "customer", label: "Nome do cliente" },
-                        { field: "customer_document", label: "CPF / CNPJ" },
-                        { field: "customer_phone", label: "Telefone" },
-                        { field: "customer_email", label: "E-mail" },
-                      ],
-                    },
-                    {
-                      title: "Produto",
-                      fields: [
-                        { field: "product", label: "Produto" },
-                        { field: "quantity", label: "Quantidade" },
-                        { field: "unit_price", label: "Preço unitário" },
-                        { field: "notes", label: "Observação" },
-                      ],
-                    },
-                  ].map((group) => (
+                  {(kind === "financeiro"
+                    ? [
+                        {
+                          title: "Lançamento financeiro",
+                          fields: [
+                            { field: "description", label: "Descrição" },
+                            { field: "fin_type", label: "Tipo (compra/despesa)" },
+                            { field: "category", label: "Categoria" },
+                            { field: "date", label: "Data" },
+                            { field: "amount", label: "Valor *", required: true },
+                            { field: "payment", label: "Pagamento" },
+                          ],
+                        },
+                        {
+                          title: "Complementar",
+                          fields: [
+                            { field: "customer", label: "Cliente / Fornecedor" },
+                            { field: "customer_document", label: "CPF / CNPJ" },
+                            { field: "status", label: "Status" },
+                            { field: "notes", label: "Observação" },
+                          ],
+                        },
+                      ]
+                    : [
+                        {
+                          title: "Venda",
+                          fields: [
+                            { field: "amount", label: "Valor *", required: true },
+                            { field: "date", label: "Data" },
+                            { field: "payment", label: "Pagamento" },
+                            { field: "status", label: "Status" },
+                          ],
+                        },
+                        {
+                          title: "Cliente",
+                          fields: [
+                            { field: "customer", label: "Nome do cliente" },
+                            { field: "customer_document", label: "CPF / CNPJ" },
+                            { field: "customer_phone", label: "Telefone" },
+                            { field: "customer_email", label: "E-mail" },
+                          ],
+                        },
+                        {
+                          title: "Produto",
+                          fields: [
+                            { field: "product", label: "Produto" },
+                            { field: "quantity", label: "Quantidade" },
+                            { field: "unit_price", label: "Preço unitário" },
+                            { field: "notes", label: "Observação" },
+                          ],
+                        },
+                      ]
+                  ).map((group) => (
                     <div key={group.title} className="space-y-2">
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">
                         {group.title}
