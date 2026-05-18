@@ -24,6 +24,12 @@ import {
   Share2,
   ReceiptText,
   Info,
+  Repeat2,
+  Folder,
+  Truck,
+  PenLine,
+  Mail,
+  CreditCard,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -542,214 +548,128 @@ ul{font-size:12px;line-height:1.6;}
                         </DropdownMenuTrigger>
                         <DropdownMenuContent
                           align="end"
-                          className="w-64 p-2 rounded-2xl shadow-2xl border-border/40 bg-card/95 backdrop-blur-md"
+                          className="w-56 p-1.5 rounded-xl shadow-2xl border-border/40 bg-card/95 backdrop-blur-md"
                         >
-                          <div className="px-3 py-2 mb-1">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                              Operações
-                            </span>
-                          </div>
-
-                          <DropdownMenuItem
-                            onClick={() => {
-                              if (sale.status === "cancelled" || sale.status === "canceled") {
-                                toast.error("Vendas canceladas não podem ser editadas.");
-                                return;
-                              }
-                              toast.info("Abrindo PDV para edição...");
-                              window.open(`/pdv?edit=${sale.id}`, "_blank");
-                            }}
-                            className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
-                          >
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                              <Edit className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-xs">Editar Venda</span>
-                              <span className="text-[9px] text-muted-foreground">
-                                Modificar itens ou valores
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            onClick={() => window.open(`/recibo/${sale.id}`, "_blank")}
-                            className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
-                          >
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                              <Eye className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-xs">Visualizar Venda</span>
-                              <span className="text-[9px] text-muted-foreground">
-                                Ver detalhes completos
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            onClick={() => {
-                              toast.info("Preparando cupom...");
-                              window.open(`/recibo/${sale.id}?auto=1`, "_blank");
-                            }}
-                            className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
-                          >
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                              <Printer className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-xs">Imprimir Cupom</span>
-                              <span className="text-[9px] text-muted-foreground">
-                                Formato térmico 80mm
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group border-none outline-none data-[state=open]:bg-primary/10">
-                              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                <FileText className="h-4 w-4" />
-                              </div>
-                              <div className="flex flex-col text-left">
-                                <span className="font-bold text-xs">Termo de Garantia</span>
-                                <span className="text-[9px] text-muted-foreground">
-                                  Gerar PDF de garantia
-                                </span>
-                              </div>
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuPortal>
-                              <DropdownMenuSubContent className="w-64 p-2 rounded-xl shadow-2xl border-border/40 bg-card/95 backdrop-blur-md">
-                                <div className="px-3 py-2 mb-1">
-                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                                    Escolha o Tipo
-                                  </span>
-                                </div>
-                                <DropdownMenuItem
-                                  onClick={() => openWarrantyPrint(sale, "seminovo")}
-                                  className="py-2.5 rounded-lg cursor-pointer focus:bg-primary/10 font-bold text-xs"
-                                >
-                                  iPhone Seminovo (7 meses)
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => openWarrantyPrint(sale, "lacrado")}
-                                  className="py-2.5 rounded-lg cursor-pointer focus:bg-primary/10 font-bold text-xs"
-                                >
-                                  iPhone Lacrado (1 ano)
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => openWarrantyPrint(sale, "android")}
-                                  className="py-2.5 rounded-lg cursor-pointer focus:bg-primary/10 font-bold text-xs"
-                                >
-                                  Aparelho Android (1 ano)
-                                </DropdownMenuItem>
-                              </DropdownMenuSubContent>
-                            </DropdownMenuPortal>
-                          </DropdownMenuSub>
-
-                          <DropdownMenuItem
-                            onClick={() =>
-                              toast.success("Nota Fiscal emitida com sucesso e enviada ao SEFAZ.")
-                            }
-                            className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
-                          >
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                              <ReceiptText className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-xs">Gerar Nota Fiscal</span>
-                              <span className="text-[9px] text-muted-foreground">
-                                Emitir NF-e ou NFC-e
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
-
-                          <div className="h-px bg-border/40 my-2 mx-1" />
-
-                          <div className="px-3 py-2 mb-1">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                              Interação
-                            </span>
-                          </div>
-
-                          <DropdownMenuItem
-                            onClick={() => {
-                              const phone = sale.customers?.phone?.replace(/\D/g, "");
-                              if (phone) {
+                          {[
+                            {
+                              icon: Edit,
+                              label: "Editar",
+                              onClick: () => {
+                                if (sale.status === "cancelled" || sale.status === "canceled") {
+                                  toast.error("Vendas canceladas não podem ser editadas.");
+                                  return;
+                                }
+                                window.open(`/pdv?edit=${sale.id}`, "_blank");
+                              },
+                            },
+                            {
+                              icon: Info,
+                              label: "Detalhes",
+                              onClick: () => {
+                                setSelectedSale(sale);
+                                setIsDetailsOpen(true);
+                              },
+                            },
+                            {
+                              icon: FileText,
+                              label: "Recibo",
+                              onClick: () => window.open(`/recibo/${sale.id}`, "_blank"),
+                            },
+                            {
+                              icon: Printer,
+                              label: "Recibo 80mm",
+                              onClick: () =>
+                                window.open(`/recibo/${sale.id}?fmt=80&auto=1`, "_blank"),
+                            },
+                            {
+                              icon: MessageSquare,
+                              iconClass: "text-green-600",
+                              label: "Whatsapp",
+                              onClick: () => {
+                                const phone = sale.customers?.phone?.replace(/\D/g, "");
+                                if (!phone) return toast.error("Cliente sem telefone.");
                                 window.open(
-                                  `https://wa.me/55${phone}?text=Olá! Segue o link do seu comprovante de compra: ${window.location.origin}/view-sale/${sale.id}`,
+                                  `https://wa.me/55${phone}?text=Olá! Segue o link do seu comprovante: ${window.location.origin}/recibo/${sale.id}`,
                                   "_blank",
                                 );
-                              } else {
-                                toast.error("Cliente sem telefone cadastrado.");
-                              }
-                            }}
-                            className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-green-500/10 transition-all group"
-                          >
-                            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
-                              <MessageSquare className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-xs">Enviar WhatsApp</span>
-                              <span className="text-[9px] text-muted-foreground">
-                                Enviar comprovante
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                `${window.location.origin}/view-sale/${sale.id}`,
-                              );
-                              toast.success("Link copiado para a área de transferência!");
-                            }}
-                            className="gap-3 py-3 rounded-xl cursor-pointer focus:bg-primary/10 transition-all group"
-                          >
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                              <Share2 className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-xs">Compartilhar Link</span>
-                              <span className="text-[9px] text-muted-foreground">
-                                Link de visualização
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
-
-                          <div className="h-px bg-border/40 my-2 mx-1" />
-
-                          <DropdownMenuItem
-                            onClick={async () => {
-                              if (
-                                confirm(
-                                  "Deseja realmente estornar esta venda? O estoque será devolvido.",
-                                )
-                              ) {
+                              },
+                            },
+                            {
+                              icon: Repeat2,
+                              label: "Devolução/Troca",
+                              onClick: () => toast.info("Abrindo fluxo de devolução/troca..."),
+                            },
+                            {
+                              icon: XCircle,
+                              iconClass: "text-destructive",
+                              danger: true,
+                              label: "Cancelar a venda",
+                              onClick: async () => {
+                                if (!confirm("Deseja realmente cancelar esta venda?")) return;
                                 try {
                                   const { error } = await supabase
                                     .from("sales_orders")
                                     .update({ status: "canceled" })
                                     .eq("id", sale.id);
                                   if (error) throw error;
-                                  toast.success("Venda estornada com sucesso!");
+                                  toast.success("Venda cancelada!");
                                   fetchSales();
-                                } catch (err) {
-                                  toast.error("Erro ao estornar venda.");
+                                } catch {
+                                  toast.error("Erro ao cancelar venda.");
                                 }
-                              }
-                            }}
-                            className="gap-3 py-3 rounded-xl text-destructive focus:text-destructive focus:bg-destructive/5 cursor-pointer group"
-                          >
-                            <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive group-hover:scale-110 transition-transform">
-                              <XCircle className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-black text-xs">Estornar Venda</span>
-                              <span className="text-[9px] opacity-70 font-bold uppercase">
-                                Operação Irreversível
-                              </span>
-                            </div>
-                          </DropdownMenuItem>
+                              },
+                            },
+                            {
+                              icon: Folder,
+                              label: "Arquivos",
+                              onClick: () => toast.info("Abrindo arquivos da venda..."),
+                            },
+                            {
+                              icon: Truck,
+                              label: "Imprimir Delivery",
+                              onClick: () =>
+                                window.open(`/recibo/${sale.id}?tipo=delivery&auto=1`, "_blank"),
+                            },
+                            {
+                              icon: PenLine,
+                              label: "Assinar",
+                              onClick: () => toast.info("Captura de assinatura em breve."),
+                            },
+                            {
+                              icon: Mail,
+                              label: "Enviar por E-mail",
+                              onClick: () => {
+                                const email = (sale.customers as any)?.email;
+                                if (!email) return toast.error("Cliente sem e-mail cadastrado.");
+                                window.location.href = `mailto:${email}?subject=Recibo da venda&body=${encodeURIComponent(
+                                  `Segue o link do recibo: ${window.location.origin}/recibo/${sale.id}`,
+                                )}`;
+                              },
+                            },
+                            {
+                              icon: CreditCard,
+                              label: "Pagamento TEF",
+                              onClick: () => toast.info("Conectando ao TEF..."),
+                            },
+                          ].map((opt, i) => {
+                            const Icon = opt.icon;
+                            return (
+                              <DropdownMenuItem
+                                key={i}
+                                onClick={opt.onClick}
+                                className={`gap-3 py-2 px-2.5 rounded-lg cursor-pointer text-[13px] font-medium ${
+                                  opt.danger
+                                    ? "text-destructive focus:text-destructive focus:bg-destructive/10"
+                                    : "focus:bg-primary/10"
+                                }`}
+                              >
+                                <Icon
+                                  className={`h-4 w-4 ${opt.iconClass ?? "text-foreground/70"}`}
+                                />
+                                <span>{opt.label}</span>
+                              </DropdownMenuItem>
+                            );
+                          })}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -760,6 +680,7 @@ ul{font-size:12px;line-height:1.6;}
           </table>
         </div>
       </div>
+
 
       {/* Modal de Detalhes da Venda */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
