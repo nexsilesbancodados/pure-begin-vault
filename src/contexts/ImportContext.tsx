@@ -143,17 +143,39 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
 
   const clearFinished = useCallback(async () => {
     if (!orgId) return;
-    await supabase
+    const targets = jobs.filter((j) => j.status === "done" || j.status === "error");
+    if (targets.length === 0) {
+      toast.info("Nenhuma importação finalizada para limpar");
+      return;
+    }
+    const ids = targets.map((j) => j.id);
+    // remoção otimista
+    setJobs((prev) => prev.filter((j) => !ids.includes(j.id)));
+    const { error, count } = await supabase
       .from("import_jobs")
-      .delete()
-      .eq("organization_id", orgId)
-      .in("status", ["done", "error"]);
-  }, [orgId]);
+      .delete({ count: "exact" })
+      .in("id", ids);
+    if (error) {
+      toast.error("Falha ao limpar: " + error.message);
+      return;
+    }
+    const n = count ?? ids.length;
+    toast.success(`${n} ${n === 1 ? "importação removida" : "importações removidas"}`);
+  }, [orgId, jobs]);
 
   const deleteJob = useCallback(async (jobId: string) => {
-    const { error } = await supabase.from("import_jobs").delete().eq("id", jobId);
-    if (error) toast.error("Falha ao remover: " + error.message);
-    else toast.success("Importação removida");
+    // remoção otimista
+    setJobs((prev) => prev.filter((j) => j.id !== jobId));
+    const { error, count } = await supabase
+      .from("import_jobs")
+      .delete({ count: "exact" })
+      .eq("id", jobId);
+    if (error) {
+      toast.error("Falha ao remover: " + error.message);
+      return;
+    }
+    const n = count ?? 1;
+    toast.success(`${n} ${n === 1 ? "importação removida" : "importações removidas"}`);
   }, []);
 
   const activeCount = useMemo(
