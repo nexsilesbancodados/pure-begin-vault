@@ -473,7 +473,6 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                       type="button"
                       onClick={() => {
                         setProductType(t);
-                        set("tipo", t);
                       }}
                       className={`px-6 py-2 text-xs font-bold transition ${
                         productType === t
