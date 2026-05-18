@@ -153,18 +153,24 @@ function NotasAbertoPage() {
       cost_price: parseFloat(data.cost_price) || 0,
       stock_quantity: parseInt(stock ?? data.stock_quantity) || 0,
     };
-    const { data: updated, error } = await supabase
-      .from("products")
-      .update(payload)
-      .eq("id", editingProduct.id)
-      .select("*")
-      .single();
+    const isNew = !editingProduct.id;
+    if (isNew) {
+      if (orgId) payload.organization_id = orgId;
+      payload.active = true;
+    }
+    const query = isNew
+      ? supabase.from("products").insert(payload).select("*").single()
+      : supabase.from("products").update(payload).eq("id", editingProduct.id).select("*").single();
+    const { data: saved, error } = await query;
     if (error) {
       toast.error("Erro ao salvar produto: " + error.message);
       return;
     }
-    const merged: Product = { ...(updated as any), imei: getImeiFromMetadata((updated as any)?.metadata) };
-    setProducts((prev) => prev.map((p) => (p.id === merged.id ? merged : p)));
+    const merged: Product = { ...(saved as any), imei: getImeiFromMetadata((saved as any)?.metadata) };
+    setProducts((prev) =>
+      isNew ? [merged, ...prev] : prev.map((p) => (p.id === merged.id ? merged : p)),
+    );
+    if (isNew) toast.success("Produto cadastrado!");
     setNotas((prev) =>
       prev.map((n) => {
         if (!n.items.some((i) => i.id === merged.id)) return n;
