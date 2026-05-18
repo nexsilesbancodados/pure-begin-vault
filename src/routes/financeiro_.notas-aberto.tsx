@@ -41,8 +41,9 @@ interface Product {
   name: string;
   sku?: string | null;
   imei?: string | null;
-  sale_price?: number | null;
+  price?: number | null;
   stock_quantity?: number | null;
+  metadata?: any;
 }
 
 function NotasAbertoPage() {
@@ -53,21 +54,28 @@ function NotasAbertoPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    if (!open || !orgId) return;
+  const loadProducts = async () => {
+    if (!orgId) return;
     setLoading(true);
-    (async () => {
-      const { data, error } = await (supabase as any)
-        .from("products")
-        .select("id, name, sku, imei, sale_price, stock_quantity")
-        .eq("organization_id", orgId)
-        .eq("active", true)
-        .order("name")
-        .limit(500);
-      if (error) toast.error("Erro ao carregar produtos: " + error.message);
-      setProducts(data ?? []);
-      setLoading(false);
-    })();
+    const { data, error } = await (supabase as any)
+      .from("products")
+      .select("id, name, sku, price, stock_quantity, metadata")
+      .eq("organization_id", orgId)
+      .eq("active", true)
+      .order("name")
+      .limit(500);
+    if (error) toast.error("Erro ao carregar produtos: " + error.message);
+    const mapped: Product[] = (data ?? []).map((p: any) => ({
+      ...p,
+      imei: p?.metadata?.imei ?? null,
+    }));
+    setProducts(mapped);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (open) loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, orgId]);
 
   const filtered = products.filter((p) => {
@@ -180,8 +188,8 @@ function NotasAbertoPage() {
                       <TableCell className="text-muted-foreground">{p.sku ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{p.imei ?? "—"}</TableCell>
                       <TableCell className="text-right">
-                        {p.sale_price != null
-                          ? `R$ ${Number(p.sale_price).toFixed(2)}`
+                        {p.price != null
+                          ? `R$ ${Number(p.price).toFixed(2)}`
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right">{p.stock_quantity ?? 0}</TableCell>
