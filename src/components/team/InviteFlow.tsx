@@ -323,7 +323,10 @@ export function InviteFlow() {
                         size="sm"
                         variant="outline"
                         className="flex-1"
-                        onClick={() => copyLink(i.token)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyLink(i.token);
+                        }}
                       >
                         {copiedToken === i.token ? (
                           <><Check className="h-3 w-3 mr-1" /> Copiado</>
@@ -334,7 +337,10 @@ export function InviteFlow() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => revoke(i.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          revoke(i.id);
+                        }}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
