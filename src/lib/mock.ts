@@ -92,6 +92,11 @@ export const sidebarItems = [
     url: "/financeiro/notas-aberto",
     icon: "FileWarning" as const,
   },
+  {
+    title: "Importações",
+    url: "/importacao",
+    icon: "Upload" as const,
+  },
 
   // ─── CONFIGURAÇÕES ──────────────────────────────────
   { type: "header", title: "Configurações" },

@@ -25,9 +25,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useOrg } from "@/lib/useOrg";
+import { useImport } from "@/contexts/ImportContext";
 import * as XLSX from "xlsx";
 
 interface SalesImportModalProps {
@@ -255,7 +254,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
 
 export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImportModalProps) {
   const { user } = useAuth();
-  const { orgId } = useOrg();
+  const { startImport } = useImport();
   const [isImporting, setIsImporting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
@@ -373,21 +372,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     }
   };
 
-  // Executa promessas em paralelo com limite de concorrência (acelera muito o insert)
-  const runWithConcurrency = async <T,>(tasks: (() => Promise<T>)[], concurrency = 4) => {
-    const results: T[] = [];
-    let cursor = 0;
-    const workers = Array.from({ length: Math.min(concurrency, tasks.length) }, async () => {
-      while (cursor < tasks.length) {
-        const idx = cursor++;
-        results[idx] = await tasks[idx]();
-      }
-    });
-    await Promise.all(workers);
-    return results;
-  };
-
-  const handleImport = async () => {
+  const handleImport = () => {
     if (!user?.id || rows.length === 0) return;
     const validRows = rows.filter((r) => r._valid);
     if (validRows.length === 0) {
@@ -395,223 +380,34 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
       return;
     }
 
-    setIsImporting(true);
-    setImported(0);
-    const counters = { sales: 0, customers: 0, products: 0, finance: 0 };
-    // Tamanho de lote maior + paralelismo: ~10x mais rápido sem sobrecarregar o Supabase
-    const BATCH = 200;
-    const CONCURRENCY = 4;
+    // Dispara o job no contexto global — roda em background, modal pode fechar
+    startImport(
+      file?.name || "Importação",
+      validRows.map((r) => ({
+        total_amount: r.total_amount,
+        payment_method: r.payment_method,
+        status: r.status,
+        notes: r.notes,
+        created_at: r.created_at,
+        customer_name: r.customer_name,
+        customer_phone: r.customer_phone,
+        customer_email: r.customer_email,
+        customer_document: r.customer_document,
+        product_name: r.product_name,
+        product_quantity: r.product_quantity,
+        product_price: r.product_price,
+      })),
+    );
 
-    try {
-      // 1) CLIENTES — dedupe priorizando DOCUMENTO (CPF/CNPJ) e fallback para nome
-      // Assim 2 linhas com mesmo CPF e nomes ligeiramente diferentes viram 1 cliente.
-      type CustAcc = { name: string; phone?: string; email?: string; document?: string; keys: Set<string> };
-      const customerMap = new Map<string, CustAcc>(); // key = doc OU nome
-      const aliasToKey = new Map<string, string>(); // qualquer alias → key principal
-      for (const r of validRows) {
-        const name = r.customer_name?.trim();
-        const doc = r.customer_document?.trim();
-        if (!name && !doc) continue;
-        const primary = doc || name!.toLowerCase();
-        const aliases = [doc, name?.toLowerCase()].filter(Boolean) as string[];
-        let existing: CustAcc | undefined;
-        for (const a of aliases) {
-          const k = aliasToKey.get(a);
-          if (k && customerMap.has(k)) { existing = customerMap.get(k); break; }
-        }
-        if (!existing) {
-          existing = { name: name || doc || "Cliente", phone: r.customer_phone, email: r.customer_email, document: doc, keys: new Set() };
-          customerMap.set(primary, existing);
-        }
-        // enriquecimento: nunca sobrescreve dado existente — preserva tudo
-        if (!existing.phone && r.customer_phone) existing.phone = r.customer_phone;
-        if (!existing.email && r.customer_email) existing.email = r.customer_email;
-        if (!existing.document && doc) existing.document = doc;
-        if (name && existing.name === doc) existing.name = name;
-        aliases.forEach((a) => { aliasToKey.set(a, primary); existing!.keys.add(a); });
-      }
-
-      const customerIdByAlias = new Map<string, string>();
-      if (customerMap.size > 0) {
-        const docs = Array.from(customerMap.values()).map((c) => c.document).filter(Boolean) as string[];
-        const names = Array.from(customerMap.values()).map((c) => c.name);
-        // busca em paralelo por documento E por nome
-        const [byDoc, byName] = await Promise.all([
-          docs.length
-            ? supabase.from("customers").select("id, name, document").eq("organization_id", orgId).in("document", docs)
-            : Promise.resolve({ data: [] as any[] }),
-          supabase.from("customers").select("id, name, document").eq("organization_id", orgId).in("name", names),
-        ]);
-        const linkExisting = (rec: any) => {
-          if (rec.document) customerIdByAlias.set(rec.document, rec.id);
-          if (rec.name) customerIdByAlias.set(rec.name.toLowerCase(), rec.id);
-        };
-        (byDoc.data || []).forEach(linkExisting);
-        (byName.data || []).forEach(linkExisting);
-
-        const toCreate = Array.from(customerMap.values()).filter((c) => {
-          for (const k of c.keys) if (customerIdByAlias.has(k)) return false;
-          return true;
-        });
-        if (toCreate.length) {
-          // insere clientes em lotes paralelos
-          const chunks: CustAcc[][] = [];
-          for (let i = 0; i < toCreate.length; i += BATCH) chunks.push(toCreate.slice(i, i + BATCH));
-          await runWithConcurrency(
-            chunks.map((chunk) => async () => {
-              const { data: created } = await supabase
-                .from("customers")
-                .insert(chunk.map((c) => ({
-                  organization_id: orgId,
-                  user_id: user.id,
-                  name: c.name,
-                  phone: c.phone || null,
-                  email: c.email || null,
-                  document: c.document || null,
-                })))
-                .select("id, name, document");
-              (created || []).forEach((rec: any, i: number) => {
-                const src = chunk[i];
-                src.keys.forEach((k) => customerIdByAlias.set(k, rec.id));
-                counters.customers++;
-              });
-            }),
-            CONCURRENCY,
-          );
-        }
-      }
-
-      const resolveCustomerId = (r: ParsedRow): string | null => {
-        if (r.customer_document && customerIdByAlias.has(r.customer_document)) return customerIdByAlias.get(r.customer_document)!;
-        if (r.customer_name && customerIdByAlias.has(r.customer_name.toLowerCase())) return customerIdByAlias.get(r.customer_name.toLowerCase())!;
-        return null;
-      };
-
-      // 2) PRODUTOS — dedupe por nome (insert em lotes paralelos)
-      const uniqueProducts = new Map<string, { name: string; price?: number }>();
-      for (const r of validRows) {
-        if (r.product_name) {
-          const key = r.product_name.toLowerCase();
-          if (!uniqueProducts.has(key)) {
-            uniqueProducts.set(key, { name: r.product_name, price: r.product_price ?? r.total_amount });
-          }
-        }
-      }
-      const productIdByName = new Map<string, string>();
-      if (uniqueProducts.size > 0) {
-        const names = Array.from(uniqueProducts.values()).map((p) => p.name);
-        const { data: existingP } = await supabase
-          .from("products").select("id, name").eq("organization_id", orgId).in("name", names);
-        (existingP || []).forEach((p: any) => productIdByName.set(p.name.toLowerCase(), p.id));
-        const toCreateP = Array.from(uniqueProducts.values()).filter((p) => !productIdByName.has(p.name.toLowerCase()));
-        if (toCreateP.length) {
-          const chunks: typeof toCreateP[] = [];
-          for (let i = 0; i < toCreateP.length; i += BATCH) chunks.push(toCreateP.slice(i, i + BATCH));
-          await runWithConcurrency(
-            chunks.map((chunk) => async () => {
-              const { data: createdP } = await supabase
-                .from("products")
-                .insert(chunk.map((p) => ({
-                  organization_id: orgId, user_id: user.id, name: p.name,
-                  price: p.price ?? 0, category: "Importado", active: true,
-                })))
-                .select("id, name");
-              (createdP || []).forEach((p: any) => {
-                productIdByName.set(p.name.toLowerCase(), p.id);
-                counters.products++;
-              });
-            }),
-            CONCURRENCY,
-          );
-        }
-      }
-
-      // 3) VENDAS — uma a uma, com progresso em tempo real (com paralelismo leve)
-      // Mantém ordem e atualiza o contador "Importando X/Y" a cada venda inserida.
-      const insertedSales: { id: string; row: ParsedRow }[] = new Array(validRows.length);
-      const SALE_CONCURRENCY = 6; // dispara 6 inserts simultâneos, contador sobe um por um
-      const queue = validRows.map((r, idx) => ({ r, idx }));
-      let cursor = 0;
-      const workers = Array.from({ length: Math.min(SALE_CONCURRENCY, queue.length) }, async () => {
-        while (cursor < queue.length) {
-          const my = cursor++;
-          const { r, idx } = queue[my];
-          const payload = {
-            user_id: user.id, organization_id: orgId,
-            total_amount: r.total_amount, subtotal: r.total_amount,
-            payment_method: r.payment_method, status: r.status,
-            notes: r.notes, channel: "import",
-            customer_id: resolveCustomerId(r),
-            created_at: r.created_at,
-          };
-          const { data: created, error } = await supabase
-            .from("sales_orders").insert(payload).select("id").single();
-          if (error) continue; // mantém o que deu certo; erro vai pro toast no final
-          insertedSales[idx] = { id: (created as any).id, row: r };
-          counters.sales++;
-          // atualiza UI imediatamente — venda por venda
-          setImported(counters.sales);
-          setProgress(Math.round((counters.sales / validRows.length) * 85));
-        }
-      });
-      await Promise.all(workers);
-
-
-      const successful = insertedSales.filter(Boolean);
-
-      // 4 + 5) ITENS DE VENDA e FINANCEIRO — em paralelo
-      const saleItems = successful
-        .filter(({ row }) => row.product_name && productIdByName.has(row.product_name.toLowerCase()))
-        .map(({ id, row }) => ({
-          organization_id: orgId, sale_id: id,
-          product_id: productIdByName.get(row.product_name!.toLowerCase())!,
-          product_name: row.product_name!,
-          quantity: row.product_quantity || 1,
-          unit_price: row.product_price ?? row.total_amount,
-          total: row.total_amount,
-        }));
-      const financeRows = successful
-        .filter(({ row }) => row.status === "concluded")
-        .map(({ id, row }) => ({
-          organization_id: orgId, user_id: user.id, type: "income",
-          amount: row.total_amount,
-          description: `Venda importada${row.customer_name ? ` · ${row.customer_name}` : ""}`,
-          category: "sales", payment_method: row.payment_method,
-          reference_type: "sale", reference_id: id,
-          transaction_date: row.created_at,
-        }));
-
-      const itemChunks: typeof saleItems[] = [];
-      for (let i = 0; i < saleItems.length; i += BATCH) itemChunks.push(saleItems.slice(i, i + BATCH));
-      const finChunks: typeof financeRows[] = [];
-      for (let i = 0; i < financeRows.length; i += BATCH) finChunks.push(financeRows.slice(i, i + BATCH));
-
-      await Promise.all([
-        runWithConcurrency(
-          itemChunks.map((c) => async () => { await supabase.from("sale_items").insert(c); }),
-          CONCURRENCY,
-        ),
-        runWithConcurrency(
-          finChunks.map((c) => async () => {
-            const { error } = await supabase.from("finance_transactions").insert(c);
-            if (!error) counters.finance += c.length;
-          }),
-          CONCURRENCY,
-        ),
-      ]);
-
-      setProgress(100);
-      setStep("done");
-      toast.success(
-        `${counters.sales} vendas · ${counters.customers} clientes · ${counters.products} produtos · ${counters.finance} lançamentos`,
-      );
-      onImportSuccess?.();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao importar.");
-    } finally {
-      setIsImporting(false);
-    }
+    toast.success(
+      `${validRows.length} vendas em processamento — acompanhe em "Importações" no menu`,
+      { duration: 5000 },
+    );
+    onImportSuccess?.();
+    reset();
+    onClose();
   };
+
 
   // Baixa CSV com TODAS as linhas inválidas (nenhuma informação é perdida)
   const downloadErrorReport = () => {

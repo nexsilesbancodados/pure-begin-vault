@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { iconMap, LogOut, PanelLeftClose, PanelLeftOpen, Sparkles, X } from "@/lib/icons";
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useImport } from "@/contexts/ImportContext";
 import { sidebarItems } from "@/lib/mock";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -36,13 +37,23 @@ export function AppSidebar({
     return () => window.removeEventListener("force-sidebar-collapse", handleForceCollapse);
   }, []);
 
+  const { activeCount } = useImport();
+
   const filteredItems = useMemo(() => {
-    return sidebarItems.filter((item: any) => {
-      if (item.type === "header") return true;
-      if (item.roleRestriction === "super_admin" && profile?.role !== "super_admin") return false;
-      return true;
-    });
-  }, [profile]);
+    return sidebarItems
+      .filter((item: any) => {
+        if (item.type === "header") return true;
+        if (item.roleRestriction === "super_admin" && profile?.role !== "super_admin") return false;
+        return true;
+      })
+      .map((item: any) => {
+        // badge dinâmico para "Importações": mostra contagem de jobs em andamento
+        if (item.url === "/importacao") {
+          return { ...item, badge: activeCount > 0 ? String(activeCount) : undefined };
+        }
+        return item;
+      });
+  }, [profile, activeCount]);
 
   const isSmall = isCollapsed || !!flyout || isForcedCollapsed;
 

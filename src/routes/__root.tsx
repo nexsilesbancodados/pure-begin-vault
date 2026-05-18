@@ -7,6 +7,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ImportProvider } from "@/contexts/ImportContext";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { CookieConsent } from "@/components/layout/CookieConsent";
 import { lazy, Suspense } from "react";
@@ -165,16 +166,18 @@ function RootComponent() {
     <ThemeProvider>
       <I18nProvider>
         <AuthProvider>
-          <ErrorBoundary>
-            <Outlet />
-          </ErrorBoundary>
-          <PwaInstallPrompt />
-          <CookieConsent />
-          <Suspense fallback={null}>
-            <CommandPalette />
-          </Suspense>
-          <KeyboardHelp />
-          <SonnerToaster position="top-right" richColors closeButton />
+          <ImportProvider>
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
+            <PwaInstallPrompt />
+            <CookieConsent />
+            <Suspense fallback={null}>
+              <CommandPalette />
+            </Suspense>
+            <KeyboardHelp />
+            <SonnerToaster position="top-right" richColors closeButton />
+          </ImportProvider>
         </AuthProvider>
       </I18nProvider>
     </ThemeProvider>
