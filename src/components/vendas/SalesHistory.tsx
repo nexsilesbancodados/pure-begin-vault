@@ -24,6 +24,12 @@ import {
   Share2,
   ReceiptText,
   Info,
+  Repeat2,
+  Folder,
+  Truck,
+  PenLine,
+  Mail,
+  CreditCard,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
