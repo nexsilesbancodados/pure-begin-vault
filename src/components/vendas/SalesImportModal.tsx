@@ -129,7 +129,8 @@ function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
   const fieldOrder = [
     "customer_document", "customer_email", "customer_phone", "customer",
     "amount", "date", "payment", "status",
-    "unit_price", "quantity", "product", "notes",
+    "unit_price", "quantity", "product",
+    "fin_type", "category", "description", "notes",
   ];
   for (const field of fieldOrder) {
     const aliases = FIELD_ALIASES[field];
