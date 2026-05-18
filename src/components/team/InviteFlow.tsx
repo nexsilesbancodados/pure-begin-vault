@@ -113,6 +113,28 @@ export function InviteFlow() {
     load();
   }, [orgId]);
 
+  // Presença em tempo real: quem está online na loja
+  useEffect(() => {
+    if (!orgId || !userId) return;
+    const channel = (supabase as any).channel(`presence-org-${orgId}`, {
+      config: { presence: { key: userId } },
+    });
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState() as Record<string, unknown[]>;
+        setOnlineIds(new Set(Object.keys(state)));
+      })
+      .subscribe(async (status: string) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ user_id: userId, online_at: new Date().toISOString() });
+        }
+      });
+    return () => {
+      (supabase as any).removeChannel(channel);
+    };
+  }, [orgId, userId]);
+
+
   const buildInviteUrl = (token: string) =>
     `${window.location.origin}/convite-loja/${token}`;
 
