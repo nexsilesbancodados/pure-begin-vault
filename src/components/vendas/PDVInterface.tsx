@@ -38,6 +38,7 @@ import {
   Truck,
   Wrench,
   IdCard,
+  CalendarClock,
 } from "lucide-react";
 import { Product } from "@/lib/mock";
 import { ProductForm } from "@/components/estoque/ProductForm";
