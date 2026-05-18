@@ -559,13 +559,20 @@ export function InviteFlow() {
                 .slice(0, 2)
                 .join("")
                 .toUpperCase();
+              const isOnline = onlineIds.has(m.user_id);
               return (
                 <div
                   key={m.user_id}
                   className="flex items-center gap-3 p-3 rounded-2xl border border-border bg-card hover:shadow-md hover:border-primary/30 transition"
                 >
-                  <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center shrink-0">
-                    {initials}
+                  <div className="relative shrink-0">
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center">
+                      {initials}
+                    </div>
+                    <span
+                      className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-card ${isOnline ? "bg-success" : "bg-muted-foreground/50"}`}
+                      title={isOnline ? "Online agora" : "Offline"}
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -573,6 +580,11 @@ export function InviteFlow() {
                       {m.is_default && (
                         <Badge variant="outline" className="text-[9px]">padrão</Badge>
                       )}
+                      <Badge
+                        className={`${isOnline ? "bg-success/15 text-success border-success/30" : "bg-muted text-muted-foreground border-border"} border text-[9px] font-bold`}
+                      >
+                        {isOnline ? "Online" : "Offline"}
+                      </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground capitalize truncate">
                       {m.role}
