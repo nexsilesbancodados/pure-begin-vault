@@ -72,6 +72,74 @@ type ReceiptData = {
   customer?: any | null;
 };
 
+const printReceiptArea = async (mode: "a4" | "80mm") => {
+  const node = document.querySelector(".receipt-print-area") as HTMLElement | null;
+  if (!node) {
+    window.print();
+    return;
+  }
+
+  const clone = node.cloneNode(true) as HTMLElement;
+  const originalImages = Array.from(node.querySelectorAll<HTMLImageElement>("img"));
+  const clonedImages = Array.from(clone.querySelectorAll<HTMLImageElement>("img"));
+
+  await Promise.all(clonedImages.map(async (img, index) => {
+    const original = originalImages[index];
+    const source = original?.currentSrc || original?.src || img.src;
+    if (!source) return;
+
+    try {
+      const response = await fetch(source, { mode: "cors", cache: "force-cache" });
+      if (!response.ok) throw new Error("Logo não carregou");
+      const blob = await response.blob();
+      img.src = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      img.src = source;
+    }
+  }));
+
+  const win = window.open("", "_blank", mode === "80mm" ? "width=420,height=720" : "width=900,height=720");
+  if (!win) {
+    window.print();
+    return;
+  }
+
+  const isThermal = mode === "80mm";
+  win.document.open();
+  win.document.write(`<!doctype html><html><head><title>Recibo</title>
+    <style>
+      @page { margin: ${isThermal ? "0" : "10mm"}; size: ${isThermal ? "80mm auto" : "A4"}; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #fff; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { font-family: 'Courier New', ui-monospace, monospace; }
+      img { display: block !important; max-width: 100% !important; object-fit: contain; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { vertical-align: top; }
+      .receipt-print-area { margin: 0 auto !important; box-shadow: none !important; background: #fff !important; color: #000 !important; ${isThermal ? "width: 80mm !important; padding: 4mm !important;" : "width: 100% !important; max-width: 820px !important;"} }
+      .receipt-logo { max-height: 55px !important; margin: 4px auto !important; }
+      .text-center { text-align: center; } .text-left { text-align: left; } .text-right { text-align: right; }
+      .font-bold { font-weight: 700; } .font-black { font-weight: 900; } .uppercase { text-transform: uppercase; }
+      .mx-auto { margin-left: auto; margin-right: auto; } .my-1 { margin-top: 4px; margin-bottom: 4px; }
+      .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-6 { margin-top: 24px; }
+      .pt-1 { padding-top: 4px; } .pt-2 { padding-top: 8px; } .py-0\.5 { padding-top: 2px; padding-bottom: 2px; } .pr-1 { padding-right: 4px; }
+      .w-full { width: 100%; } .w-7 { width: 28px; } .w-10 { width: 40px; } .w-12 { width: 48px; } .w-14 { width: 56px; }
+      .border-t { border-top: 1px solid #000; } .border-b { border-bottom: 1px solid #000; } .border-black { border-color: #000; }
+      .border-dashed { border-style: dashed; } .flex { display: flex; } .justify-between { justify-content: space-between; }
+      .break-words { overflow-wrap: anywhere; word-break: break-word; }
+      .text-\[10px\] { font-size: 10px; } .text-\[10\.5px\] { font-size: 10.5px; } .text-\[11px\] { font-size: 11px; } .text-\[12px\] { font-size: 12px; } .text-\[13px\] { font-size: 13px; }
+    </style></head><body>${clone.outerHTML}
+    <script>
+      const waitImages = Promise.all(Array.from(document.images).map((img) => img.complete ? Promise.resolve() : new Promise((resolve) => { img.onload = img.onerror = resolve; })));
+      window.onload = () => waitImages.finally(() => setTimeout(() => { window.print(); window.close(); }, 500));
+    <\/script>
+    </body></html>`);
+  win.document.close();
+};
+
 const METHOD_LABEL: Record<string, string> = {
   cash: "Dinheiro",
   money: "Dinheiro",
