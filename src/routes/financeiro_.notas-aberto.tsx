@@ -607,7 +607,12 @@ function NotasAbertoPage() {
           )}
 
           {/* Lista */}
-          {notas.length === 0 ? (
+          {notesLoading ? (
+            <Card className="p-12 flex items-center justify-center text-sm text-muted-foreground border-dashed">
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              Carregando notas sincronizadas...
+            </Card>
+          ) : notas.length === 0 ? (
             <Card className="p-16 flex flex-col items-center justify-center text-center border-dashed">
               <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                 <FileText className="h-8 w-8 text-primary" />
@@ -616,7 +621,7 @@ function NotasAbertoPage() {
               <p className="text-sm text-muted-foreground mb-4 max-w-sm">
                 Comece cadastrando uma nota e vinculando os produtos comprados do fornecedor.
               </p>
-              <Button onClick={() => setOpen(true)} className="gap-2">
+              <Button onClick={() => setOpen(true)} className="gap-2" disabled={!orgId}>
                 <Plus className="h-4 w-4" /> Cadastrar primeira nota
               </Button>
             </Card>
