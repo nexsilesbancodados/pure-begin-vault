@@ -44,6 +44,12 @@ type ParsedRow = {
   status: string;
   notes: string;
   created_at: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  product_name?: string;
+  product_quantity?: number;
+  product_price?: number;
   _raw: Record<string, any>;
   _valid: boolean;
   _error?: string;
