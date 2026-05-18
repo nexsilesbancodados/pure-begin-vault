@@ -18,14 +18,17 @@ export const saveTeamUserAccess = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const callerId = context.userId;
-    const selectedOrgIds = Array.from(new Set(data.organization_ids?.length ? data.organization_ids : [data.organization_id]));
+    const selectedOrgIds = Array.from(
+      new Set(data.organization_ids?.length ? data.organization_ids : [data.organization_id]),
+    );
     const primaryOrgId = selectedOrgIds[0];
 
     const [{ data: superRow }, { data: callerProfile }] = await Promise.all([
       supabaseAdmin.from("super_admins").select("user_id").eq("user_id", callerId).maybeSingle(),
       supabaseAdmin.from("profiles").select("role").eq("id", callerId).maybeSingle(),
     ]);
-    const isSuperAdmin = !!superRow || String(callerProfile?.role ?? "").toLowerCase() === "super_admin";
+    const isSuperAdmin =
+      !!superRow || String(callerProfile?.role ?? "").toLowerCase() === "super_admin";
 
     let manageableOrgIds = selectedOrgIds;
     if (!isSuperAdmin) {
@@ -50,7 +53,10 @@ export const saveTeamUserAccess = createServerFn({ method: "POST" })
     let targetUserId: string | null = null;
 
     for (let page = 1; page <= 10 && !targetUserId; page += 1) {
-      const { data: usersPage, error: listError } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 1000 });
+      const { data: usersPage, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage: 1000,
+      });
       if (listError) throw new Error(listError.message);
       targetUserId = usersPage.users.find((u) => u.email?.toLowerCase() === email)?.id ?? null;
       if (usersPage.users.length < 1000) break;
@@ -67,7 +73,10 @@ export const saveTeamUserAccess = createServerFn({ method: "POST" })
       if (createError) throw new Error(createError.message);
       targetUserId = created.user.id;
     } else if (password) {
-      const { error: updatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, { password });
+      const { error: updatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(
+        targetUserId,
+        { password },
+      );
       if (updatePasswordError) throw new Error(updatePasswordError.message);
     }
 
@@ -103,7 +112,9 @@ export const saveTeamUserAccess = createServerFn({ method: "POST" })
       .eq("user_id", targetUserId)
       .in("organization_id", manageableOrgIds);
     const selected = new Set(selectedOrgIds);
-    const toRemove = ((currentAccess as { organization_id: string }[]) ?? []).filter((row) => !selected.has(row.organization_id));
+    const toRemove = ((currentAccess as { organization_id: string }[]) ?? []).filter(
+      (row) => !selected.has(row.organization_id),
+    );
     for (const row of toRemove) {
       await supabaseAdmin
         .from("user_organizations")
