@@ -193,8 +193,12 @@ export function InviteFlow() {
 
       <UserRegistrationModal
         open={userModalOpen}
-        onOpenChange={setUserModalOpen}
+        onOpenChange={(o) => {
+          setUserModalOpen(o);
+          if (!o) setEditing(null);
+        }}
         onCreated={load}
+        initial={editing}
       />
 
       {/* Convite rápido */}
