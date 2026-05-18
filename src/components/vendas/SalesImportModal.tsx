@@ -477,7 +477,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                 </div>
                 <div>
                   <DialogTitle className="text-2xl font-black text-white">
-                    Importar Vendas
+                    Importar {KIND_META[kind].label}
                   </DialogTitle>
                   <DialogDescription className="text-white/80 text-xs mt-0.5">
                     Migre seu histórico em minutos · CSV ou Excel
