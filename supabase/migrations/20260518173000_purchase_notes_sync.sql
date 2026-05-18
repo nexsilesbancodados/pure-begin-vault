@@ -23,20 +23,20 @@ alter table public.purchase_notes enable row level security;
 
 create policy "purchase_notes org select"
   on public.purchase_notes for select
-  using (public.is_org_member(auth.uid(), organization_id));
+  using (public.is_org_member(auth.uid(), organization_id) or public.is_super_admin());
 
 create policy "purchase_notes org insert"
   on public.purchase_notes for insert
-  with check (public.is_org_member(auth.uid(), organization_id));
+  with check (public.is_org_member(auth.uid(), organization_id) or public.is_super_admin());
 
 create policy "purchase_notes org update"
   on public.purchase_notes for update
-  using (public.is_org_member(auth.uid(), organization_id))
-  with check (public.is_org_member(auth.uid(), organization_id));
+  using (public.is_org_member(auth.uid(), organization_id) or public.is_super_admin())
+  with check (public.is_org_member(auth.uid(), organization_id) or public.is_super_admin());
 
 create policy "purchase_notes org delete"
   on public.purchase_notes for delete
-  using (public.is_org_member(auth.uid(), organization_id));
+  using (public.is_org_member(auth.uid(), organization_id) or public.is_super_admin());
 
 create trigger update_purchase_notes_updated_at
   before update on public.purchase_notes
