@@ -1007,10 +1007,12 @@ ul{font-size:12px;line-height:1.6;}
 
       {/* Modal do Recibo */}
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
-        <DialogContent className="max-w-[940px] max-h-[92vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60">
+        <DialogContent className={`${receiptMode === "80mm" ? "max-w-[420px]" : "max-w-[940px]"} max-h-[92vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60`}>
           <div className="print:hidden flex items-center justify-between gap-3 px-5 py-4 border-b border-border/60 bg-muted/30">
             <div>
-              <DialogTitle className="text-lg font-black tracking-tight">Recibo da venda</DialogTitle>
+              <DialogTitle className="text-lg font-black tracking-tight">
+                {receiptMode === "80mm" ? "Cupom 80mm" : "Recibo da venda"}
+              </DialogTitle>
               <DialogDescription>Confira o recibo antes de imprimir.</DialogDescription>
             </div>
             <Button
@@ -1036,7 +1038,7 @@ ul{font-size:12px;line-height:1.6;}
                 </Button>
               </div>
             ) : receiptData ? (
-              <ReceiptPreview data={receiptData} />
+              receiptMode === "80mm" ? <Receipt80mm data={receiptData} /> : <ReceiptPreview data={receiptData} />
             ) : null}
           </div>
         </DialogContent>
