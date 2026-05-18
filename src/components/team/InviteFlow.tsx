@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Check, UserPlus, Mail, Trash2, Clock, CheckCircle2, UserCog, Users, ShieldCheck, Sparkles, Search } from "lucide-react";
+import { Copy, Check, UserPlus, Mail, Trash2, Clock, CheckCircle2, UserCog, Users, ShieldCheck, Sparkles, Search, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { useAuth } from "@/contexts/AuthContext";
@@ -78,6 +78,37 @@ export function InviteFlow() {
     load();
   }, [orgId]);
 
+  const buildInviteUrl = (token: string) =>
+    `${window.location.origin}/convite-loja/${token}`;
+
+  const sendInviteEmail = async (toEmail: string, token: string) => {
+    const inviterEmail = user?.email || "Sua equipe";
+    const inviteUrl = buildInviteUrl(token);
+    const html = `
+<!DOCTYPE html><html><body style="font-family:sans-serif;line-height:1.6;color:#333;background:#f7fafc;padding:24px;">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:14px;padding:32px;border:1px solid #e5e7eb;">
+    <h2 style="color:#1e40af;margin:0 0 12px;">Você foi convidado!</h2>
+    <p>Olá! <strong>${inviterEmail}</strong> convidou você para se juntar à equipe no <strong>ConectaCRM</strong>.</p>
+    <p>Clique no botão abaixo para aceitar o convite:</p>
+    <p style="text-align:center;margin:28px 0;">
+      <a href="${inviteUrl}" style="background:#2563eb;color:#fff;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:bold;display:inline-block;">Aceitar convite</a>
+    </p>
+    <p style="font-size:12px;color:#666;">Ou copie e cole no navegador:<br/><span style="word-break:break-all;">${inviteUrl}</span></p>
+    <p style="font-size:12px;color:#999;margin-top:24px;">Este link expira em 7 dias.</p>
+  </div>
+</body></html>`;
+    const { data, error } = await (supabase as any).functions.invoke("send-email", {
+      body: {
+        to: toEmail,
+        subject: `${inviterEmail} convidou você para o ConectaCRM`,
+        html,
+      },
+    });
+    if (error || data?.error) {
+      throw new Error(data?.error || error?.message || "Falha ao enviar email");
+    }
+  };
+
   const createInvite = async () => {
     if (!orgId || !userId) return;
     setSaving(true);
@@ -91,17 +122,28 @@ export function InviteFlow() {
       })
       .select()
       .single();
-    setSaving(false);
     if (error) {
+      setSaving(false);
       toast.error("Erro: " + error.message);
       return;
     }
 
-    const url = `${window.location.origin}/aceitar-convite/${data.token}`;
+    const url = buildInviteUrl(data.token);
     await navigator.clipboard.writeText(url);
     setCopiedToken(data.token);
     setTimeout(() => setCopiedToken(null), 3000);
-    toast.success("Convite criado! Link copiado.");
+
+    if (email.trim()) {
+      try {
+        await sendInviteEmail(email.trim(), data.token);
+        toast.success("Convite criado e enviado por email!");
+      } catch (e: any) {
+        toast.warning("Convite criado, link copiado. Email não enviado: " + e.message);
+      }
+    } else {
+      toast.success("Convite criado! Link copiado.");
+    }
+    setSaving(false);
     setEmail("");
     load();
   };
@@ -132,11 +174,23 @@ export function InviteFlow() {
   };
 
   const copyLink = (token: string) => {
-    const url = `${window.location.origin}/aceitar-convite/${token}`;
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(buildInviteUrl(token));
     setCopiedToken(token);
     setTimeout(() => setCopiedToken(null), 3000);
     toast.success("Link copiado");
+  };
+
+  const resendEmail = async (invite: Invite) => {
+    if (!invite.email) {
+      toast.error("Este convite não tem email cadastrado");
+      return;
+    }
+    try {
+      await sendInviteEmail(invite.email, invite.token);
+      toast.success("Email reenviado para " + invite.email);
+    } catch (e: any) {
+      toast.error("Falha ao enviar: " + e.message);
+    }
   };
 
   const pendingCount = invites.filter((i) => i.status === "pending").length;
@@ -334,6 +388,20 @@ export function InviteFlow() {
                           <><Copy className="h-3 w-3 mr-1" /> Copiar link</>
                         )}
                       </Button>
+                      {i.email && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            resendEmail(i);
+                          }}
+                          className="gap-1"
+                          title={`Enviar email para ${i.email}`}
+                        >
+                          <Send className="h-3 w-3" /> Enviar
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
