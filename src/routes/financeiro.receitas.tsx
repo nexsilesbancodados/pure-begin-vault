@@ -599,11 +599,12 @@ function ReceitasPage() {
           </div>
         </main>
 
-        <TransactionForm
+        <ExpenseForm
           open={isFormOpen}
           onOpenChange={setIsFormOpen}
           onSave={handleSave}
-          transaction={editing}
+          expense={editing}
+          variant="income"
         />
       </div>
     </div>
