@@ -9,12 +9,15 @@ import {
   DollarSign,
   Wallet,
   TrendingUp,
+  TrendingDown,
   Banknote,
   Users,
   CreditCard,
   ListTree,
   FileWarning,
   Plus,
+  ArrowDownCircle,
+  ArrowUpCircle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/financeiro")({
@@ -22,6 +25,20 @@ export const Route = createFileRoute("/financeiro")({
 });
 
 const modules: { title: string; desc: string; url: string; icon: any; tone: FeatureCardTone }[] = [
+  {
+    title: "Despesas",
+    desc: "Contas a pagar e saídas",
+    url: "/financeiro/despesas",
+    icon: ArrowDownCircle,
+    tone: "destructive",
+  },
+  {
+    title: "Receitas",
+    desc: "Contas a receber e entradas",
+    url: "/financeiro/receitas",
+    icon: ArrowUpCircle,
+    tone: "success",
+  },
   {
     title: "Fluxo de Caixa",
     desc: "Entradas e saídas no tempo",
