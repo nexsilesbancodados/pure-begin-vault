@@ -62,7 +62,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    let { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+
+    // Auto-ativa primeira loja se profile.organization_id está nulo
+    // (caso comum: usuário recém-cadastrado por convite via create-team-user)
+    if (data && !data.organization_id) {
+      const { data: uo } = await (supabase as any)
+        .from("user_organizations")
+        .select("organization_id, is_default")
+        .eq("user_id", userId)
+        .order("is_default", { ascending: false });
+      const firstOrg = (uo as any[])?.[0]?.organization_id;
+      if (firstOrg) {
+        const { error: swErr } = await (supabase as any).rpc("switch_organization", {
+          _org_id: firstOrg,
+        });
+        if (!swErr) {
+          const refetch = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .maybeSingle();
+          if (refetch.data) data = refetch.data;
+        }
+      }
+    }
+
     if (data) {
       setProfile(data);
       // Atribuir permissões baseadas no cargo
