@@ -211,7 +211,11 @@ function NotasAbertoPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {notas.map((n) => (
-                <Card key={n.id} className="p-4 space-y-3">
+                <Card
+                  key={n.id}
+                  className="p-4 space-y-3 cursor-pointer hover:border-primary/50 transition"
+                  onClick={() => setDetailId(n.id)}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-primary" />
