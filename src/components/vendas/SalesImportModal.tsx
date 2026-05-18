@@ -393,7 +393,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
 
     // Enfileira no servidor — processa em background mesmo se fechar o navegador
     const jobId = await startImport(
-      file?.name || "Importação",
+      `[${KIND_META[kind].label}] ${file?.name || "Importação"}`,
       validRows.map((r) => ({
         total_amount: r.total_amount,
         payment_method: r.payment_method,
