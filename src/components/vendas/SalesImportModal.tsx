@@ -372,7 +372,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     }
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!user?.id || rows.length === 0) return;
     const validRows = rows.filter((r) => r._valid);
     if (validRows.length === 0) {
