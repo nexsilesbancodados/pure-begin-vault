@@ -46,8 +46,10 @@ interface Product {
   sku?: string | null;
   imei?: string | null;
   price?: number | null;
+  cost_price?: number | null;
   stock_quantity?: number | null;
   metadata?: unknown;
+  [key: string]: unknown;
 }
 
 const getImeiFromMetadata = (metadata: unknown) => {
