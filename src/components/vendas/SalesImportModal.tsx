@@ -380,8 +380,8 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
       return;
     }
 
-    // Dispara o job no contexto global — roda em background, modal pode fechar
-    startImport(
+    // Enfileira no servidor — processa em background mesmo se fechar o navegador
+    const jobId = await startImport(
       file?.name || "Importação",
       validRows.map((r) => ({
         total_amount: r.total_amount,
@@ -398,9 +398,10 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         product_price: r.product_price,
       })),
     );
+    if (!jobId) return;
 
     toast.success(
-      `${validRows.length} vendas em processamento — acompanhe em "Importações" no menu`,
+      `${validRows.length} vendas na fila — acompanhe em "Importações" no menu`,
       { duration: 5000 },
     );
     onImportSuccess?.();
