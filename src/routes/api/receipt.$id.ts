@@ -25,7 +25,7 @@ async function fetchReceipt(id: string) {
   const { data: sale, error } = await query.maybeSingle();
   if (error || !sale) return { error: "not_found", status: 404 };
 
-  const [{ data: items }, { data: payments }, { data: org }, { data: customer }] =
+  const [{ data: items }, { data: payments }, { data: org }, { data: orgSettings }, { data: customer }, { data: seller }] =
     await Promise.all([
       (supabaseAdmin as any).from("sale_items").select("*").eq("sale_id", sale.id),
       (supabaseAdmin as any).from("sale_payments").select("*").eq("sale_id", sale.id),
@@ -34,6 +34,11 @@ async function fetchReceipt(id: string) {
         .select("name")
         .eq("id", sale.organization_id)
         .maybeSingle(),
+      (supabaseAdmin as any)
+        .from("organization_settings")
+        .select("*")
+        .eq("organization_id", sale.organization_id)
+        .maybeSingle(),
       sale.customer_id
         ? (supabaseAdmin as any)
             .from("customers")
@@ -41,14 +46,29 @@ async function fetchReceipt(id: string) {
             .eq("id", sale.customer_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
+      sale.seller_id
+        ? (supabaseAdmin as any)
+            .from("profiles")
+            .select("full_name, email")
+            .eq("id", sale.seller_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
 
+  const s: any = orgSettings ?? {};
   return {
     status: 200,
     sale: { ...sale, organization_id: undefined },
     items: items ?? [],
     payments: payments ?? [],
     org_name: org?.name ?? "Loja",
+    org: {
+      address: s.address ?? s.endereco ?? null,
+      cnpj: s.cnpj ?? s.document ?? null,
+      phone: s.phone ?? s.telefone ?? null,
+      website: s.website ?? null,
+    },
+    seller: seller ? { name: seller.full_name || seller.email } : null,
     customer: customer ?? null,
   };
 }
