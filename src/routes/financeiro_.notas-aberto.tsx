@@ -39,15 +39,23 @@ export const Route = createFileRoute("/financeiro_/notas-aberto")({
 interface Product {
   id: string;
   name: string;
+  organization_id?: string | null;
   sku?: string | null;
   imei?: string | null;
   price?: number | null;
   stock_quantity?: number | null;
-  metadata?: any;
+  metadata?: unknown;
 }
 
+const getImeiFromMetadata = (metadata: unknown) => {
+  if (!metadata || typeof metadata !== "object") return null;
+  const value =
+    (metadata as Record<string, unknown>).imei ?? (metadata as Record<string, unknown>).imei2;
+  return value ? String(value) : null;
+};
+
 function NotasAbertoPage() {
-  const { orgId } = useOrg();
+  const { orgId, userId } = useOrg();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -55,19 +63,46 @@ function NotasAbertoPage() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
   const loadProducts = async () => {
-    if (!orgId) return;
+    if (!userId) return;
     setLoading(true);
-    const { data, error } = await (supabase as any)
+
+    let query = supabase
       .from("products")
-      .select("id, name, sku, price, stock_quantity, metadata")
-      .eq("organization_id", orgId)
+      .select("id, name, organization_id, sku, price, stock_quantity, metadata")
       .eq("active", true)
       .order("name")
       .limit(500);
+
+    if (orgId) query = query.eq("organization_id", orgId);
+
+    let { data, error } = await query;
+
+    if (!error && orgId && (data ?? []).length === 0) {
+      const { data: memberships } = await supabase
+        .from("user_organizations")
+        .select("organization_id")
+        .eq("user_id", userId);
+      const orgIds = (memberships ?? [])
+        .map((item) => item.organization_id)
+        .filter((id): id is string => Boolean(id));
+
+      if (orgIds.length > 0) {
+        const fallback = await supabase
+          .from("products")
+          .select("id, name, organization_id, sku, price, stock_quantity, metadata")
+          .in("organization_id", orgIds)
+          .eq("active", true)
+          .order("name")
+          .limit(500);
+        data = fallback.data;
+        error = fallback.error;
+      }
+    }
+
     if (error) toast.error("Erro ao carregar produtos: " + error.message);
-    const mapped: Product[] = (data ?? []).map((p: any) => ({
+    const mapped: Product[] = ((data ?? []) as Product[]).map((p) => ({
       ...p,
-      imei: p?.metadata?.imei ?? null,
+      imei: getImeiFromMetadata(p.metadata),
     }));
     setProducts(mapped);
     setLoading(false);
@@ -170,17 +205,13 @@ function NotasAbertoPage() {
                     <TableRow
                       key={p.id}
                       className="cursor-pointer"
-                      onClick={() =>
-                        setSelected((prev) => ({ ...prev, [p.id]: !prev[p.id] }))
-                      }
+                      onClick={() => setSelected((prev) => ({ ...prev, [p.id]: !prev[p.id] }))}
                     >
                       <TableCell>
                         <input
                           type="checkbox"
                           checked={!!selected[p.id]}
-                          onChange={() =>
-                            setSelected((prev) => ({ ...prev, [p.id]: !prev[p.id] }))
-                          }
+                          onChange={() => setSelected((prev) => ({ ...prev, [p.id]: !prev[p.id] }))}
                           onClick={(e) => e.stopPropagation()}
                         />
                       </TableCell>
@@ -188,9 +219,7 @@ function NotasAbertoPage() {
                       <TableCell className="text-muted-foreground">{p.sku ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{p.imei ?? "—"}</TableCell>
                       <TableCell className="text-right">
-                        {p.price != null
-                          ? `R$ ${Number(p.price).toFixed(2)}`
-                          : "—"}
+                        {p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : "—"}
                       </TableCell>
                       <TableCell className="text-right">{p.stock_quantity ?? 0}</TableCell>
                     </TableRow>
