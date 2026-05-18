@@ -49,7 +49,9 @@ export function useUserOrgs() {
       organization_id: row.organization_id,
       role: row.role,
       is_default: row.is_default,
-      organization: Array.isArray(row.organization) ? (row.organization[0] ?? null) : row.organization,
+      organization: Array.isArray(row.organization)
+        ? (row.organization[0] ?? null)
+        : row.organization,
     }));
 
     // Super admin: pode ver e gerenciar TODAS as lojas, mesmo as que não é membro
