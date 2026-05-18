@@ -311,7 +311,7 @@ export function SalesHistory() {
       todayTotal: todaySales.reduce((acc, curr) => acc + (curr.total_amount || 0), 0),
       todayCount: todaySales.length,
       avgTicket: sales.length > 0 ? totalRevenue / sales.length : 0,
-      canceledCount: sales.filter((s) => s.status === "canceled").length,
+      canceledCount: sales.filter((s) => ["canceled", "cancelled"].includes(s.status)).length,
       totalCount: sales.length,
       totalRevenue,
     };
