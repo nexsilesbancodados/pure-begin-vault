@@ -121,7 +121,65 @@ export function PDVInterface() {
   const updateCustomerField = <K extends keyof typeof customerForm>(
     k: K,
     v: (typeof customerForm)[K],
+  const updateCustomerField = <K extends keyof typeof customerForm>(
+    k: K,
+    v: (typeof customerForm)[K],
   ) => setCustomerForm((p) => ({ ...p, [k]: v }));
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [isLookingUpCep, setIsLookingUpCep] = useState(false);
+
+  const lookupCep = async (rawCep: string) => {
+    const cep = rawCep.replace(/\D/g, "");
+    if (cep.length !== 8) return;
+    setIsLookingUpCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (data?.erro) {
+        toast.error("CEP não encontrado.");
+        return;
+      }
+      setCustomerForm((p) => ({
+        ...p,
+        rua: data.logradouro || p.rua,
+        bairro: data.bairro || p.bairro,
+        cidade: data.localidade || p.cidade,
+        estado: data.uf || p.estado,
+        complemento: data.complemento || p.complemento,
+      }));
+      toast.success("Endereço preenchido automaticamente.");
+    } catch {
+      toast.error("Falha ao consultar CEP.");
+    } finally {
+      setIsLookingUpCep(false);
+    }
+  };
+
+  const resetCustomerForm = () =>
+    setCustomerForm({
+      categoria: "cliente",
+      tipo_pessoa: "fisica",
+      cpf_cnpj: "",
+      nome: "",
+      data_nascimento: "",
+      profissao: "",
+      genero: "",
+      origem: "",
+      telefone: "",
+      telefone_alt: "",
+      telefone_extra: "",
+      email: "",
+      instagram: "",
+      cep: "",
+      rua: "",
+      numero: "",
+      bairro: "",
+      cidade: "",
+      estado: "",
+      complemento: "",
+      observacoes: "",
+      tags: "",
+    });
   const [newProductName, setNewProductName] = useState("");
   const [newProductPrice, setNewProductPrice] = useState("");
   const [newProductCategory, setNewProductCategory] = useState("Geral");
