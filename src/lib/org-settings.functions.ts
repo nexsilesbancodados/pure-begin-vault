@@ -15,7 +15,7 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => SaveSchema.parse(input))
   .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+    const { userId } = context;
     const admin = supabaseAdmin;
 
     // Verifica permissão: super_admin OU owner/admin da org
