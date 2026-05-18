@@ -269,9 +269,10 @@ ul{font-size:12px;line-height:1.6;}
     w.document.close();
   }, []);
 
-  const openReceiptPopup = useCallback(async (sale: any, autoPrint = false) => {
+  const openReceiptPopup = useCallback(async (sale: any, mode: "a4" | "80mm" = "a4", autoPrint = false) => {
     setIsDetailsOpen(false);
     setSelectedSale(null);
+    setReceiptMode(mode);
     setIsReceiptOpen(true);
     setReceiptLoading(true);
     setReceiptError(null);
