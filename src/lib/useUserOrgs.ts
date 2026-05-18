@@ -17,6 +17,7 @@ export function useUserOrgs() {
   const { user, profile } = useAuth();
   const [orgs, setOrgs] = useState<UserOrg[]>([]);
   const [loading, setLoading] = useState(true);
+  const fetchLogos = useServerFn(getOrgLogos);
   const profileOrgId = (profile as any)?.organization_id ?? null;
   // Fallback: se profile.organization_id está vazio ou aponta pra uma org que o user
   // já não pertence, usa a primeira org de user_organizations como ativa.
