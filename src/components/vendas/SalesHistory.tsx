@@ -1203,7 +1203,12 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
         <DialogContent className="sm:max-w-[560px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card">
           {selectedSale &&
             (() => {
-              const status = selectedSale.status as string;
+              const rawStatus = selectedSale.status as string;
+              const status = ["completed", "concluded", "paid"].includes(rawStatus)
+                ? "concluded"
+                : ["pending", "open"].includes(rawStatus)
+                  ? "pending"
+                  : "cancelled";
               const statusMap: Record<string, { label: string; cls: string; dot: string }> = {
                 concluded: {
                   label: "CONCLUÍDA",
