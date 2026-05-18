@@ -122,42 +122,52 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated }: Props) 
     if (!orgId || !userId) return toast.error("Loja não identificada");
 
     setSaving(true);
-    const meta = {
-      nome,
-      ativo: ativo === "Sim",
-      perfis,
-      custom_perfis: customPerfis,
-      perfil_rapido: quickProfile,
-      tela_inicial: telaInicial,
-      lojas,
-    };
-    const { data, error } = await (supabase as any)
-      .from("organization_invites")
-      .insert({
-        organization_id: orgId,
-        invited_by: userId,
-        email: email.trim(),
-        role: quickProfile === "Administrador" ? "admin" : "employee",
-        metadata: meta,
-      })
-      .select()
-      .single();
-    setSaving(false);
-    if (error) {
-      toast.error("Erro ao salvar: " + error.message);
-      return;
-    }
-
-    const url = `${window.location.origin}/aceitar-convite/${data.token}`;
     try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Usuário cadastrado! Link de convite copiado.");
-    } catch {
-      toast.success("Usuário cadastrado!");
+      const { data, error } = await (supabase as any)
+        .from("organization_invites")
+        .insert({
+          organization_id: orgId,
+          invited_by: userId,
+          email: email.trim(),
+          role: quickProfile === "Administrador" ? "admin" : "employee",
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Persist extended metadata locally (no DB column required)
+      try {
+        const key = `invite_meta_${orgId}`;
+        const existing = JSON.parse(localStorage.getItem(key) || "{}");
+        existing[data.id] = {
+          nome,
+          ativo: ativo === "Sim",
+          perfis,
+          custom_perfis: customPerfis,
+          perfil_rapido: quickProfile,
+          tela_inicial: telaInicial,
+          lojas,
+        };
+        localStorage.setItem(key, JSON.stringify(existing));
+      } catch {}
+
+      const url = `${window.location.origin}/aceitar-convite/${data.token}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Usuário cadastrado! Link de convite copiado.");
+      } catch {
+        toast.success("Usuário cadastrado!");
+      }
+
+      onCreated?.();
+      onOpenChange(false);
+      limpar();
+    } catch (e: any) {
+      toast.error("Erro ao salvar: " + (e?.message || "desconhecido"));
+    } finally {
+      setSaving(false);
     }
-    onCreated?.();
-    onOpenChange(false);
-    limpar();
   };
 
   return (
