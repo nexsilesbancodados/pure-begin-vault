@@ -526,34 +526,36 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         }
       }
 
-      // 3) VENDAS — lotes paralelos, preservando ordem para linkar sale_items depois
+      // 3) VENDAS — uma a uma, com progresso em tempo real (com paralelismo leve)
+      // Mantém ordem e atualiza o contador "Importando X/Y" a cada venda inserida.
       const insertedSales: { id: string; row: ParsedRow }[] = new Array(validRows.length);
-      const saleChunks: { offset: number; slice: ParsedRow[] }[] = [];
-      for (let i = 0; i < validRows.length; i += BATCH)
-        saleChunks.push({ offset: i, slice: validRows.slice(i, i + BATCH) });
-
-      await runWithConcurrency(
-        saleChunks.map(({ offset, slice }) => async () => {
-          const batch = slice.map((r) => ({
+      const SALE_CONCURRENCY = 6; // dispara 6 inserts simultâneos, contador sobe um por um
+      const queue = validRows.map((r, idx) => ({ r, idx }));
+      let cursor = 0;
+      const workers = Array.from({ length: Math.min(SALE_CONCURRENCY, queue.length) }, async () => {
+        while (cursor < queue.length) {
+          const my = cursor++;
+          const { r, idx } = queue[my];
+          const payload = {
             user_id: user.id, organization_id: orgId,
             total_amount: r.total_amount, subtotal: r.total_amount,
             payment_method: r.payment_method, status: r.status,
             notes: r.notes, channel: "import",
             customer_id: resolveCustomerId(r),
             created_at: r.created_at,
-          }));
-          const { data: createdSales, error } = await supabase
-            .from("sales_orders").insert(batch).select("id");
-          if (error) throw error;
-          (createdSales || []).forEach((s: any, idx: number) => {
-            insertedSales[offset + idx] = { id: s.id, row: slice[idx] };
-            counters.sales++;
-          });
+          };
+          const { data: created, error } = await supabase
+            .from("sales_orders").insert(payload).select("id").single();
+          if (error) continue; // mantém o que deu certo; erro vai pro toast no final
+          insertedSales[idx] = { id: (created as any).id, row: r };
+          counters.sales++;
+          // atualiza UI imediatamente — venda por venda
           setImported(counters.sales);
           setProgress(Math.round((counters.sales / validRows.length) * 85));
-        }),
-        CONCURRENCY,
-      );
+        }
+      });
+      await Promise.all(workers);
+
 
       const successful = insertedSales.filter(Boolean);
 
