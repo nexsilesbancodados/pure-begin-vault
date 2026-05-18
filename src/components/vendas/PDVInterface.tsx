@@ -186,6 +186,7 @@ export function PDVInterface() {
   const [moneyAmount, setMoneyAmount] = useState<string>("");
   const [cardAmount, setCardAmount] = useState<string>("");
   const [pixAmount, setPixAmount] = useState<string>("");
+  const [prazoAmount, setPrazoAmount] = useState<string>("");
   const [barcode, setBarcode] = useState("");
   const [vendedorId, setVendedorId] = useState<string>("");
   const [obs, setObs] = useState("");
