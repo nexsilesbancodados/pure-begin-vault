@@ -677,44 +677,93 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                 <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
                   <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                    Prévia (primeiras 8)
+                    Prévia
+                  </span>
+                  <span className="ml-auto text-[10px] font-bold text-muted-foreground">
+                    Mostrando {Math.min(8, rows.length)} de {rows.length}
                   </span>
                 </div>
-                <div className="max-h-[240px] overflow-y-auto">
+                <div className="max-h-[260px] overflow-y-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-muted/30 sticky top-0">
-                      <tr>
-                        <th className="text-left p-2.5 font-black w-8"></th>
-                        <th className="text-left p-2.5 font-black">Data</th>
-                        <th className="text-left p-2.5 font-black">Pagamento</th>
-                        <th className="text-right p-2.5 font-black">Valor</th>
+                    <thead className="bg-gradient-to-r from-muted/60 to-muted/30 sticky top-0 backdrop-blur z-10">
+                      <tr className="border-b border-border">
+                        <th className="text-left p-2.5 font-black w-10 text-[10px] uppercase tracking-wider text-muted-foreground">#</th>
+                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Status</th>
+                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
+                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
+                        <th className="text-right p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.slice(0, 8).map((r, i) => (
-                        <tr key={i} className="border-t border-border hover:bg-muted/20">
-                          <td className="p-2.5">
-                            {r._valid ? (
-                              <CheckCircle2 className="h-3.5 w-3.5 text-success" />
-                            ) : (
-                              <AlertCircle className="h-3.5 w-3.5 text-destructive" />
-                            )}
-                          </td>
-                          <td className="p-2.5">
-                            {new Date(r.created_at).toLocaleDateString("pt-BR")}
-                          </td>
-                          <td className="p-2.5">{r.payment_method}</td>
-                          <td className="p-2.5 text-right font-bold">
-                            {r._valid ? brl(r.total_amount) : "—"}
-                          </td>
-                        </tr>
-                      ))}
+                      {rows.slice(0, 8).map((r, i) => {
+                        const dt = r.created_at ? new Date(r.created_at) : null;
+                        const dateOk = dt && !isNaN(dt.getTime());
+                        const pm = (r.payment_method || "").toString();
+                        const pmColor = /pix/i.test(pm)
+                          ? "bg-success/10 text-success border-success/20"
+                          : /cart/i.test(pm)
+                          ? "bg-primary/10 text-primary border-primary/20"
+                          : /dinheiro|cash/i.test(pm)
+                          ? "bg-warning/10 text-warning border-warning/20"
+                          : /prazo|boleto/i.test(pm)
+                          ? "bg-info/10 text-info border-info/20"
+                          : "bg-muted text-muted-foreground border-border";
+                        return (
+                          <tr
+                            key={i}
+                            className={`border-t border-border/60 transition-colors ${
+                              r._valid
+                                ? "hover:bg-primary/5"
+                                : "bg-destructive/5 hover:bg-destructive/10"
+                            }`}
+                          >
+                            <td className="p-2.5 text-[10px] font-mono text-muted-foreground">
+                              {String(i + 1).padStart(2, "0")}
+                            </td>
+                            <td className="p-2.5">
+                              {r._valid ? (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-success/10 text-success border border-success/20 text-[10px] font-black">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  OK
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-destructive/10 text-destructive border border-destructive/20 text-[10px] font-black"
+                                  title={r._error}
+                                >
+                                  <AlertCircle className="h-3 w-3" />
+                                  ERRO
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-2.5 font-mono text-[11px]">
+                              {dateOk ? dt!.toLocaleDateString("pt-BR") : <span className="text-muted-foreground">—</span>}
+                            </td>
+                            <td className="p-2.5">
+                              {pm ? (
+                                <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-bold ${pmColor}`}>
+                                  {pm}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-right font-black tabular-nums">
+                              {r._valid ? (
+                                <span className="text-foreground">{brl(r.total_amount)}</span>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                   {rows.length > 8 && (
-                    <p className="p-2 text-center text-[11px] text-muted-foreground border-t border-border">
-                      + {rows.length - 8} linhas adicionais
-                    </p>
+                    <div className="p-2.5 text-center text-[11px] text-muted-foreground border-t border-border bg-muted/20 font-bold">
+                      + {rows.length - 8} linhas adicionais serão importadas
+                    </div>
                   )}
                 </div>
               </div>
