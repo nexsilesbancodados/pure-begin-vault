@@ -62,6 +62,32 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+type ReceiptData = {
+  sale: any;
+  items: any[];
+  payments: any[];
+  org_name: string;
+  org: { address?: string | null; cnpj?: string | null; phone?: string | null; website?: string | null };
+  seller?: { name?: string | null } | null;
+  customer?: any | null;
+};
+
+const METHOD_LABEL: Record<string, string> = {
+  cash: "Dinheiro",
+  money: "Dinheiro",
+  pix: "PIX",
+  card: "Cartão",
+  credit: "Cartão crédito",
+  debit: "Cartão débito",
+  installment: "Parcelado",
+  transfer: "Transferência",
+};
+
+const formatCurrency = (value: number) =>
+  `R$ ${Number(value || 0)
+    .toFixed(2)
+    .replace(".", ",")}`;
+
 export function SalesHistory() {
   const { user } = useAuth();
   const { orgId } = useOrg();
@@ -72,6 +98,10 @@ export function SalesHistory() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedSale, setSelectedSale] = useState<any | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
 
   const fetchSales = useCallback(async () => {
     if (!user?.id || !orgId) return;
@@ -236,6 +266,69 @@ ul{font-size:12px;line-height:1.6;}
     w.document.open();
     w.document.write(html);
     w.document.close();
+  }, []);
+
+  const openReceiptPopup = useCallback(async (sale: any, autoPrint = false) => {
+    setIsDetailsOpen(false);
+    setIsReceiptOpen(true);
+    setReceiptLoading(true);
+    setReceiptError(null);
+    setReceiptData(null);
+
+    try {
+      const [saleRes, itemsRes, paymentsRes] = await Promise.all([
+        (supabase as any)
+          .from("sales_orders")
+          .select("*")
+          .eq("id", sale.id)
+          .maybeSingle(),
+        (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id),
+        (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id),
+      ]);
+
+      if (saleRes.error) throw saleRes.error;
+      const fullSale = saleRes.data || sale;
+      if (!fullSale) throw new Error("Venda não encontrada");
+
+      const [{ data: org }, { data: orgSettings }, { data: customer }, { data: seller }] =
+        await Promise.all([
+          fullSale.organization_id
+            ? (supabase as any).from("organizations").select("name").eq("id", fullSale.organization_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+          fullSale.organization_id
+            ? (supabase as any).from("organization_settings").select("*").eq("organization_id", fullSale.organization_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+          fullSale.customer_id
+            ? (supabase as any).from("customers").select("*").eq("id", fullSale.customer_id).maybeSingle()
+            : Promise.resolve({ data: sale.customers || null }),
+          fullSale.seller_id
+            ? (supabase as any).from("profiles").select("full_name, email").eq("id", fullSale.seller_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+        ]);
+
+      const settings = orgSettings || {};
+      setReceiptData({
+        sale: fullSale,
+        items: itemsRes.data || [],
+        payments: paymentsRes.data || [],
+        org_name: org?.name || "Loja",
+        org: {
+          address: settings.address ?? settings.endereco ?? null,
+          cnpj: settings.cnpj ?? settings.document ?? null,
+          phone: settings.phone ?? settings.telefone ?? null,
+          website: settings.website ?? null,
+        },
+        seller: seller ? { name: seller.full_name || seller.email } : null,
+        customer: customer || sale.customers || null,
+      });
+
+      if (autoPrint) setTimeout(() => window.print(), 500);
+    } catch (error) {
+      console.error("Erro ao carregar recibo:", error);
+      setReceiptError("Não foi possível carregar o recibo desta venda.");
+    } finally {
+      setReceiptLoading(false);
+    }
   }, []);
 
   return (
@@ -573,13 +666,12 @@ ul{font-size:12px;line-height:1.6;}
                             {
                               icon: FileText,
                               label: "Recibo",
-                              onClick: () => window.open(`/recibo/${sale.id}`, "_blank"),
+                              onClick: () => openReceiptPopup(sale),
                             },
                             {
                               icon: Printer,
                               label: "Recibo 80mm",
-                              onClick: () =>
-                                window.open(`/recibo/${sale.id}?fmt=80&auto=1`, "_blank"),
+                              onClick: () => openReceiptPopup(sale, true),
                             },
                             {
                               icon: MessageSquare,
@@ -627,8 +719,7 @@ ul{font-size:12px;line-height:1.6;}
                             {
                               icon: Truck,
                               label: "Imprimir Delivery",
-                              onClick: () =>
-                                window.open(`/recibo/${sale.id}?tipo=delivery&auto=1`, "_blank"),
+                              onClick: () => openReceiptPopup(sale, true),
                             },
                             {
                               icon: PenLine,
@@ -851,17 +942,17 @@ ul{font-size:12px;line-height:1.6;}
                     </Button>
                     <Button
                       className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
-                      onClick={() => window.open(`/recibo/${selectedSale.id}`, "_blank")}
+                      onClick={() => openReceiptPopup(selectedSale)}
                     >
                       <Eye className="h-4 w-4" />
-                      Detalhes
+                      Recibo
                     </Button>
                     <Button
                       variant="outline"
                       className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
                       onClick={() => {
                         toast.info("Preparando cupom...");
-                        window.open(`/recibo/${selectedSale.id}?auto=1`, "_blank");
+                        openReceiptPopup(selectedSale, true);
                       }}
                     >
                       <Printer className="h-4 w-4" />
@@ -906,6 +997,227 @@ ul{font-size:12px;line-height:1.6;}
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Modal do Recibo */}
+      <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
+        <DialogContent className="max-w-[940px] max-h-[92vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60">
+          <div className="print:hidden flex items-center justify-between gap-3 px-5 py-4 border-b border-border/60 bg-muted/30">
+            <div>
+              <DialogTitle className="text-lg font-black tracking-tight">Recibo da venda</DialogTitle>
+              <DialogDescription>Confira o recibo antes de imprimir.</DialogDescription>
+            </div>
+            <Button
+              disabled={!receiptData || receiptLoading}
+              onClick={() => window.print()}
+              className="rounded-xl font-bold gap-2"
+            >
+              <Printer className="h-4 w-4" /> Imprimir
+            </Button>
+          </div>
+          <div className="max-h-[calc(92vh-73px)] overflow-auto bg-muted/40 p-4 print:max-h-none print:overflow-visible print:bg-white print:p-0">
+            {receiptLoading ? (
+              <div className="h-[420px] flex flex-col items-center justify-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm font-bold text-muted-foreground">Carregando recibo...</p>
+              </div>
+            ) : receiptError ? (
+              <div className="h-[420px] flex flex-col items-center justify-center gap-3 text-center">
+                <AlertCircle className="h-10 w-10 text-destructive" />
+                <p className="font-bold">{receiptError}</p>
+                <Button variant="outline" onClick={() => setIsReceiptOpen(false)}>
+                  Fechar
+                </Button>
+              </div>
+            ) : receiptData ? (
+              <ReceiptPreview data={receiptData} />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function ReceiptPreview({ data }: { data: ReceiptData }) {
+  const sale = data.sale || {};
+  const customer = data.customer || {};
+  const total = Number(sale.total_amount ?? 0);
+  const receiptId = sale.sale_number
+    ? `MP${String(sale.sale_number).padStart(10, "0")}`
+    : `MP${String(sale.id || "").slice(0, 8).toUpperCase()}`;
+  const saleDate = sale.created_at ? new Date(sale.created_at).toLocaleDateString("pt-BR") : "";
+  const sellerName = data.seller?.name || "—";
+  const customerDocument = customer.document ?? customer.cpf ?? customer.cnpj ?? "";
+  const customerAddress = customer.address ?? customer.endereco ?? "";
+  const customerZip = customer.zip ?? customer.cep ?? "";
+  const customerCity = customer.city ?? customer.cidade ?? "";
+  const customerState = customer.state ?? customer.estado ?? customer.uf ?? "";
+  const payments = data.payments.length
+    ? data.payments
+    : [{ method: sale.payment_method || "—", amount: total, installments: 1 }];
+
+  return (
+    <div className="receipt-print-area mx-auto w-full max-w-[820px] bg-white text-black border border-black/80 shadow-xl print:shadow-none print:border-black">
+      <div className="border-b border-black px-3 py-2">
+        <p className="text-[13px] font-bold uppercase">
+          RECIBO DE {data.org_name} OS PRODUTOS E/OU SERVIÇOS CONSTANTES NO PEDIDO
+        </p>
+      </div>
+
+      <table className="w-full border-collapse text-[12px]">
+        <tbody>
+          <tr>
+            <td className="border border-black px-2 py-1 w-[28%]">Data de recebimento</td>
+            <td className="border border-black px-2 py-1">Identificação e assinatura do recebedor</td>
+            <td className="border border-black px-2 py-1 w-[28%]">
+              Recibo da venda: <span className="font-bold">{receiptId}</span>
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-black px-2 py-6"></td>
+            <td className="border border-black px-2 py-6"></td>
+            <td className="border border-black px-2 py-6"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table className="w-full border-collapse text-[12px] border-t-0">
+        <tbody>
+          <tr>
+            <td className="border border-black px-3 py-2 text-center align-top w-[60%]">
+              <p className="font-bold">{data.org_name}</p>
+              {data.org?.cnpj && <p>CNPJ: {data.org.cnpj}</p>}
+              {data.org?.phone && <p>Telefone: {data.org.phone}</p>}
+            </td>
+            <td className="border border-black px-3 py-2 align-top">
+              <p><span className="font-bold">{saleDate}</span></p>
+              <p><span className="font-bold">VENDEDOR:</span> {sellerName}</p>
+              <p><span className="font-bold">RECIBO DA VENDA:</span> {receiptId}</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="px-3 pt-3 pb-1">
+        <p className="text-[12px] font-bold">DESTINATÁRIO/REMETENTE</p>
+      </div>
+      <table className="w-full border-collapse text-[12px]">
+        <thead>
+          <tr className="bg-neutral-50">
+            <th className="border border-black px-2 py-1 text-center font-bold">Nome/Razão social</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[18%]">Telefone</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[18%]">CPF/CNPJ</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[22%]">E-mail</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="border border-black px-2 py-1">{customer.name || "—"}</td>
+            <td className="border border-black px-2 py-1">{customer.phone || ""}</td>
+            <td className="border border-black px-2 py-1">{customerDocument}</td>
+            <td className="border border-black px-2 py-1">{customer.email || ""}</td>
+          </tr>
+          <tr className="bg-neutral-50">
+            <th className="border border-black px-2 py-1 text-center font-bold">Endereço</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">CEP</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">Cidade</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">Estado</th>
+          </tr>
+          <tr>
+            <td className="border border-black px-2 py-1">{customerAddress}</td>
+            <td className="border border-black px-2 py-1">{customerZip}</td>
+            <td className="border border-black px-2 py-1">{customerCity}</td>
+            <td className="border border-black px-2 py-1">{customerState}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="px-3 pt-3 pb-1">
+        <p className="text-[12px] font-bold">DADOS DO PRODUTO</p>
+      </div>
+      <table className="w-full border-collapse text-[12px]">
+        <thead>
+          <tr className="bg-neutral-50">
+            <th className="border border-black px-2 py-1 text-center font-bold w-[10%]">Cód</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">Produto</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[6%]">Qtd</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[14%]">Valor Unitário</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[12%]">Desconto</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[14%]">Valor Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(data.items.length ? data.items : [{ id: "empty", product_name: "Itens da venda", quantity: 1, unit_price: total, total }]).map((item: any) => {
+            const description = [item.product_name, item.imei ? `IMEI: ${item.imei}` : null, item.model]
+              .filter(Boolean)
+              .join(" - ");
+            return (
+              <tr key={item.id}>
+                <td className="border border-black px-2 py-1 align-top">{item.sku || (item.product_id ? item.product_id.slice(0, 7) : "")}</td>
+                <td className="border border-black px-2 py-1 align-top">{description}</td>
+                <td className="border border-black px-2 py-1 align-top text-center">{item.quantity}</td>
+                <td className="border border-black px-2 py-1 align-top text-right">{formatCurrency(Number(item.unit_price))}</td>
+                <td className="border border-black px-2 py-1 align-top text-right">{item.discount ? formatCurrency(Number(item.discount)) : "R$"}</td>
+                <td className="border border-black px-2 py-1 align-top text-right">{formatCurrency(Number(item.total))}</td>
+              </tr>
+            );
+          })}
+          <tr>
+            <td className="border border-black px-2 py-1 text-right font-bold" colSpan={3}>Total</td>
+            <td className="border border-black px-2 py-1 text-right font-bold">{formatCurrency(Number(sale.subtotal ?? total))}</td>
+            <td className="border border-black px-2 py-1 text-right font-bold">{sale.discount ? formatCurrency(Number(sale.discount)) : "R$"}</td>
+            <td className="border border-black px-2 py-1 text-right font-bold">{formatCurrency(total)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="px-3 pt-3 pb-1"><p className="text-[12px] font-bold">PAGAMENTO</p></div>
+      <table className="w-full border-collapse text-[12px]">
+        <thead>
+          <tr className="bg-neutral-50">
+            <th className="border border-black px-2 py-1 text-center font-bold w-[25%]">Forma de Pagamento</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">Detalhes</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[20%]">Valor Pago</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[12%]">Parcelas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {payments.map((payment: any, index: number) => (
+            <tr key={index}>
+              <td className="border border-black px-2 py-1">{METHOD_LABEL[payment.method] || payment.method}</td>
+              <td className="border border-black px-2 py-1"></td>
+              <td className="border border-black px-2 py-1 text-right">{formatCurrency(Number(payment.amount))}</td>
+              <td className="border border-black px-2 py-1 text-center">{payment.installments ?? 1}</td>
+            </tr>
+          ))}
+          <tr>
+            <td className="border border-black px-2 py-1 text-right font-bold" colSpan={2}>Total</td>
+            <td className="border border-black px-2 py-1 text-right font-bold">{formatCurrency(total)}</td>
+            <td className="border border-black px-2 py-1"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="px-3 pt-4">
+        <p className="text-[12px] font-bold">OBSERVAÇÃO</p>
+        <div className="h-6"></div>
+        <p className="text-[12px] font-bold">DADOS ADICIONAIS</p>
+        <div className="h-10"></div>
+      </div>
+      <div className="px-6 pb-3 pt-6 grid grid-cols-2 gap-10 text-center text-[12px]">
+        <div><div className="border-t border-black pt-1">{customer.name || ""}</div></div>
+        <div><div className="border-t border-black pt-1">{data.org_name}</div></div>
+      </div>
+      <div className="text-center text-[12px] py-3">OBRIGADO PELA PREFERÊNCIA.</div>
+
+      <style>{`
+        @media print {
+          @page { margin: 10mm; size: A4; }
+          body * { visibility: hidden !important; }
+          .receipt-print-area, .receipt-print-area * { visibility: visible !important; }
+          .receipt-print-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: none !important; border-color: #000 !important; }
+        }
+      `}</style>
     </div>
   );
 }
