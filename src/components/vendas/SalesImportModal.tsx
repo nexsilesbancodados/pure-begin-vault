@@ -248,11 +248,23 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     ? parseCurrency(unitPriceRaw)
     : undefined;
 
+  const description = get("description") ? String(get("description")).trim() : undefined;
+  const categoryRaw = get("category") ? String(get("category")).trim() : undefined;
+  const finTypeRaw = get("fin_type") ? norm(get("fin_type")) : "";
+  // infere tipo: entrada/receita/credito/venda/recebimento → income; saida/despesa/debito/compra/pagamento → expense
+  let finType: "income" | "expense" | undefined;
+  if (finTypeRaw) {
+    if (/(entrada|receit|credit|venda|recebi|income|^c$)/.test(finTypeRaw)) finType = "income";
+    else if (/(saida|saída|despes|debit|compra|pagame|expense|^d$)/.test(finTypeRaw)) finType = "expense";
+  }
+  // fallback por valor: negativo = expense, positivo = income
+  if (!finType && !isNaN(amount)) finType = amount < 0 ? "expense" : "income";
+
   const notes =
-    get("notes") || (customerName ? `Cliente: ${customerName}` : "Importado via sistema");
+    get("notes") || description || (customerName ? `Cliente: ${customerName}` : "Importado via sistema");
 
   return {
-    total_amount: isNaN(amount) ? 0 : amount,
+    total_amount: isNaN(amount) ? 0 : Math.abs(amount),
     payment_method: normalizePayment(get("payment")),
     status: normalizeStatus(get("status")),
     notes: String(notes).slice(0, 500),
@@ -264,6 +276,9 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     product_name: productName || undefined,
     product_quantity: productQty,
     product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
+    description: description,
+    fin_type: finType,
+    category: categoryRaw,
     _raw: row,
     _valid: errors.length === 0,
     _error: errors.length ? `Linha ${idx + 2}: ${errors.join(", ")}` : undefined,
