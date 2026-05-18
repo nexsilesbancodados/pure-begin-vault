@@ -841,33 +841,72 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2 p-3">
+                <div className="p-3 space-y-4">
                   {[
-                    { field: "amount", label: "Valor *", required: true },
-                    { field: "date", label: "Data" },
-                    { field: "payment", label: "Pagamento" },
-                    { field: "status", label: "Status" },
-                  ].map(({ field, label, required }) => (
-                    <div key={field} className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-                        {label}
-                      </label>
-                      <select
-                        value={hmap[field] || ""}
-                        onChange={(e) => remap(field, e.target.value)}
-                        className={`w-full text-xs px-2.5 py-1.5 rounded-lg bg-background border ${
-                          required && !hmap[field]
-                            ? "border-destructive/50"
-                            : "border-border"
-                        } focus:outline-none focus:ring-2 focus:ring-primary/30`}
-                      >
-                        <option value="">— não usar —</option>
-                        {headers.map((h) => (
-                          <option key={h} value={h}>
-                            {h}
-                          </option>
+                    {
+                      title: "Venda",
+                      fields: [
+                        { field: "amount", label: "Valor *", required: true },
+                        { field: "date", label: "Data" },
+                        { field: "payment", label: "Pagamento" },
+                        { field: "status", label: "Status" },
+                      ],
+                    },
+                    {
+                      title: "Cliente",
+                      fields: [
+                        { field: "customer", label: "Nome do cliente" },
+                        { field: "customer_document", label: "CPF / CNPJ" },
+                        { field: "customer_phone", label: "Telefone" },
+                        { field: "customer_email", label: "E-mail" },
+                      ],
+                    },
+                    {
+                      title: "Produto",
+                      fields: [
+                        { field: "product", label: "Produto" },
+                        { field: "quantity", label: "Quantidade" },
+                        { field: "unit_price", label: "Preço unitário" },
+                        { field: "notes", label: "Observação" },
+                      ],
+                    },
+                  ].map((group) => (
+                    <div key={group.title} className="space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">
+                        {group.title}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {group.fields.map(({ field, label, required }) => (
+                          <div key={field} className="space-y-1">
+                            <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                              {label}
+                              {hmap[field] && (
+                                <CheckCircle2 className="h-2.5 w-2.5 text-success" />
+                              )}
+                            </label>
+                            <select
+                              value={hmap[field] || ""}
+                              onChange={(e) => remap(field, e.target.value)}
+                              className={`w-full text-xs px-2.5 py-1.5 rounded-lg bg-background border ${
+                                required && !hmap[field]
+                                  ? "border-destructive/50"
+                                  : hmap[field]
+                                  ? "border-success/40"
+                                  : "border-border"
+                              } focus:outline-none focus:ring-2 focus:ring-primary/30`}
+                            >
+                              <option value="">— não usar —</option>
+                              {headers.map((h) => (
+                                <option key={h} value={h}>
+                                  {h}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         ))}
-                      </select>
+                      </div>
+                    </div>
+                  ))}
                     </div>
                   ))}
                 </div>
