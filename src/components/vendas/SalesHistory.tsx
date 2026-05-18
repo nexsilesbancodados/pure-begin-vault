@@ -818,7 +818,7 @@ export function SalesHistory() {
                         return;
                       }
                       toast.info("Abrindo PDV para edição...");
-                      navigate({ to: "/pdv", search: { edit: selectedSale.id } as any });
+                      window.open(`/pdv?edit=${selectedSale.id}`, "_blank");
                       setIsDetailsOpen(false);
                     }}
                   >
