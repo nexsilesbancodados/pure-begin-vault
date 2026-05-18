@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
 
     const { email, password, nome, organization_id, organization_ids, role, invite_id } =
       await req.json();
+    const normalizedEmail = String(email || "").trim().toLowerCase();
 
     if (!email || !organization_id) {
       return new Response(
@@ -55,11 +56,11 @@ Deno.serve(async (req) => {
 
     const orgIds = Array.from(new Set(Array.isArray(organization_ids) && organization_ids.length ? organization_ids : [organization_id]));
 
-    const { data: superRow } = await admin
-      .from("super_admins")
-      .select("user_id")
-      .eq("user_id", callerId)
-      .maybeSingle();
+    const [{ data: superRow }, { data: callerProfile }] = await Promise.all([
+      admin.from("super_admins").select("user_id").eq("user_id", callerId).maybeSingle(),
+      admin.from("profiles").select("role").eq("id", callerId).maybeSingle(),
+    ]);
+    const isSuperAdmin = !!superRow || String(callerProfile?.role ?? "").toLowerCase() === "super_admin";
 
     const { data: callerMemberships } = await admin
       .from("user_organizations")
@@ -69,7 +70,7 @@ Deno.serve(async (req) => {
       .filter((m) => ["owner", "admin"].includes(String(m.role).toLowerCase()))
       .map((m) => m.organization_id));
 
-    if (!superRow && orgIds.some((orgId) => !callerOrgIds.has(orgId))) {
+    if (!isSuperAdmin && orgIds.some((orgId) => !callerOrgIds.has(orgId))) {
       return new Response(JSON.stringify({ error: "Sem permissão em uma das lojas selecionadas" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -83,10 +84,10 @@ Deno.serve(async (req) => {
 
     if (password) {
       const res = await admin.auth.admin.createUser({
-        email,
+        email: normalizedEmail,
         password,
         email_confirm: true,
-        user_metadata: { full_name: nome || email },
+        user_metadata: { full_name: nome || normalizedEmail },
       });
       created = res.data as typeof created;
       createErr = res.error;
@@ -98,8 +99,13 @@ Deno.serve(async (req) => {
       const msg = (createErr.message || "").toLowerCase();
       if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
         // Usuário já existe -> busca e atualiza senha
-        const { data: list } = await admin.auth.admin.listUsers();
-        const existing = list?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+        let existing = null;
+        for (let page = 1; page <= 10 && !existing; page += 1) {
+          const { data: list, error: listError } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+          if (listError) throw listError;
+          existing = list?.users?.find((u) => u.email?.toLowerCase() === normalizedEmail) ?? null;
+          if ((list?.users?.length ?? 0) < 1000) break;
+        }
         if (!existing) {
           return new Response(JSON.stringify({ error: "Usuário existente não encontrado" }), {
             status: 500,
@@ -124,7 +130,9 @@ Deno.serve(async (req) => {
       role: role || "employee",
       is_default: index === 0,
     }));
-    await admin.from("user_organizations").upsert(memberships, { onConflict: "user_id,organization_id" });
+    await admin.from("user_organizations").update({ is_default: false }).eq("user_id", userId!);
+    const { error: upsertMembershipsError } = await admin.from("user_organizations").upsert(memberships, { onConflict: "user_id,organization_id" });
+    if (upsertMembershipsError) throw upsertMembershipsError;
 
     // Atualiza profile (já define organization_id ativa + role)
     await admin
@@ -132,8 +140,8 @@ Deno.serve(async (req) => {
       .upsert(
         {
           id: userId!,
-          email,
-          nome: nome || email,
+          email: normalizedEmail,
+          nome: nome || normalizedEmail,
           organization_id: orgIds[0],
           role: role || "employee",
         },
@@ -144,7 +152,7 @@ Deno.serve(async (req) => {
     if (invite_id) {
       await admin
         .from("organization_invites")
-        .update({ status: "accepted", accepted_at: new Date().toISOString(), accepted_by: userId })
+        .update({ organization_id: orgIds[0], email: normalizedEmail, role: role || "employee", status: "accepted", accepted_at: new Date().toISOString(), accepted_by: userId })
         .eq("id", invite_id);
     }
 

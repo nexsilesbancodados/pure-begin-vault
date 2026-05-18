@@ -14,8 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserOrgs } from "@/lib/useUserOrgs";
-import { useServerFn } from "@tanstack/react-start";
-import { saveTeamUserAccess } from "@/lib/team-user.functions";
 import { toast } from "sonner";
 
 interface EditInitial {
@@ -74,7 +72,6 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
   const { orgId, userId } = useOrg();
   const { user } = useAuth();
   const { orgs } = useUserOrgs();
-  const saveAccess = useServerFn(saveTeamUserAccess);
   const isEdit = !!initial?.id;
 
   const [ativo, setAtivo] = useState("Sim");
@@ -125,9 +122,10 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
   };
 
   const roleFromProfile = () => {
-    if (quickProfile === "Administrador") return "admin";
-    if (quickProfile === "Financeiro") return "financeiro";
-    if (quickProfile === "Vendedor") return "vendedor";
+    const selected = `${quickProfile} ${perfis.join(" ")}`.toLowerCase();
+    if (selected.includes("administrador") || selected.includes("admin")) return "admin";
+    if (selected.includes("financeiro")) return "financeiro";
+    if (selected.includes("vendedor") || selected.includes("venda")) return "vendedor";
     return "employee";
   };
 
@@ -211,17 +209,23 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
 
       // Cria/atualiza a conta real e sincroniza as lojas selecionadas.
       if (isEdit || senha) {
-        await saveAccess({
-          data: {
-            email: email.trim(),
-            password: senha,
-            nome: nome.trim(),
-            organization_id: lojas[0],
-            organization_ids: lojas,
-            role: assignedRole,
-            invite_id: inviteId,
+        const { data: teamUserData, error: teamUserError } = await supabase.functions.invoke(
+          "create-team-user",
+          {
+            body: {
+              email: email.trim(),
+              password: senha,
+              nome: nome.trim(),
+              organization_id: lojas[0],
+              organization_ids: lojas,
+              role: assignedRole,
+              invite_id: inviteId,
+            },
           },
-        });
+        );
+        if (teamUserError || teamUserData?.error) {
+          throw new Error(teamUserData?.error || teamUserError?.message || "Falha ao salvar acesso");
+        }
         toast.success("Usuário atualizado! As lojas selecionadas já aparecem no login dele.");
       } else {
         const { data: inv } = await supabase
@@ -229,7 +233,7 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
           .select("token")
           .eq("id", inviteId)
           .single();
-        const url = `${window.location.origin}/aceitar-convite/${inv?.token}`;
+        const url = `${window.location.origin}/convite-loja/${inv?.token}`;
         try {
           await navigator.clipboard.writeText(url);
           toast.success("Convite criado! Link copiado (defina uma senha para login direto).");
