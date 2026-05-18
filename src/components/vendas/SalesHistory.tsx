@@ -1277,6 +1277,7 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
             style={{ maxHeight: "55px", objectFit: "contain", display: "block", marginLeft: "auto", marginRight: "auto" }}
           />
         )}
+        <div className="font-bold text-[13px]">{data.org_name}</div>
       </div>
 
       <div className="mt-2 space-y-0.5">
