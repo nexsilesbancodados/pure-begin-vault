@@ -20,6 +20,12 @@ type Invite = {
   expires_at: string | null;
   accepted_at: string | null;
   created_at: string;
+  metadata?: {
+    nome?: string;
+    perfil_rapido?: string;
+    tela_inicial?: string;
+    ativo?: boolean;
+  } | null;
 };
 
 type Member = {
