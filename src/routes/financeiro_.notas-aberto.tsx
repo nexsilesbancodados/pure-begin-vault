@@ -38,7 +38,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { ProductForm } from "@/components/estoque/ProductForm";
@@ -117,48 +116,74 @@ interface ProductFormValues {
   description?: string;
   metadata?: Record<string, unknown>;
   stock?: string | number | null;
+  imei?: unknown;
+  imei2?: unknown;
+  color?: unknown;
+  capacity?: unknown;
+  processor?: unknown;
+  ram?: unknown;
+  display?: unknown;
+  margin?: unknown;
+  markup?: unknown;
+  battery_health?: unknown;
+  observations?: unknown;
+  store?: unknown;
 }
 
-interface PurchaseNotesDatabase {
-  public: {
-    Tables: {
-      purchase_notes: {
-        Row: PurchaseNoteRow;
-        Insert: {
-          id?: string;
-          organization_id: string;
-          note_number: number;
-          fornecedor?: string | null;
-          data_compra?: string | null;
-          prazo_pagamento?: string | null;
-          paga?: boolean;
-          total?: number;
-          items?: Json;
-          created_by?: string | null;
-          updated_by?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<{
-          fornecedor: string;
-          data_compra: string;
-          prazo_pagamento: string | null;
-          paga: boolean;
-          total: number;
-          items: Json;
-          updated_by: string | null;
-        }>;
-        Relationships: [];
-      };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
-  };
+interface PurchaseNoteInsert {
+  id?: string;
+  organization_id: string;
+  note_number: number;
+  fornecedor?: string | null;
+  data_compra?: string | null;
+  prazo_pagamento?: string | null;
+  paga?: boolean;
+  total?: number;
+  items?: Json;
+  created_by?: string | null;
+  updated_by?: string | null;
+  created_at?: string;
 }
 
-const purchaseNotesClient = supabase as unknown as SupabaseClient<PurchaseNotesDatabase>;
-const purchaseNotesTable = () => purchaseNotesClient.from("purchase_notes");
+type PurchaseNoteUpdate = Partial<{
+  fornecedor: string;
+  data_compra: string;
+  prazo_pagamento: string | null;
+  paga: boolean;
+  total: number;
+  items: Json;
+  updated_by: string | null;
+}>;
+
+interface DbError {
+  message: string;
+  code?: string;
+}
+
+interface PurchaseNotesQuery<TData> extends PromiseLike<{ data: TData | null; error: DbError | null }> {
+  eq(column: string, value: unknown): PurchaseNotesQuery<TData>;
+  order(column: string, options?: { ascending?: boolean }): PurchaseNotesQuery<TData>;
+  limit(count: number): PurchaseNotesQuery<TData>;
+  maybeSingle(): Promise<{
+    data: TData extends Array<infer TItem> ? TItem | null : TData | null;
+    error: DbError | null;
+  }>;
+  single(): Promise<{
+    data: TData extends Array<infer TItem> ? TItem : TData;
+    error: DbError | null;
+  }>;
+  select(columns?: string): PurchaseNotesQuery<PurchaseNoteRow[]>;
+}
+
+interface PurchaseNotesTable {
+  select(columns?: string): PurchaseNotesQuery<PurchaseNoteRow[]>;
+  update(payload: PurchaseNoteUpdate): PurchaseNotesQuery<PurchaseNoteRow[]>;
+  insert(payload: PurchaseNoteInsert | PurchaseNoteInsert[]): PurchaseNotesQuery<PurchaseNoteRow[]>;
+  delete(): PurchaseNotesQuery<PurchaseNoteRow[]>;
+}
+
+const purchaseNotesTable = () =>
+  (supabase.from as unknown as (table: string) => PurchaseNotesTable)("purchase_notes");
 
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
