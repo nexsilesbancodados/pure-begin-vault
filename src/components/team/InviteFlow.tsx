@@ -48,6 +48,7 @@ export function InviteFlow() {
   const [saving, setSaving] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Invite | null>(null);
 
   const load = async () => {
     if (!orgId) return;
