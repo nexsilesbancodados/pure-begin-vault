@@ -83,6 +83,7 @@ function NotasAbertoPage() {
     setNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
   };
 
+  const loadProducts = async () => {
     if (!userId) return;
     setLoading(true);
 
