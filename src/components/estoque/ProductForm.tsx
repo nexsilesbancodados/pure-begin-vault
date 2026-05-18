@@ -55,7 +55,15 @@ const IPHONE_MODELS = [
   "iPhone 17", "iPhone 17 Plus", "iPhone 17 Pro", "iPhone 17 Pro Max",
 ];
 
-interface ProductFormData {
+const IPHONE_CORES = [
+  "Preto", "Branco", "Cinza Espacial", "Prateado", "Dourado", "Rose Gold",
+  "Vermelho (PRODUCT)RED", "Coral", "Amarelo", "Azul", "Verde", "Verde-meia-noite",
+  "Roxo", "Roxo Profundo", "Lilás", "Rosa", "Estelar", "Meia-noite",
+  "Azul Sierra", "Azul Pacífico", "Grafite", "Azul Alpino", "Verde Alpino",
+  "Titânio Natural", "Titânio Azul", "Titânio Branco", "Titânio Preto",
+  "Titânio Deserto", "Titânio Areia", "Ultramarino", "Verde-azulado",
+  "Laranja Cósmico", "Azul Profundo",
+];
   // Core (mapped to columns)
   name: string;
   sku?: string;
