@@ -447,17 +447,28 @@ function NotasAbertoPage() {
         }
 
         if (mapped.length > 0) localStorage.setItem(migratedKey, "true");
-        setNotas(mapped);
+        setNotesDbUnavailable(false);
+        replaceNotas(mapped);
       } catch (error) {
+        if (isPurchaseNotesUnavailable(error)) {
+          const legacyNotes = readLegacyNotas(orgId);
+          setNotesDbUnavailable(true);
+          replaceNotas(legacyNotes);
+          if (!options?.silent) {
+            toast.warning("Banco de notas ainda não aplicado. Exibindo as notas salvas neste navegador.");
+          }
+          return;
+        }
         if (!options?.silent) {
           toast.error("Erro ao carregar notas: " + (error as Error).message);
-          setNotas([]);
+          const legacyNotes = readLegacyNotas(orgId);
+          replaceNotas(legacyNotes);
         }
       } finally {
         if (!options?.silent) setNotesLoading(false);
       }
     },
-    [orgId, userId],
+    [orgId, userId, replaceNotas],
   );
 
   useEffect(() => {
@@ -465,7 +476,7 @@ function NotasAbertoPage() {
   }, [loadNotes]);
 
   useEffect(() => {
-    if (!orgId) return;
+    if (!orgId || notesDbUnavailable) return;
 
     const channel = supabase
       .channel(`purchase_notes:${orgId}`)
@@ -484,7 +495,7 @@ function NotasAbertoPage() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [orgId, loadNotes]);
+  }, [orgId, loadNotes, notesDbUnavailable]);
 
   const createNota = useCallback(
     async (items: Product[]) => {
