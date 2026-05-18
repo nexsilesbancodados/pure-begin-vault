@@ -44,8 +44,14 @@ interface Product {
   imei?: string | null;
   price?: number | null;
   stock_quantity?: number | null;
-  metadata?: any;
+  metadata?: unknown;
 }
+
+const getImeiFromMetadata = (metadata: unknown) => {
+  if (!metadata || typeof metadata !== "object") return null;
+  const value = (metadata as Record<string, unknown>).imei ?? (metadata as Record<string, unknown>).imei2;
+  return value ? String(value) : null;
+};
 
 function NotasAbertoPage() {
   const { orgId, userId } = useOrg();
@@ -59,7 +65,7 @@ function NotasAbertoPage() {
     if (!userId) return;
     setLoading(true);
 
-    let query = (supabase as any)
+    let query = supabase
       .from("products")
       .select("id, name, organization_id, sku, price, stock_quantity, metadata")
       .eq("active", true)
@@ -71,16 +77,16 @@ function NotasAbertoPage() {
     let { data, error } = await query;
 
     if (!error && orgId && (data ?? []).length === 0) {
-      const { data: memberships } = await (supabase as any)
+      const { data: memberships } = await supabase
         .from("user_organizations")
         .select("organization_id")
         .eq("user_id", userId);
-      const orgIds = ((memberships ?? []) as Array<{ organization_id: string }>)
+      const orgIds = (memberships ?? [])
         .map((item) => item.organization_id)
-        .filter(Boolean);
+        .filter((id): id is string => Boolean(id));
 
       if (orgIds.length > 0) {
-        const fallback = await (supabase as any)
+        const fallback = await supabase
           .from("products")
           .select("id, name, organization_id, sku, price, stock_quantity, metadata")
           .in("organization_id", orgIds)
@@ -95,7 +101,7 @@ function NotasAbertoPage() {
     if (error) toast.error("Erro ao carregar produtos: " + error.message);
     const mapped: Product[] = (data ?? []).map((p: any) => ({
       ...p,
-      imei: p?.metadata?.imei ?? null,
+      imei: getImeiFromMetadata(p.metadata),
     }));
     setProducts(mapped);
     setLoading(false);
