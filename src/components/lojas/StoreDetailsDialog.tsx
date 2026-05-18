@@ -30,6 +30,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { saveOrgSettings } from "@/lib/org-settings.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 type Member = { user_id: string; role: string; email?: string | null; name?: string | null };
 
@@ -48,6 +50,7 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
   const { profile } = useAuth();
   const isSuperAdmin = (profile as any)?.role === "super_admin";
   const canEdit = isSuperAdmin || role === "owner" || role === "admin";
+  const saveFn = useServerFn(saveOrgSettings);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -138,30 +141,27 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
   const save = async () => {
     if (!canEdit) return;
     setSaving(true);
+    const tId = toast.loading("Salvando...");
     try {
-      // Upsert settings
-      const { error } = await (supabase as any)
-        .from("organization_settings")
-        .upsert(
-          {
-            organization_id: orgId,
-            brand_name: name,
-            brand_logo_url: logoUrl || null,
-            support_email: email || null,
-            support_whatsapp: phone || null,
-          },
-          { onConflict: "organization_id" },
-        );
-      if (error) throw error;
+      await saveFn({
+        data: {
+          orgId,
+          name: name.trim() || orgName,
+          brand_logo_url: logoUrl || null,
+          support_email: email || null,
+          support_whatsapp: phone || null,
+        },
+      });
 
-      // Persist extras locally
+      // Persist extras locally (CNPJ / endereço enquanto não há colunas no DB)
       localStorage.setItem(lsKey(orgId), JSON.stringify({ cnpj, address }));
 
-      toast.success("Informações salvas");
+      toast.success("Informações salvas", { id: tId });
       onSaved?.();
       onOpenChange(false);
     } catch (e: any) {
-      toast.error("Erro ao salvar: " + (e?.message ?? e));
+      console.error("[StoreDetailsDialog] save error", e);
+      toast.error("Erro ao salvar: " + (e?.message ?? "tente novamente"), { id: tId });
     } finally {
       setSaving(false);
     }
