@@ -47,7 +47,13 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
       if (e1) throw new Error(e1.message);
     }
 
-    const payload: Record<string, unknown> = { organization_id: data.orgId };
+    const payload: {
+      organization_id: string;
+      brand_name?: string;
+      brand_logo_url?: string | null;
+      support_email?: string | null;
+      support_whatsapp?: string | null;
+    } = { organization_id: data.orgId };
     if (data.name !== undefined) payload.brand_name = data.name;
     if (data.brand_logo_url !== undefined) payload.brand_logo_url = data.brand_logo_url;
     if (data.support_email !== undefined) payload.support_email = data.support_email;
