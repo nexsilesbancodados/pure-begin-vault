@@ -23,6 +23,7 @@ import {
 import { useUserOrgs } from "@/lib/useUserOrgs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { StoreDetailsDialog } from "@/components/lojas/StoreDetailsDialog";
 
 export const Route = createFileRoute("/lojas")({
   component: LojasPage,
@@ -35,6 +36,9 @@ function LojasPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [query, setQuery] = useState("");
+  const [detailsOrg, setDetailsOrg] = useState<{ id: string; name: string; role: string } | null>(
+    null,
+  );
 
   const create = async () => {
     if (!newName.trim()) return;
