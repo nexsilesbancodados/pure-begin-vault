@@ -15,6 +15,7 @@ interface HubHeroProps {
   description: string;
   actions?: HubHeroAction[];
   icon?: LucideIcon;
+  children?: React.ReactNode;
 }
 
 export function HubHero({
@@ -23,6 +24,7 @@ export function HubHero({
   description,
   actions = [],
   icon: Icon = Sparkles,
+  children,
 }: HubHeroProps) {
   return (
     <div className="rounded-2xl bg-gradient-sidebar-cta p-8 text-white shadow-elegant relative overflow-hidden">
