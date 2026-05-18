@@ -554,6 +554,54 @@ function SettingsPage() {
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           />
                         </div>
+                        <div className="space-y-2">
+                          <Label>CPF</Label>
+                          <Input
+                            value={formData.cpf}
+                            onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                            placeholder="000.000.000-00"
+                          />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Endereço</Label>
+                          <Input
+                            value={formData.address}
+                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            placeholder="Rua, número, bairro, cidade — UF"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Nova Senha</Label>
+                          <Input
+                            type="password"
+                            value={formData.password}
+                            onChange={(e) =>
+                              setFormData({ ...formData, password: e.target.value })
+                            }
+                            placeholder="Deixe em branco para manter"
+                            autoComplete="new-password"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Confirmar Senha</Label>
+                          <Input
+                            type="password"
+                            value={formData.password_confirm}
+                            onChange={(e) =>
+                              setFormData({ ...formData, password_confirm: e.target.value })
+                            }
+                            placeholder="Repita a nova senha"
+                            autoComplete="new-password"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end pt-4 border-t border-border mt-6">
+                        <Button
+                          onClick={handleSaveProfile}
+                          className="bg-gradient-primary shadow-glow gap-2"
+                        >
+                          <CheckCircle2 className="h-4 w-4" /> Salvar Informações
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
