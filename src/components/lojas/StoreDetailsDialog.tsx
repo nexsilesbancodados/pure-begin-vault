@@ -141,30 +141,27 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
   const save = async () => {
     if (!canEdit) return;
     setSaving(true);
+    const tId = toast.loading("Salvando...");
     try {
-      // Upsert settings
-      const { error } = await (supabase as any)
-        .from("organization_settings")
-        .upsert(
-          {
-            organization_id: orgId,
-            brand_name: name,
-            brand_logo_url: logoUrl || null,
-            support_email: email || null,
-            support_whatsapp: phone || null,
-          },
-          { onConflict: "organization_id" },
-        );
-      if (error) throw error;
+      await saveFn({
+        data: {
+          orgId,
+          name: name.trim() || orgName,
+          brand_logo_url: logoUrl || null,
+          support_email: email || null,
+          support_whatsapp: phone || null,
+        },
+      });
 
-      // Persist extras locally
+      // Persist extras locally (CNPJ / endereço enquanto não há colunas no DB)
       localStorage.setItem(lsKey(orgId), JSON.stringify({ cnpj, address }));
 
-      toast.success("Informações salvas");
+      toast.success("Informações salvas", { id: tId });
       onSaved?.();
       onOpenChange(false);
     } catch (e: any) {
-      toast.error("Erro ao salvar: " + (e?.message ?? e));
+      console.error("[StoreDetailsDialog] save error", e);
+      toast.error("Erro ao salvar: " + (e?.message ?? "tente novamente"), { id: tId });
     } finally {
       setSaving(false);
     }
