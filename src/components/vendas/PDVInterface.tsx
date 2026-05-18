@@ -830,9 +830,21 @@ export function PDVInterface() {
       const moneyN = parseFloat(moneyAmount) || 0;
       const cardN = parseFloat(cardAmount) || 0;
       const pixN = parseFloat(pixAmount) || 0;
+      const prazoN = parseFloat(prazoAmount) || 0;
       if (moneyN > 0) payments.push({ method: "cash", amount: moneyN });
       if (cardN > 0) payments.push({ method: "card", amount: cardN });
       if (pixN > 0) payments.push({ method: "pix", amount: pixN });
+      if (prazoN > 0) {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 7);
+        payments.push({
+          method: "credit",
+          amount: prazoN,
+          due_date: dueDate.toISOString(),
+          term_days: 7,
+          label: "Prazo 7 dias",
+        });
+      }
       if (payments.length === 0) {
         const fallback =
           paymentMethod === "money"
