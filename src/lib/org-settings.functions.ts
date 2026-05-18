@@ -57,3 +57,44 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+const LogosSchema = z.object({
+  orgIds: z.array(z.string().uuid()).min(0).max(200),
+});
+
+export const getOrgLogos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => LogosSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    if (data.orgIds.length === 0) return { logos: {} as Record<string, string | null> };
+    const admin = supabaseAdmin;
+
+    // Filtra apenas orgs que o usuário pode ver (membro OU super_admin)
+    const [saRes, memRes] = await Promise.all([
+      admin.from("super_admins").select("user_id").eq("user_id", userId).maybeSingle(),
+      admin
+        .from("user_organizations")
+        .select("organization_id")
+        .eq("user_id", userId)
+        .in("organization_id", data.orgIds),
+    ]);
+    const isSuper = !!saRes.data;
+    const allowed = isSuper
+      ? data.orgIds
+      : ((memRes.data as { organization_id: string }[] | null) ?? []).map(
+          (r) => r.organization_id,
+        );
+    if (allowed.length === 0) return { logos: {} as Record<string, string | null> };
+
+    const { data: rows } = await admin
+      .from("organization_settings")
+      .select("organization_id, brand_logo_url")
+      .in("organization_id", allowed);
+
+    const logos: Record<string, string | null> = {};
+    for (const r of (rows as { organization_id: string; brand_logo_url: string | null }[]) ?? []) {
+      logos[r.organization_id] = r.brand_logo_url ?? null;
+    }
+    return { logos };
+  });
