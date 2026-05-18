@@ -243,6 +243,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     customer_name: customerName || undefined,
     customer_phone: customerPhone || undefined,
     customer_email: customerEmail || undefined,
+    customer_document: customerDocument,
     product_name: productName || undefined,
     product_quantity: productQty,
     product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
