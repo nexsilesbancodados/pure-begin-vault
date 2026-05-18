@@ -407,8 +407,6 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
             {[
               { v: "geral", l: "Dados gerais", i: Info },
               { v: "contas", l: "Financeiro", i: Wallet },
-              { v: "pagamento", l: "Forma de Pagamento", i: CreditCard },
-              { v: "custos", l: "Custos extras", i: Coins },
               { v: "anexos", l: "Anexos", i: Paperclip },
               { v: "movimentacao", l: "Movimentação de Estoque", i: ArrowLeftRight },
               { v: "checklist", l: "Checklist", i: ClipboardCheck },
