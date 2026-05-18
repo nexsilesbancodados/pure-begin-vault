@@ -403,14 +403,14 @@ function NotasAbertoPage() {
       isNew ? [merged, ...prev] : prev.map((p) => (p.id === merged.id ? merged : p)),
     );
     if (isNew) toast.success("Produto cadastrado!");
-    setNotas((prev) =>
-      prev.map((n) => {
+    const updatedNotas = notas.map((n) => {
         if (!n.items.some((i) => i.id === merged.id)) return n;
         const items = n.items.map((i) => (i.id === merged.id ? merged : i));
-        const total = items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
+        const total = getNoteTotal(items);
         return { ...n, items, total };
-      }),
-    );
+      });
+    setNotas(updatedNotas);
+    await Promise.all(updatedNotas.filter((note) => note.items.some((i) => i.id === merged.id)).map(persistNota));
     setEditingProduct(null);
     toast.success("Produto atualizado.");
   };
