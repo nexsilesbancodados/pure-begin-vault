@@ -183,8 +183,19 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   else if (isNaN(amount)) errors.push("valor inválido");
   else if (amount <= 0) errors.push("valor deve ser maior que zero");
 
-  const customer = get("customer");
-  const notes = get("notes") || (customer ? `Cliente: ${customer}` : "Importado via sistema");
+  const customerName = get("customer") ? String(get("customer")).trim() : undefined;
+  const customerPhone = get("customer_phone") ? String(get("customer_phone")).trim() : undefined;
+  const customerEmail = get("customer_email") ? String(get("customer_email")).trim() : undefined;
+  const productName = get("product") ? String(get("product")).trim() : undefined;
+  const qtyRaw = get("quantity");
+  const productQty = qtyRaw != null && qtyRaw !== "" ? Number(parseCurrency(qtyRaw)) || 1 : 1;
+  const unitPriceRaw = get("unit_price");
+  const productPrice = unitPriceRaw != null && unitPriceRaw !== ""
+    ? parseCurrency(unitPriceRaw)
+    : undefined;
+
+  const notes =
+    get("notes") || (customerName ? `Cliente: ${customerName}` : "Importado via sistema");
 
   return {
     total_amount: isNaN(amount) ? 0 : amount,
@@ -192,6 +203,12 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     status: normalizeStatus(get("status")),
     notes: String(notes).slice(0, 500),
     created_at: (date ?? new Date()).toISOString(),
+    customer_name: customerName || undefined,
+    customer_phone: customerPhone || undefined,
+    customer_email: customerEmail || undefined,
+    product_name: productName || undefined,
+    product_quantity: productQty,
+    product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
     _raw: row,
     _valid: errors.length === 0,
     _error: errors.length ? `Linha ${idx + 2}: ${errors.join(", ")}` : undefined,
