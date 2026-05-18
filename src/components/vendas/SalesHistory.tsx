@@ -62,6 +62,32 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+type ReceiptData = {
+  sale: any;
+  items: any[];
+  payments: any[];
+  org_name: string;
+  org: { address?: string | null; cnpj?: string | null; phone?: string | null; website?: string | null };
+  seller?: { name?: string | null } | null;
+  customer?: any | null;
+};
+
+const METHOD_LABEL: Record<string, string> = {
+  cash: "Dinheiro",
+  money: "Dinheiro",
+  pix: "PIX",
+  card: "Cartão",
+  credit: "Cartão crédito",
+  debit: "Cartão débito",
+  installment: "Parcelado",
+  transfer: "Transferência",
+};
+
+const formatCurrency = (value: number) =>
+  `R$ ${Number(value || 0)
+    .toFixed(2)
+    .replace(".", ",")}`;
+
 export function SalesHistory() {
   const { user } = useAuth();
   const { orgId } = useOrg();
@@ -72,6 +98,10 @@ export function SalesHistory() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedSale, setSelectedSale] = useState<any | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
 
   const fetchSales = useCallback(async () => {
     if (!user?.id || !orgId) return;
@@ -236,6 +266,69 @@ ul{font-size:12px;line-height:1.6;}
     w.document.open();
     w.document.write(html);
     w.document.close();
+  }, []);
+
+  const openReceiptPopup = useCallback(async (sale: any, autoPrint = false) => {
+    setIsDetailsOpen(false);
+    setIsReceiptOpen(true);
+    setReceiptLoading(true);
+    setReceiptError(null);
+    setReceiptData(null);
+
+    try {
+      const [saleRes, itemsRes, paymentsRes] = await Promise.all([
+        (supabase as any)
+          .from("sales_orders")
+          .select("*")
+          .eq("id", sale.id)
+          .maybeSingle(),
+        (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id),
+        (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id),
+      ]);
+
+      if (saleRes.error) throw saleRes.error;
+      const fullSale = saleRes.data || sale;
+      if (!fullSale) throw new Error("Venda não encontrada");
+
+      const [{ data: org }, { data: orgSettings }, { data: customer }, { data: seller }] =
+        await Promise.all([
+          fullSale.organization_id
+            ? (supabase as any).from("organizations").select("name").eq("id", fullSale.organization_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+          fullSale.organization_id
+            ? (supabase as any).from("organization_settings").select("*").eq("organization_id", fullSale.organization_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+          fullSale.customer_id
+            ? (supabase as any).from("customers").select("*").eq("id", fullSale.customer_id).maybeSingle()
+            : Promise.resolve({ data: sale.customers || null }),
+          fullSale.seller_id
+            ? (supabase as any).from("profiles").select("full_name, email").eq("id", fullSale.seller_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+        ]);
+
+      const settings = orgSettings || {};
+      setReceiptData({
+        sale: fullSale,
+        items: itemsRes.data || [],
+        payments: paymentsRes.data || [],
+        org_name: org?.name || "Loja",
+        org: {
+          address: settings.address ?? settings.endereco ?? null,
+          cnpj: settings.cnpj ?? settings.document ?? null,
+          phone: settings.phone ?? settings.telefone ?? null,
+          website: settings.website ?? null,
+        },
+        seller: seller ? { name: seller.full_name || seller.email } : null,
+        customer: customer || sale.customers || null,
+      });
+
+      if (autoPrint) setTimeout(() => window.print(), 500);
+    } catch (error) {
+      console.error("Erro ao carregar recibo:", error);
+      setReceiptError("Não foi possível carregar o recibo desta venda.");
+    } finally {
+      setReceiptLoading(false);
+    }
   }, []);
 
   return (
