@@ -67,7 +67,13 @@ type ReceiptData = {
   items: any[];
   payments: any[];
   org_name: string;
-  org: { address?: string | null; cnpj?: string | null; phone?: string | null; website?: string | null; logo_url?: string | null };
+  org: {
+    address?: string | null;
+    cnpj?: string | null;
+    phone?: string | null;
+    website?: string | null;
+    logo_url?: string | null;
+  };
   seller?: { name?: string | null } | null;
   customer?: any | null;
 };
@@ -83,24 +89,26 @@ const printReceiptArea = async (mode: "a4" | "80mm") => {
   const originalImages = Array.from(node.querySelectorAll<HTMLImageElement>("img"));
   const clonedImages = Array.from(clone.querySelectorAll<HTMLImageElement>("img"));
 
-  await Promise.all(clonedImages.map(async (img, index) => {
-    const original = originalImages[index];
-    const source = original?.currentSrc || original?.src || img.src;
-    if (!source) return;
+  await Promise.all(
+    clonedImages.map(async (img, index) => {
+      const original = originalImages[index];
+      const source = original?.currentSrc || original?.src || img.src;
+      if (!source) return;
 
-    try {
-      const response = await fetch(source, { mode: "cors", cache: "force-cache" });
-      if (!response.ok) throw new Error("Logo não carregou");
-      const blob = await response.blob();
-      img.src = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(blob);
-      });
-    } catch {
-      img.src = source;
-    }
-  }));
+      try {
+        const response = await fetch(source, { mode: "cors", cache: "force-cache" });
+        if (!response.ok) throw new Error("Logo não carregou");
+        const blob = await response.blob();
+        img.src = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        img.src = source;
+      }
+    }),
+  );
 
   const isThermal = mode === "80mm";
   const iframe = document.createElement("iframe");
@@ -145,11 +153,15 @@ const printReceiptArea = async (mode: "a4" | "80mm") => {
     </style></head><body>${clone.outerHTML}</body></html>`);
   printDocument.close();
 
-  await Promise.all(Array.from(printDocument.images).map((img) => (
-    img.complete
-      ? Promise.resolve()
-      : new Promise((resolve) => { img.onload = img.onerror = resolve; })
-  )));
+  await Promise.all(
+    Array.from(printDocument.images).map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise((resolve) => {
+            img.onload = img.onerror = resolve;
+          }),
+    ),
+  );
 
   window.setTimeout(() => {
     printWindow.focus();
@@ -204,9 +216,7 @@ export function SalesHistory() {
       if (error) throw error;
 
       const rows = data || [];
-      const customerIds = Array.from(
-        new Set(rows.map((r: any) => r.customer_id).filter(Boolean)),
-      );
+      const customerIds = Array.from(new Set(rows.map((r: any) => r.customer_id).filter(Boolean)));
       let customersMap: Record<string, { name: string }> = {};
       if (customerIds.length) {
         const { data: cs } = await supabase
@@ -367,71 +377,86 @@ ul{font-size:12px;line-height:1.6;}
     w.document.close();
   }, []);
 
-  const openReceiptPopup = useCallback(async (sale: any, mode: "a4" | "80mm" = "a4", autoPrint = false) => {
-    setIsDetailsOpen(false);
-    setSelectedSale(null);
-    setReceiptMode(mode);
-    setIsReceiptOpen(true);
-    setReceiptLoading(true);
-    setReceiptError(null);
-    setReceiptData(null);
+  const openReceiptPopup = useCallback(
+    async (sale: any, mode: "a4" | "80mm" = "a4", autoPrint = false) => {
+      setIsDetailsOpen(false);
+      setSelectedSale(null);
+      setReceiptMode(mode);
+      setIsReceiptOpen(true);
+      setReceiptLoading(true);
+      setReceiptError(null);
+      setReceiptData(null);
 
-    try {
-      const [saleRes, itemsRes, paymentsRes] = await Promise.all([
-        (supabase as any)
-          .from("sales_orders")
-          .select("*")
-          .eq("id", sale.id)
-          .maybeSingle(),
-        (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id),
-        (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id),
-      ]);
-
-      if (saleRes.error) throw saleRes.error;
-      const fullSale = saleRes.data || sale;
-      if (!fullSale) throw new Error("Venda não encontrada");
-
-      const [{ data: org }, { data: orgSettings }, { data: customer }, { data: seller }] =
-        await Promise.all([
-          fullSale.organization_id
-            ? (supabase as any).from("organizations").select("name").eq("id", fullSale.organization_id).maybeSingle()
-            : Promise.resolve({ data: null }),
-          fullSale.organization_id
-            ? (supabase as any).from("organization_settings").select("*").eq("organization_id", fullSale.organization_id).maybeSingle()
-            : Promise.resolve({ data: null }),
-          fullSale.customer_id
-            ? (supabase as any).from("customers").select("*").eq("id", fullSale.customer_id).maybeSingle()
-            : Promise.resolve({ data: sale.customers || null }),
-          fullSale.seller_id
-            ? (supabase as any).from("profiles").select("full_name, email").eq("id", fullSale.seller_id).maybeSingle()
-            : Promise.resolve({ data: null }),
+      try {
+        const [saleRes, itemsRes, paymentsRes] = await Promise.all([
+          (supabase as any).from("sales_orders").select("*").eq("id", sale.id).maybeSingle(),
+          (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id),
+          (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id),
         ]);
 
-      const settings = orgSettings || {};
-      setReceiptData({
-        sale: fullSale,
-        items: itemsRes.data || [],
-        payments: paymentsRes.data || [],
-        org_name: org?.name || "Loja",
-        org: {
-          address: settings.address ?? settings.endereco ?? null,
-          cnpj: settings.cnpj ?? settings.document ?? null,
-          phone: settings.phone ?? settings.telefone ?? null,
-          website: settings.website ?? null,
-          logo_url: settings.brand_logo_url ?? null,
-        },
-        seller: seller ? { name: seller.full_name || seller.email } : null,
-        customer: customer || sale.customers || null,
-      });
+        if (saleRes.error) throw saleRes.error;
+        const fullSale = saleRes.data || sale;
+        if (!fullSale) throw new Error("Venda não encontrada");
 
-      if (autoPrint) setPendingReceiptPrint(mode);
-    } catch (error) {
-      console.error("Erro ao carregar recibo:", error);
-      setReceiptError("Não foi possível carregar o recibo desta venda.");
-    } finally {
-      setReceiptLoading(false);
-    }
-  }, []);
+        const [{ data: org }, { data: orgSettings }, { data: customer }, { data: seller }] =
+          await Promise.all([
+            fullSale.organization_id
+              ? (supabase as any)
+                  .from("organizations")
+                  .select("name")
+                  .eq("id", fullSale.organization_id)
+                  .maybeSingle()
+              : Promise.resolve({ data: null }),
+            fullSale.organization_id
+              ? (supabase as any)
+                  .from("organization_settings")
+                  .select("*")
+                  .eq("organization_id", fullSale.organization_id)
+                  .maybeSingle()
+              : Promise.resolve({ data: null }),
+            fullSale.customer_id
+              ? (supabase as any)
+                  .from("customers")
+                  .select("*")
+                  .eq("id", fullSale.customer_id)
+                  .maybeSingle()
+              : Promise.resolve({ data: sale.customers || null }),
+            fullSale.seller_id
+              ? (supabase as any)
+                  .from("profiles")
+                  .select("full_name, email")
+                  .eq("id", fullSale.seller_id)
+                  .maybeSingle()
+              : Promise.resolve({ data: null }),
+          ]);
+
+        const settings = orgSettings || {};
+        setReceiptData({
+          sale: fullSale,
+          items: itemsRes.data || [],
+          payments: paymentsRes.data || [],
+          org_name: org?.name || "Loja",
+          org: {
+            address: settings.address ?? settings.endereco ?? null,
+            cnpj: settings.cnpj ?? settings.document ?? null,
+            phone: settings.phone ?? settings.telefone ?? null,
+            website: settings.website ?? null,
+            logo_url: settings.brand_logo_url ?? null,
+          },
+          seller: seller ? { name: seller.full_name || seller.email } : null,
+          customer: customer || sale.customers || null,
+        });
+
+        if (autoPrint) setPendingReceiptPrint(mode);
+      } catch (error) {
+        console.error("Erro ao carregar recibo:", error);
+        setReceiptError("Não foi possível carregar o recibo desta venda.");
+      } finally {
+        setReceiptLoading(false);
+      }
+    },
+    [],
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -874,238 +899,248 @@ ul{font-size:12px;line-height:1.6;}
         </div>
       </div>
 
-
       {/* Modal de Detalhes da Venda */}
-      <Dialog open={isDetailsOpen && !isReceiptOpen && !!selectedSale} onOpenChange={setIsDetailsOpen}>
+      <Dialog
+        open={isDetailsOpen && !isReceiptOpen && !!selectedSale}
+        onOpenChange={setIsDetailsOpen}
+      >
         <DialogContent className="sm:max-w-[560px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card">
-          {selectedSale && (() => {
-            const status = selectedSale.status as string;
-            const statusMap: Record<string, { label: string; cls: string; dot: string }> = {
-              concluded: {
-                label: "CONCLUÍDA",
-                cls: "bg-success/10 text-success border-success/30",
-                dot: "bg-success",
-              },
-              pending: {
-                label: "PENDENTE",
-                cls: "bg-warning/10 text-warning border-warning/30",
-                dot: "bg-warning",
-              },
-              cancelled: {
-                label: "CANCELADA",
-                cls: "bg-destructive/10 text-destructive border-destructive/30",
-                dot: "bg-destructive",
-              },
-            };
-            const st = statusMap[status] || statusMap.cancelled;
-            const total = Number(selectedSale.total_amount || 0);
-            const subtotal = Number(selectedSale.subtotal ?? total);
-            const discount = Number(selectedSale.discount || 0);
-            const addition = Number(selectedSale.addition || 0);
-            const saleCode = selectedSale.sale_number
-              ? `#${String(selectedSale.sale_number).padStart(6, "0")}`
-              : `#${selectedSale.id.slice(0, 8).toUpperCase()}`;
-            const brl = (n: number) =>
-              n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-            const isCancelled = status === "cancelled";
+          {selectedSale &&
+            (() => {
+              const status = selectedSale.status as string;
+              const statusMap: Record<string, { label: string; cls: string; dot: string }> = {
+                concluded: {
+                  label: "CONCLUÍDA",
+                  cls: "bg-success/10 text-success border-success/30",
+                  dot: "bg-success",
+                },
+                pending: {
+                  label: "PENDENTE",
+                  cls: "bg-warning/10 text-warning border-warning/30",
+                  dot: "bg-warning",
+                },
+                cancelled: {
+                  label: "CANCELADA",
+                  cls: "bg-destructive/10 text-destructive border-destructive/30",
+                  dot: "bg-destructive",
+                },
+              };
+              const st = statusMap[status] || statusMap.cancelled;
+              const total = Number(selectedSale.total_amount || 0);
+              const subtotal = Number(selectedSale.subtotal ?? total);
+              const discount = Number(selectedSale.discount || 0);
+              const addition = Number(selectedSale.addition || 0);
+              const saleCode = selectedSale.sale_number
+                ? `#${String(selectedSale.sale_number).padStart(6, "0")}`
+                : `#${selectedSale.id.slice(0, 8).toUpperCase()}`;
+              const brl = (n: number) =>
+                n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+              const isCancelled = status === "cancelled";
 
-            return (
-              <div className="flex flex-col">
-                {/* Hero header com gradiente azul */}
-                <div className="relative p-6 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground overflow-hidden">
-                  <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-                  <div className="absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-white/5 blur-2xl pointer-events-none" />
-                  <div className="relative flex items-start justify-between mb-4">
-                    <div className="h-12 w-12 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/20">
-                      <ShoppingBag className="h-6 w-6" />
-                    </div>
-                    <Badge className={`${st.cls} backdrop-blur font-black tracking-wider px-3 py-1 rounded-full`}>
-                      <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${st.dot} animate-pulse inline-block`} />
-                      {st.label}
-                    </Badge>
-                  </div>
-                  <DialogHeader className="text-left relative">
-                    <DialogTitle className="text-2xl font-black tracking-tight">
-                      Venda {saleCode}
-                    </DialogTitle>
-                    <DialogDescription className="text-sm font-medium text-primary-foreground/80 flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5" />
-                      {format(new Date(selectedSale.created_at), "dd 'de' MMMM 'às' HH:mm", {
-                        locale: ptBR,
-                      })}
-                    </DialogDescription>
-                  </DialogHeader>
-                </div>
-
-                <div className="p-6 space-y-4">
-                  {/* Cliente */}
-                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-muted/40 border border-border/60">
-                    <div className="h-11 w-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-base">
-                      {(selectedSale.customers?.name || "C")
-                        .split(" ")
-                        .map((p: string) => p[0])
-                        .slice(0, 2)
-                        .join("")
-                        .toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70">
-                        Cliente
+              return (
+                <div className="flex flex-col">
+                  {/* Hero header com gradiente azul */}
+                  <div className="relative p-6 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground overflow-hidden">
+                    <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+                    <div className="absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+                    <div className="relative flex items-start justify-between mb-4">
+                      <div className="h-12 w-12 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/20">
+                        <ShoppingBag className="h-6 w-6" />
                       </div>
-                      <div className="font-bold text-base truncate">
-                        {selectedSale.customers?.name || "Consumidor Final"}
-                      </div>
-                    </div>
-                    {selectedSale.channel && (
-                      <Badge variant="outline" className="rounded-full font-bold capitalize">
-                        {selectedSale.channel}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Pagamento + Itens */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mb-1.5">
-                        Pagamento
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-primary" />
-                        <span className="font-bold text-sm capitalize truncate">
-                          {selectedSale.payment_method || "Não informado"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mb-1.5">
-                        Identificação
-                      </div>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(selectedSale.id);
-                          toast.success("ID copiado!");
-                        }}
-                        className="flex items-center gap-2 font-mono text-xs font-bold hover:text-primary transition"
-                        title="Copiar ID"
+                      <Badge
+                        className={`${st.cls} backdrop-blur font-black tracking-wider px-3 py-1 rounded-full`}
                       >
-                        <Info className="h-4 w-4 text-primary" />
-                        {selectedSale.id.slice(0, 8).toUpperCase()}
-                      </button>
+                        <span
+                          className={`mr-1.5 h-1.5 w-1.5 rounded-full ${st.dot} animate-pulse inline-block`}
+                        />
+                        {st.label}
+                      </Badge>
                     </div>
+                    <DialogHeader className="text-left relative">
+                      <DialogTitle className="text-2xl font-black tracking-tight">
+                        Venda {saleCode}
+                      </DialogTitle>
+                      <DialogDescription className="text-sm font-medium text-primary-foreground/80 flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        {format(new Date(selectedSale.created_at), "dd 'de' MMMM 'às' HH:mm", {
+                          locale: ptBR,
+                        })}
+                      </DialogDescription>
+                    </DialogHeader>
                   </div>
 
-                  {/* Resumo financeiro */}
-                  <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span className="font-bold">{brl(subtotal)}</span>
-                    </div>
-                    {discount > 0 && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground flex items-center gap-1">
-                          <ArrowDownRight className="h-3.5 w-3.5 text-success" /> Desconto
-                        </span>
-                        <span className="font-bold text-success">- {brl(discount)}</span>
+                  <div className="p-6 space-y-4">
+                    {/* Cliente */}
+                    <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-muted/40 border border-border/60">
+                      <div className="h-11 w-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-base">
+                        {(selectedSale.customers?.name || "C")
+                          .split(" ")
+                          .map((p: string) => p[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase()}
                       </div>
-                    )}
-                    {addition > 0 && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground flex items-center gap-1">
-                          <ArrowUpRight className="h-3.5 w-3.5 text-warning" /> Acréscimo
-                        </span>
-                        <span className="font-bold text-warning">+ {brl(addition)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70">
+                          Cliente
+                        </div>
+                        <div className="font-bold text-base truncate">
+                          {selectedSale.customers?.name || "Consumidor Final"}
+                        </div>
                       </div>
-                    )}
-                    <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
-                      <span className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
-                        Total da Venda
-                      </span>
-                      <span className="text-2xl font-black text-primary">{brl(total)}</span>
+                      {selectedSale.channel && (
+                        <Badge variant="outline" className="rounded-full font-bold capitalize">
+                          {selectedSale.channel}
+                        </Badge>
+                      )}
                     </div>
-                  </div>
 
-                  {/* Ações */}
-                  <div className="grid grid-cols-3 gap-2 pt-1">
-                    <Button
-                      variant="outline"
-                      className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px] disabled:opacity-50"
-                      disabled={isCancelled}
-                      onClick={() => {
-                        if (isCancelled) {
-                          toast.error("Vendas canceladas não podem ser editadas.");
-                          return;
-                        }
-                        window.open(`/pdv?edit=${selectedSale.id}`, "_blank");
-                        setIsDetailsOpen(false);
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                      Editar
-                    </Button>
-                    <Button
-                      className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
-                      onClick={() => {
-                        setIsDetailsOpen(false);
-                        openReceiptPopup(selectedSale);
-                      }}
-                    >
-                      <Eye className="h-4 w-4" />
-                      Recibo
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
-                      onClick={() => {
-                        toast.info("Preparando cupom...");
-                        openReceiptPopup(selectedSale, "a4", true);
-                      }}
-                    >
-                      <Printer className="h-4 w-4" />
-                      Imprimir
-                    </Button>
-                  </div>
+                    {/* Pagamento + Itens */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                          Pagamento
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-primary" />
+                          <span className="font-bold text-sm capitalize truncate">
+                            {selectedSale.payment_method || "Não informado"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                          Identificação
+                        </div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedSale.id);
+                            toast.success("ID copiado!");
+                          }}
+                          className="flex items-center gap-2 font-mono text-xs font-bold hover:text-primary transition"
+                          title="Copiar ID"
+                        >
+                          <Info className="h-4 w-4 text-primary" />
+                          {selectedSale.id.slice(0, 8).toUpperCase()}
+                        </button>
+                      </div>
+                    </div>
 
-                  {/* Compartilhar */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 rounded-lg font-semibold text-xs gap-1.5"
-                      onClick={() => {
-                        const url = `${window.location.origin}/recibo/${selectedSale.id}`;
-                        const msg = `Olá! Segue o recibo da sua compra ${saleCode}: ${url}`;
-                        const phone = (selectedSale.customers as any)?.phone?.replace(/\D/g, "") || "";
-                        window.open(
-                          `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,
-                          "_blank",
-                        );
-                      }}
-                    >
-                      <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-9 rounded-lg font-semibold text-xs gap-1.5"
-                      onClick={() => {
-                        const url = `${window.location.origin}/recibo/${selectedSale.id}`;
-                        navigator.clipboard.writeText(url);
-                        toast.success("Link do recibo copiado!");
-                      }}
-                    >
-                      <Share2 className="h-3.5 w-3.5" /> Copiar link
-                    </Button>
+                    {/* Resumo financeiro */}
+                    <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-4 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="font-bold">{brl(subtotal)}</span>
+                      </div>
+                      {discount > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <ArrowDownRight className="h-3.5 w-3.5 text-success" /> Desconto
+                          </span>
+                          <span className="font-bold text-success">- {brl(discount)}</span>
+                        </div>
+                      )}
+                      {addition > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground flex items-center gap-1">
+                            <ArrowUpRight className="h-3.5 w-3.5 text-warning" /> Acréscimo
+                          </span>
+                          <span className="font-bold text-warning">+ {brl(addition)}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-border/50 pt-2 mt-2 flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+                          Total da Venda
+                        </span>
+                        <span className="text-2xl font-black text-primary">{brl(total)}</span>
+                      </div>
+                    </div>
+
+                    {/* Ações */}
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <Button
+                        variant="outline"
+                        className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px] disabled:opacity-50"
+                        disabled={isCancelled}
+                        onClick={() => {
+                          if (isCancelled) {
+                            toast.error("Vendas canceladas não podem ser editadas.");
+                            return;
+                          }
+                          window.open(`/pdv?edit=${selectedSale.id}`, "_blank");
+                          setIsDetailsOpen(false);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                        Editar
+                      </Button>
+                      <Button
+                        className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
+                        onClick={() => {
+                          setIsDetailsOpen(false);
+                          openReceiptPopup(selectedSale);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                        Recibo
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-11 rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-[11px]"
+                        onClick={() => {
+                          toast.info("Preparando cupom...");
+                          openReceiptPopup(selectedSale, "a4", true);
+                        }}
+                      >
+                        <Printer className="h-4 w-4" />
+                        Imprimir
+                      </Button>
+                    </div>
+
+                    {/* Compartilhar */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 rounded-lg font-semibold text-xs gap-1.5"
+                        onClick={() => {
+                          const url = `${window.location.origin}/recibo/${selectedSale.id}`;
+                          const msg = `Olá! Segue o recibo da sua compra ${saleCode}: ${url}`;
+                          const phone =
+                            (selectedSale.customers as any)?.phone?.replace(/\D/g, "") || "";
+                          window.open(
+                            `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`,
+                            "_blank",
+                          );
+                        }}
+                      >
+                        <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-9 rounded-lg font-semibold text-xs gap-1.5"
+                        onClick={() => {
+                          const url = `${window.location.origin}/recibo/${selectedSale.id}`;
+                          navigator.clipboard.writeText(url);
+                          toast.success("Link do recibo copiado!");
+                        }}
+                      >
+                        <Share2 className="h-3.5 w-3.5" /> Copiar link
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
         </DialogContent>
       </Dialog>
 
       {/* Modal do Recibo */}
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
-        <DialogContent className={`${receiptMode === "80mm" ? "max-w-[420px]" : "max-w-[940px]"} max-h-[92vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60`}>
+        <DialogContent
+          className={`${receiptMode === "80mm" ? "max-w-[420px]" : "max-w-[940px]"} max-h-[92vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60`}
+        >
           <div className="print:hidden flex items-center justify-between gap-3 px-5 py-4 border-b border-border/60 bg-muted/30">
             <div>
               <DialogTitle className="text-lg font-black tracking-tight">
@@ -1136,7 +1171,11 @@ ul{font-size:12px;line-height:1.6;}
                 </Button>
               </div>
             ) : receiptData ? (
-              receiptMode === "80mm" ? <Receipt80mm data={receiptData} /> : <ReceiptPreview data={receiptData} />
+              receiptMode === "80mm" ? (
+                <Receipt80mm data={receiptData} />
+              ) : (
+                <ReceiptPreview data={receiptData} />
+              )
             ) : null}
           </div>
         </DialogContent>
@@ -1151,7 +1190,9 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
   const total = Number(sale.total_amount ?? 0);
   const receiptId = sale.sale_number
     ? `MP${String(sale.sale_number).padStart(10, "0")}`
-    : `MP${String(sale.id || "").slice(0, 8).toUpperCase()}`;
+    : `MP${String(sale.id || "")
+        .slice(0, 8)
+        .toUpperCase()}`;
   const saleDate = sale.created_at ? new Date(sale.created_at).toLocaleDateString("pt-BR") : "";
   const sellerName = data.seller?.name || "—";
   const customerDocument = customer.document ?? customer.cpf ?? customer.cnpj ?? "";
@@ -1175,7 +1216,9 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
         <tbody>
           <tr>
             <td className="border border-black px-2 py-1 w-[28%]">Data de recebimento</td>
-            <td className="border border-black px-2 py-1">Identificação e assinatura do recebedor</td>
+            <td className="border border-black px-2 py-1">
+              Identificação e assinatura do recebedor
+            </td>
             <td className="border border-black px-2 py-1 w-[28%]">
               Recibo da venda: <span className="font-bold">{receiptId}</span>
             </td>
@@ -1204,9 +1247,15 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
               {data.org?.phone && <p>Telefone: {data.org.phone}</p>}
             </td>
             <td className="border border-black px-3 py-2 align-top">
-              <p><span className="font-bold">{saleDate}</span></p>
-              <p><span className="font-bold">VENDEDOR:</span> {sellerName}</p>
-              <p><span className="font-bold">RECIBO DA VENDA:</span> {receiptId}</p>
+              <p>
+                <span className="font-bold">{saleDate}</span>
+              </p>
+              <p>
+                <span className="font-bold">VENDEDOR:</span> {sellerName}
+              </p>
+              <p>
+                <span className="font-bold">RECIBO DA VENDA:</span> {receiptId}
+              </p>
             </td>
           </tr>
         </tbody>
@@ -1218,9 +1267,15 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
       <table className="w-full border-collapse text-[12px]">
         <thead>
           <tr className="bg-neutral-50">
-            <th className="border border-black px-2 py-1 text-center font-bold">Nome/Razão social</th>
-            <th className="border border-black px-2 py-1 text-center font-bold w-[18%]">Telefone</th>
-            <th className="border border-black px-2 py-1 text-center font-bold w-[18%]">CPF/CNPJ</th>
+            <th className="border border-black px-2 py-1 text-center font-bold">
+              Nome/Razão social
+            </th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[18%]">
+              Telefone
+            </th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[18%]">
+              CPF/CNPJ
+            </th>
             <th className="border border-black px-2 py-1 text-center font-bold w-[22%]">E-mail</th>
           </tr>
         </thead>
@@ -1255,58 +1310,115 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
             <th className="border border-black px-2 py-1 text-center font-bold w-[10%]">Cód</th>
             <th className="border border-black px-2 py-1 text-center font-bold">Produto</th>
             <th className="border border-black px-2 py-1 text-center font-bold w-[6%]">Qtd</th>
-            <th className="border border-black px-2 py-1 text-center font-bold w-[14%]">Valor Unitário</th>
-            <th className="border border-black px-2 py-1 text-center font-bold w-[12%]">Desconto</th>
-            <th className="border border-black px-2 py-1 text-center font-bold w-[14%]">Valor Total</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[14%]">
+              Valor Unitário
+            </th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[12%]">
+              Desconto
+            </th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[14%]">
+              Valor Total
+            </th>
           </tr>
         </thead>
         <tbody>
-          {(data.items.length ? data.items : [{ id: "empty", product_name: "Itens da venda", quantity: 1, unit_price: total, total }]).map((item: any) => {
-            const description = [item.product_name, item.imei ? `IMEI: ${item.imei}` : null, item.model]
+          {(data.items.length
+            ? data.items
+            : [
+                {
+                  id: "empty",
+                  product_name: "Itens da venda",
+                  quantity: 1,
+                  unit_price: total,
+                  total,
+                },
+              ]
+          ).map((item: any) => {
+            const description = [
+              item.product_name,
+              item.imei ? `IMEI: ${item.imei}` : null,
+              item.model,
+            ]
               .filter(Boolean)
               .join(" - ");
             return (
               <tr key={item.id}>
-                <td className="border border-black px-2 py-1 align-top">{item.sku || (item.product_id ? item.product_id.slice(0, 7) : "")}</td>
+                <td className="border border-black px-2 py-1 align-top">
+                  {item.sku || (item.product_id ? item.product_id.slice(0, 7) : "")}
+                </td>
                 <td className="border border-black px-2 py-1 align-top">{description}</td>
-                <td className="border border-black px-2 py-1 align-top text-center">{item.quantity}</td>
-                <td className="border border-black px-2 py-1 align-top text-right">{formatCurrency(Number(item.unit_price))}</td>
-                <td className="border border-black px-2 py-1 align-top text-right">{item.discount ? formatCurrency(Number(item.discount)) : "R$"}</td>
-                <td className="border border-black px-2 py-1 align-top text-right">{formatCurrency(Number(item.total))}</td>
+                <td className="border border-black px-2 py-1 align-top text-center">
+                  {item.quantity}
+                </td>
+                <td className="border border-black px-2 py-1 align-top text-right">
+                  {formatCurrency(Number(item.unit_price))}
+                </td>
+                <td className="border border-black px-2 py-1 align-top text-right">
+                  {item.discount ? formatCurrency(Number(item.discount)) : "R$"}
+                </td>
+                <td className="border border-black px-2 py-1 align-top text-right">
+                  {formatCurrency(Number(item.total))}
+                </td>
               </tr>
             );
           })}
           <tr>
-            <td className="border border-black px-2 py-1 text-right font-bold" colSpan={3}>Total</td>
-            <td className="border border-black px-2 py-1 text-right font-bold">{formatCurrency(Number(sale.subtotal ?? total))}</td>
-            <td className="border border-black px-2 py-1 text-right font-bold">{sale.discount ? formatCurrency(Number(sale.discount)) : "R$"}</td>
-            <td className="border border-black px-2 py-1 text-right font-bold">{formatCurrency(total)}</td>
+            <td className="border border-black px-2 py-1 text-right font-bold" colSpan={3}>
+              Total
+            </td>
+            <td className="border border-black px-2 py-1 text-right font-bold">
+              {formatCurrency(Number(sale.subtotal ?? total))}
+            </td>
+            <td className="border border-black px-2 py-1 text-right font-bold">
+              {sale.discount ? formatCurrency(Number(sale.discount)) : "R$"}
+            </td>
+            <td className="border border-black px-2 py-1 text-right font-bold">
+              {formatCurrency(total)}
+            </td>
           </tr>
         </tbody>
       </table>
 
-      <div className="px-3 pt-3 pb-1"><p className="text-[12px] font-bold">PAGAMENTO</p></div>
+      <div className="px-3 pt-3 pb-1">
+        <p className="text-[12px] font-bold">PAGAMENTO</p>
+      </div>
       <table className="w-full border-collapse text-[12px]">
         <thead>
           <tr className="bg-neutral-50">
-            <th className="border border-black px-2 py-1 text-center font-bold w-[25%]">Forma de Pagamento</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[25%]">
+              Forma de Pagamento
+            </th>
             <th className="border border-black px-2 py-1 text-center font-bold">Detalhes</th>
-            <th className="border border-black px-2 py-1 text-center font-bold w-[20%]">Valor Pago</th>
-            <th className="border border-black px-2 py-1 text-center font-bold w-[12%]">Parcelas</th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[20%]">
+              Valor Pago
+            </th>
+            <th className="border border-black px-2 py-1 text-center font-bold w-[12%]">
+              Parcelas
+            </th>
           </tr>
         </thead>
         <tbody>
           {payments.map((payment: any, index: number) => (
             <tr key={index}>
-              <td className="border border-black px-2 py-1">{METHOD_LABEL[payment.method] || payment.method}</td>
+              <td className="border border-black px-2 py-1">
+                {METHOD_LABEL[payment.method] || payment.method}
+              </td>
               <td className="border border-black px-2 py-1"></td>
-              <td className="border border-black px-2 py-1 text-right">{formatCurrency(Number(payment.amount))}</td>
-              <td className="border border-black px-2 py-1 text-center">{payment.installments ?? 1}</td>
+              <td className="border border-black px-2 py-1 text-right">
+                {formatCurrency(Number(payment.amount))}
+              </td>
+              <td className="border border-black px-2 py-1 text-center">
+                {payment.installments ?? 1}
+              </td>
             </tr>
           ))}
           <tr>
-            <td className="border border-black px-2 py-1 text-right font-bold" colSpan={2}>Total</td>
-            <td className="border border-black px-2 py-1 text-right font-bold">{formatCurrency(total)}</td>
+            <td className="border border-black px-2 py-1 text-right font-bold" colSpan={2}>
+              Total
+            </td>
+            <td className="border border-black px-2 py-1 text-right font-bold">
+              {formatCurrency(total)}
+            </td>
             <td className="border border-black px-2 py-1"></td>
           </tr>
         </tbody>
@@ -1319,8 +1431,12 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
         <div className="h-10"></div>
       </div>
       <div className="px-6 pb-3 pt-6 grid grid-cols-2 gap-10 text-center text-[12px]">
-        <div><div className="border-t border-black pt-1">{customer.name || ""}</div></div>
-        <div><div className="border-t border-black pt-1">{data.org_name}</div></div>
+        <div>
+          <div className="border-t border-black pt-1">{customer.name || ""}</div>
+        </div>
+        <div>
+          <div className="border-t border-black pt-1">{data.org_name}</div>
+        </div>
       </div>
       <div className="text-center text-[12px] py-3">OBRIGADO PELA PREFERÊNCIA.</div>
 
@@ -1344,7 +1460,9 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
   const discount = Number(sale.discount ?? 0);
   const receiptNumber = sale.sale_number
     ? String(sale.sale_number).padStart(7, "0")
-    : String(sale.id || "").slice(0, 7).toUpperCase();
+    : String(sale.id || "")
+        .slice(0, 7)
+        .toUpperCase();
   const saleDate = sale.created_at ? new Date(sale.created_at).toLocaleDateString("pt-BR") : "";
   const sellerName = data.seller?.name || "—";
   const customerDocument = customer.document ?? customer.cpf ?? customer.cnpj ?? "";
@@ -1353,14 +1471,25 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
     customer.neighborhood ?? customer.bairro,
     customer.city ?? customer.cidade,
     customer.state ?? customer.estado ?? customer.uf,
-  ].filter(Boolean).join(", ");
+  ]
+    .filter(Boolean)
+    .join(", ");
   const payments = data.payments.length
     ? data.payments
     : [{ method: sale.payment_method || "—", amount: total, installments: 1 }];
   const deliveryType = sale.delivery_type || sale.channel || "Retirada";
 
   return (
-    <div className="receipt-print-area mx-auto bg-white text-black shadow-xl print:shadow-none" style={{ width: "80mm", padding: "4mm", fontFamily: "'Courier New', ui-monospace, monospace", fontSize: "11px", lineHeight: 1.35 }}>
+    <div
+      className="receipt-print-area mx-auto bg-white text-black shadow-xl print:shadow-none"
+      style={{
+        width: "80mm",
+        padding: "4mm",
+        fontFamily: "'Courier New', ui-monospace, monospace",
+        fontSize: "11px",
+        lineHeight: 1.35,
+      }}
+    >
       <div className="text-center">
         <div className="font-bold text-[12px]">Nº {receiptNumber}</div>
         {data.org?.logo_url && (
@@ -1368,30 +1497,68 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
             src={data.org.logo_url}
             alt={data.org_name}
             className="mx-auto my-1 receipt-logo"
-            style={{ maxHeight: "55px", objectFit: "contain", display: "block", marginLeft: "auto", marginRight: "auto" }}
+            style={{
+              maxHeight: "55px",
+              objectFit: "contain",
+              display: "block",
+              marginLeft: "auto",
+              marginRight: "auto",
+            }}
           />
         )}
         <div className="font-bold text-[13px]">{data.org_name}</div>
       </div>
 
       <div className="mt-2 space-y-0.5">
-        {data.org?.cnpj && <div><span className="font-bold">CNPJ:</span> {data.org.cnpj}</div>}
-        {data.org?.address && <div><span className="font-bold">Endereço:</span> {data.org.address}</div>}
-        {data.org?.phone && <div><span className="font-bold">Fone:</span> {data.org.phone}</div>}
+        {data.org?.cnpj && (
+          <div>
+            <span className="font-bold">CNPJ:</span> {data.org.cnpj}
+          </div>
+        )}
+        {data.org?.address && (
+          <div>
+            <span className="font-bold">Endereço:</span> {data.org.address}
+          </div>
+        )}
+        {data.org?.phone && (
+          <div>
+            <span className="font-bold">Fone:</span> {data.org.phone}
+          </div>
+        )}
       </div>
 
       <div className="mt-2 space-y-0.5">
-        <div><span className="font-bold">Vendedor(a):</span> {sellerName}</div>
-        <div><span className="font-bold">Data da venda:</span> {saleDate}</div>
-        <div><span className="font-bold">Tipo de Entrega:</span> {deliveryType}</div>
+        <div>
+          <span className="font-bold">Vendedor(a):</span> {sellerName}
+        </div>
+        <div>
+          <span className="font-bold">Data da venda:</span> {saleDate}
+        </div>
+        <div>
+          <span className="font-bold">Tipo de Entrega:</span> {deliveryType}
+        </div>
       </div>
 
       <div className="mt-2">
         <div className="font-bold">DADOS DO CLIENTE</div>
-        <div><span className="font-bold">Cliente:</span> {customer.name || "—"}</div>
-        {customerDocument && <div><span className="font-bold">CNPJ/CPF:</span> {customerDocument}</div>}
-        {customerAddress && <div><span className="font-bold">Endereço:</span> {customerAddress}</div>}
-        {customer.phone && <div><span className="font-bold">Fone:</span> {customer.phone}</div>}
+        <div>
+          <span className="font-bold">Cliente:</span> {customer.name || "—"}
+        </div>
+        {customerDocument && (
+          <div>
+            <span className="font-bold">CNPJ/CPF:</span> {customerDocument}
+          </div>
+        )}
+        {customerAddress && (
+          <div>
+            <span className="font-bold">Endereço:</span> {customerAddress}
+          </div>
+        )}
+        {customer.phone && (
+          <div>
+            <span className="font-bold">Fone:</span> {customer.phone}
+          </div>
+        )}
       </div>
 
       <div className="mt-2">
@@ -1407,8 +1574,24 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
             </tr>
           </thead>
           <tbody>
-            {(data.items.length ? data.items : [{ id: "empty", product_name: "Itens da venda", quantity: 1, unit_price: total, total, discount: 0 }]).map((item: any) => {
-              const description = [item.product_name, item.imei ? `IMEI: ${item.imei}` : null, item.sku ? `Id: ${item.sku}` : null]
+            {(data.items.length
+              ? data.items
+              : [
+                  {
+                    id: "empty",
+                    product_name: "Itens da venda",
+                    quantity: 1,
+                    unit_price: total,
+                    total,
+                    discount: 0,
+                  },
+                ]
+            ).map((item: any) => {
+              const description = [
+                item.product_name,
+                item.imei ? `IMEI: ${item.imei}` : null,
+                item.sku ? `Id: ${item.sku}` : null,
+              ]
                 .filter(Boolean)
                 .join(" - ");
               return (
@@ -1416,7 +1599,9 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
                   <td className="py-0.5 pr-1 break-words">{description}</td>
                   <td className="text-center">{item.quantity}</td>
                   <td className="text-right">{formatCurrency(Number(item.unit_price))}</td>
-                  <td className="text-right">{item.discount ? formatCurrency(Number(item.discount)) : "-"}</td>
+                  <td className="text-right">
+                    {item.discount ? formatCurrency(Number(item.discount)) : "-"}
+                  </td>
                   <td className="text-right">{formatCurrency(Number(item.total))}</td>
                 </tr>
               );
@@ -1455,7 +1640,9 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
 
       <div className="mt-3">
         <div>Obs: {sale.notes || ""}</div>
-        <div className="mt-6 border-t border-black pt-1 text-center text-[10px]">Assinatura do cliente</div>
+        <div className="mt-6 border-t border-black pt-1 text-center text-[10px]">
+          Assinatura do cliente
+        </div>
       </div>
 
       <div className="mt-3 text-center text-[10px] border-t border-dashed border-black pt-2">
