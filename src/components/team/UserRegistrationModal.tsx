@@ -68,10 +68,11 @@ const HOME_SCREENS = [
   "CRM",
 ];
 
-export function UserRegistrationModal({ open, onOpenChange, onCreated }: Props) {
+export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }: Props) {
   const { orgId, userId } = useOrg();
   const { user } = useAuth();
   const { orgs } = useUserOrgs();
+  const isEdit = !!initial?.id;
 
   const [ativo, setAtivo] = useState("Sim");
   const [nome, setNome] = useState("");
@@ -88,11 +89,23 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated }: Props) 
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      // pré-seleciona loja ativa
+    if (!open) return;
+    if (initial) {
+      const m = initial.metadata || {};
+      setAtivo(m.ativo === false ? "Não" : "Sim");
+      setNome(m.nome || "");
+      setEmail(initial.email || "");
+      setSenha("");
+      setConfirmar("");
+      setPerfis(m.perfis || []);
+      setCustomPerfis(m.custom_perfis || []);
+      setQuickProfile(m.perfil_rapido || "");
+      setTelaInicial(m.tela_inicial || "");
+      setLojas(m.lojas?.length ? m.lojas : orgId ? [orgId] : []);
+    } else {
       setLojas(orgId ? [orgId] : []);
     }
-  }, [open, orgId]);
+  }, [open, orgId, initial]);
 
   const togglePerfil = (p: string) => {
     setPerfis((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
