@@ -87,8 +87,8 @@ import { Route as MinhaContaSegurancaRouteImport } from './routes/minha-conta.se
 import { Route as MinhaContaLgpdRouteImport } from './routes/minha-conta.lgpd'
 import { Route as MinhaContaCobrancasRouteImport } from './routes/minha-conta.cobrancas'
 import { Route as MAtendimentoRouteImport } from './routes/m.atendimento'
+import { Route as FinanceiroNotasAbertoRouteImport } from './routes/financeiro_.notas-aberto'
 import { Route as FinanceiroPlanoContasRouteImport } from './routes/financeiro.plano-contas'
-import { Route as FinanceiroNotasAbertoRouteImport } from './routes/financeiro.notas-aberto'
 import { Route as FinanceiroMaquininhasRouteImport } from './routes/financeiro.maquininhas'
 import { Route as FinanceiroFornecedoresRouteImport } from './routes/financeiro.fornecedores'
 import { Route as FinanceiroDreRouteImport } from './routes/financeiro.dre'
@@ -502,14 +502,14 @@ const MAtendimentoRoute = MAtendimentoRouteImport.update({
   path: '/m/atendimento',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceiroNotasAbertoRoute = FinanceiroNotasAbertoRouteImport.update({
+  id: '/financeiro_/notas-aberto',
+  path: '/financeiro/notas-aberto',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinanceiroPlanoContasRoute = FinanceiroPlanoContasRouteImport.update({
   id: '/plano-contas',
   path: '/plano-contas',
-  getParentRoute: () => FinanceiroRoute,
-} as any)
-const FinanceiroNotasAbertoRoute = FinanceiroNotasAbertoRouteImport.update({
-  id: '/notas-aberto',
-  path: '/notas-aberto',
   getParentRoute: () => FinanceiroRoute,
 } as any)
 const FinanceiroMaquininhasRoute = FinanceiroMaquininhasRouteImport.update({
@@ -695,8 +695,8 @@ export interface FileRoutesByFullPath {
   '/financeiro/dre': typeof FinanceiroDreRoute
   '/financeiro/fornecedores': typeof FinanceiroFornecedoresRoute
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
-  '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/m/atendimento': typeof MAtendimentoRoute
   '/minha-conta/cobrancas': typeof MinhaContaCobrancasRoute
   '/minha-conta/lgpd': typeof MinhaContaLgpdRoute
@@ -799,8 +799,8 @@ export interface FileRoutesByTo {
   '/financeiro/dre': typeof FinanceiroDreRoute
   '/financeiro/fornecedores': typeof FinanceiroFornecedoresRoute
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
-  '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/m/atendimento': typeof MAtendimentoRoute
   '/minha-conta/cobrancas': typeof MinhaContaCobrancasRoute
   '/minha-conta/lgpd': typeof MinhaContaLgpdRoute
@@ -904,8 +904,8 @@ export interface FileRoutesById {
   '/financeiro/dre': typeof FinanceiroDreRoute
   '/financeiro/fornecedores': typeof FinanceiroFornecedoresRoute
   '/financeiro/maquininhas': typeof FinanceiroMaquininhasRoute
-  '/financeiro/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/financeiro/plano-contas': typeof FinanceiroPlanoContasRoute
+  '/financeiro_/notas-aberto': typeof FinanceiroNotasAbertoRoute
   '/m/atendimento': typeof MAtendimentoRoute
   '/minha-conta/cobrancas': typeof MinhaContaCobrancasRoute
   '/minha-conta/lgpd': typeof MinhaContaLgpdRoute
@@ -1010,8 +1010,8 @@ export interface FileRouteTypes {
     | '/financeiro/dre'
     | '/financeiro/fornecedores'
     | '/financeiro/maquininhas'
-    | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/financeiro/notas-aberto'
     | '/m/atendimento'
     | '/minha-conta/cobrancas'
     | '/minha-conta/lgpd'
@@ -1114,8 +1114,8 @@ export interface FileRouteTypes {
     | '/financeiro/dre'
     | '/financeiro/fornecedores'
     | '/financeiro/maquininhas'
-    | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/financeiro/notas-aberto'
     | '/m/atendimento'
     | '/minha-conta/cobrancas'
     | '/minha-conta/lgpd'
@@ -1218,8 +1218,8 @@ export interface FileRouteTypes {
     | '/financeiro/dre'
     | '/financeiro/fornecedores'
     | '/financeiro/maquininhas'
-    | '/financeiro/notas-aberto'
     | '/financeiro/plano-contas'
+    | '/financeiro_/notas-aberto'
     | '/m/atendimento'
     | '/minha-conta/cobrancas'
     | '/minha-conta/lgpd'
@@ -1313,6 +1313,7 @@ export interface RootRouteChildren {
   CrmBotRoute: typeof CrmBotRoute
   CrmCatalogoRoute: typeof CrmCatalogoRoute
   CrmConversasRoute: typeof CrmConversasRoute
+  FinanceiroNotasAbertoRoute: typeof FinanceiroNotasAbertoRoute
   MAtendimentoRoute: typeof MAtendimentoRoute
   OrcamentoIdRoute: typeof OrcamentoIdRoute
   OsTermoIdRoute: typeof OsTermoIdRoute
@@ -1873,18 +1874,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MAtendimentoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/financeiro_/notas-aberto': {
+      id: '/financeiro_/notas-aberto'
+      path: '/financeiro/notas-aberto'
+      fullPath: '/financeiro/notas-aberto'
+      preLoaderRoute: typeof FinanceiroNotasAbertoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/financeiro/plano-contas': {
       id: '/financeiro/plano-contas'
       path: '/plano-contas'
       fullPath: '/financeiro/plano-contas'
       preLoaderRoute: typeof FinanceiroPlanoContasRouteImport
-      parentRoute: typeof FinanceiroRoute
-    }
-    '/financeiro/notas-aberto': {
-      id: '/financeiro/notas-aberto'
-      path: '/notas-aberto'
-      fullPath: '/financeiro/notas-aberto'
-      preLoaderRoute: typeof FinanceiroNotasAbertoRouteImport
       parentRoute: typeof FinanceiroRoute
     }
     '/financeiro/maquininhas': {
@@ -2080,7 +2081,6 @@ interface FinanceiroRouteChildren {
   FinanceiroDreRoute: typeof FinanceiroDreRoute
   FinanceiroFornecedoresRoute: typeof FinanceiroFornecedoresRoute
   FinanceiroMaquininhasRoute: typeof FinanceiroMaquininhasRoute
-  FinanceiroNotasAbertoRoute: typeof FinanceiroNotasAbertoRoute
   FinanceiroPlanoContasRoute: typeof FinanceiroPlanoContasRoute
 }
 
@@ -2089,7 +2089,6 @@ const FinanceiroRouteChildren: FinanceiroRouteChildren = {
   FinanceiroDreRoute: FinanceiroDreRoute,
   FinanceiroFornecedoresRoute: FinanceiroFornecedoresRoute,
   FinanceiroMaquininhasRoute: FinanceiroMaquininhasRoute,
-  FinanceiroNotasAbertoRoute: FinanceiroNotasAbertoRoute,
   FinanceiroPlanoContasRoute: FinanceiroPlanoContasRoute,
 }
 
@@ -2236,6 +2235,7 @@ const rootRouteChildren: RootRouteChildren = {
   CrmBotRoute: CrmBotRoute,
   CrmCatalogoRoute: CrmCatalogoRoute,
   CrmConversasRoute: CrmConversasRoute,
+  FinanceiroNotasAbertoRoute: FinanceiroNotasAbertoRoute,
   MAtendimentoRoute: MAtendimentoRoute,
   OrcamentoIdRoute: OrcamentoIdRoute,
   OsTermoIdRoute: OsTermoIdRoute,
@@ -2250,3 +2250,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
