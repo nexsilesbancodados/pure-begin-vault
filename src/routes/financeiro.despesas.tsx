@@ -4,9 +4,12 @@ import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { HubHero } from "@/components/layout/HubHero";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, TrendingDown, Receipt } from "lucide-react";
 import { ExpenseForm } from "@/components/financeiro/ExpenseForm";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/lib/useOrg";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/financeiro/despesas")({
   head: () => ({
@@ -20,27 +23,44 @@ export const Route = createFileRoute("/financeiro/despesas")({
 
 function DespesasPage() {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const { orgId } = useOrg();
+
+  const handleSave = async (data: any) => {
+    if (!user?.id) return;
+    try {
+      const payload = { ...data, type: "expense" };
+      const { error } = await supabase
+        .from("finance_transactions")
+        .insert([{ ...payload, user_id: user.id, organization_id: orgId }]);
+      if (error) throw error;
+      toast.success("Despesa lançada!");
+      setOpen(false);
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao salvar despesa");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <Topbar />
+        <Topbar title="Despesas" subtitle="Contas a pagar e saídas" />
         <main className="flex-1 p-6 lg:p-8 space-y-6">
           <HubHero
             eyebrow="Financeiro"
             icon={TrendingDown}
             title="Despesas"
-            subtitle="Cadastre contas a pagar, saídas e despesas operacionais."
-            actions={
-              <Button
-                onClick={() => setOpen(true)}
-                className="bg-white text-primary hover:bg-white/90 font-semibold shadow-lg"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Lançamento
-              </Button>
-            }
+            description="Cadastre contas a pagar, saídas e despesas operacionais."
+            actions={[
+              {
+                label: "Novo Lançamento",
+                icon: Plus,
+                onClick: () => setOpen(true),
+                variant: "primary",
+              },
+            ]}
           />
 
           <div className="flex flex-col items-center justify-center text-center py-24 rounded-2xl border border-dashed border-border bg-card/40">
@@ -61,14 +81,12 @@ function DespesasPage() {
         </main>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Novo Lançamento</DialogTitle>
-          </DialogHeader>
-          <ExpenseForm onSuccess={() => setOpen(false)} onCancel={() => setOpen(false)} />
-        </DialogContent>
-      </Dialog>
+      <ExpenseForm
+        open={open}
+        onOpenChange={setOpen}
+        onSave={handleSave}
+        variant="expense"
+      />
     </div>
   );
 }
