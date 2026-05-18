@@ -431,7 +431,7 @@ function ProductsPage() {
                     ) : (
                       <ShoppingBag className="h-12 w-12 text-muted-foreground/30 group-hover:scale-110 transition duration-300" />
                     )}
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-3 right-3" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button className="h-8 w-8 rounded-full bg-white/80 backdrop-blur-sm grid place-items-center hover:bg-white text-foreground shadow-sm">
