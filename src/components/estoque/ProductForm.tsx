@@ -55,6 +55,16 @@ const IPHONE_MODELS = [
   "iPhone 17", "iPhone 17 Plus", "iPhone 17 Pro", "iPhone 17 Pro Max",
 ];
 
+const IPHONE_CORES = [
+  "Preto", "Branco", "Cinza Espacial", "Prateado", "Dourado", "Rose Gold",
+  "Vermelho (PRODUCT)RED", "Coral", "Amarelo", "Azul", "Verde", "Verde-meia-noite",
+  "Roxo", "Roxo Profundo", "Lilás", "Rosa", "Estelar", "Meia-noite",
+  "Azul Sierra", "Azul Pacífico", "Grafite", "Azul Alpino", "Verde Alpino",
+  "Titânio Natural", "Titânio Azul", "Titânio Branco", "Titânio Preto",
+  "Titânio Deserto", "Titânio Areia", "Ultramarino", "Verde-azulado",
+  "Laranja Cósmico", "Azul Profundo",
+];
+
 interface ProductFormData {
   // Core (mapped to columns)
   name: string;
@@ -166,6 +176,17 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
   useEffect(() => {
     localStorage.setItem("product_custom_modelos", JSON.stringify(customModelos));
   }, [customModelos]);
+
+  const [customCores, setCustomCores] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("product_custom_cores") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem("product_custom_cores", JSON.stringify(customCores));
+  }, [customCores]);
 
   useEffect(() => {
     if (!open || !orgId) return;
@@ -538,7 +559,43 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                     </FieldRow>
 
                     <FieldRow label="Cor">
-                      <Input value={form.cor} onChange={(e) => set("cor", e.target.value)} />
+                      <Select
+                        value={form.cor}
+                        onValueChange={(v) => {
+                          if (v === "__add__") {
+                            const nome = window.prompt("Nome da nova cor:")?.trim();
+                            if (!nome) return;
+                            setCustomCores((prev) =>
+                              prev.includes(nome) ? prev : [...prev, nome],
+                            );
+                            set("cor", nome);
+                            return;
+                          }
+                          set("cor", v);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar cor" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-80">
+                          {IPHONE_CORES.map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c}
+                            </SelectItem>
+                          ))}
+                          {customCores.map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c}
+                            </SelectItem>
+                          ))}
+                          <SelectItem
+                            value="__add__"
+                            className="text-primary font-bold border-t mt-1"
+                          >
+                            + Cadastrar nova cor...
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FieldRow>
                     <FieldRow label="Memória RAM">
                       <Select value={form.ram} onValueChange={(v) => set("ram", v)}>
