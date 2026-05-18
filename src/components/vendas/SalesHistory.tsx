@@ -1093,13 +1093,13 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                               icon: ShieldCheck,
                               iconClass: "text-blue-600",
                               label: "Garantia - Lacrado (1 ano)",
-                              onClick: () => openWarrantyPrint(sale, "lacrado"),
+                              onClick: () => openWarrantyDialog(sale, "lacrado"),
                             },
                             {
                               icon: ShieldCheck,
                               iconClass: "text-amber-600",
                               label: "Garantia - Seminovo (7 meses)",
-                              onClick: () => openWarrantyPrint(sale, "seminovo"),
+                              onClick: () => openWarrantyDialog(sale, "seminovo"),
                             },
                             {
                               icon: MessageSquare,
