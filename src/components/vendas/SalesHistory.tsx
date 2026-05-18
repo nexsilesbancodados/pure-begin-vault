@@ -565,7 +565,10 @@ ul{font-size:12px;line-height:1.6;}
                             {
                               icon: Info,
                               label: "Detalhes",
-                              onClick: () => openDetails(sale),
+                              onClick: () => {
+                                setSelectedSale(sale);
+                                setIsDetailsOpen(true);
+                              },
                             },
                             {
                               icon: FileText,
