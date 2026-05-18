@@ -183,24 +183,57 @@ function NotasAbertoPage() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("finance_transactions").insert([
-        {
-          user_id: user.id,
-          organization_id: orgId,
-          description: newNote.description,
-          amount: Number(newNote.amount),
-          due_date: newNote.due_date,
-          supplier_name: newNote.supplier_name,
-          invoice_number: newNote.invoice_number,
-          category: newNote.category,
-          type: "expense",
-          status: "pending",
-          products_list: productsList,
-        },
-      ]);
+      // Build merged products list (manual entries + selected orphans)
+      const orphanItems = orphanProducts
+        .filter((p) => selectedOrphanIds.includes(p.id))
+        .map((p) => ({
+          product_id: p.id,
+          name: p.name,
+          sku: p.sku,
+          quantity: 1,
+          price: Number(p.cost_price || p.sale_price || 0),
+        }));
+
+      const mergedProducts = [...productsList, ...orphanItems];
+
+      const { data: inserted, error } = await supabase
+        .from("finance_transactions")
+        .insert([
+          {
+            user_id: user.id,
+            organization_id: orgId,
+            description: newNote.description,
+            amount: Number(newNote.amount),
+            due_date: newNote.due_date,
+            supplier_name: newNote.supplier_name,
+            invoice_number: newNote.invoice_number,
+            category: newNote.category,
+            type: "expense",
+            status: "pending",
+            products_list: mergedProducts,
+          },
+        ])
+        .select("id")
+        .single();
 
       if (error) throw error;
-      toast.success("Nota cadastrada com sucesso!");
+
+      // Link selected orphan products to the newly created nota
+      if (inserted?.id && selectedOrphanIds.length > 0) {
+        await Promise.all(
+          selectedOrphanIds.map(async (pid) => {
+            const prod = orphanProducts.find((p) => p.id === pid);
+            const newMeta = { ...(prod?.metadata || {}), nota_id: inserted.id };
+            await supabase.from("products").update({ metadata: newMeta }).eq("id", pid);
+          }),
+        );
+      }
+
+      toast.success(
+        selectedOrphanIds.length > 0
+          ? `Nota cadastrada e ${selectedOrphanIds.length} produto(s) vinculado(s)!`
+          : "Nota cadastrada com sucesso!",
+      );
       setIsDialogOpen(false);
       setNewNote({
         description: "",
@@ -211,6 +244,7 @@ function NotasAbertoPage() {
         category: "Compra de Mercadoria",
       });
       setProductsList([]);
+      setSelectedOrphanIds([]);
       fetchTransactions();
     } catch (error) {
       console.error("Erro ao cadastrar nota:", error);
