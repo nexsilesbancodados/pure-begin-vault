@@ -90,12 +90,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (data) {
       setProfile(data);
+      const role = String(data.role ?? "")
+        .trim()
+        .toLowerCase();
       // Atribuir permissões baseadas no cargo
-      if (data.role === "super_admin" || data.role === "owner" || data.role === "admin") {
+      if (role === "super_admin" || role === "owner" || role === "admin") {
         setPermissions(DEFAULT_ADMIN_PERMISSIONS);
-      } else if (data.role === "financeiro") {
+      } else if (role.includes("financeiro")) {
         setPermissions({ ...DEFAULT_EMPLOYEE_PERMISSIONS, financeiro: true, relatorios: true });
-      } else if (data.role === "vendedor") {
+      } else if (role.includes("vendedor")) {
         setPermissions({ ...DEFAULT_EMPLOYEE_PERMISSIONS, vendas: true, pdv: true, crm: true });
       } else {
         setPermissions(DEFAULT_EMPLOYEE_PERMISSIONS);

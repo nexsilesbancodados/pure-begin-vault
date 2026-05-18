@@ -101,6 +101,11 @@ export const saveTeamUserAccess = createServerFn({ method: "POST" })
       role,
       is_default: index === 0,
     }));
+    await supabaseAdmin
+      .from("user_organizations")
+      .update({ is_default: false })
+      .eq("user_id", targetUserId);
+
     const { error: upsertError } = await supabaseAdmin
       .from("user_organizations")
       .upsert(rows, { onConflict: "user_id,organization_id" });
@@ -128,6 +133,7 @@ export const saveTeamUserAccess = createServerFn({ method: "POST" })
         .from("organization_invites")
         .update({
           organization_id: primaryOrgId,
+          email,
           role,
           status: "accepted",
           accepted_at: new Date().toISOString(),

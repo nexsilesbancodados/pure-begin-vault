@@ -19,12 +19,16 @@ type Invite = {
   status: string;
   expires_at: string | null;
   accepted_at: string | null;
+  accepted_by: string | null;
   created_at: string;
   metadata?: {
     nome?: string;
     perfil_rapido?: string;
     tela_inicial?: string;
     ativo?: boolean;
+    lojas?: string[];
+    perfis?: string[];
+    custom_perfis?: string[];
   } | null;
 };
 
@@ -69,7 +73,37 @@ export function InviteFlow() {
     try {
       metaMap = JSON.parse(localStorage.getItem(`invite_meta_${orgId}`) || "{}");
     } catch {}
-    setInvites(raw.map((i) => ({ ...i, metadata: metaMap[i.id] ?? i.metadata ?? null })));
+    const acceptedUserIds = raw.map((i) => i.accepted_by).filter(Boolean) as string[];
+    let accessMap: Record<string, string[]> = {};
+    if (acceptedUserIds.length > 0) {
+      const { data: accessRows } = await (supabase as any)
+        .from("user_organizations")
+        .select("user_id, organization_id")
+        .in("user_id", acceptedUserIds);
+      accessMap = ((accessRows as { user_id: string; organization_id: string }[]) ?? []).reduce(
+        (acc, row) => {
+          acc[row.user_id] = [...(acc[row.user_id] ?? []), row.organization_id];
+          return acc;
+        },
+        {} as Record<string, string[]>,
+      );
+    }
+    setInvites(
+      raw.map((i) => {
+        const metadata = metaMap[i.id] ?? i.metadata ?? null;
+        return {
+          ...i,
+          metadata: {
+            ...(metadata ?? {}),
+            lojas: metadata?.lojas?.length
+              ? metadata.lojas
+              : i.accepted_by
+                ? (accessMap[i.accepted_by] ?? [])
+                : [],
+          },
+        };
+      }),
+    );
     setMembers((mRes.data as Member[]) ?? []);
     setLoading(false);
   };
