@@ -171,6 +171,7 @@ export function SalesHistory() {
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [receiptError, setReceiptError] = useState<string | null>(null);
   const [receiptMode, setReceiptMode] = useState<"a4" | "80mm">("a4");
+  const [pendingReceiptPrint, setPendingReceiptPrint] = useState<"a4" | "80mm" | null>(null);
 
   const fetchSales = useCallback(async () => {
     if (!user?.id || !orgId) return;
@@ -231,6 +232,17 @@ export function SalesHistory() {
       supabase.removeChannel(channel);
     };
   }, [fetchSales, user?.id, orgId]);
+
+  useEffect(() => {
+    if (!pendingReceiptPrint || receiptLoading || !receiptData) return;
+
+    const timer = window.setTimeout(() => {
+      void printReceiptArea(pendingReceiptPrint);
+      setPendingReceiptPrint(null);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [pendingReceiptPrint, receiptData, receiptLoading]);
 
   const filteredSales = sales.filter((sale) => {
     const s = searchTerm.toLowerCase();
@@ -394,7 +406,7 @@ ul{font-size:12px;line-height:1.6;}
         customer: customer || sale.customers || null,
       });
 
-      if (autoPrint) setTimeout(() => void printReceiptArea(mode), 700);
+      if (autoPrint) setPendingReceiptPrint(mode);
     } catch (error) {
       console.error("Erro ao carregar recibo:", error);
       setReceiptError("Não foi possível carregar o recibo desta venda.");
