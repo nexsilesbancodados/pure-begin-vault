@@ -250,11 +250,28 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     ],
   );
 
-  // Reset when product changes
+  // Reset all state when opening with a different product (or new)
   useEffect(() => {
     if (!open) return;
     setActiveTab("geral");
-  }, [open]);
+    const fresh = buildInitialForm(product);
+    setForm(fresh);
+    setProductType((product?.metadata?.tipo as ProductType) || "Aparelho");
+    const m = product?.metadata || {};
+    setContasPagar(m.contas_pagar || []);
+    setCustosExtras(m.custos_extras || []);
+    setAnexos(m.anexos || []);
+    setImageUrlInput(m.image_url || "");
+    setChecklist(
+      m.checklist || [
+        { id: "1", item: "Tela sem riscos", ok: false },
+        { id: "2", item: "Carregador incluso", ok: false },
+        { id: "3", item: "Caixa original", ok: false },
+      ],
+    );
+    setPendingFiles([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, product?.id]);
 
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
 
