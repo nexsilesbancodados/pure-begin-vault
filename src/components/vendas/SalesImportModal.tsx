@@ -917,9 +917,19 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                         <th className="text-left p-2.5 font-black w-10 text-[10px] uppercase tracking-wider text-muted-foreground">#</th>
                         <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Status</th>
                         <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
-                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
-                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">CPF / CNPJ</th>
-                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
+                        {kind === "financeiro" ? (
+                          <>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Descrição</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Tipo</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</th>
+                          </>
+                        ) : (
+                          <>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">CPF / CNPJ</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
+                          </>
+                        )}
                         <th className="text-right p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
                       </tr>
                     </thead>
@@ -937,6 +947,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                           : /prazo|boleto/i.test(pm)
                           ? "bg-info/10 text-info border-info/20"
                           : "bg-muted text-muted-foreground border-border";
+                        const isIncome = r.fin_type === "income";
                         return (
                           <tr
                             key={i}
@@ -968,38 +979,78 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             <td className="p-2.5 font-mono text-[11px]">
                               {dateOk ? dt!.toLocaleDateString("pt-BR") : <span className="text-muted-foreground">—</span>}
                             </td>
-                            <td className="p-2.5 text-[11px] max-w-[160px] truncate">
-                              {r.customer_name ? (
-                                <span className="font-semibold">{r.customer_name}</span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            <td className="p-2.5 font-mono text-[11px]">
-                              {r.customer_document ? (
-                                <span className="px-1.5 py-0.5 rounded-md bg-primary/5 border border-primary/20 text-primary">
-                                  {r.customer_document.length === 11
-                                    ? r.customer_document.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
-                                    : r.customer_document.length === 14
-                                    ? r.customer_document.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
-                                    : r.customer_document}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            <td className="p-2.5">
-                              {pm ? (
-                                <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-bold ${pmColor}`}>
-                                  {pm}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
+                            {kind === "financeiro" ? (
+                              <>
+                                <td className="p-2.5 text-[11px] max-w-[200px] truncate" title={r.description || r.notes}>
+                                  {r.description || r.notes ? (
+                                    <span className="font-semibold">{r.description || r.notes}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="p-2.5">
+                                  {r.fin_type ? (
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-black ${
+                                        isIncome
+                                          ? "bg-success/10 text-success border-success/30"
+                                          : "bg-destructive/10 text-destructive border-destructive/30"
+                                      }`}
+                                    >
+                                      {isIncome ? "↑ Receita" : "↓ Despesa"}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="p-2.5 text-[11px] max-w-[140px] truncate" title={r.category}>
+                                  {r.category ? (
+                                    <span className="px-2 py-0.5 rounded-full bg-primary/5 border border-primary/20 text-primary text-[10px] font-bold">
+                                      {r.category}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="p-2.5 text-[11px] max-w-[160px] truncate">
+                                  {r.customer_name ? (
+                                    <span className="font-semibold">{r.customer_name}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="p-2.5 font-mono text-[11px]">
+                                  {r.customer_document ? (
+                                    <span className="px-1.5 py-0.5 rounded-md bg-primary/5 border border-primary/20 text-primary">
+                                      {r.customer_document.length === 11
+                                        ? r.customer_document.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
+                                        : r.customer_document.length === 14
+                                        ? r.customer_document.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
+                                        : r.customer_document}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                                <td className="p-2.5">
+                                  {pm ? (
+                                    <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-bold ${pmColor}`}>
+                                      {pm}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">—</span>
+                                  )}
+                                </td>
+                              </>
+                            )}
                             <td className="p-2.5 text-right font-black tabular-nums">
                               {r._valid ? (
-                                <span className="text-foreground">{brl(r.total_amount)}</span>
+                                <span className={kind === "financeiro" && r.fin_type === "expense" ? "text-destructive" : "text-foreground"}>
+                                  {kind === "financeiro" && r.fin_type === "expense" ? "−" : ""}{brl(r.total_amount)}
+                                </span>
                               ) : (
                                 <span className="text-muted-foreground">—</span>
                               )}
