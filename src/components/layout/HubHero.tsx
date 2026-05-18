@@ -67,6 +67,7 @@ export function HubHero({
             })}
           </div>
         )}
+        {children && <div className="mt-6">{children}</div>}
       </div>
     </div>
   );
