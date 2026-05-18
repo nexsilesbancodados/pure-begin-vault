@@ -64,6 +64,8 @@ const IPHONE_CORES = [
   "Titânio Deserto", "Titânio Areia", "Ultramarino", "Verde-azulado",
   "Laranja Cósmico", "Azul Profundo",
 ];
+
+interface ProductFormData {
   // Core (mapped to columns)
   name: string;
   sku?: string;
