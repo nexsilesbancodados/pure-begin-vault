@@ -1017,7 +1017,11 @@ ul{font-size:12px;line-height:1.6;}
             </div>
             <Button
               disabled={!receiptData || receiptLoading}
-              onClick={() => window.print()}
+              onClick={async () => {
+                const imgs = Array.from(document.querySelectorAll<HTMLImageElement>(".receipt-print-area img"));
+                await Promise.all(imgs.map((img) => img.complete && img.naturalWidth > 0 ? Promise.resolve() : new Promise((res) => { img.onload = img.onerror = () => res(null); })));
+                window.print();
+              }}
               className="rounded-xl font-bold gap-2"
             >
               <Printer className="h-4 w-4" /> Imprimir
