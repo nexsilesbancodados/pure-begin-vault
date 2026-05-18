@@ -20,12 +20,8 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
 
     // Verifica permissão: super_admin OU owner/admin da org
     const [saRes, memRes] = await Promise.all([
-      (admin as any)
-        .from("super_admins")
-        .select("user_id")
-        .eq("user_id", userId)
-        .maybeSingle(),
-      (admin as any)
+      admin.from("super_admins").select("user_id").eq("user_id", userId).maybeSingle(),
+      admin
         .from("user_organizations")
         .select("role")
         .eq("user_id", userId)
@@ -34,13 +30,13 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
     ]);
 
     const isSuper = !!saRes.data;
-    const role = (memRes.data as any)?.role;
+    const role = memRes.data?.role;
     const canEdit = isSuper || role === "owner" || role === "admin";
     if (!canEdit) throw new Error("Sem permissão para editar esta loja");
 
     // Atualiza nome da loja
     if (data.name) {
-      const { error: e1 } = await (admin as any)
+      const { error: e1 } = await admin
         .from("organizations")
         .update({ name: data.name, updated_at: new Date().toISOString() })
         .eq("id", data.orgId);
@@ -54,7 +50,7 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
     if (data.support_email !== undefined) payload.support_email = data.support_email;
     if (data.support_whatsapp !== undefined) payload.support_whatsapp = data.support_whatsapp;
 
-    const { error: e2 } = await (admin as any)
+    const { error: e2 } = await admin
       .from("organization_settings")
       .upsert(payload, { onConflict: "organization_id" });
     if (e2) throw new Error(e2.message);
