@@ -219,6 +219,10 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   const customerName = get("customer") ? String(get("customer")).trim() : undefined;
   const customerPhone = get("customer_phone") ? String(get("customer_phone")).trim() : undefined;
   const customerEmail = get("customer_email") ? String(get("customer_email")).trim() : undefined;
+  const customerDocRaw = get("customer_document");
+  const customerDocument = customerDocRaw
+    ? String(customerDocRaw).replace(/\D/g, "").trim() || undefined
+    : undefined;
   const productName = get("product") ? String(get("product")).trim() : undefined;
   const qtyRaw = get("quantity");
   const productQty = qtyRaw != null && qtyRaw !== "" ? Number(parseCurrency(qtyRaw)) || 1 : 1;
