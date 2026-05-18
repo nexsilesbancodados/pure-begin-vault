@@ -254,7 +254,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
 
 export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImportModalProps) {
   const { user } = useAuth();
-  const { orgId } = useOrg();
+  const { startImport } = useImport();
   const [isImporting, setIsImporting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
