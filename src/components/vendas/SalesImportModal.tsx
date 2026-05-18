@@ -961,6 +961,8 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                         <th className="text-left p-2.5 font-black w-10 text-[10px] uppercase tracking-wider text-muted-foreground">#</th>
                         <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Status</th>
                         <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
+                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
+                        <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">CPF / CNPJ</th>
                         <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
                         <th className="text-right p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
                       </tr>
