@@ -554,6 +554,93 @@ function NotasAbertoPage() {
                       )}
                     </div>
 
+                    {/* Produtos sem nota — vincular existentes */}
+                    <div className="space-y-3 border-t pt-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-black text-foreground uppercase tracking-tight flex items-center gap-2">
+                          <Package className="h-4 w-4 text-primary" /> Produtos sem nota no estoque
+                        </h3>
+                        <span className="text-[10px] text-muted-foreground font-bold">
+                          {selectedOrphanIds.length} selecionado(s) • {orphanProducts.length} disponíveis
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Selecione produtos já cadastrados no estoque que ainda não estão vinculados a nenhuma nota.
+                      </p>
+
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar produto por nome ou SKU..."
+                          value={orphanSearch}
+                          onChange={(e) => setOrphanSearch(e.target.value)}
+                          className="h-9 pl-9 rounded-lg text-xs"
+                        />
+                      </div>
+
+                      <div className="bg-muted/30 rounded-xl border border-border/60 max-h-56 overflow-y-auto divide-y divide-border/40">
+                        {orphanProducts.length === 0 ? (
+                          <div className="p-6 text-center text-[11px] text-muted-foreground italic">
+                            Nenhum produto sem nota encontrado.
+                          </div>
+                        ) : (
+                          orphanProducts
+                            .filter((p) => {
+                              const q = orphanSearch.toLowerCase();
+                              return (
+                                !q ||
+                                p.name?.toLowerCase().includes(q) ||
+                                p.sku?.toLowerCase().includes(q)
+                              );
+                            })
+                            .map((p) => {
+                              const checked = selectedOrphanIds.includes(p.id);
+                              return (
+                                <label
+                                  key={p.id}
+                                  className={`flex items-center gap-3 p-2.5 cursor-pointer transition hover:bg-background ${checked ? "bg-primary/5" : ""}`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                      setSelectedOrphanIds((prev) =>
+                                        e.target.checked
+                                          ? [...prev, p.id]
+                                          : prev.filter((id) => id !== p.id),
+                                      );
+                                    }}
+                                    className="h-4 w-4 rounded border-border accent-primary"
+                                  />
+                                  <div className="h-8 w-8 rounded bg-muted overflow-hidden flex items-center justify-center text-muted-foreground shrink-0">
+                                    {p.image_url ? (
+                                      <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <Package className="h-4 w-4" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-xs font-bold text-foreground truncate">
+                                      {p.name}
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground font-medium">
+                                      {p.sku && <>SKU: {p.sku} • </>}
+                                      Estoque: {p.stock ?? 0}
+                                    </div>
+                                  </div>
+                                  <div className="text-[11px] font-black text-foreground">
+                                    {Number(p.cost_price || p.sale_price || 0).toLocaleString("pt-BR", {
+                                      style: "currency",
+                                      currency: "BRL",
+                                    })}
+                                  </div>
+                                </label>
+                              );
+                            })
+                        )}
+                      </div>
+                    </div>
+
                     <DialogFooter className="pt-4 border-t">
                       <Button
                         type="button"
