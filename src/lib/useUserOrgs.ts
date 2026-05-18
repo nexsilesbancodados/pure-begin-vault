@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useServerFn } from "@tanstack/react-start";
+import { getOrgLogos } from "@/lib/org-settings.functions";
 import { toast } from "sonner";
 
 export interface UserOrg {
