@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Plus, FileText } from "lucide-react";
 
-export const Route = createFileRoute("/financeiro/notas-aberto")({
+export const Route = createFileRoute("/financeiro_/notas-aberto")({
   head: () => ({
     meta: [
       { title: "Notas em Aberto" },
