@@ -30,6 +30,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/AuthContext";
+import { saveOrgSettings } from "@/lib/org-settings.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 type Member = { user_id: string; role: string; email?: string | null; name?: string | null };
 
