@@ -225,16 +225,25 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     onClose();
   };
 
-  const processFile = async (file: File) => {
-    return new Promise<ParsedRow[]>((resolve, reject) => {
+  const processFile = async (
+    file: File,
+  ): Promise<{ rows: ParsedRow[]; hmap: Record<string, string>; headers: string[] }> => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const wb = XLSX.read(data, { type: "array" });
+          const wb = XLSX.read(data, { type: "array", cellDates: true });
           const ws = wb.Sheets[wb.SheetNames[0]];
-          const json = XLSX.utils.sheet_to_json<any>(ws);
-          resolve(json.map(parseRow));
+          const json = XLSX.utils.sheet_to_json<any>(ws, { defval: "", raw: false });
+          if (json.length === 0) {
+            resolve({ rows: [], hmap: {}, headers: [] });
+            return;
+          }
+          const hmap = buildHeaderMap(json[0]);
+          const headers = Object.keys(json[0]);
+          const rows = json.map((r, i) => parseRow(r, hmap, i));
+          resolve({ rows, hmap, headers });
         } catch (err) {
           reject(err);
         }
