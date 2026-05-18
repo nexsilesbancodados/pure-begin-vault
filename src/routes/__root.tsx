@@ -7,6 +7,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ImportProvider } from "@/contexts/ImportContext";
 import { PwaInstallPrompt } from "@/components/pwa/PwaInstallPrompt";
 import { CookieConsent } from "@/components/layout/CookieConsent";
 import { lazy, Suspense } from "react";
