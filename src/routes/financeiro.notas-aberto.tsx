@@ -20,7 +20,7 @@ function NotasAbertoPage() {
     <div className="flex min-h-screen bg-background">
       <AppSidebar />
       <div className="flex-1 flex flex-col">
-        <Topbar />
+        <Topbar title="Notas em Aberto" />
         <main className="flex-1 p-6 space-y-6">
           <div className="flex items-center justify-between">
             <div>
