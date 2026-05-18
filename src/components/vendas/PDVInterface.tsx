@@ -942,6 +942,7 @@ export function PDVInterface() {
       setMoneyAmount("");
       setCardAmount("");
       setPixAmount("");
+      setPrazoAmount("");
       setDiscountValue(0);
       setEditingSaleId(null);
       setLastSaleId(saleId);
