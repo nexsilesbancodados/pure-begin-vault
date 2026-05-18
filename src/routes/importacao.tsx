@@ -207,7 +207,7 @@ function ImportPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {filtered.map((j) => <JobCard key={j.id} job={j} />)}
+              {filtered.map((j) => <JobCard key={j.id} job={j} onDelete={deleteJob} />)}
             </div>
           )}
         </main>
