@@ -27,6 +27,7 @@ import { Plus, FileText, Search, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
+import { ProductForm } from "@/components/estoque/ProductForm";
 
 export const Route = createFileRoute("/financeiro_/notas-aberto")({
   head: () => ({
