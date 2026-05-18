@@ -171,7 +171,18 @@ function buildInitialForm(product: any) {
     mov_motivo: md.mov_motivo || "Compra",
     mov_obs: md.mov_obs || "",
     nota_id: md.nota_id || "",
-  });
+  };
+}
+
+export function ProductForm({ open, onOpenChange, product, onSave }: ProductFormProps) {
+  const [activeTab, setActiveTab] = useState("geral");
+  const [isSaving, setIsSaving] = useState(false);
+  const md = product?.metadata || {};
+  const [productType, setProductType] = useState<ProductType>(
+    (product?.metadata?.tipo as ProductType) || "Aparelho",
+  );
+
+  const [form, setForm] = useState(() => buildInitialForm(product));
 
   const { orgId } = useOrg();
   const [openNotas, setOpenNotas] = useState<Array<{ id: string; label: string }>>([]);
