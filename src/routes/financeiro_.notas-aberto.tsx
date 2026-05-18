@@ -501,15 +501,24 @@ function NotasAbertoPage() {
                           <TableRow>
                             <TableHead className="font-semibold">Produto</TableHead>
                             <TableHead className="font-semibold">IMEI</TableHead>
-                            <TableHead className="font-semibold text-right">Preço</TableHead>
+                            <TableHead className="font-semibold text-right">Custo</TableHead>
+                            <TableHead className="font-semibold text-right">Venda</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {detailNota.items.map((p) => (
                             <TableRow key={p.id} className="hover:bg-muted/30">
-                              <TableCell className="font-medium">{p.name}</TableCell>
+                              <TableCell
+                                className="font-medium text-primary cursor-pointer hover:underline"
+                                onClick={() => setEditingProduct(p)}
+                              >
+                                {p.name}
+                              </TableCell>
                               <TableCell className="text-muted-foreground font-mono text-xs">
                                 {p.imei ?? "—"}
+                              </TableCell>
+                              <TableCell className="text-right text-muted-foreground">
+                                {p.cost_price != null ? `R$ ${Number(p.cost_price).toFixed(2)}` : "—"}
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : "—"}
