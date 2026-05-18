@@ -229,23 +229,87 @@ export function StockList() {
     });
   }, [searchTerm, filterCategory, viewTab, localProducts]);
 
-  const handleAddProduct = async (data: any) => {
-    if (!user?.id || !orgId) return toast.error("Organização não encontrada");
+  const normalizeProductPayload = (data: any) => {
+    const md = data.metadata || {};
+    const qty = Number(data.stock_quantity ?? data.stock ?? 0);
     const payload: any = {
-      user_id: user.id,
-      organization_id: orgId,
-      ...data,
+      name: data.name,
+      sku: data.sku || null,
+      ean: data.ean || null,
+      category: data.category || null,
+      brand: data.brand || null,
+      supplier: data.supplier || null,
+      model: data.model || null,
+      description: data.description || null,
+      unit: data.unit || "un",
       price: Number(data.price || 0),
       cost_price: Number(data.cost_price || 0),
-      stock_quantity: Number(data.stock || 0),
+      wholesale_price: data.wholesale_price ? Number(data.wholesale_price) : null,
+      stock_quantity: qty,
       min_stock: Number(data.min_stock || 0),
-      wholesale_price: Number(data.wholesale_price || 0),
-      weight: Number(data.weight || 0),
+      weight: md.peso ? Number(md.peso) : null,
+      ncm: md.ncm || null,
+      image_url: md.image_url || data.image_url || null,
+      has_imei: Boolean(md.imei || md.imei2),
+      metadata: md,
     };
-    delete payload.stock;
+    return payload;
+  };
+
+  const registerImeis = async (productId: string, md: any) => {
+    const imeis = [md.imei, md.imei2].filter((x: string) => x && String(x).trim().length > 0);
+    if (!imeis.length) return;
+    const rows = imeis.map((imei: string) => ({
+      organization_id: orgId,
+      product_id: productId,
+      imei: String(imei).trim(),
+      serial: md.serial || null,
+      status: "in_stock",
+      cost_price: md.valor_custo ? Number(md.valor_custo) : null,
+    }));
+    await supabase.from("product_imei").upsert(rows, { onConflict: "organization_id,imei" });
+  };
+
+  const linkToNota = async (productId: string, productName: string, md: any) => {
+    if (!md?.nota_id) return;
+    const { data: nota } = await supabase
+      .from("finance_transactions")
+      .select("products_list")
+      .eq("id", md.nota_id)
+      .maybeSingle();
+    const list = Array.isArray(nota?.products_list) ? nota!.products_list : [];
+    list.push({ product_id: productId, name: productName, qty: Number(md.quantidade || 1) });
+    await supabase
+      .from("finance_transactions")
+      .update({ products_list: list })
+      .eq("id", md.nota_id);
+  };
+
+  const handleAddProduct = async (data: any) => {
+    if (!user?.id || !orgId) return toast.error("Organização não encontrada");
+    const base = normalizeProductPayload(data);
+    const payload = { ...base, user_id: user.id, organization_id: orgId };
 
     const { data: row, error } = await supabase.from("products").insert(payload).select().single();
     if (error) return toast.error("Erro ao criar: " + error.message);
+
+    // Initial stock movement
+    if (payload.stock_quantity > 0) {
+      await supabase.from("stock_movements").insert({
+        organization_id: orgId,
+        user_id: user.id,
+        product_id: row.id,
+        movement_type: "in",
+        quantity: payload.stock_quantity,
+        unit_cost: payload.cost_price,
+        reason: data.metadata?.mov_motivo || "Cadastro inicial",
+        notes: data.metadata?.mov_obs || null,
+      });
+    }
+
+    await registerImeis(row.id, data.metadata || {});
+    await linkToNota(row.id, row.name, data.metadata || {});
+
     setLocalProducts((prev) => [{ ...row, stock: row.stock_quantity }, ...prev]);
     fetchStats();
     toast.success("Produto criado!");
@@ -253,29 +317,22 @@ export function StockList() {
 
   const handleUpdateProduct = async (data: any) => {
     if (!editingProduct) return;
-    const payload = {
-      ...data,
-      price: Number(data.price || 0),
-      cost_price: Number(data.cost_price || 0),
-      stock_quantity: Number(data.stock || 0),
-      min_stock: Number(data.min_stock || 0),
-      wholesale_price: Number(data.wholesale_price || 0),
-      weight: Number(data.weight || 0),
-    };
-    delete payload.stock; // Remove virtual field
-    delete payload.id;
-    delete payload.user_id;
-    delete payload.created_at;
-    delete payload.updated_at;
+    const payload = normalizeProductPayload(data);
 
-    const { error } = await supabase.from("products").update(payload).eq("id", editingProduct.id);
+    const { error } = await supabase
+      .from("products")
+      .update(payload)
+      .eq("id", editingProduct.id);
     if (error) return toast.error("Erro ao salvar: " + error.message);
+
+    await registerImeis(editingProduct.id, data.metadata || {});
+
     setLocalProducts((prev) =>
       prev.map((p) =>
         p.id === editingProduct.id ? { ...p, ...payload, stock: payload.stock_quantity } : p,
       ),
     );
-    fetchStats(); // Atualiza estatísticas após atualização
+    fetchStats();
     toast.success("Produto atualizado!");
   };
 
