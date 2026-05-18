@@ -100,16 +100,35 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
     }
   };
 
+  const [uploading, setUploading] = useState(false);
+
   const uploadLogo = async (file: File) => {
-    const ext = file.name.split(".").pop() || "png";
-    const path = `org-${orgId}/logo-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("catalog").upload(path, file, { upsert: true });
-    if (error) {
-      toast.error("Erro no upload: " + error.message);
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem");
       return;
     }
-    const { data } = supabase.storage.from("catalog").getPublicUrl(path);
-    setLogoUrl(data.publicUrl);
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx. 5MB)");
+      return;
+    }
+    setUploading(true);
+    const tId = toast.loading("Enviando imagem...");
+    try {
+      const ext = (file.name.split(".").pop() || "png").toLowerCase();
+      const path = `org-${orgId}/logo-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("attachments")
+        .upload(path, file, { upsert: true, contentType: file.type, cacheControl: "3600" });
+      if (error) throw error;
+      const { data } = supabase.storage.from("attachments").getPublicUrl(path);
+      setLogoUrl(data.publicUrl);
+      toast.success("Logo carregada — clique em Salvar alterações", { id: tId });
+    } catch (e: any) {
+      toast.error("Erro no upload: " + (e?.message ?? e), { id: tId });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const save = async () => {
@@ -206,9 +225,9 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
                     variant="outline"
                     size="sm"
                     onClick={() => fileRef.current?.click()}
-                    disabled={!canEdit}
+                    disabled={!canEdit || uploading}
                   >
-                    <Upload className="h-3.5 w-3.5 mr-1" /> Enviar imagem
+                    <Upload className="h-3.5 w-3.5 mr-1" /> {uploading ? "Enviando..." : "Enviar imagem"}
                   </Button>
                   {logoUrl && (
                     <Button
