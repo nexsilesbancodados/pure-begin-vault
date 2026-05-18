@@ -87,6 +87,42 @@ function NotasAbertoPage() {
     setNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
   };
 
+  const handleSaveProduct = async (data: any) => {
+    if (!editingProduct) return;
+    const {
+      stock, imei, imei2, color, capacity, processor, ram, display,
+      margin, markup, battery_health, observations, store, ...productFields
+    } = data;
+    const payload: any = {
+      ...productFields,
+      price: parseFloat(data.price) || 0,
+      cost_price: parseFloat(data.cost_price) || 0,
+      stock_quantity: parseInt(stock ?? data.stock_quantity) || 0,
+    };
+    const { data: updated, error } = await supabase
+      .from("products")
+      .update(payload)
+      .eq("id", editingProduct.id)
+      .select("*")
+      .single();
+    if (error) {
+      toast.error("Erro ao salvar produto: " + error.message);
+      return;
+    }
+    const merged: Product = { ...(updated as any), imei: getImeiFromMetadata((updated as any)?.metadata) };
+    setProducts((prev) => prev.map((p) => (p.id === merged.id ? merged : p)));
+    setNotas((prev) =>
+      prev.map((n) => {
+        if (!n.items.some((i) => i.id === merged.id)) return n;
+        const items = n.items.map((i) => (i.id === merged.id ? merged : i));
+        const total = items.reduce((sum, p) => sum + Number(p.price ?? 0), 0);
+        return { ...n, items, total };
+      }),
+    );
+    setEditingProduct(null);
+    toast.success("Produto atualizado.");
+  };
+
   const loadProducts = async () => {
     if (!userId) return;
     setLoading(true);
