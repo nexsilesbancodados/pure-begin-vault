@@ -23,6 +23,9 @@ import {
   ArrowRight,
   ArrowLeft,
   Trash2,
+  ShoppingCart,
+  Package,
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +39,13 @@ interface SalesImportModalProps {
 }
 
 type Step = "upload" | "preview" | "done";
+type ImportKind = "vendas" | "estoque" | "financeiro";
+
+const KIND_META: Record<ImportKind, { label: string; desc: string; icon: typeof ShoppingCart; tone: string }> = {
+  vendas: { label: "Vendas", desc: "Histórico de pedidos e tickets", icon: ShoppingCart, tone: "from-info/15 to-primary/10 border-info/30 text-info" },
+  estoque: { label: "Estoque", desc: "Produtos, SKUs e quantidades", icon: Package, tone: "from-emerald-500/15 to-teal-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400" },
+  financeiro: { label: "Financeiro", desc: "Contas, despesas e receitas", icon: DollarSign, tone: "from-amber-500/15 to-orange-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400" },
+};
 
 type ParsedRow = {
   total_amount: number;
@@ -265,6 +275,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
   const [hmap, setHmap] = useState<Record<string, string>>({});
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawData, setRawData] = useState<any[]>([]);
+  const [kind, setKind] = useState<ImportKind>("vendas");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stats = useMemo(() => {
@@ -382,7 +393,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
 
     // Enfileira no servidor — processa em background mesmo se fechar o navegador
     const jobId = await startImport(
-      file?.name || "Importação",
+      `[${KIND_META[kind].label}] ${file?.name || "Importação"}`,
       validRows.map((r) => ({
         total_amount: r.total_amount,
         payment_method: r.payment_method,
@@ -466,7 +477,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                 </div>
                 <div>
                   <DialogTitle className="text-2xl font-black text-white">
-                    Importar Vendas
+                    Importar {KIND_META[kind].label}
                   </DialogTitle>
                   <DialogDescription className="text-white/80 text-xs mt-0.5">
                     Migre seu histórico em minutos · CSV ou Excel
@@ -520,6 +531,50 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {step === "upload" && (
             <div className="space-y-4">
+              {/* Tipo de relatório */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                    Tipo de relatório
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(Object.keys(KIND_META) as ImportKind[]).map((k) => {
+                    const meta = KIND_META[k];
+                    const Icon = meta.icon;
+                    const active = kind === k;
+                    return (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setKind(k)}
+                        className={`relative rounded-2xl border-2 p-3 text-left transition-all bg-gradient-to-br ${
+                          active
+                            ? `${meta.tone} shadow-md scale-[1.02]`
+                            : "border-border bg-card hover:border-primary/40 text-foreground"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${active ? "bg-white/60 dark:bg-white/10" : "bg-muted"}`}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-black truncate">{meta.label}</p>
+                            <p className="text-[10px] text-muted-foreground truncate leading-tight">
+                              {meta.desc}
+                            </p>
+                          </div>
+                        </div>
+                        {active && (
+                          <CheckCircle2 className="absolute top-2 right-2 h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => {
