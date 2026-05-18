@@ -18,12 +18,8 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
 
     // Verifica permissão: super_admin OU owner/admin da org
     const [saRes, memRes] = await Promise.all([
-      (supabase as any)
-        .from("super_admins")
-        .select("user_id")
-        .eq("user_id", userId)
-        .maybeSingle(),
-      (supabase as any)
+      supabase.from("super_admins").select("user_id").eq("user_id", userId).maybeSingle(),
+      supabase
         .from("user_organizations")
         .select("role")
         .eq("user_id", userId)
@@ -38,13 +34,13 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
 
     // As policies atuais de organization_settings validam pela loja ativa em
     // profiles.organization_id. Garante que a loja alvo esteja ativa antes do upsert.
-    const { error: switchError } = await (supabase as any).rpc("switch_organization", {
+    const { error: switchError } = await supabase.rpc("switch_organization", {
       _org_id: data.orgId,
     });
     if (switchError) throw new Error(switchError.message);
 
     if (data.name) {
-      const { error: e1 } = await (supabase as any).rpc("update_organization_name", {
+      const { error: e1 } = await supabase.rpc("update_organization_name", {
         _org_id: data.orgId,
         _name: data.name,
       });
@@ -57,7 +53,7 @@ export const saveOrgSettings = createServerFn({ method: "POST" })
     if (data.support_email !== undefined) payload.support_email = data.support_email;
     if (data.support_whatsapp !== undefined) payload.support_whatsapp = data.support_whatsapp;
 
-    const { error: e2 } = await (supabase as any)
+    const { error: e2 } = await supabase
       .from("organization_settings")
       .upsert(payload, { onConflict: "organization_id" });
     if (e2) throw new Error(e2.message);
@@ -76,7 +72,7 @@ export const getOrgLogos = createServerFn({ method: "POST" })
     const { supabase } = context;
     if (data.orgIds.length === 0) return { logos: {} as Record<string, string | null> };
 
-    const { data: rows } = await (supabase as any)
+    const { data: rows } = await supabase
       .from("organization_settings")
       .select("organization_id, brand_logo_url")
       .in("organization_id", data.orgIds);
