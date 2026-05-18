@@ -630,24 +630,40 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
 
 <div class="thanks">OBRIGADO PELA PREFERÊNCIA.</div>
 
-<script>window.onload=function(){setTimeout(function(){window.print();},400);}</script>
+<script>window.onload=function(){};</script>
 </body></html>`;
 
-        const w = window.open("", "_blank");
-        if (!w) {
-          toast.error("Pop-up bloqueado pelo navegador.");
-          return;
-        }
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
+        setWarrantyDoc({ title: titles[type], html });
       } catch (e) {
         console.error("Erro ao gerar termo de garantia:", e);
         toast.error("Não foi possível gerar o termo de garantia.");
+      } finally {
+        setWarrantyLoading(false);
       }
     },
     [],
   );
+
+  const openWarrantyDialog = useCallback(
+    async (sale: any, type: "seminovo" | "lacrado" | "android") => {
+      setWarrantyDoc(null);
+      setWarrantyLoading(true);
+      await openWarrantyPrint(sale, type);
+    },
+    [openWarrantyPrint],
+  );
+
+  const printWarranty = useCallback(() => {
+    const iframe = warrantyIframeRef.current;
+    if (!iframe?.contentWindow) return;
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao acionar impressão.");
+    }
+  }, []);
 
 
   const openReceiptPopup = useCallback(
