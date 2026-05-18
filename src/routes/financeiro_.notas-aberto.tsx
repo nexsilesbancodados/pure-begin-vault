@@ -504,12 +504,37 @@ function NotasAbertoPage() {
         return null;
       }
 
+      const makeLocalNote = () => {
+        const nextNumber = Math.max(0, ...notas.map((note) => note.noteNumber)) + 1;
+        const now = new Date();
+        return {
+          id: crypto.randomUUID(),
+          noteNumber: nextNumber,
+          items,
+          total: getNoteTotal(items),
+          createdAt: now,
+          updatedAt: now,
+          fornecedor: "",
+          dataCompra: now.toISOString().slice(0, 10),
+          paga: false,
+          prazoPagamento: "",
+        } satisfies Nota;
+      };
+
+      if (notesDbUnavailable) return makeLocalNote();
+
       const latest = await purchaseNotesTable()
         .select("note_number")
         .eq("organization_id", orgId)
         .order("note_number", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      if (latest.error && isPurchaseNotesUnavailable(latest.error)) {
+        setNotesDbUnavailable(true);
+        toast.warning("Banco de notas ainda não aplicado. A nota será salva localmente por enquanto.");
+        return makeLocalNote();
+      }
 
       let nextNumber = Number(latest.data?.note_number ?? 0) + 1;
       const total = getNoteTotal(items);
@@ -532,6 +557,11 @@ function NotasAbertoPage() {
           .single();
 
         if (!error) return mapPurchaseNote(data as PurchaseNoteRow);
+        if (isPurchaseNotesUnavailable(error)) {
+          setNotesDbUnavailable(true);
+          toast.warning("Banco de notas ainda não aplicado. A nota será salva localmente por enquanto.");
+          return makeLocalNote();
+        }
         if (error.code !== "23505") {
           toast.error("Erro ao criar nota: " + error.message);
           return null;
@@ -542,11 +572,17 @@ function NotasAbertoPage() {
       toast.error("Não foi possível gerar a numeração da nota.");
       return null;
     },
-    [orgId, userId],
+    [orgId, userId, notas, notesDbUnavailable],
   );
 
   const deleteNota = async (nota: Nota) => {
     if (!window.confirm(`Excluir Nota ${nota.noteNumber}?`)) return;
+
+    if (notesDbUnavailable) {
+      replaceNotas((prev) => prev.filter((x) => x.id !== nota.id));
+      toast.success(`Nota ${nota.noteNumber} excluída.`);
+      return;
+    }
 
     const { error } = await purchaseNotesTable()
       .delete()
@@ -554,11 +590,17 @@ function NotasAbertoPage() {
       .eq("organization_id", orgId);
 
     if (error) {
+      if (isPurchaseNotesUnavailable(error)) {
+        setNotesDbUnavailable(true);
+        replaceNotas((prev) => prev.filter((x) => x.id !== nota.id));
+        toast.success(`Nota ${nota.noteNumber} excluída localmente.`);
+        return;
+      }
       toast.error("Erro ao excluir nota: " + error.message);
       return;
     }
 
-    setNotas((prev) => prev.filter((x) => x.id !== nota.id));
+    replaceNotas((prev) => prev.filter((x) => x.id !== nota.id));
     toast.success(`Nota ${nota.noteNumber} excluída.`);
   };
 
