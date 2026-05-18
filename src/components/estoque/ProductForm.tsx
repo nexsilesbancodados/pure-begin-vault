@@ -856,84 +856,99 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
             {/* === CONTAS A PAGAR === */}
             <TabsContent value="contas" className="mt-0 space-y-6">
-              <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
-                <h3 className="text-sm font-bold flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" /> Nota vinculada
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Selecione a nota em aberto a que este produto pertence.
-                </p>
-                <Select value={form.nota_id || "none"} onValueChange={(v) => set("nota_id", v === "none" ? "" : v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar nota em aberto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma</SelectItem>
-                    {openNotas.map((n) => (
-                      <SelectItem key={n.id} value={n.id}>
-                        {n.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {openNotas.length === 0 && (
-                  <p className="text-xs text-muted-foreground italic">
-                    Nenhuma nota em aberto encontrada. Cadastre em Financeiro › Notas.
-                  </p>
-                )}
-              </div>
+              <Tabs defaultValue="notas" className="w-full">
+                <TabsList className="bg-muted/40 border border-border">
+                  <TabsTrigger value="notas" className="data-[state=active]:bg-background data-[state=active]:text-primary text-xs font-semibold">
+                    <FileText className="h-3.5 w-3.5 mr-1.5" /> Notas & Contas
+                  </TabsTrigger>
+                  <TabsTrigger value="pagamento" className="data-[state=active]:bg-background data-[state=active]:text-primary text-xs font-semibold">
+                    <CreditCard className="h-3.5 w-3.5 mr-1.5" /> Forma de Pagamento
+                  </TabsTrigger>
+                  <TabsTrigger value="custos" className="data-[state=active]:bg-background data-[state=active]:text-primary text-xs font-semibold">
+                    <Coins className="h-3.5 w-3.5 mr-1.5" /> Custos extras
+                  </TabsTrigger>
+                </TabsList>
 
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold">Contas a pagar vinculadas</h3>
-                <Button size="sm" onClick={() => addExtraRow(setContasPagar)}>
-                  <Plus className="h-4 w-4 mr-1" /> Nova conta
-                </Button>
-              </div>
-              <ExtraRowTable rows={contasPagar} setRows={setContasPagar} withDate />
+                <TabsContent value="notas" className="mt-4 space-y-6">
+                  <div className="rounded-xl border bg-muted/20 p-4 space-y-3">
+                    <h3 className="text-sm font-bold flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-primary" /> Nota vinculada
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Selecione a nota em aberto a que este produto pertence.
+                    </p>
+                    <Select value={form.nota_id || "none"} onValueChange={(v) => set("nota_id", v === "none" ? "" : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar nota em aberto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhuma</SelectItem>
+                        {openNotas.map((n) => (
+                          <SelectItem key={n.id} value={n.id}>
+                            {n.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {openNotas.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">
+                        Nenhuma nota em aberto encontrada. Cadastre em Financeiro › Notas.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold">Contas a pagar vinculadas</h3>
+                    <Button size="sm" onClick={() => addExtraRow(setContasPagar)}>
+                      <Plus className="h-4 w-4 mr-1" /> Nova conta
+                    </Button>
+                  </div>
+                  <ExtraRowTable rows={contasPagar} setRows={setContasPagar} withDate />
+                </TabsContent>
+
+                <TabsContent value="pagamento" className="mt-4">
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-3 max-w-3xl">
+                    <FieldRow label="Forma de Pagamento">
+                      <Select
+                        value={form.forma_pagamento}
+                        onValueChange={(v) => set("forma_pagamento", v)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["À vista", "Cartão", "Pix", "Boleto", "Crédito", "Transferência"].map((p) => (
+                            <SelectItem key={p} value={p}>
+                              {p}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FieldRow>
+                    <FieldRow label="Parcelas">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={24}
+                        value={form.parcelas}
+                        onChange={(e) => set("parcelas", e.target.value)}
+                      />
+                    </FieldRow>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="custos" className="mt-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold">Custos adicionais</h3>
+                    <Button size="sm" onClick={() => addExtraRow(setCustosExtras)}>
+                      <Plus className="h-4 w-4 mr-1" /> Novo custo
+                    </Button>
+                  </div>
+                  <ExtraRowTable rows={custosExtras} setRows={setCustosExtras} />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
 
-            {/* === FORMA DE PAGAMENTO === */}
-            <TabsContent value="pagamento" className="mt-0">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-3 max-w-3xl">
-                <FieldRow label="Forma de Pagamento">
-                  <Select
-                    value={form.forma_pagamento}
-                    onValueChange={(v) => set("forma_pagamento", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["À vista", "Cartão", "Pix", "Boleto", "Crédito", "Transferência"].map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {p}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FieldRow>
-                <FieldRow label="Parcelas">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={24}
-                    value={form.parcelas}
-                    onChange={(e) => set("parcelas", e.target.value)}
-                  />
-                </FieldRow>
-              </div>
-            </TabsContent>
-
-            {/* === CUSTOS EXTRAS === */}
-            <TabsContent value="custos" className="mt-0 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold">Custos adicionais</h3>
-                <Button size="sm" onClick={() => addExtraRow(setCustosExtras)}>
-                  <Plus className="h-4 w-4 mr-1" /> Novo custo
-                </Button>
-              </div>
-              <ExtraRowTable rows={custosExtras} setRows={setCustosExtras} />
-            </TabsContent>
 
             {/* === ANEXOS === */}
             <TabsContent value="anexos" className="mt-0 space-y-4">
