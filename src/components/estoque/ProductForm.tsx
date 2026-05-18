@@ -538,7 +538,43 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                     </FieldRow>
 
                     <FieldRow label="Cor">
-                      <Input value={form.cor} onChange={(e) => set("cor", e.target.value)} />
+                      <Select
+                        value={form.cor}
+                        onValueChange={(v) => {
+                          if (v === "__add__") {
+                            const nome = window.prompt("Nome da nova cor:")?.trim();
+                            if (!nome) return;
+                            setCustomCores((prev) =>
+                              prev.includes(nome) ? prev : [...prev, nome],
+                            );
+                            set("cor", nome);
+                            return;
+                          }
+                          set("cor", v);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar cor" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-80">
+                          {IPHONE_CORES.map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c}
+                            </SelectItem>
+                          ))}
+                          {customCores.map((c) => (
+                            <SelectItem key={c} value={c}>
+                              {c}
+                            </SelectItem>
+                          ))}
+                          <SelectItem
+                            value="__add__"
+                            className="text-primary font-bold border-t mt-1"
+                          >
+                            + Cadastrar nova cor...
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FieldRow>
                     <FieldRow label="Memória RAM">
                       <Select value={form.ram} onValueChange={(v) => set("ram", v)}>
