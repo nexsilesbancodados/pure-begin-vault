@@ -21,8 +21,11 @@ import {
   LockKeyhole,
   ChevronDown,
   CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Star,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
