@@ -23,6 +23,7 @@ import {
 import { useUserOrgs } from "@/lib/useUserOrgs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { StoreDetailsDialog } from "@/components/lojas/StoreDetailsDialog";
 
 export const Route = createFileRoute("/lojas")({
   component: LojasPage,
@@ -35,6 +36,9 @@ function LojasPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [query, setQuery] = useState("");
+  const [detailsOrg, setDetailsOrg] = useState<{ id: string; name: string; role: string } | null>(
+    null,
+  );
 
   const create = async () => {
     if (!newName.trim()) return;
@@ -197,7 +201,15 @@ function LojasPage() {
                   return (
                     <div
                       key={o.organization_id}
-                      className={`group relative overflow-hidden rounded-2xl border p-4 transition-all ${
+                      onClick={() => {
+                        if (isEditing) return;
+                        setDetailsOrg({
+                          id: o.organization_id,
+                          name: o.organization?.name ?? "Loja",
+                          role: o.role,
+                        });
+                      }}
+                      className={`group relative overflow-hidden rounded-2xl border p-4 transition-all cursor-pointer ${
                         isActive
                           ? "border-primary bg-gradient-to-br from-primary/10 via-primary/5 to-transparent shadow-md"
                           : "border-border hover:border-primary/40 hover:shadow-md bg-card"
@@ -222,8 +234,10 @@ function LojasPage() {
                           {isEditing ? (
                             <Input
                               value={editName}
+                              onClick={(e) => e.stopPropagation()}
                               onChange={(e) => setEditName(e.target.value)}
                               onKeyDown={(e) => {
+                                e.stopPropagation();
                                 if (e.key === "Enter") saveEdit();
                                 if (e.key === "Escape") setEditingId(null);
                               }}
@@ -262,7 +276,10 @@ function LojasPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between gap-1">
+                      <div
+                        className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center gap-1">
                           {isEditing ? (
                             <>
@@ -328,6 +345,17 @@ function LojasPage() {
           </Card>
         </main>
       </div>
+
+      {detailsOrg && (
+        <StoreDetailsDialog
+          open={!!detailsOrg}
+          onOpenChange={(v) => !v && setDetailsOrg(null)}
+          orgId={detailsOrg.id}
+          orgName={detailsOrg.name}
+          role={detailsOrg.role}
+          onSaved={reload}
+        />
+      )}
     </div>
   );
 }
