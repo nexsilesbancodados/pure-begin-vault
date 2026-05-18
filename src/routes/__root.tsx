@@ -17,6 +17,7 @@ import { KeyboardHelp } from "@/components/layout/KeyboardHelp";
 import { I18nProvider } from "@/lib/i18n";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { Toaster as SonnerToaster } from "sonner";
 
 import appCss from "../styles.css?url";
 
@@ -173,6 +174,7 @@ function RootComponent() {
             <CommandPalette />
           </Suspense>
           <KeyboardHelp />
+          <SonnerToaster position="top-right" richColors closeButton />
         </AuthProvider>
       </I18nProvider>
     </ThemeProvider>
