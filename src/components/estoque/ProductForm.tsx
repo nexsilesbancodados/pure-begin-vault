@@ -43,6 +43,18 @@ import {
 
 type ProductType = "Aparelho" | "Acessório" | "Peça";
 
+const IPHONE_MODELS = [
+  "iPhone 8 Plus",
+  "iPhone X", "iPhone XR", "iPhone XS", "iPhone XS Max",
+  "iPhone 11", "iPhone 11 Pro", "iPhone 11 Pro Max",
+  "iPhone 12 mini", "iPhone 12", "iPhone 12 Pro", "iPhone 12 Pro Max",
+  "iPhone 13 mini", "iPhone 13", "iPhone 13 Pro", "iPhone 13 Pro Max",
+  "iPhone 14", "iPhone 14 Plus", "iPhone 14 Pro", "iPhone 14 Pro Max",
+  "iPhone 15", "iPhone 15 Plus", "iPhone 15 Pro", "iPhone 15 Pro Max",
+  "iPhone 16", "iPhone 16 Plus", "iPhone 16 Pro", "iPhone 16 Pro Max",
+  "iPhone 17", "iPhone 17 Plus", "iPhone 17 Pro", "iPhone 17 Pro Max",
+];
+
 interface ProductFormData {
   // Core (mapped to columns)
   name: string;
@@ -143,6 +155,17 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
   useEffect(() => {
     localStorage.setItem("product_custom_tipos", JSON.stringify(customTipos));
   }, [customTipos]);
+
+  const [customModelos, setCustomModelos] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("product_custom_modelos") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem("product_custom_modelos", JSON.stringify(customModelos));
+  }, [customModelos]);
 
   useEffect(() => {
     if (!open || !orgId) return;
@@ -457,11 +480,43 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                       </div>
                     </FieldRow>
                     <FieldRow label="Modelo Aparelho" required>
-                      <Input
+                      <Select
                         value={form.modelo}
-                        onChange={(e) => set("modelo", e.target.value)}
-                        placeholder="Buscar"
-                      />
+                        onValueChange={(v) => {
+                          if (v === "__add__") {
+                            const nome = window.prompt("Nome do novo modelo:")?.trim();
+                            if (!nome) return;
+                            setCustomModelos((prev) =>
+                              prev.includes(nome) ? prev : [...prev, nome],
+                            );
+                            set("modelo", nome);
+                            return;
+                          }
+                          set("modelo", v);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Buscar modelo" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-80">
+                          {IPHONE_MODELS.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              {m}
+                            </SelectItem>
+                          ))}
+                          {customModelos.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              {m}
+                            </SelectItem>
+                          ))}
+                          <SelectItem
+                            value="__add__"
+                            className="text-primary font-bold border-t mt-1"
+                          >
+                            + Cadastrar novo modelo...
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </FieldRow>
 
                     <FieldRow label="Serial number">
