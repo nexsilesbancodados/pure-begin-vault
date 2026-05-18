@@ -813,15 +813,22 @@ export function SalesHistory() {
                     variant="outline"
                     className="w-full h-12 rounded-xl font-bold flex items-center gap-2 border-primary/20 text-primary hover:bg-primary/5"
                     onClick={() => {
-                      toast.info("Carregando venda para edição...");
+                      if (selectedSale.status === "cancelled") {
+                        toast.error("Vendas canceladas não podem ser editadas.");
+                        return;
+                      }
+                      toast.info("Abrindo PDV para edição...");
                       window.open(`/pdv?edit=${selectedSale.id}`, "_blank");
+                      setIsDetailsOpen(false);
                     }}
                   >
                     <Edit className="h-4 w-4" /> Editar Venda
                   </Button>
                   <Button
                     className="w-full h-12 rounded-xl font-bold flex items-center gap-2"
-                    onClick={() => window.open(`/pdv?view=${selectedSale.id}`, "_blank")}
+                    onClick={() => {
+                      window.open(`/recibo/${selectedSale.id}`, "_blank");
+                    }}
                   >
                     <Eye className="h-4 w-4" /> Ver Detalhes Completos
                   </Button>
@@ -830,7 +837,7 @@ export function SalesHistory() {
                     className="w-full h-12 rounded-xl font-bold flex items-center gap-2"
                     onClick={() => {
                       toast.info("Preparando cupom...");
-                      window.open(`/pdv?print=receipt&id=${selectedSale.id}`, "_blank");
+                      window.open(`/recibo/${selectedSale.id}?auto=1`, "_blank");
                     }}
                   >
                     <Printer className="h-4 w-4" /> Imprimir Cupom
