@@ -559,6 +559,13 @@ function NotasAbertoPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ProductForm
+        open={!!editingProduct}
+        onOpenChange={(o) => !o && setEditingProduct(null)}
+        product={editingProduct}
+        onSave={handleSaveProduct}
+      />
     </div>
   );
 }
