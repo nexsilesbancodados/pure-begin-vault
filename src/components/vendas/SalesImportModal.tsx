@@ -531,6 +531,50 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {step === "upload" && (
             <div className="space-y-4">
+              {/* Tipo de relatório */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                    Tipo de relatório
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(Object.keys(KIND_META) as ImportKind[]).map((k) => {
+                    const meta = KIND_META[k];
+                    const Icon = meta.icon;
+                    const active = kind === k;
+                    return (
+                      <button
+                        key={k}
+                        type="button"
+                        onClick={() => setKind(k)}
+                        className={`relative rounded-2xl border-2 p-3 text-left transition-all bg-gradient-to-br ${
+                          active
+                            ? `${meta.tone} shadow-md scale-[1.02]`
+                            : "border-border bg-card hover:border-primary/40 text-foreground"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${active ? "bg-white/60 dark:bg-white/10" : "bg-muted"}`}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-black truncate">{meta.label}</p>
+                            <p className="text-[10px] text-muted-foreground truncate leading-tight">
+                              {meta.desc}
+                            </p>
+                          </div>
+                        </div>
+                        {active && (
+                          <CheckCircle2 className="absolute top-2 right-2 h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => {
