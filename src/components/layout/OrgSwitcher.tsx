@@ -56,9 +56,15 @@ export function OrgSwitcher() {
           <button
             type="button"
             aria-label={`Loja ativa: ${activeName}. Trocar de loja`}
-            className="h-9 px-3 rounded-lg bg-card border border-border hover:border-primary/40 transition text-xs font-bold flex items-center gap-2 max-w-[200px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-9 pl-1.5 pr-3 rounded-lg bg-card border border-border hover:border-primary/40 transition text-xs font-bold flex items-center gap-2 max-w-[220px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Store className="h-3.5 w-3.5 text-primary shrink-0" aria-hidden="true" />
+            <span className="h-6 w-6 rounded-md overflow-hidden bg-primary/10 grid place-items-center shrink-0">
+              {active?.logo_url ? (
+                <img src={active.logo_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Store className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+              )}
+            </span>
             <span className="truncate">{activeName}</span>
             {orgs.length > 1 && (
               <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
@@ -89,7 +95,13 @@ export function OrgSwitcher() {
                   className="flex items-center gap-2"
                   disabled={isActive}
                 >
-                  <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="h-6 w-6 rounded-md overflow-hidden bg-muted grid place-items-center shrink-0">
+                    {o.logo_url ? (
+                      <img src={o.logo_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    )}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold truncate">
                       {o.organization?.name ?? "Sem nome"}

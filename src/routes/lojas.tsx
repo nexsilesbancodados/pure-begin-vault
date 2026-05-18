@@ -221,13 +221,21 @@ function LojasPage() {
 
                       <div className="flex items-start gap-3">
                         <div
-                          className={`h-12 w-12 rounded-xl grid place-items-center shrink-0 shadow-sm ${
+                          className={`h-12 w-12 rounded-xl grid place-items-center shrink-0 shadow-sm overflow-hidden ${
                             isActive
                               ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground"
                               : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          <Building2 className="h-5 w-5" />
+                          {o.logo_url ? (
+                            <img
+                              src={o.logo_url}
+                              alt={o.organization?.name ?? "Logo"}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <Building2 className="h-5 w-5" />
+                          )}
                         </div>
 
                         <div className="min-w-0 flex-1">
