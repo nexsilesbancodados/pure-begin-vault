@@ -270,6 +270,7 @@ ul{font-size:12px;line-height:1.6;}
 
   const openReceiptPopup = useCallback(async (sale: any, autoPrint = false) => {
     setIsDetailsOpen(false);
+    setSelectedSale(null);
     setIsReceiptOpen(true);
     setReceiptLoading(true);
     setReceiptError(null);
@@ -774,7 +775,7 @@ ul{font-size:12px;line-height:1.6;}
 
 
       {/* Modal de Detalhes da Venda */}
-      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+      <Dialog open={isDetailsOpen && !isReceiptOpen && !!selectedSale} onOpenChange={setIsDetailsOpen}>
         <DialogContent className="sm:max-w-[560px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card">
           {selectedSale && (() => {
             const status = selectedSale.status as string;
