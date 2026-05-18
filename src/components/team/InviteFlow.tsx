@@ -268,7 +268,20 @@ export function InviteFlow() {
               return (
                 <div
                   key={i.id}
-                  className="relative rounded-2xl border border-border bg-card p-4 hover:shadow-md transition-shadow"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setEditing(i);
+                    setUserModalOpen(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setEditing(i);
+                      setUserModalOpen(true);
+                    }
+                  }}
+                  className="relative rounded-2xl border border-border bg-card p-4 hover:shadow-md hover:border-primary/40 cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="flex items-start gap-3">
                     <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center shrink-0">
