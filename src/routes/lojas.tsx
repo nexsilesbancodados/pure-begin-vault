@@ -201,7 +201,15 @@ function LojasPage() {
                   return (
                     <div
                       key={o.organization_id}
-                      className={`group relative overflow-hidden rounded-2xl border p-4 transition-all ${
+                      onClick={() => {
+                        if (isEditing) return;
+                        setDetailsOrg({
+                          id: o.organization_id,
+                          name: o.organization?.name ?? "Loja",
+                          role: o.role,
+                        });
+                      }}
+                      className={`group relative overflow-hidden rounded-2xl border p-4 transition-all cursor-pointer ${
                         isActive
                           ? "border-primary bg-gradient-to-br from-primary/10 via-primary/5 to-transparent shadow-md"
                           : "border-border hover:border-primary/40 hover:shadow-md bg-card"
