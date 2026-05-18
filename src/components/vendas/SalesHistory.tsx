@@ -1018,30 +1018,23 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                       </span>
                     </td>
                     <td className="px-6 py-5">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border transition-all ${
-                          sale.status === "concluded"
-                            ? "bg-success/5 text-success border-success/20"
-                            : sale.status === "pending"
-                              ? "bg-warning/5 text-warning border-warning/20"
-                              : "bg-destructive/5 text-destructive border-destructive/20"
-                        }`}
-                      >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full animate-pulse ${
-                            sale.status === "concluded"
-                              ? "bg-success"
-                              : sale.status === "pending"
-                                ? "bg-warning"
-                                : "bg-destructive"
-                          }`}
-                        />
-                        {sale.status === "concluded"
-                          ? "CONCLUÍDA"
-                          : sale.status === "pending"
-                            ? "PENDENTE"
-                            : "CANCELADA"}
-                      </span>
+                      {(() => {
+                        const isDone = ["concluded", "completed", "paid"].includes(sale.status);
+                        const isPending = ["pending", "open"].includes(sale.status);
+                        const tone = isDone
+                          ? "bg-success/5 text-success border-success/20"
+                          : isPending
+                            ? "bg-warning/5 text-warning border-warning/20"
+                            : "bg-destructive/5 text-destructive border-destructive/20";
+                        const dot = isDone ? "bg-success" : isPending ? "bg-warning" : "bg-destructive";
+                        const label = isDone ? "CONCLUÍDA" : isPending ? "PENDENTE" : "CANCELADA";
+                        return (
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border transition-all ${tone}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${dot}`} />
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-5 text-right">
                       <DropdownMenu>
