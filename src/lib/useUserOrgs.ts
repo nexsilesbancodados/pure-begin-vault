@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useServerFn } from "@tanstack/react-start";
+import { getOrgLogos } from "@/lib/org-settings.functions";
 import { toast } from "sonner";
 
 export interface UserOrg {
@@ -15,6 +17,7 @@ export function useUserOrgs() {
   const { user, profile } = useAuth();
   const [orgs, setOrgs] = useState<UserOrg[]>([]);
   const [loading, setLoading] = useState(true);
+  const fetchLogos = useServerFn(getOrgLogos);
   const profileOrgId = (profile as any)?.organization_id ?? null;
   // Fallback: se profile.organization_id está vazio ou aponta pra uma org que o user
   // já não pertence, usa a primeira org de user_organizations como ativa.
@@ -57,19 +60,18 @@ export function useUserOrgs() {
     }
 
     const ids = base.map((o) => o.organization_id);
-    let logoMap = new Map<string, string | null>();
+    let logoMap: Record<string, string | null> = {};
     if (ids.length > 0) {
-      const { data: settings } = await (supabase as any)
-        .from("organization_settings")
-        .select("organization_id, brand_logo_url")
-        .in("organization_id", ids);
-      logoMap = new Map(
-        ((settings as any[]) ?? []).map((s) => [s.organization_id, s.brand_logo_url ?? null]),
-      );
+      try {
+        const res = await fetchLogos({ data: { orgIds: ids } });
+        logoMap = res.logos ?? {};
+      } catch (e) {
+        console.warn("Falha ao carregar logos das lojas", e);
+      }
     }
-    setOrgs(base.map((o) => ({ ...o, logo_url: logoMap.get(o.organization_id) ?? null })));
+    setOrgs(base.map((o) => ({ ...o, logo_url: logoMap[o.organization_id] ?? null })));
     setLoading(false);
-  }, [user?.id, isSuperAdmin]);
+  }, [user?.id, isSuperAdmin, fetchLogos]);
 
   useEffect(() => {
     load();
