@@ -1017,7 +1017,11 @@ ul{font-size:12px;line-height:1.6;}
             </div>
             <Button
               disabled={!receiptData || receiptLoading}
-              onClick={() => window.print()}
+              onClick={async () => {
+                const imgs = Array.from(document.querySelectorAll<HTMLImageElement>(".receipt-print-area img"));
+                await Promise.all(imgs.map((img) => img.complete && img.naturalWidth > 0 ? Promise.resolve() : new Promise((res) => { img.onload = img.onerror = () => res(null); })));
+                window.print();
+              }}
               className="rounded-xl font-bold gap-2"
             >
               <Printer className="h-4 w-4" /> Imprimir
@@ -1269,8 +1273,9 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
           <img
             src={data.org.logo_url}
             alt={data.org_name}
-            className="mx-auto my-1"
-            style={{ maxHeight: "55px", objectFit: "contain" }}
+            crossOrigin="anonymous"
+            className="mx-auto my-1 receipt-logo"
+            style={{ maxHeight: "55px", objectFit: "contain", display: "block", marginLeft: "auto", marginRight: "auto", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" } as any}
           />
         )}
         <div className="font-bold text-[13px]">{data.org_name}</div>
@@ -1369,9 +1374,11 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
       <style>{`
         @media print {
           @page { margin: 0; size: 80mm auto; }
+          html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body * { visibility: hidden !important; }
           .receipt-print-area, .receipt-print-area * { visibility: visible !important; }
           .receipt-print-area { position: absolute !important; left: 0 !important; top: 0 !important; box-shadow: none !important; width: 80mm !important; }
+          .receipt-print-area img { display: block !important; max-width: 100% !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
     </div>
