@@ -969,9 +969,13 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                     <span className="text-destructive">
                       {stats.invalid} linhas com problemas
                     </span>
-                    <span className="ml-auto text-[10px] font-bold text-muted-foreground">
-                      (clique para detalhes)
-                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); downloadErrorReport(); }}
+                      className="ml-auto text-[10px] font-black px-2 py-1 rounded-lg bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 flex items-center gap-1"
+                    >
+                      <Download className="h-3 w-3" /> Baixar erros
+                    </button>
                   </summary>
                   <div className="max-h-32 overflow-y-auto border-t border-destructive/20 bg-background/50">
                     {rows
