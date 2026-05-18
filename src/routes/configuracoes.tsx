@@ -226,6 +226,7 @@ function SettingsPage() {
     display_name: "",
     role: "",
     phone: "",
+    email: "",
   });
 
   useEffect(() => {
@@ -234,10 +235,11 @@ function SettingsPage() {
         display_name: profile.display_name || "",
         role: profile.role || "",
         phone: (profile as { phone?: string | null }).phone || "",
+        email: profile.email || user?.email || "",
       });
       setAvatarUrl(profile.avatar_url || null);
     }
-  }, [profile]);
+  }, [profile, user?.email]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
