@@ -225,9 +225,9 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
                     variant="outline"
                     size="sm"
                     onClick={() => fileRef.current?.click()}
-                    disabled={!canEdit}
+                    disabled={!canEdit || uploading}
                   >
-                    <Upload className="h-3.5 w-3.5 mr-1" /> Enviar imagem
+                    <Upload className="h-3.5 w-3.5 mr-1" /> {uploading ? "Enviando..." : "Enviar imagem"}
                   </Button>
                   {logoUrl && (
                     <Button
