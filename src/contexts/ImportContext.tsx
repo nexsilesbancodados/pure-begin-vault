@@ -37,6 +37,7 @@ type Ctx = {
   activeCount: number;
   startImport: (fileName: string, rows: ImportRow[]) => Promise<string | null>;
   clearFinished: () => Promise<void>;
+  deleteJob: (jobId: string) => Promise<void>;
 };
 
 const ImportCtx = createContext<Ctx | null>(null);
@@ -149,13 +150,19 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
       .in("status", ["done", "error"]);
   }, [orgId]);
 
+  const deleteJob = useCallback(async (jobId: string) => {
+    const { error } = await supabase.from("import_jobs").delete().eq("id", jobId);
+    if (error) toast.error("Falha ao remover: " + error.message);
+    else toast.success("Importação removida");
+  }, []);
+
   const activeCount = useMemo(
     () => jobs.filter((j) => j.status === "running" || j.status === "queued").length,
     [jobs],
   );
 
   return (
-    <ImportCtx.Provider value={{ jobs, activeCount, startImport, clearFinished }}>
+    <ImportCtx.Provider value={{ jobs, activeCount, startImport, clearFinished, deleteJob }}>
       {children}
     </ImportCtx.Provider>
   );
