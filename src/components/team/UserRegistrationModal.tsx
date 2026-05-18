@@ -16,10 +16,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserOrgs } from "@/lib/useUserOrgs";
 import { toast } from "sonner";
 
+interface EditInitial {
+  id: string;
+  email?: string | null;
+  metadata?: {
+    nome?: string;
+    ativo?: boolean;
+    perfis?: string[];
+    custom_perfis?: string[];
+    perfil_rapido?: string;
+    tela_inicial?: string;
+    lojas?: string[];
+  } | null;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
+  initial?: EditInitial | null;
 }
 
 const DEFAULT_PROFILES = [
