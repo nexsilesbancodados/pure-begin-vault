@@ -41,8 +41,9 @@ interface Product {
   name: string;
   sku?: string | null;
   imei?: string | null;
-  sale_price?: number | null;
+  price?: number | null;
   stock_quantity?: number | null;
+  metadata?: any;
 }
 
 function NotasAbertoPage() {
