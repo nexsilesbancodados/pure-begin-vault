@@ -46,8 +46,9 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
       setLoading(true);
       const { data } = await supabase
         .from("sales_orders")
-        .select("total_amount, created_at")
-        .eq("status", "concluded")
+        .select("total_amount, created_at, channel")
+        .in("status", ["completed", "concluded"])
+        .in("channel", ["pdv", "import"])
         .eq("organization_id", orgId);
       if (cancelled) return;
       setSales((data as any) ?? []);
