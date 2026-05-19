@@ -54,7 +54,7 @@ export function LowStockAlert({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <div className="rounded-2xl border border-warning/30 bg-warning/5 p-4">
+    <div className="rounded-2xl border border-warning/30 bg-warning/5 backdrop-blur-sm p-4 mb-6 transition-all animate-in fade-in duration-500">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-warning/15 text-warning flex items-center justify-center">

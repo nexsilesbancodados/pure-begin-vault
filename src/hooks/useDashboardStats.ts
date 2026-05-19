@@ -70,8 +70,9 @@ export function useDashboardStats(period: Period = "today") {
       const salesQ = scope(
         supabase
           .from("sales_orders")
-          .select("total_amount, created_at")
+          .select("total_amount, created_at, channel")
           .in("status", COMPLETED_STATUSES)
+          .in("channel", ["pdv", "import"])
           .gte("created_at", firstDayMonth.toISOString()),
       );
 

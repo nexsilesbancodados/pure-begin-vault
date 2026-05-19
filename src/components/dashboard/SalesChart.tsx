@@ -46,8 +46,9 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
       setLoading(true);
       const { data } = await supabase
         .from("sales_orders")
-        .select("total_amount, created_at")
-        .eq("status", "concluded")
+        .select("total_amount, created_at, channel")
+        .in("status", ["completed", "concluded"])
+        .in("channel", ["pdv", "import"])
         .eq("organization_id", orgId);
       if (cancelled) return;
       setSales((data as any) ?? []);
@@ -134,7 +135,7 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
 
   const wrapperClass = embedded
     ? "flex flex-col gap-5"
-    : "rounded-2xl bg-card border border-border p-6 shadow-card flex flex-col gap-5";
+    : "rounded-2xl bg-card/60 backdrop-blur-md border border-border/50 p-6 shadow-card flex flex-col gap-5 transition-all duration-300";
 
   const isEmpty = !loading && total === 0 && prevTotal === 0;
 

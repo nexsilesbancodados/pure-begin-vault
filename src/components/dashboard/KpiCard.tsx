@@ -110,8 +110,9 @@ export function KpiCard({
           const { data } = await filterFor(
             supabase
               .from("sales_orders")
-              .select("total_amount, items, created_at, id, payment_method, customers(name)")
+              .select("total_amount, items, created_at, id, payment_method, channel, customers(name)")
               .in("status", ["completed", "concluded"])
+              .in("channel", ["pdv", "import"])
               .gte("created_at", start.toISOString())
               .lte("created_at", end.toISOString())
               .order("created_at", { ascending: false }),
@@ -177,7 +178,7 @@ export function KpiCard({
       <button
         onClick={() => setIsModalOpen(true)}
         aria-label={`${label}: ${initialValue}${trend ? `, tendência ${trend}` : ""}. Ver detalhes`}
-        className={`relative overflow-hidden rounded-2xl bg-card border border-border p-3 sm:p-4 shadow-card hover:shadow-elegant hover:-translate-y-1 active:scale-[0.98] transition-all duration-300 text-left w-full group hover:ring-2 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${styles.ring}`}
+        className={`relative overflow-hidden rounded-2xl bg-card/60 backdrop-blur-md border border-border/50 p-3 sm:p-4 shadow-card hover:shadow-elegant hover:-translate-y-1 active:scale-[0.98] transition-all duration-300 text-left w-full group hover:ring-2 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${styles.ring}`}
       >
         {/* Top highlight line */}
         <div
@@ -377,9 +378,13 @@ export function KpiCard({
                                     {formatDate(new Date(sale.created_at), "HH:mm", { locale: ptBR })}
                                   </span>
                                   <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                                  <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-border/80 text-muted-foreground/80 font-medium">
-                                    {sale.payment_method || "Não inf."}
-                                  </Badge>
+                                    <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-border/80 text-muted-foreground/80 font-medium">
+                                      {sale.channel === 'pdv' ? 'PDV' : 'Importado'}
+                                    </Badge>
+                                    <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                                    <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-border/80 text-muted-foreground/80 font-medium">
+                                      {sale.payment_method || "Não inf."}
+                                    </Badge>
                                 </div>
                               </div>
                             </div>

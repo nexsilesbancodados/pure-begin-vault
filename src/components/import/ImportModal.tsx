@@ -411,7 +411,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
     payment_method: normalizePayment(get("payment")),
     status: normalizeStatus(get("status")),
     notes: String(notes).slice(0, 500),
-    created_at: (date ?? new Date()).toISOString(),
+    created_at: (date ?? new Date(new Date().setHours(0, 0, 0, 0) - 86400000)).toISOString(), // Default to yesterday if no date is found to avoid polluting "Today's" stats with historical imports
     customer_name: customerName || undefined,
     customer_phone: customerPhone || undefined,
     customer_email: customerEmail || undefined,
