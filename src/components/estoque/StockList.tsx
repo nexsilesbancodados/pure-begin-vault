@@ -51,6 +51,7 @@ export function StockList() {
   const { user } = useAuth();
   const { orgId } = useOrg();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [localProducts, setLocalProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
