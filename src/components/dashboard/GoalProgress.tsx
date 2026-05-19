@@ -76,24 +76,29 @@ export function GoalProgress({
   }, [user?.id, orgId]);
 
   const fetchGoals = async () => {
-    const { data } = await (supabase.from("business_goals").select("*") as any)
-      .eq("user_id", user?.id || "")
+    if (!user?.id || !orgId) return;
+    const { data } = await supabase
+      .from("business_goals")
+      .select("*")
+      .eq("organization_id", orgId)
       .maybeSingle();
+    
     if (data) {
       const fetchedGoals = {
-        daily: Number(data.daily_goal) || 0,
-        weekly: Number(data.weekly_goal) || 0,
-        monthly: Number(data.monthly_goal) || initialGoal,
-        type: (data.goal_type as any) || "revenue",
-        goal_name: data.goal_name || "",
-        start_date: data.start_date || new Date().toISOString().split("T")[0],
-        end_date: data.end_date || "",
-        notes: data.notes || "",
+        daily: Number(data.target_value) / 30 || 0,
+        weekly: Number(data.target_value) / 4 || 0,
+        monthly: Number(data.target_value) || initialGoal,
+        type: (data.type as any) || "revenue",
+        goal_name: data.title || "",
+        start_date: data.created_at || new Date().toISOString().split("T")[0],
+        end_date: data.deadline || "",
+        notes: "",
       };
       setGoals(fetchedGoals);
       setEditGoals(fetchedGoals);
     }
   };
+
 
   const fetchStats = async () => {
     const firstDayMonth = new Date();
@@ -118,32 +123,56 @@ export function GoalProgress({
   };
 
   const handleSave = async () => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) {
+      toast.error("Usuário ou organização não identificados");
+      return;
+    }
     setIsLoading(true);
     try {
-      const { error } = await supabase.from("business_goals").upsert({
-        user_id: user.id,
-        daily_goal: editGoals.daily,
-        weekly_goal: editGoals.weekly,
-        monthly_goal: editGoals.monthly,
-        goal_type: editGoals.type,
-        goal_name: editGoals.goal_name,
-        start_date: editGoals.start_date,
-        end_date: editGoals.end_date,
-        notes: editGoals.notes,
-        updated_at: new Date().toISOString(),
-      } as any);
+      // Find existing goal for this org to update it, or it will create a new one
+      const { data: existingGoal } = await supabase
+        .from("business_goals")
+        .select("id")
+        .eq("organization_id", orgId)
+        .maybeSingle();
+
+      const goalData = {
+        organization_id: orgId,
+        title: editGoals.goal_name || "Meta de Vendas",
+        target_value: editGoals.monthly,
+        type: editGoals.type,
+        deadline: editGoals.end_date || null,
+        current_value: currentDisplay,
+      };
+
+      let error;
+      if (existingGoal?.id) {
+        const { error: updateError } = await supabase
+          .from("business_goals")
+          .update(goalData)
+          .eq("id", existingGoal.id);
+        error = updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from("business_goals")
+          .insert([goalData]);
+        error = insertError;
+      }
+
       if (error) throw error;
+      
       setGoals({ ...editGoals });
       setIsModalOpen(false);
       toast.success("Metas atualizadas com sucesso!");
       if (onGoalUpdate) onGoalUpdate();
-    } catch (e) {
-      toast.error("Erro ao salvar metas");
+    } catch (e: any) {
+      console.error("Erro ao salvar metas:", e);
+      toast.error(`Erro ao salvar metas: ${e.message || "Tente novamente"}`);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const currentDisplay = goals.type === "units" ? stats.units : goals.type === "profit" ? stats.profit : stats.revenue;
   const pct = Math.min(100, Math.round((currentDisplay / (goals.monthly || 1)) * 100)) || 0;
