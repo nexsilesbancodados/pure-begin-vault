@@ -489,9 +489,30 @@ function ReceitasPage() {
       }
       return true;
     });
-  }, [items, from, to, fId, fOrigem, fCategoria, fTitulo, fSituacao, fPessoa, quickFilter]);
+  }, [items, from, to, fId, fOrigem, fCategoria, fTitulo, fSituacao, fPessoa, fMethod, quickFilter]);
 
   const visible = filtered.slice(0, pageSize);
+
+  // Breakdown por forma de pagamento (somente recebidos no período filtrado)
+  const methodBreakdown = useMemo(() => {
+    const acc: Record<PayKey, { total: number; count: number }> = {
+      pix: { total: 0, count: 0 },
+      cash: { total: 0, count: 0 },
+      credit: { total: 0, count: 0 },
+      debit: { total: 0, count: 0 },
+      crediario: { total: 0, count: 0 },
+      boleto: { total: 0, count: 0 },
+      transfer: { total: 0, count: 0 },
+      other: { total: 0, count: 0 },
+    };
+    filtered.forEach((it) => {
+      if (it.status !== "paid") return;
+      const k = normalizeMethod(it.payment_method);
+      acc[k].total += Number(it.amount) || 0;
+      acc[k].count += 1;
+    });
+    return acc;
+  }, [filtered]);
 
   const clearFilters = () => {
     setQuickFilter("");
@@ -501,6 +522,7 @@ function ReceitasPage() {
     setFTitulo("");
     setFSituacao("");
     setFPessoa("");
+    setFMethod("");
     setFrom(format(subDays(new Date(), 260), "yyyy-MM-dd"));
     setTo(format(addDays(new Date(), 365), "yyyy-MM-dd"));
   };
