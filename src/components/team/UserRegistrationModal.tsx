@@ -458,8 +458,11 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
             </div>
 
             <div className="border-t pt-4">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                Perfis padrões
+              <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                Menu lateral
+              </p>
+              <p className="text-xs text-muted-foreground mb-3">
+                Somente as opções selecionadas aparecerão no menu do usuário.
               </p>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {DEFAULT_PROFILES.map((p) => {
