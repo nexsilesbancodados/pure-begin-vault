@@ -1315,6 +1315,83 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                       )}
                     </div>
 
+                    {/* Produtos vendidos */}
+                    <div className="rounded-2xl border border-border/60 bg-muted/30 overflow-hidden">
+                      <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-border/60 bg-background/50">
+                        <div className="flex items-center gap-2">
+                          <Package className="h-4 w-4 text-primary" />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70">
+                            Produtos vendidos
+                          </span>
+                        </div>
+                        <Badge variant="outline" className="rounded-full text-[10px] font-bold">
+                          {detailsItemsLoading ? "…" : `${detailsItems.length} item(ns)`}
+                        </Badge>
+                      </div>
+                      {detailsItemsLoading ? (
+                        <div className="p-4 flex items-center justify-center text-xs text-muted-foreground gap-2">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando produtos…
+                        </div>
+                      ) : detailsItems.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-muted-foreground">
+                          Nenhum produto registrado nesta venda.
+                        </div>
+                      ) : (
+                        <ul className="divide-y divide-border/60">
+                          {detailsItems.map((it: any) => {
+                            const qty = Number(it.quantity || 0);
+                            const unit = Number(it.unit_price || 0);
+                            const lineTotal = Number(it.total ?? unit * qty);
+                            return (
+                              <li key={it.id} className="p-3 flex items-start gap-3">
+                                <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                  <Package className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-bold text-sm truncate">
+                                      {it.product_name || "Produto"}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className="rounded-full text-[10px] font-mono"
+                                    >
+                                      <Hash className="h-3 w-3 mr-0.5" />
+                                      {toProductCode({ id: it.product_id, sku: it.sku })}
+                                    </Badge>
+                                  </div>
+                                  <div className="mt-1 flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
+                                    <span>
+                                      <span className="font-bold text-foreground">{qty}x</span>{" "}
+                                      {brl(unit)}
+                                    </span>
+                                    {it.imei && (
+                                      <span className="font-mono">IMEI: {it.imei}</span>
+                                    )}
+                                    {it.model && <span>{it.model}</span>}
+                                    {Number(it.discount || 0) > 0 && (
+                                      <span className="text-success">
+                                        - {brl(Number(it.discount))}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-black">
+                                    Total
+                                  </div>
+                                  <div className="font-black text-sm text-primary">
+                                    {brl(lineTotal)}
+                                  </div>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+                    </div>
+
+
                     {/* Pagamento + Itens */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/60">
