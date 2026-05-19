@@ -1892,19 +1892,24 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
       <table className="w-full border-collapse text-[12px] border-t-0">
         <tbody>
           <tr>
-            <td className="border border-black px-3 py-2 text-center align-top w-[60%]">
-              {data.org?.logo_url && (
+            <td className="border border-black px-3 py-2 align-middle w-[22%] text-center">
+              {data.org?.logo_url ? (
                 <img
                   src={data.org.logo_url}
                   alt={data.org_name}
-                  className="mx-auto mb-1 max-h-16 object-contain"
+                  className="mx-auto max-h-[70px] object-contain"
                 />
+              ) : (
+                <div className="text-[11px] text-neutral-500">{data.org_name}</div>
               )}
+            </td>
+            <td className="border border-black px-3 py-2 text-center align-middle">
               <p className="font-bold">{data.org_name}</p>
               {data.org?.cnpj && <p>CNPJ: {data.org.cnpj}</p>}
               {data.org?.phone && <p>Telefone: {data.org.phone}</p>}
+              {data.org?.address && <p className="text-[11px]">{data.org.address}</p>}
             </td>
-            <td className="border border-black px-3 py-2 align-top">
+            <td className="border border-black px-3 py-2 align-top w-[28%]">
               <p>
                 <span className="font-bold">{saleDate}</span>
               </p>
