@@ -200,6 +200,7 @@ function ReceitasPage() {
   const [fTitulo, setFTitulo] = useState("");
   const [fSituacao, setFSituacao] = useState("");
   const [fPessoa, setFPessoa] = useState("");
+  const [fMethod, setFMethod] = useState<PayKey | "">("");
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
