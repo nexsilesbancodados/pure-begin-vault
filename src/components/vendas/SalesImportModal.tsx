@@ -403,6 +403,10 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     if (!header) delete newMap[field];
     else newMap[field] = header;
     setHmap(newMap);
+
+    // Salva mapeamento no localStorage para uso futuro
+    localStorage.setItem(`import_map_${kind}`, JSON.stringify(newMap));
+
     if (rawData.length) {
       setRows(rawData.map((r, i) => parseRow(r, newMap, i)));
     }
