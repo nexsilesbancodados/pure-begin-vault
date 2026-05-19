@@ -212,6 +212,25 @@ export function PDVInterface() {
 
       if (error) throw error;
 
+      // Carrega IMEIs disponíveis (não vendidos) para mostrar no PDV
+      const productIds = (data || []).map((p: any) => p.id);
+      const imeisByProduct: Record<string, { imei: string; serial: string | null }[]> = {};
+      if (productIds.length) {
+        const { data: imeiRows } = await supabase
+          .from("product_imei")
+          .select("product_id, imei, serial, status")
+          .eq("organization_id", orgId)
+          .in("product_id", productIds)
+          .neq("status", "sold");
+        for (const row of imeiRows || []) {
+          const pid = (row as any).product_id as string;
+          (imeisByProduct[pid] ||= []).push({
+            imei: String((row as any).imei || ""),
+            serial: (row as any).serial ? String((row as any).serial) : null,
+          });
+        }
+      }
+
       const formattedProducts: Product[] = (data || []).map((p) => {
         const product: Product = {
           id: p.id,
