@@ -18,7 +18,16 @@ import {
   DollarSign,
   Calendar,
   Zap,
+  Eye,
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { ImportJob } from "@/contexts/ImportContext";
 
 interface JobDetailModalProps {
