@@ -23,6 +23,7 @@ export type Database = {
           description: string
           due_date: string
           id: string
+          import_job_id: string | null
           notes: string | null
           organization_id: string
           paid_amount: number | null
@@ -40,6 +41,7 @@ export type Database = {
           description: string
           due_date: string
           id?: string
+          import_job_id?: string | null
           notes?: string | null
           organization_id: string
           paid_amount?: number | null
@@ -57,6 +59,7 @@ export type Database = {
           description?: string
           due_date?: string
           id?: string
+          import_job_id?: string | null
           notes?: string | null
           organization_id?: string
           paid_amount?: number | null
@@ -76,6 +79,7 @@ export type Database = {
           description: string
           due_date: string
           id: string
+          import_job_id: string | null
           notes: string | null
           organization_id: string
           paid_amount: number | null
@@ -92,6 +96,7 @@ export type Database = {
           description: string
           due_date: string
           id?: string
+          import_job_id?: string | null
           notes?: string | null
           organization_id: string
           paid_amount?: number | null
@@ -108,6 +113,7 @@ export type Database = {
           description?: string
           due_date?: string
           id?: string
+          import_job_id?: string | null
           notes?: string | null
           organization_id?: string
           paid_amount?: number | null
@@ -1045,6 +1051,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          import_job_id: string | null
           organization_id: string | null
           payment_method: string | null
           reference_id: string | null
@@ -1060,6 +1067,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          import_job_id?: string | null
           organization_id?: string | null
           payment_method?: string | null
           reference_id?: string | null
@@ -1075,6 +1083,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          import_job_id?: string | null
           organization_id?: string | null
           payment_method?: string | null
           reference_id?: string | null
@@ -2337,6 +2346,7 @@ export type Database = {
           discount: number | null
           id: string
           imei: string | null
+          import_job_id: string | null
           metadata: Json
           organization_id: string
           product_id: string | null
@@ -2353,6 +2363,7 @@ export type Database = {
           discount?: number | null
           id?: string
           imei?: string | null
+          import_job_id?: string | null
           metadata?: Json
           organization_id: string
           product_id?: string | null
@@ -2369,6 +2380,7 @@ export type Database = {
           discount?: number | null
           id?: string
           imei?: string | null
+          import_job_id?: string | null
           metadata?: Json
           organization_id?: string
           product_id?: string | null
@@ -2445,6 +2457,7 @@ export type Database = {
           customer_id: string | null
           discount: number | null
           id: string
+          import_job_id: string | null
           notes: string | null
           organization_id: string
           payment_method: string | null
@@ -2463,6 +2476,7 @@ export type Database = {
           customer_id?: string | null
           discount?: number | null
           id?: string
+          import_job_id?: string | null
           notes?: string | null
           organization_id: string
           payment_method?: string | null
@@ -2481,6 +2495,7 @@ export type Database = {
           customer_id?: string | null
           discount?: number | null
           id?: string
+          import_job_id?: string | null
           notes?: string | null
           organization_id?: string
           payment_method?: string | null
