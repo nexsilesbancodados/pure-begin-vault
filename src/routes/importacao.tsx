@@ -50,6 +50,8 @@ function ImportPage() {
   const { jobs, activeCount, clearFinished, deleteJob } = useImport();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<ImportJob | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [query, setQuery] = useState("");
 
