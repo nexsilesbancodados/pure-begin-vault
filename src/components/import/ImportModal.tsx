@@ -26,6 +26,9 @@ import {
   ShoppingCart,
   Package,
   DollarSign,
+  Maximize2,
+  Filter,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
