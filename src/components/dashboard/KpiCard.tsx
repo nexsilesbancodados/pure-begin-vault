@@ -320,8 +320,57 @@ export function KpiCard({
                     </Badge>
                   </div>
 
+                  {/* Product Summary - Direct response to "descrição dos produtos vendidos" */}
+                  <div className="space-y-2">
+                    <h5 className="text-[10px] uppercase font-black text-muted-foreground/60 px-1 tracking-widest">
+                      Produtos Vendidos (Resumo)
+                    </h5>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                      {(() => {
+                        const aggregated = salesData.reduce((acc: any, sale: any) => {
+                          if (Array.isArray(sale.sale_items)) {
+                            sale.sale_items.forEach((item: any) => {
+                              const key = item.product_name;
+                              if (!acc[key]) acc[key] = { name: key, qty: 0, total: 0 };
+                              acc[key].qty += Number(item.quantity) || 0;
+                              acc[key].total += (Number(item.unit_price) || 0) * (Number(item.quantity) || 1);
+                            });
+                          }
+                          return acc;
+                        }, {});
+                        
+                        const items = Object.values(aggregated);
+                        
+                        if (items.length === 0) {
+                          return <div className="text-[10px] text-muted-foreground italic px-1">Nenhum produto identificado</div>;
+                        }
+                        
+                        return items.map((prod: any) => (
+                          <div
+                            key={prod.name}
+                            className="shrink-0 px-3 py-2 rounded-xl border border-primary/20 bg-primary/5 flex flex-col min-w-[140px]"
+                          >
+                            <span className="text-[11px] font-bold truncate max-w-[180px]">{prod.name}</span>
+                            <div className="flex items-center justify-between mt-1">
+                              <Badge variant="secondary" className="h-4 text-[9px] px-1 bg-primary/10 text-primary border-none">
+                                {prod.qty} un
+                              </Badge>
+                              <span className="text-[10px] font-black opacity-70">
+                                {prod.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </span>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
                   {/* Payment Summary */}
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  <div className="space-y-2">
+                    <h5 className="text-[10px] uppercase font-black text-muted-foreground/60 px-1 tracking-widest">
+                      Formas de Pagamento
+                    </h5>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     {Object.entries(
                       salesData.reduce((acc: any, curr: any) => {
                         const method = curr.payment_method || "Outros";
