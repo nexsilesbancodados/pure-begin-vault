@@ -49,6 +49,8 @@ type IncomeOrigin = "sale" | "deposit" | "transfer" | "manual";
 type Income = {
   id: string;
   description: string;
+  title: string;
+  person: string | null;
   category: string | null;
   amount: number;
   status: string | null;
@@ -62,6 +64,7 @@ type Income = {
   customer_id?: string | null;
   source_table: "receivable" | "transaction" | "cash_movement" | "sale";
   origin: IncomeOrigin;
+  payment_method?: string | null;
   notes?: string | null;
   type: string;
 };
@@ -96,8 +99,6 @@ const inferOrigin = (params: {
   return "manual";
 };
 
-// Categorias que NUNCA são receita — vieram como income por erro de importação
-// (relatório de despesas misturado). Filtramos no front e também via SQL.
 const EXPENSE_CATEGORY_RE =
   /^(marketing|public[ií]?dade|log[ií]?stica|insumo|insumos|uniforme|aluguel|sal[áa]rio|fornecedor|fornecedores|compra|despesa|imposto|taxa|combust[ií]vel|energia|[áa]gua|internet|telefone)/i;
 
@@ -106,7 +107,6 @@ const isExpenseLikeIncome = (t: {
   description?: string | null;
   reference_type?: string | null;
 }) => {
-  // Vendas e referências de venda são sempre receita legítima
   if ((t.reference_type || "").toLowerCase().includes("sale")) return false;
   const cat = (t.category || "").trim();
   if (cat && EXPENSE_CATEGORY_RE.test(cat)) return true;
@@ -121,8 +121,63 @@ const noteField = (notes: string | null | undefined, label: string) => {
   return line ? line.slice(label.length + 1).trim() : null;
 };
 
-const customerFromDescription = (description: string | null | undefined) =>
-  (description || "").includes(" · ") ? (description || "").split(" · ").slice(1).join(" · ") : null;
+// Extrai nome do cliente de descrições "CLIENTE: NOME" ou "Algo · NOME"
+const extractPerson = (description: string | null | undefined): string | null => {
+  if (!description) return null;
+  const m = description.match(/^\s*(?:cliente|client|customer)\s*[:\-]\s*(.+)$/i);
+  if (m) return m[1].trim();
+  if (description.includes(" · ")) return description.split(" · ").slice(1).join(" · ").trim();
+  return null;
+};
+
+// Limpa título removendo prefixo "CLIENTE:" para evitar duplicação com Pessoa
+const buildTitle = (params: {
+  description: string | null | undefined;
+  reference_type?: string | null;
+  origin: IncomeOrigin;
+  category?: string | null;
+  saleNumber?: string | number | null;
+}) => {
+  const desc = (params.description || "").trim();
+  const ref = (params.reference_type || "").toLowerCase();
+  if (ref.includes("sale")) {
+    return params.saleNumber ? `Venda #${params.saleNumber}` : "Venda";
+  }
+  if (/^\s*(cliente|client|customer)\s*[:\-]/i.test(desc)) {
+    if (params.origin === "sale") return "Venda";
+    if (params.category && params.category !== "income" && params.category !== "sales") return params.category;
+    return "Receita avulsa";
+  }
+  if (desc.includes(" · ")) return desc.split(" · ")[0].trim();
+  return desc || params.category || ORIGIN_LABEL[params.origin];
+};
+
+// Padroniza forma de pagamento
+type PayKey = "pix" | "cash" | "credit" | "debit" | "crediario" | "boleto" | "transfer" | "other";
+
+const normalizeMethod = (raw: string | null | undefined): PayKey => {
+  const s = (raw || "").toLowerCase().trim();
+  if (!s) return "other";
+  if (/pix/.test(s)) return "pix";
+  if (/(esp[ée]cie|dinheiro|cash|money)/.test(s)) return "cash";
+  if (/(d[ée]bito|debit)/.test(s)) return "debit";
+  if (/(cr[ée]dito|credit)/.test(s)) return "credit";
+  if (/(credi[áa]rio|prazo|carn[êe]|parcelad|7d)/.test(s)) return "crediario";
+  if (/(boleto|bank_slip)/.test(s)) return "boleto";
+  if (/(transfer|ted|doc)/.test(s)) return "transfer";
+  return "other";
+};
+
+const PAY_META: Record<PayKey, { label: string; grad: string; ring: string; text: string; chip: string }> = {
+  pix:       { label: "PIX",            grad: "from-teal-500 to-emerald-500",     ring: "ring-teal-200",     text: "text-teal-700",    chip: "bg-teal-50" },
+  cash:      { label: "Espécie",        grad: "from-emerald-500 to-green-600",    ring: "ring-emerald-200",  text: "text-emerald-700", chip: "bg-emerald-50" },
+  credit:    { label: "Cartão Crédito", grad: "from-indigo-500 to-violet-600",    ring: "ring-indigo-200",   text: "text-indigo-700",  chip: "bg-indigo-50" },
+  debit:     { label: "Cartão Débito",  grad: "from-sky-500 to-blue-600",         ring: "ring-sky-200",      text: "text-sky-700",     chip: "bg-sky-50" },
+  crediario: { label: "Crediário",      grad: "from-amber-500 to-orange-500",     ring: "ring-amber-200",    text: "text-amber-700",   chip: "bg-amber-50" },
+  boleto:    { label: "Boleto",         grad: "from-slate-500 to-slate-700",      ring: "ring-slate-200",    text: "text-slate-700",   chip: "bg-slate-100" },
+  transfer:  { label: "Transferência",  grad: "from-violet-500 to-purple-600",    ring: "ring-violet-200",   text: "text-violet-700",  chip: "bg-violet-50" },
+  other:     { label: "Outros",         grad: "from-slate-400 to-slate-500",      ring: "ring-slate-200",    text: "text-slate-600",   chip: "bg-slate-50" },
+};
 
 function ReceitasPage() {
   const { user } = useAuth();
@@ -145,6 +200,7 @@ function ReceitasPage() {
   const [fTitulo, setFTitulo] = useState("");
   const [fSituacao, setFSituacao] = useState("");
   const [fPessoa, setFPessoa] = useState("");
+  const [fMethod, setFMethod] = useState<PayKey | "">("");
 
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
@@ -176,24 +232,36 @@ function ReceitasPage() {
       if (receivableRes.error) throw receivableRes.error;
       if (txRes.error) throw txRes.error;
 
-      const receivables: Income[] = ((receivableRes.data as any[]) || []).map((r) => ({
-        id: r.id,
-        description: r.description,
-        category: r.sale_id ? "sales" : "income",
-        amount: Number(r.amount) || 0,
-        status: r.status || "pending",
-        due_date: r.due_date,
-        payment_date: r.paid_at,
-        transaction_date: r.paid_at || r.due_date,
-        supplier: noteField(r.notes, "Cliente") || customerFromDescription(r.description),
-        reference_type: r.sale_id ? "sale" : "manual",
-        reference_id: r.sale_id || null,
-        customer_id: r.customer_id || null,
-        source_table: "receivable",
-        origin: r.sale_id ? "sale" : "manual",
-        notes: r.notes,
-        type: "income",
-      }));
+      const receivables: Income[] = ((receivableRes.data as any[]) || []).map((r) => {
+        const person = noteField(r.notes, "Cliente") || extractPerson(r.description);
+        const origin: IncomeOrigin = r.sale_id ? "sale" : "manual";
+        return {
+          id: r.id,
+          description: r.description,
+          title: buildTitle({
+            description: r.description,
+            reference_type: r.sale_id ? "sale" : "manual",
+            origin,
+            category: r.category,
+          }),
+          person,
+          category: r.sale_id ? "sales" : "income",
+          amount: Number(r.amount) || 0,
+          status: r.status || "pending",
+          due_date: r.due_date,
+          payment_date: r.paid_at,
+          transaction_date: r.paid_at || r.due_date,
+          supplier: person,
+          reference_type: r.sale_id ? "sale" : "manual",
+          reference_id: r.sale_id || null,
+          customer_id: r.customer_id || null,
+          source_table: "receivable",
+          origin,
+          payment_method: r.payment_method || null,
+          notes: r.notes,
+          type: "income",
+        };
+      });
       const receivableSaleIds = new Set(
         receivables.map((r) => r.reference_id).filter(Boolean) as string[],
       );
@@ -203,30 +271,35 @@ function ReceitasPage() {
           (t) =>
             !(t.reference_type === "sale" && t.reference_id && receivableSaleIds.has(t.reference_id)),
         )
-        // Defensive: descarta lançamentos que vieram como income mas têm
-        // categoria/descrição típicas de despesa (legado de importações).
         .filter((t) => !isExpenseLikeIncome(t))
-        .map((t) => ({
-          id: t.id,
-          description: t.description,
-          category: t.category,
-          amount: Number(t.amount) || 0,
-          status: "paid",
-          due_date: t.transaction_date,
-          payment_date: t.transaction_date,
-          transaction_date: t.transaction_date,
-          supplier: customerFromDescription(t.description),
-          reference_type: t.reference_type,
-          reference_id: t.reference_id,
-          source_table: "transaction",
-          origin: inferOrigin({
+        .map((t) => {
+          const person = extractPerson(t.description);
+          const origin = inferOrigin({
             reference_type: t.reference_type,
             category: t.category,
             payment_method: t.payment_method,
             description: t.description,
-          }),
-          type: "income",
-        }));
+          });
+          return {
+            id: t.id,
+            description: t.description,
+            title: buildTitle({ description: t.description, reference_type: t.reference_type, origin, category: t.category }),
+            person,
+            category: t.category,
+            amount: Number(t.amount) || 0,
+            status: "paid",
+            due_date: t.transaction_date,
+            payment_date: t.transaction_date,
+            transaction_date: t.transaction_date,
+            supplier: person,
+            reference_type: t.reference_type,
+            reference_id: t.reference_id,
+            source_table: "transaction",
+            origin,
+            payment_method: t.payment_method || null,
+            type: "income",
+          };
+        });
 
       const cashMovements: Income[] = !cashRes.error
         ? ((cashRes.data as any[]) || [])
@@ -242,6 +315,8 @@ function ReceitasPage() {
               return {
                 id: m.id,
                 description: m.description || ORIGIN_LABEL[origin],
+                title: ORIGIN_LABEL[origin],
+                person: extractPerson(m.description),
                 category: "caixa",
                 amount: Number(m.amount) || 0,
                 status: "paid",
@@ -253,31 +328,40 @@ function ReceitasPage() {
                 reference_id: m.reference_id || null,
                 source_table: "cash_movement",
                 origin,
+                payment_method: m.payment_method || null,
                 type: "income",
               };
             })
         : [];
 
+      // Mapa de pagamentos de venda para descobrir customer + payment_method por sale_id
+      // Para vendas vindas do sales_orders direto (sem receivable)
       const sales: Income[] = !salesRes.error
         ? ((salesRes.data as any[]) || [])
             .filter((s) => !receivableSaleIds.has(s.id))
-            .map((s) => ({
-              id: `sale:${s.id}`,
-              description: `Venda #${s.sale_number ?? String(s.id).slice(0, 6).toUpperCase()}`,
-              category: "sales",
-              amount: Number(s.total_amount) || 0,
-              status: "paid",
-              due_date: s.created_at,
-              payment_date: s.created_at,
-              transaction_date: s.created_at,
-              supplier: null,
-              reference_type: "sale",
-              reference_id: s.id,
-              customer_id: s.customer_id || null,
-              source_table: "sale",
-              origin: "sale",
-              type: "income",
-            }))
+            .map((s) => {
+              const person = extractPerson(s.notes);
+              return {
+                id: `sale:${s.id}`,
+                description: `Venda #${s.sale_number ?? String(s.id).slice(0, 6).toUpperCase()}`,
+                title: `Venda #${s.sale_number ?? String(s.id).slice(0, 6).toUpperCase()}`,
+                person,
+                category: "sales",
+                amount: Number(s.total_amount) || 0,
+                status: "paid",
+                due_date: s.created_at,
+                payment_date: s.created_at,
+                transaction_date: s.created_at,
+                supplier: person,
+                reference_type: "sale",
+                reference_id: s.id,
+                customer_id: s.customer_id || null,
+                source_table: "sale",
+                origin: "sale",
+                payment_method: s.payment_method || null,
+                type: "income",
+              };
+            })
         : [];
 
       setItems([...receivables, ...transactions, ...cashMovements, ...sales]);
@@ -378,14 +462,17 @@ function ReceitasPage() {
       if (fOrigem) {
         if ((it.origin || "manual") !== fOrigem) return false;
       }
-      if (fTitulo && !(it.description || "").toLowerCase().includes(fTitulo.toLowerCase()))
-        return false;
+      if (fTitulo) {
+        const hay = `${it.title || ""} ${it.description || ""}`.toLowerCase();
+        if (!hay.includes(fTitulo.toLowerCase())) return false;
+      }
       if (fSituacao) {
         const s = (it.status || "pending").toLowerCase();
         if (!s.includes(fSituacao.toLowerCase())) return false;
       }
-      if (fPessoa && !((it.supplier as string) || "").toLowerCase().includes(fPessoa.toLowerCase()))
+      if (fPessoa && !((it.person || it.supplier || "") as string).toLowerCase().includes(fPessoa.toLowerCase()))
         return false;
+      if (fMethod && normalizeMethod(it.payment_method) !== fMethod) return false;
       if (quickFilter === "vencidos") {
         if (it.status === "paid") return false;
         if (!it.due_date) return false;
@@ -402,9 +489,30 @@ function ReceitasPage() {
       }
       return true;
     });
-  }, [items, from, to, fId, fOrigem, fCategoria, fTitulo, fSituacao, fPessoa, quickFilter]);
+  }, [items, from, to, fId, fOrigem, fCategoria, fTitulo, fSituacao, fPessoa, fMethod, quickFilter]);
 
   const visible = filtered.slice(0, pageSize);
+
+  // Breakdown por forma de pagamento (somente recebidos no período filtrado)
+  const methodBreakdown = useMemo(() => {
+    const acc: Record<PayKey, { total: number; count: number }> = {
+      pix: { total: 0, count: 0 },
+      cash: { total: 0, count: 0 },
+      credit: { total: 0, count: 0 },
+      debit: { total: 0, count: 0 },
+      crediario: { total: 0, count: 0 },
+      boleto: { total: 0, count: 0 },
+      transfer: { total: 0, count: 0 },
+      other: { total: 0, count: 0 },
+    };
+    filtered.forEach((it) => {
+      if (it.status !== "paid") return;
+      const k = normalizeMethod(it.payment_method);
+      acc[k].total += Number(it.amount) || 0;
+      acc[k].count += 1;
+    });
+    return acc;
+  }, [filtered]);
 
   const clearFilters = () => {
     setQuickFilter("");
@@ -414,6 +522,7 @@ function ReceitasPage() {
     setFTitulo("");
     setFSituacao("");
     setFPessoa("");
+    setFMethod("");
     setFrom(format(subDays(new Date(), 260), "yyyy-MM-dd"));
     setTo(format(addDays(new Date(), 365), "yyyy-MM-dd"));
   };
@@ -504,6 +613,50 @@ function ReceitasPage() {
                 </button>
               );
             })}
+          </div>
+
+          {/* Recebido por forma de pagamento */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Recebido por forma de pagamento</h3>
+                <p className="text-[11px] text-slate-500">Considera apenas receitas recebidas dentro do período filtrado</p>
+              </div>
+              {fMethod && (
+                <button
+                  onClick={() => setFMethod("")}
+                  className="text-[11px] font-semibold text-slate-500 hover:text-slate-900 inline-flex items-center gap-1"
+                >
+                  <Eraser className="h-3 w-3" /> Limpar forma
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {(["pix","cash","credit","debit","crediario","transfer","other"] as PayKey[]).map((k) => {
+                const meta = PAY_META[k];
+                const data = methodBreakdown[k];
+                const active = fMethod === k;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setFMethod(active ? "" : k)}
+                    className={cn(
+                      "group relative overflow-hidden text-left rounded-xl ring-1 ring-inset p-3 transition hover:-translate-y-0.5 hover:shadow-md",
+                      meta.chip, meta.ring,
+                      active && "ring-2 ring-offset-2 ring-emerald-500 shadow-md -translate-y-0.5",
+                    )}
+                  >
+                    <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", meta.grad)} />
+                    <div className="flex items-center justify-between">
+                      <span className={cn("text-[10px] font-bold uppercase tracking-wider", meta.text)}>{meta.label}</span>
+                      <span className={cn("text-[10px] font-semibold rounded-full px-1.5 py-0.5 bg-white/70", meta.text)}>{data.count}</span>
+                    </div>
+                    <p className="mt-2 text-lg font-bold tabular-nums text-slate-900">R$ {fmt(data.total)}</p>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
@@ -629,7 +782,7 @@ function ReceitasPage() {
                     </th>
                     <th className="px-3 py-2">Id</th>
                     <th className="px-3 py-2">Origem</th>
-                    <th className="px-3 py-2">Categoria</th>
+                    <th className="px-3 py-2">Forma Pgto</th>
                     <th className="px-3 py-2">Título</th>
                     <th className="px-3 py-2">Situação</th>
                     <th className="px-3 py-2">Pessoa</th>
@@ -664,15 +817,19 @@ function ReceitasPage() {
                     </th>
                     <th className="px-2 py-1.5">
                       <select
-                        value={fCategoria}
-                        onChange={(e) => setFCategoria(e.target.value)}
+                        value={fMethod}
+                        onChange={(e) => setFMethod(e.target.value as PayKey | "")}
                         className="w-full h-7 px-1 rounded border border-slate-200 text-[11px] bg-white"
                       >
-                        <option value="">Selecionar</option>
-                        <option value="venda">Venda</option>
-                        <option value="depósito">Depósito</option>
-                        <option value="transferência">Transferência</option>
-                        <option value="manual">Manual</option>
+                        <option value="">Todas</option>
+                        <option value="pix">PIX</option>
+                        <option value="cash">Espécie</option>
+                        <option value="credit">Crédito</option>
+                        <option value="debit">Débito</option>
+                        <option value="crediario">Crediário</option>
+                        <option value="transfer">Transferência</option>
+                        <option value="boleto">Boleto</option>
+                        <option value="other">Outros</option>
                       </select>
                     </th>
                     <th className="px-2 py-1.5">
@@ -780,21 +937,29 @@ function ReceitasPage() {
                             </span>
                           </td>
                           <td className="px-3 py-2">
-                            <span className={cn(
-                              "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset",
-                              origin === "sale" && "bg-emerald-50 text-emerald-700 ring-emerald-200",
-                              origin === "deposit" && "bg-blue-50 text-blue-700 ring-blue-200",
-                              origin === "transfer" && "bg-violet-50 text-violet-700 ring-violet-200",
-                              origin === "manual" && "bg-slate-100 text-slate-700 ring-slate-200",
-                            )}>
-                              {ORIGIN_LABEL[origin]}
-                            </span>
+                            {(() => {
+                              const k = normalizeMethod(it.payment_method);
+                              const meta = PAY_META[k];
+                              return (
+                                <span className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset",
+                                  meta.chip, meta.ring, meta.text,
+                                )}>
+                                  {meta.label}
+                                </span>
+                              );
+                            })()}
                           </td>
-                          <td className="px-3 py-2 text-emerald-700 font-semibold uppercase">
-                            {it.description}
+                          <td className="px-3 py-2">
+                            <div className="font-semibold text-slate-900">{it.title}</div>
+                            {it.category && it.category !== "income" && it.category !== "sales" && (
+                              <div className="text-[10px] text-slate-400 uppercase tracking-wide">{it.category}</div>
+                            )}
                           </td>
                           <td className="px-3 py-2">{statusBadge(it.status, it.due_date)}</td>
-                          <td className="px-3 py-2 uppercase">{it.supplier || "—"}</td>
+                          <td className="px-3 py-2">
+                            <span className="text-slate-700">{it.person || it.supplier || <span className="text-slate-300">—</span>}</span>
+                          </td>
                           <td className="px-3 py-2 text-right font-semibold">{fmt(amount)}</td>
                           <td className="px-3 py-2">
                             {it.due_date ? format(new Date(it.due_date), "dd/MM/yyyy") : "—"}
