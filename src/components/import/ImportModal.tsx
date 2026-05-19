@@ -423,7 +423,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   };
 }
 
-export function SalesImportModal({ isOpen, onClose, onImportSuccess, initialKind }: SalesImportModalProps) {
+export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: ImportModalProps) {
   const { user } = useAuth();
   const { startImport } = useImport();
   const [isImporting, setIsImporting] = useState(false);
