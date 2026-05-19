@@ -299,13 +299,69 @@ function DespesasPage() {
             </Button>
           </div>
 
+          {/* Date Range Bar */}
+          <div className="bg-card border border-border rounded-2xl p-4 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
+              <CalendarRange className="h-4 w-4" />
+              Período
+            </div>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-10 w-[160px]"
+            />
+            <span className="text-muted-foreground text-sm">até</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-10 w-[160px]"
+            />
+            <div className="flex flex-wrap gap-1.5 ml-auto">
+              {[
+                { k: "month", l: "Mês atual" },
+                { k: "lastMonth", l: "Mês anterior" },
+                { k: "30d", l: "Últimos 30d" },
+                { k: "year", l: "Ano" },
+                { k: "all", l: "Tudo" },
+              ].map((p) => (
+                <Button
+                  key={p.k}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRangePreset(p.k as any)}
+                  className="h-8 text-xs rounded-lg"
+                >
+                  {p.l}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           {/* KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <KpiCard
               icon={<TrendingDown className="h-5 w-5" />}
-              label="Total do mês"
+              label="Total período"
               value={brl(kpis.total)}
               tone="neutral"
+            />
+            <KpiCard
+              icon={<Wallet className="h-5 w-5" />}
+              label={`Despesas (${kpis.cDespesas})`}
+              value={brl(kpis.despesas)}
+              tone="rose"
+              active={kindFilter === "despesa"}
+              onClick={() => setKindFilter(kindFilter === "despesa" ? "all" : "despesa")}
+            />
+            <KpiCard
+              icon={<ShoppingCart className="h-5 w-5" />}
+              label={`Compras (${kpis.cCompras})`}
+              value={brl(kpis.compras)}
+              tone="violet"
+              active={kindFilter === "compra"}
+              onClick={() => setKindFilter(kindFilter === "compra" ? "all" : "compra")}
             />
             <KpiCard
               icon={<Clock className="h-5 w-5" />}
@@ -338,6 +394,16 @@ function DespesasPage() {
                 className="pl-9 h-10"
               />
             </div>
+            <Select value={kindFilter} onValueChange={(v: any) => setKindFilter(v)}>
+              <SelectTrigger className="h-10 w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="despesa">Despesas</SelectItem>
+                <SelectItem value="compra">Compras</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
               <SelectTrigger className="h-10 w-[160px]">
                 <Filter className="h-4 w-4 mr-1" />
@@ -364,6 +430,7 @@ function DespesasPage() {
               </SelectContent>
             </Select>
           </div>
+
 
           {/* Table */}
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
