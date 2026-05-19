@@ -402,9 +402,10 @@ export function KpiCard({
                       </div>
                     ))}
                   </div>
+                </div>
 
-                  <ScrollArea className="h-[240px] w-full rounded-2xl border border-border bg-muted/20 p-3">
-                    <div className="space-y-3">
+                <ScrollArea className="h-[240px] w-full rounded-2xl border border-border bg-muted/20 p-3">
+                  <div className="space-y-3">
                       {salesData.map((sale) => (
                         <div
                           key={sale.id}
