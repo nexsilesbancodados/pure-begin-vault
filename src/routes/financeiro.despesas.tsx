@@ -595,19 +595,19 @@ function KpiCard({
       onClick={onClick}
       disabled={!clickable}
       className={cn(
-        "bg-gradient-to-br border border-border rounded-2xl p-5 flex items-center gap-4 text-left transition-all",
+        "bg-gradient-to-br border border-border rounded-2xl p-6 flex items-center gap-5 text-left transition-all min-h-[110px]",
         tones[tone],
-        clickable && "hover:shadow-md hover:-translate-y-0.5 cursor-pointer",
-        active && `ring-2 ${ring[tone]} shadow-md`,
+        clickable && "hover:shadow-lg hover:-translate-y-0.5 cursor-pointer",
+        active && `ring-2 ${ring[tone]} shadow-lg`,
         !clickable && "cursor-default",
       )}
     >
-      <div className={cn("h-11 w-11 rounded-xl grid place-items-center shrink-0", iconBg[tone])}>
+      <div className={cn("h-14 w-14 rounded-2xl grid place-items-center shrink-0", iconBg[tone])}>
         {icon}
       </div>
-      <div className="min-w-0">
-        <div className="text-xs font-bold uppercase tracking-wider opacity-80">{label}</div>
-        <div className="text-xl font-black tabular-nums truncate">{value}</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] font-bold uppercase tracking-wider opacity-80 mb-1">{label}</div>
+        <div className="text-2xl font-black tabular-nums truncate">{value}</div>
       </div>
     </button>
   );
