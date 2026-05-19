@@ -239,7 +239,14 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
 
   const rawAmount = get("amount");
   const amount = parseCurrency(rawAmount);
-  const date = parseDate(get("date"));
+  let date = parseDate(get("date"));
+  // Sanidade: rejeita datas absurdas (provável data de nascimento ou erro
+  // de mapeamento). Aceita apenas datas dos últimos 20 anos até +1 ano.
+  if (date) {
+    const y = date.getFullYear();
+    const nowY = new Date().getFullYear();
+    if (y < nowY - 20 || y > nowY + 1) date = null;
+  }
 
   const errors: string[] = [];
   if (!hmap.amount) errors.push("coluna de valor não encontrada");
