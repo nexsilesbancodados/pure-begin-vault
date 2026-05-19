@@ -60,6 +60,8 @@ type ParsedRow = {
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
+  product_sku?: string;
+  discount?: number;
   // Financeiro
   description?: string;
   fin_type?: "income" | "expense";
