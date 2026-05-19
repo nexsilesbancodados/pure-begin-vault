@@ -328,7 +328,7 @@ function normalizeStatus(raw: any): string {
   return "concluded";
 }
 
-function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRow {
+function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: ImportKind): ParsedRow {
   const get = (field: string) => (hmap[field] ? row[hmap[field]] : undefined);
 
   const rawAmount = get("amount");
