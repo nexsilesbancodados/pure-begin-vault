@@ -271,7 +271,7 @@ async function processJob(supabase: any, jobId: string) {
       // 2) PRODUCTS  (+ sincronização com estoque atual)
       await supabase.from("import_jobs").update({ step: "products" }).eq("id", jobId);
       // Agrega quantidade total importada por produto (alimenta o estoque)
-      const productMap = new Map<string, { name: string; price?: number; cost?: number; sku?: string; totalQty: number; category?: string }>();
+      const productMap = new Map<string, { name: string; price?: number; cost?: number; sku?: string; totalQty: number; category?: string; brand?: string; model?: string; ean?: string; imei?: string }>();
       for (const r of rows) {
         if (!r.product_name) continue;
         const key = r.product_name.toLowerCase();
@@ -282,6 +282,10 @@ async function processJob(supabase: any, jobId: string) {
           if (!cur.sku && r.product_sku) cur.sku = r.product_sku;
           if (!cur.cost && r.cost_price) cur.cost = r.cost_price;
           if (!cur.category && r.category) cur.category = r.category;
+          if (!cur.brand && r.brand) cur.brand = r.brand;
+          if (!cur.model && r.model) cur.model = r.model;
+          if (!cur.ean && r.ean) cur.ean = r.ean;
+          if (!cur.imei && r.imei) cur.imei = r.imei;
         } else {
           productMap.set(key, {
             name: r.product_name,
@@ -290,6 +294,10 @@ async function processJob(supabase: any, jobId: string) {
             sku: r.product_sku,
             totalQty: qty,
             category: r.category,
+            brand: r.brand,
+            model: r.model,
+            ean: r.ean,
+            imei: r.imei,
           });
         }
       }
