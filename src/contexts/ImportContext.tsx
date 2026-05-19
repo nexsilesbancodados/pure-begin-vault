@@ -144,7 +144,7 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
   // Apaga TODAS as linhas que foram criadas por estes jobs (vendas, itens,
   // financeiro, receitas e despesas), e só então remove o registro do job.
   const cascadeDelete = useCallback(async (jobIds: string[]) => {
-    if (jobIds.length === 0) return { sales: 0, items: 0, finance: 0, receivable: 0, payable: 0 };
+    if (jobIds.length === 0) return { sales: 0, items: 0, finance: 0, receivable: 0, payable: 0, stock: 0, products: 0 };
     const tables = [
       "sale_items",
       "sales_orders",
@@ -153,8 +153,10 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
       "finance_transactions",
     ] as const;
     const counts: Record<string, number> = {};
-    await Promise.all(
-      tables.map(async (t) => {
+    
+    await Promise.all([
+      // Clean standard tagged tables
+      ...tables.map(async (t) => {
         const { error, count } = await supabase
           .from(t)
           .delete({ count: "exact" })
@@ -164,13 +166,37 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
         }
         counts[t] = count ?? 0;
       }),
-    );
+      // Clean stock movements (using reference_id/type)
+      (async () => {
+        const { error, count } = await supabase
+          .from("stock_movements")
+          .delete({ count: "exact" })
+          .eq("reference_type", "import")
+          .in("reference_id", jobIds);
+        counts["stock"] = count ?? 0;
+        if (error) console.warn("cleanup stock_movements:", error.message);
+      })(),
+      // Clean products tagged with import_job_id (if column exists)
+      (async () => {
+        const { error, count } = await supabase
+          .from("products")
+          .delete({ count: "exact" })
+          .in("import_job_id", jobIds);
+        counts["products"] = count ?? 0;
+        if (error && !/import_job_id/i.test(error.message)) {
+          console.warn("cleanup products:", error.message);
+        }
+      })()
+    ]);
+
     return {
       sales: counts.sales_orders || 0,
       items: counts.sale_items || 0,
       finance: counts.finance_transactions || 0,
       receivable: counts.accounts_receivable || 0,
       payable: counts.accounts_payable || 0,
+      stock: counts.stock || 0,
+      products: counts.products || 0,
     };
   }, []);
 
@@ -193,10 +219,10 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const n = count ?? ids.length;
-    const extras = removed.sales + removed.finance + removed.receivable + removed.payable;
+    const extras = removed.sales + removed.finance + removed.receivable + removed.payable + removed.stock + removed.products;
     toast.success(
       `${n} ${n === 1 ? "importação removida" : "importações removidas"}${
-        extras > 0 ? ` · ${extras} lançamentos correlatos limpos` : ""
+        extras > 0 ? ` · ${extras} registros limpos` : ""
       }`,
     );
   }, [orgId, jobs, cascadeDelete]);
@@ -211,6 +237,8 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
     }
     const summary = [
       removed.sales && `${removed.sales} vendas`,
+      removed.stock && `${removed.stock} mov. estoque`,
+      removed.products && `${removed.products} produtos`,
       removed.receivable && `${removed.receivable} receitas`,
       removed.payable && `${removed.payable} despesas`,
       removed.finance && `${removed.finance} mov. financeiras`,
