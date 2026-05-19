@@ -402,8 +402,8 @@ export function KpiCard({
                           </div>
 
                           <div className="pt-2.5 border-t border-dashed border-border/80 flex flex-col gap-1.5">
-                            {Array.isArray(sale.items) && sale.items.length > 0 ? (
-                              sale.items.map((item: any, idx: number) => (
+                            {Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? (
+                              sale.sale_items.map((item: any, idx: number) => (
                                 <div
                                   key={idx}
                                   className="flex flex-col gap-1 bg-muted/30 p-2 rounded-lg border border-border/20"
@@ -414,52 +414,53 @@ export function KpiCard({
                                         <Package className="h-3 w-3 text-muted-foreground" />
                                       </div>
                                       <span className="text-[11px] font-bold truncate">
-                                        {item.quantity}x {item.name}
+                                        {item.quantity}x {item.product_name}
                                       </span>
                                     </div>
                                     <span className="text-[10px] font-black text-foreground/70 shrink-0">
-                                      {(Number(item.price || 0) * (Number(item.quantity) || 1)).toLocaleString("pt-BR", {
+                                      {(Number(item.unit_price || 0) * (Number(item.quantity) || 1)).toLocaleString("pt-BR", {
                                         style: "currency",
                                         currency: "BRL",
                                       })}
                                     </span>
                                   </div>
-                                  {(item.model ||
-                                    item.capacity ||
-                                    item.color ||
-                                    item.battery_health) && (
+                                  {(item.metadata?.model ||
+                                    item.metadata?.capacity ||
+                                    item.metadata?.color ||
+                                    item.metadata?.battery_health ||
+                                    item.imei) && (
                                     <div className="flex flex-wrap gap-1 mt-0.5">
-                                      {item.model && (
+                                      {item.metadata?.model && (
                                         <Badge
                                           variant="secondary"
                                           className="h-3.5 text-[8px] px-1 bg-primary/5 text-primary border-primary/10"
                                         >
-                                          {item.model}
+                                          {item.metadata.model}
                                         </Badge>
                                       )}
-                                      {item.capacity && (
+                                      {item.metadata?.capacity && (
                                         <Badge
                                           variant="secondary"
                                           className="h-3.5 text-[8px] px-1"
                                         >
-                                          {item.capacity}
+                                          {item.metadata.capacity}
                                         </Badge>
                                       )}
-                                      {item.color && (
+                                      {item.imei && (
                                         <Badge
-                                          variant="secondary"
-                                          className="h-3.5 text-[8px] px-1"
+                                          variant="outline"
+                                          className="h-3.5 text-[8px] px-1 border-primary/20 text-primary/70"
                                         >
-                                          {item.color}
+                                          IMEI: {item.imei}
                                         </Badge>
                                       )}
-                                      {item.battery_health && (
+                                      {item.metadata?.battery_health && (
                                         <Badge
                                           variant="secondary"
                                           className="h-3.5 text-[8px] px-1 flex items-center gap-0.5"
                                         >
                                           <Activity className="h-2 w-2" />
-                                          {item.battery_health}%
+                                          {item.metadata.battery_health}%
                                         </Badge>
                                       )}
                                     </div>
