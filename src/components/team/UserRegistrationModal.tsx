@@ -51,10 +51,22 @@ const DEFAULT_PROFILES = [
 ];
 
 const QUICK_PROFILES: Record<string, string[]> = {
-  Administrador: DEFAULT_PROFILES,
+  "Gerente Comercial": [
+    "Tela inicial",
+    "Venda",
+    "Cadastros Básicos",
+    "Relatórios",
+    "Informações Gerenciais",
+    "Estoque",
+  ],
+  "Administrativo-Financeiro": [
+    "Tela inicial",
+    "Financeiro",
+    "Fiscal",
+    "Relatórios",
+    "Cadastros Básicos",
+  ],
   Vendedor: ["Tela inicial", "Venda", "Cadastros Básicos"],
-  Financeiro: ["Tela inicial", "Financeiro", "Relatórios"],
-  Estoquista: ["Tela inicial", "Estoque", "Cadastros Básicos"],
   Técnico: ["Tela inicial", "Ordem de Serviço"],
 };
 
@@ -123,8 +135,9 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
 
   const roleFromProfile = () => {
     const selected = `${quickProfile} ${perfis.join(" ")}`.toLowerCase();
-    if (selected.includes("administrador") || selected.includes("admin")) return "admin";
-    if (selected.includes("financeiro")) return "financeiro";
+    if (selected.includes("gerente")) return "admin";
+    if (selected.includes("administrativo") || selected.includes("financeiro")) return "financeiro";
+    if (selected.includes("técnico") || selected.includes("tecnico") || selected.includes("ordem de serviço")) return "employee";
     if (selected.includes("vendedor") || selected.includes("venda")) return "vendedor";
     return "employee";
   };
