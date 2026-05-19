@@ -26,6 +26,9 @@ import {
   ShoppingCart,
   Package,
   DollarSign,
+  Maximize2,
+  Filter,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -325,7 +328,7 @@ function normalizeStatus(raw: any): string {
   return "concluded";
 }
 
-function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRow {
+function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: ImportKind): ParsedRow {
   const get = (field: string) => (hmap[field] ? row[hmap[field]] : undefined);
 
   const rawAmount = get("amount");
@@ -340,9 +343,14 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   }
 
   const errors: string[] = [];
-  if (!hmap.amount) errors.push("coluna de valor não encontrada");
-  else if (isNaN(amount)) errors.push("valor inválido");
-  else if (amount <= 0) errors.push("valor deve ser maior que zero");
+  
+  if (kind === "estoque") {
+    if (!hmap.product) errors.push("coluna de produto não encontrada");
+  } else {
+    if (!hmap.amount) errors.push("coluna de valor não encontrada");
+    else if (isNaN(amount)) errors.push("valor inválido");
+    else if (amount <= 0) errors.push("valor deve ser maior que zero");
+  }
 
   const customerName = get("customer") ? String(get("customer")).trim() : undefined;
   const customerPhone = get("customer_phone") ? String(get("customer_phone")).trim() : undefined;
@@ -355,6 +363,10 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   const productSku = get("product_sku") ? String(get("product_sku")).trim() : undefined;
   const qtyRaw = get("quantity");
   const productQty = qtyRaw != null && qtyRaw !== "" ? Number(parseCurrency(qtyRaw)) || 1 : 1;
+
+  if (kind === "estoque" && !productName) {
+    errors.push("nome do produto obrigatório");
+  }
   const unitPriceRaw = get("unit_price");
   const productPrice = unitPriceRaw != null && unitPriceRaw !== ""
     ? parseCurrency(unitPriceRaw)
@@ -438,6 +450,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
   const [rawData, setRawData] = useState<any[]>([]);
   const [kind, setKind] = useState<ImportKind>(initialKind || "vendas");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showFullscreenPreview, setShowFullscreenPreview] = useState(false);
 
   const stats = useMemo(() => {
     const valid = rows.filter((r) => r._valid);
@@ -459,7 +472,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
     localStorage.setItem(`import_map_${kind}`, JSON.stringify(newMap));
 
     if (rawData.length) {
-      setRows(rawData.map((r, i) => parseRow(r, newMap, i)));
+      setRows(rawData.map((r, i) => parseRow(r, newMap, i, kind)));
     }
   };
 
@@ -503,7 +516,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
           }
           const hmap = buildHeaderMap(json[0], targetKind);
           const headers = Object.keys(json[0]);
-          const rows = json.map((r, i) => parseRow(r, hmap, i));
+          const rows = json.map((r, i) => parseRow(r, hmap, i, targetKind));
           resolve({ rows, hmap, headers, raw: json });
         } catch (err) {
           reject(err);
@@ -638,7 +651,8 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
     n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[680px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card max-h-[90vh] flex flex-col">
         {/* Hero header */}
         <div className="relative p-6 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground overflow-hidden">
@@ -921,7 +935,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                         localStorage.removeItem(`import_map_${kind}`);
                         const freshMap = buildHeaderMap(rawData[0], kind);
                         setHmap(freshMap);
-                        setRows(rawData.map((r, i) => parseRow(r, freshMap, i)));
+                        setRows(rawData.map((r, i) => parseRow(r, freshMap, i, kind)));
                         toast.info("Mapeamento resetado para o padrão inteligente");
                       }}
                       className="text-[10px] font-bold text-primary hover:underline ml-2"
@@ -1147,9 +1161,18 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                   <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
                     Prévia
                   </span>
-                  <span className="ml-auto text-[10px] font-bold text-muted-foreground">
-                    Mostrando {Math.min(8, rows.length)} de {rows.length}
-                  </span>
+                  <div className="ml-auto flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                      Mostrando {Math.min(8, rows.length)} de {rows.length}
+                    </span>
+                    <button
+                      onClick={() => setShowFullscreenPreview(true)}
+                      className="p-1 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-primary"
+                      title="Expandir prévia"
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <div className="max-h-[260px] overflow-y-auto">
                   <table className="w-full text-xs">
@@ -1377,6 +1400,298 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
             </Button>
           )}
         </DialogFooter>
+      </DialogContent>
+      </Dialog>
+
+      <FullscreenPreview
+        isOpen={showFullscreenPreview}
+        onClose={() => setShowFullscreenPreview(false)}
+        rows={rows}
+        kind={kind}
+        brl={brl}
+      />
+    </>
+  );
+}
+
+function FullscreenPreview({
+  isOpen,
+  onClose,
+  rows,
+  kind,
+  brl,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  rows: ParsedRow[];
+  kind: ImportKind;
+  brl: (n: number) => string;
+}) {
+  const [filter, setFilter] = useState<"all" | "valid" | "invalid">("all");
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    return rows.filter((r) => {
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "valid" && r._valid) ||
+        (filter === "invalid" && !r._valid);
+      
+      const searchStr = search.toLowerCase();
+      const matchesSearch = !search || 
+        (r.product_name && r.product_name.toLowerCase().includes(searchStr)) ||
+        (r.customer_name && r.customer_name.toLowerCase().includes(searchStr)) ||
+        (r.notes && r.notes.toLowerCase().includes(searchStr)) ||
+        (r.product_sku && r.product_sku.toLowerCase().includes(searchStr)) ||
+        (r.imei && r.imei.toLowerCase().includes(searchStr));
+
+      return matchesFilter && matchesSearch;
+    });
+  }, [rows, filter, search]);
+
+  const stats = useMemo(() => ({
+    total: rows.length,
+    valid: rows.filter(r => r._valid).length,
+    invalid: rows.filter(r => !r._valid).length
+  }), [rows]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[95vw] w-full h-[90vh] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card flex flex-col">
+        <div className="p-6 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/20">
+                <Maximize2 className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black text-white">
+                  Prévia Detalhada da Importação
+                </DialogTitle>
+                <DialogDescription className="text-white/80 text-xs mt-0.5">
+                  Visualize todos os itens e identifique campos faltantes ou erros.
+                </DialogDescription>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="text-white hover:bg-white/10 rounded-xl"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-1 bg-white/10 p-1 rounded-2xl border border-white/10">
+              <button
+                onClick={() => setFilter("all")}
+                className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  filter === "all" ? "bg-white text-primary" : "text-white/70 hover:text-white"
+                }`}
+              >
+                Todos ({stats.total})
+              </button>
+              <button
+                onClick={() => setFilter("valid")}
+                className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  filter === "valid" ? "bg-success text-white shadow-lg shadow-success/20" : "text-white/70 hover:text-white"
+                }`}
+              >
+                Válidos ({stats.valid})
+              </button>
+              <button
+                onClick={() => setFilter("invalid")}
+                className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  filter === "invalid" ? "bg-destructive text-white shadow-lg shadow-destructive/20" : "text-white/70 hover:text-white"
+                }`}
+              >
+                Erros ({stats.invalid})
+              </button>
+            </div>
+
+            <div className="relative flex-1 min-w-[200px]">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/50" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome, SKU, IMEI..."
+                className="w-full bg-white/10 border border-white/10 rounded-2xl py-2 pl-9 pr-4 text-xs text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/20"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4">
+          <div className="rounded-2xl border border-border bg-background overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/50 sticky top-0 z-10">
+                <tr className="border-b border-border">
+                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground w-12">#</th>
+                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground w-24">Status</th>
+                  {kind === "estoque" ? (
+                    <>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Produto</th>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Marca/Modelo</th>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">SKU / EAN</th>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">IMEI / Serial</th>
+                      <th className="text-center p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Qtd</th>
+                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">P. Custo</th>
+                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">P. Venda</th>
+                    </>
+                  ) : kind === "financeiro" ? (
+                    <>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Descrição</th>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Tipo</th>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</th>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
+                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Documento</th>
+                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
+                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
+                    </>
+                  )}
+                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Erro/Aviso</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {filtered.map((r, i) => {
+                  const dt = r.created_at ? new Date(r.created_at) : null;
+                  const isIncome = r.fin_type === "income";
+                  return (
+                    <tr
+                      key={i}
+                      className={`hover:bg-primary/5 transition-colors ${
+                        !r._valid ? "bg-destructive/5" : ""
+                      }`}
+                    >
+                      <td className="p-3 text-[10px] font-mono text-muted-foreground">
+                        {String(i + 1).padStart(3, "0")}
+                      </td>
+                      <td className="p-3">
+                        {r._valid ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-success/10 text-success border border-success/20 text-[10px] font-black uppercase">
+                            <Check className="h-3 w-3" /> OK
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-destructive/10 text-destructive border border-destructive/20 text-[10px] font-black uppercase">
+                            <AlertCircle className="h-3 w-3" /> ERRO
+                          </span>
+                        )}
+                      </td>
+
+                      {kind === "estoque" ? (
+                        <>
+                          <td className="p-3 font-bold truncate max-w-[200px]">
+                            {r.product_name || <span className="text-destructive font-black">MALTANDO NOME</span>}
+                          </td>
+                          <td className="p-3">
+                            <div className="flex flex-col">
+                              <span className="font-bold">{r.brand || "—"}</span>
+                              <span className="text-[10px] text-muted-foreground">{r.model || "—"}</span>
+                            </div>
+                          </td>
+                          <td className="p-3 font-mono text-[10px]">
+                            <div className="flex flex-col">
+                              <span className={!r.product_sku ? "text-muted-foreground" : "font-bold"}>
+                                SKU: {r.product_sku || "—"}
+                              </span>
+                              <span className="text-muted-foreground">
+                                EAN: {r.ean || "—"}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-3 font-mono text-[10px] text-muted-foreground">
+                            {r.imei || "—"}
+                          </td>
+                          <td className="p-3 text-center font-bold">
+                            {r.product_quantity}
+                          </td>
+                          <td className="p-3 text-right text-muted-foreground">
+                            {r.cost_price ? brl(r.cost_price) : "—"}
+                          </td>
+                          <td className="p-3 text-right font-black">
+                            {r.product_price ? brl(r.product_price) : "—"}
+                          </td>
+                        </>
+                      ) : kind === "financeiro" ? (
+                        <>
+                          <td className="p-3 truncate max-w-[200px]" title={r.description || r.notes}>
+                            {r.description || r.notes || "—"}
+                          </td>
+                          <td className="p-3">
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${isIncome ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                              {isIncome ? "Receita" : "Despesa"}
+                            </span>
+                          </td>
+                          <td className="p-3 text-muted-foreground">{r.category || "—"}</td>
+                          <td className="p-3 font-mono">
+                            {dt?.toLocaleDateString("pt-BR") || "—"}
+                          </td>
+                          <td className="p-3 text-right font-black">
+                            {brl(r.total_amount)}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="p-3 font-mono">
+                            {dt?.toLocaleDateString("pt-BR") || "—"}
+                          </td>
+                          <td className="p-3 font-bold">
+                            {r.customer_name || "—"}
+                          </td>
+                          <td className="p-3 text-muted-foreground font-mono">
+                            {r.customer_document || "—"}
+                          </td>
+                          <td className="p-3 font-black text-[10px] uppercase">
+                            {r.payment_method || "—"}
+                          </td>
+                          <td className="p-3 text-right font-black">
+                            {brl(r.total_amount)}
+                          </td>
+                        </>
+                      )}
+
+                      <td className="p-3">
+                        {!r._valid ? (
+                          <div className="flex items-center gap-2 text-destructive font-bold">
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            <span className="leading-tight">{r._error?.split(": ")[1]}</span>
+                          </div>
+                        ) : (
+                          <span className="text-success flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Pronto para importar
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filtered.length === 0 && (
+              <div className="py-20 text-center">
+                <p className="text-muted-foreground font-bold">Nenhum registro encontrado para este filtro.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-border bg-muted/20 flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Exibindo <strong>{filtered.length}</strong> de <strong>{rows.length}</strong> registros totais.
+          </p>
+          <Button onClick={onClose} className="rounded-xl font-black min-w-[120px]">
+            Fechar prévia
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
