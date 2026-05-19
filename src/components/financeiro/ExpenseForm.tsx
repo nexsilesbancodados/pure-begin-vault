@@ -1,10 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,17 +15,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  TrendingDown,
   DollarSign,
-  Calendar,
-  Tag,
-  User,
-  FileText,
-  CreditCard,
   CheckCircle2,
-  Clock,
-  Save,
+  ArrowLeftRight,
   X,
+  Save,
+  Eraser,
+  Settings2,
+  Plus,
+  Trash2,
+  Paperclip,
+  FileText,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -58,11 +56,36 @@ const CATEGORIES = [
 const PAYMENT_METHODS = [
   { value: "pix", label: "Pix" },
   { value: "cash", label: "Dinheiro" },
-  { value: "debit", label: "Débito" },
-  { value: "credit", label: "Crédito" },
+  { value: "debit", label: "Cartão de Débito" },
+  { value: "credit", label: "Cartão de Crédito" },
   { value: "transfer", label: "Transferência" },
   { value: "boleto", label: "Boleto" },
 ];
+
+const BILLING_METHODS = [
+  { value: "boleto", label: "Boleto" },
+  { value: "pix", label: "Pix" },
+  { value: "cartao", label: "Cartão" },
+  { value: "deposito", label: "Depósito" },
+  { value: "dinheiro", label: "Dinheiro" },
+];
+
+type Payment = {
+  id: string;
+  method: string;
+  installments: string;
+  amount: string;
+  date: string;
+  cashbox: string;
+};
+
+function parseNum(s: string) {
+  return parseFloat((s || "").toString().replace(/\./g, "").replace(",", ".")) || 0;
+}
+
+function brl(n: number) {
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 export function ExpenseForm({
   open,
@@ -72,302 +95,591 @@ export function ExpenseForm({
   variant = "expense",
 }: ExpenseFormProps) {
   const isExpense = variant === "expense";
-  const title = isExpense ? "Despesa" : "Receita";
-  const titleArt = isExpense ? "uma despesa" : "uma receita";
+  const titleNoun = isExpense ? "Despesa" : "Receita";
 
+  const [tab, setTab] = useState<"dados" | "arquivos" | "detalhes">("dados");
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    description: "",
-    amount: "",
-    category: isExpense ? "Despesa" : "Vendas",
-    supplier: "",
-    due_date: new Date().toISOString().split("T")[0],
-    payment_date: "",
-    payment_method: "pix",
+
+  const todayISO = () => new Date().toISOString().split("T")[0];
+  const cashboxDefault = `Caixa do dia ${new Date().toLocaleDateString("pt-BR")} - Sistema`;
+
+  const blankForm = () => ({
+    title: "",
+    person: "",
+    due_date: todayISO(),
+    competence_date: todayISO(),
     status: "pending" as "pending" | "paid",
+    category: "",
+    billing_method: "",
+    installment_number: "",
+    tags: "",
     notes: "",
+    amount: "",
+    fees: "",
+    discount: "",
+    payment_method: "",
+    payment_amount: "",
+    installments: "",
+    cashbox: cashboxDefault,
   });
+
+  const [form, setForm] = useState(blankForm());
+  const [payments, setPayments] = useState<Payment[]>([]);
 
   useEffect(() => {
     if (!open) return;
     if (expense) {
       setForm({
-        description: expense.description || "",
-        amount: String(expense.amount ?? ""),
-        category: expense.category || (isExpense ? "Despesa" : "Vendas"),
-        supplier: expense.supplier || "",
+        title: expense.description || "",
+        person: expense.supplier || "",
         due_date: expense.due_date
           ? new Date(expense.due_date).toISOString().split("T")[0]
-          : new Date().toISOString().split("T")[0],
-        payment_date: expense.payment_date
-          ? new Date(expense.payment_date).toISOString().split("T")[0]
-          : "",
-        payment_method: expense.payment_method || "pix",
+          : todayISO(),
+        competence_date: expense.competence_date || todayISO(),
         status: expense.status === "paid" ? "paid" : "pending",
-        notes: expense.notes || "",
+        category: expense.category || "",
+        billing_method: expense.billing_method || "",
+        installment_number: expense.installment_number || "",
+        tags: expense.tags || "",
+        notes: expense.notes_clean || expense.notes || "",
+        amount: expense.amount != null ? String(expense.amount).replace(".", ",") : "",
+        fees: "",
+        discount: "",
+        payment_method: expense.payment_method || "",
+        payment_amount: "",
+        installments: "",
+        cashbox: cashboxDefault,
       });
     } else {
-      setForm({
-        description: "",
-        amount: "",
-        category: isExpense ? "Despesa" : "Vendas",
-        supplier: "",
-        due_date: new Date().toISOString().split("T")[0],
-        payment_date: "",
-        payment_method: "pix",
-        status: "pending",
-        notes: "",
-      });
+      setForm(blankForm());
+      setPayments([]);
     }
-  }, [open, expense, isExpense]);
+    setTab("dados");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, expense]);
+
+  const totals = useMemo(() => {
+    const base = parseNum(form.amount);
+    const fees = parseNum(form.fees);
+    const discount = parseNum(form.discount);
+    const total = Math.max(0, base + fees - discount);
+    const paid =
+      payments.reduce((s, p) => s + parseNum(p.amount), 0) +
+      (form.status === "paid" && payments.length === 0 ? parseNum(form.payment_amount || form.amount) : 0);
+    const balance = total - paid;
+    return { total, paid, balance };
+  }, [form, payments]);
+
+  const addPayment = () => {
+    setPayments((arr) => [
+      ...arr,
+      {
+        id: crypto.randomUUID(),
+        method: form.payment_method || "pix",
+        installments: form.installments || "1",
+        amount: form.payment_amount || "",
+        date: todayISO(),
+        cashbox: form.cashbox,
+      },
+    ]);
+    setForm((f) => ({ ...f, payment_amount: "", installments: "" }));
+  };
+
+  const removePayment = (id: string) =>
+    setPayments((arr) => arr.filter((p) => p.id !== id));
+
+  const reset = () => {
+    setForm(blankForm());
+    setPayments([]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.description.trim() || !form.amount) return;
+    if (!form.title.trim() || !form.amount) return;
     setSaving(true);
     try {
       await onSave({
-        description: form.description.trim(),
-        amount: parseFloat(form.amount.replace(",", ".")) || 0,
-        category: form.category,
-        supplier: form.supplier.trim() || null,
+        description: form.title.trim(),
+        amount: totals.total || parseNum(form.amount),
+        category: form.category || null,
+        supplier: form.person.trim() || null,
         due_date: form.due_date || null,
         payment_date:
           form.status === "paid"
-            ? form.payment_date || new Date().toISOString()
+            ? new Date().toISOString()
             : null,
-        payment_method: form.payment_method,
+        payment_method: form.payment_method || null,
         status: form.status,
         notes: form.notes.trim() || null,
+        // extras packed by parent into notes
+        competence_date: form.competence_date,
+        billing_method: form.billing_method,
+        installment_number: form.installment_number,
+        tags: form.tags,
+        fees: parseNum(form.fees),
+        discount: parseNum(form.discount),
+        payments,
         transaction_date: form.due_date || new Date().toISOString(),
       });
-      onOpenChange(false);
     } finally {
       setSaving(false);
     }
   };
 
-  const accent = isExpense
-    ? { bg: "bg-red-500", text: "text-red-600 dark:text-red-400", soft: "bg-red-500/10" }
-    : { bg: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400", soft: "bg-emerald-500/10" };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 rounded-2xl overflow-hidden gap-0">
+      <DialogContent className="max-w-6xl p-0 rounded-2xl overflow-hidden gap-0 max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className={cn("p-6 text-white relative overflow-hidden", isExpense ? "bg-gradient-to-br from-red-500 to-rose-600" : "bg-gradient-to-br from-emerald-500 to-teal-600")}>
-          <div className="absolute -top-8 -right-8 opacity-20">
-            <TrendingDown className="h-40 w-40" />
-          </div>
-          <DialogHeader className="relative z-10">
-            <DialogTitle className="text-2xl font-black font-display flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-md grid place-items-center">
-                {isExpense ? <TrendingDown className="h-5 w-5" /> : <DollarSign className="h-5 w-5" />}
-              </div>
-              {expense ? `Editar ${title}` : `Cadastrar ${titleArt}`}
-            </DialogTitle>
-            <DialogDescription className="text-white/85 mt-1">
-              Preencha os campos abaixo para {expense ? "atualizar" : "registrar"} {titleArt} no
-              caixa.
-            </DialogDescription>
-          </DialogHeader>
+        <div className="bg-gradient-to-r from-indigo-500 via-blue-500 to-blue-600 px-6 py-4 flex items-center justify-between text-white">
+          <h2 className="text-lg font-black font-display tracking-tight">
+            {expense ? `Editar ${titleNoun}` : `Nova ${titleNoun}`}
+          </h2>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="h-8 w-8 grid place-items-center rounded-full border border-white/40 hover:bg-white/15 transition"
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-          {/* Status toggle */}
-          <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-xl">
-            <button
-              type="button"
-              onClick={() => setForm((f) => ({ ...f, status: "pending" }))}
-              className={cn(
-                "flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition",
-                form.status === "pending"
-                  ? "bg-amber-500 text-white shadow"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Clock className="h-4 w-4" /> Pendente
-            </button>
-            <button
-              type="button"
-              onClick={() => setForm((f) => ({ ...f, status: "paid" }))}
-              className={cn(
-                "flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition",
-                form.status === "paid"
-                  ? "bg-emerald-500 text-white shadow"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <CheckCircle2 className="h-4 w-4" /> {isExpense ? "Pago" : "Recebido"}
-            </button>
-          </div>
-
-          {/* Description */}
-          <div>
-            <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-              <FileText className="h-3.5 w-3.5" /> Título / Descrição *
-            </Label>
-            <Input
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder={isExpense ? "Ex: Compra de aparelhos, Aluguel..." : "Ex: Venda balcão, Serviço..."}
-              required
-              autoFocus
-              className="h-11"
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-5 bg-muted/30">
+            <SummaryCard
+              icon={<DollarSign className="h-5 w-5" />}
+              label="Valor Total"
+              value={brl(totals.total)}
+              tone="emerald"
+            />
+            <SummaryCard
+              icon={<CheckCircle2 className="h-5 w-5" />}
+              label="Total do Pagamento"
+              value={brl(totals.paid)}
+              tone="emerald"
+            />
+            <SummaryCard
+              icon={<ArrowLeftRight className="h-5 w-5" />}
+              label="Saldo"
+              value={brl(totals.balance)}
+              tone={totals.balance > 0 ? "amber" : "emerald"}
             />
           </div>
 
-          {/* Amount + due date */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                <DollarSign className="h-3.5 w-3.5" /> Valor *
-              </Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">
-                  R$
-                </span>
-                <Input
-                  value={form.amount}
-                  onChange={(e) =>
-                    setForm({ ...form, amount: e.target.value.replace(/[^\d.,]/g, "") })
-                  }
-                  placeholder="0,00"
-                  required
-                  className={cn("h-11 pl-10 text-lg font-bold tabular-nums", accent.text)}
-                />
+          {/* Tabs */}
+          <div className="px-5 border-b border-border bg-card">
+            <div className="flex gap-1">
+              <TabBtn active={tab === "dados"} onClick={() => setTab("dados")} icon={<FileText className="h-4 w-4" />}>
+                Dados gerais
+              </TabBtn>
+              <TabBtn active={tab === "arquivos"} onClick={() => setTab("arquivos")} icon={<Paperclip className="h-4 w-4" />}>
+                Arquivos
+              </TabBtn>
+              <TabBtn active={tab === "detalhes"} onClick={() => setTab("detalhes")} icon={<Info className="h-4 w-4" />}>
+                Detalhes
+              </TabBtn>
+            </div>
+          </div>
+
+          {tab === "dados" && (
+            <div className="p-5 space-y-6">
+              {/* Row 1: Título + Tipo */}
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-4">
+                <Field required label="Título">
+                  <Input
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    required
+                    autoFocus
+                    className="h-10"
+                    placeholder="Ex: Aluguel do escritório"
+                  />
+                </Field>
+                <Field required label="Tipo de financeiro">
+                  <div className="h-10 rounded-md border border-input bg-muted/60 px-3 flex items-center text-sm">
+                    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold",
+                      isExpense ? "bg-red-500/15 text-red-700 dark:text-red-300" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                    )}>
+                      <span className={cn("h-1.5 w-1.5 rounded-full", isExpense ? "bg-red-500" : "bg-emerald-500")} />
+                      {titleNoun}
+                    </span>
+                  </div>
+                </Field>
+              </div>
+
+              {/* Row 2: Pessoa + Datas */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Field label="Pessoa">
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.person}
+                      onChange={(e) => setForm({ ...form, person: e.target.value })}
+                      placeholder="Buscar..."
+                      className="h-10"
+                    />
+                    <Button type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0 text-emerald-600 border-emerald-500/40">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </Field>
+                <Field required label="Data de vencimento">
+                  <Input
+                    type="date"
+                    value={form.due_date}
+                    onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                    className="h-10"
+                    required
+                  />
+                </Field>
+                <Field required label="Data de competência">
+                  <Input
+                    type="date"
+                    value={form.competence_date}
+                    onChange={(e) => setForm({ ...form, competence_date: e.target.value })}
+                    className="h-10"
+                    required
+                  />
+                </Field>
+              </div>
+
+              {/* Row 3: Situação + Categoria + Forma cobrança + Parcela */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Field required label="Situação">
+                  <Select
+                    value={form.status}
+                    onValueChange={(v: "pending" | "paid") => setForm({ ...form, status: v })}
+                  >
+                    <SelectTrigger className="h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-amber-500" /> Em aberto
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="paid">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" /> {isExpense ? "Pago" : "Recebido"}
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Categoria">
+                  <div className="flex gap-2">
+                    <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Selecionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIES.map((c) => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0 text-emerald-600 border-emerald-500/40">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </Field>
+                <Field label="Forma de cobrança">
+                  <Select value={form.billing_method} onValueChange={(v) => setForm({ ...form, billing_method: v })}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Selecionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BILLING_METHODS.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Número da Parcela">
+                  <Input
+                    value={form.installment_number}
+                    onChange={(e) => setForm({ ...form, installment_number: e.target.value })}
+                    placeholder="Ex: 1/12"
+                    className="h-10"
+                  />
+                </Field>
+              </div>
+
+              {/* Row 4: Tags + Observações */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Tags">
+                  <Input
+                    value={form.tags}
+                    onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                    placeholder="Separadas por vírgula"
+                    className="h-10"
+                  />
+                </Field>
+                <Field label="Observações">
+                  <Textarea
+                    value={form.notes}
+                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                    rows={3}
+                    placeholder="Notas adicionais"
+                  />
+                </Field>
+              </div>
+
+              {/* Section: Valores do lançamento */}
+              <SectionTitle>Valores do lançamento</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Field required label="Valor (R$)">
+                  <Input
+                    value={form.amount}
+                    onChange={(e) => setForm({ ...form, amount: e.target.value.replace(/[^\d.,]/g, "") })}
+                    placeholder="0,00"
+                    className="h-10 tabular-nums"
+                    required
+                  />
+                </Field>
+                <Field label="Multa/Juros">
+                  <Input
+                    value={form.fees}
+                    onChange={(e) => setForm({ ...form, fees: e.target.value.replace(/[^\d.,]/g, "") })}
+                    placeholder="0,00"
+                    className="h-10 tabular-nums"
+                  />
+                </Field>
+                <Field label="Desconto">
+                  <Input
+                    value={form.discount}
+                    onChange={(e) => setForm({ ...form, discount: e.target.value.replace(/[^\d.,]/g, "") })}
+                    placeholder="0,00"
+                    className="h-10 tabular-nums"
+                  />
+                </Field>
+                <Field label="Valor Total (R$)">
+                  <Input
+                    readOnly
+                    value={brl(totals.total)}
+                    className="h-10 tabular-nums bg-muted/60 font-bold"
+                  />
+                </Field>
+              </div>
+
+              {/* Section: Valores do Pagamento */}
+              <SectionTitle>Valores do Pagamento</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Field required label="Forma de pagamento">
+                  <Select value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Selecionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map((m) => (
+                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field required label="Valor do pagamento (R$)">
+                  <Input
+                    value={form.payment_amount}
+                    onChange={(e) => setForm({ ...form, payment_amount: e.target.value.replace(/[^\d.,]/g, "") })}
+                    placeholder="0,00"
+                    className="h-10 tabular-nums"
+                  />
+                </Field>
+                <Field label="Número de parcelas">
+                  <Select value={form.installments} onValueChange={(v) => setForm({ ...form, installments: v })}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder="Selecionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((n) => (
+                        <SelectItem key={n} value={n}>{n}x</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Caixa">
+                  <Input
+                    value={form.cashbox}
+                    onChange={(e) => setForm({ ...form, cashbox: e.target.value })}
+                    className="h-10"
+                  />
+                </Field>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button type="button" className="text-xs font-bold text-blue-600 hover:underline">
+                  ▸ Mais informações
+                </button>
+                <Button type="button" size="sm" onClick={addPayment} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar pagamento
+                </Button>
+              </div>
+
+              {/* Payments table */}
+              <div className="border border-border rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="text-left px-4 py-2.5 font-bold">Forma de pagamento</th>
+                      <th className="text-left px-4 py-2.5 font-bold">Número de parcelas</th>
+                      <th className="text-right px-4 py-2.5 font-bold">Valor Pagamento (R$)</th>
+                      <th className="text-left px-4 py-2.5 font-bold">Data do pagamento</th>
+                      <th className="text-left px-4 py-2.5 font-bold">Caixa</th>
+                      <th className="w-10" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payments.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-6 text-center text-xs text-muted-foreground">
+                          Nenhum pagamento adicionado · 0
+                        </td>
+                      </tr>
+                    ) : (
+                      payments.map((p) => (
+                        <tr key={p.id} className="border-t border-border">
+                          <td className="px-4 py-2.5">{PAYMENT_METHODS.find((m) => m.value === p.method)?.label || p.method}</td>
+                          <td className="px-4 py-2.5">{p.installments}x</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums font-bold">{brl(parseNum(p.amount))}</td>
+                          <td className="px-4 py-2.5">{new Date(p.date + "T00:00").toLocaleDateString("pt-BR")}</td>
+                          <td className="px-4 py-2.5 truncate max-w-[200px]">{p.cashbox}</td>
+                          <td className="px-2 py-2.5">
+                            <button
+                              type="button"
+                              onClick={() => removePayment(p.id)}
+                              className="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-500/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
-            <div>
-              <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                <Calendar className="h-3.5 w-3.5" /> Vencimento
-              </Label>
-              <Input
-                type="date"
-                value={form.due_date}
-                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
-                className="h-11"
-              />
-            </div>
-          </div>
+          )}
 
-          {/* Category + supplier */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                <Tag className="h-3.5 w-3.5" /> Categoria
-              </Label>
-              <Select
-                value={form.category}
-                onValueChange={(v) => setForm({ ...form, category: v })}
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {tab === "arquivos" && (
+            <div className="p-10 text-center text-muted-foreground">
+              <Paperclip className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">Anexos serão habilitados em breve.</p>
             </div>
-            <div>
-              <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                <User className="h-3.5 w-3.5" /> {isExpense ? "Fornecedor" : "Cliente"}
-              </Label>
-              <Input
-                value={form.supplier}
-                onChange={(e) => setForm({ ...form, supplier: e.target.value })}
-                placeholder="Nome..."
-                className="h-11"
-              />
-            </div>
-          </div>
+          )}
 
-          {/* Payment method + payment date */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                <CreditCard className="h-3.5 w-3.5" /> Forma de pagamento
-              </Label>
-              <Select
-                value={form.payment_method}
-                onValueChange={(v) => setForm({ ...form, payment_method: v })}
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAYMENT_METHODS.map((m) => (
-                    <SelectItem key={m.value} value={m.value}>
-                      {m.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {tab === "detalhes" && (
+            <div className="p-10 text-center text-muted-foreground">
+              <Info className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">Detalhes adicionais serão exibidos aqui.</p>
             </div>
-            {form.status === "paid" && (
-              <div>
-                <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Data do pagamento
-                </Label>
-                <Input
-                  type="date"
-                  value={form.payment_date}
-                  onChange={(e) => setForm({ ...form, payment_date: e.target.value })}
-                  className="h-11"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Notes */}
-          <div>
-            <Label className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-              <FileText className="h-3.5 w-3.5" /> Observações
-            </Label>
-            <Textarea
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Notas adicionais (opcional)"
-              rows={3}
-            />
-          </div>
+          )}
 
           {/* Footer */}
-          <div className="flex items-center justify-between gap-3 pt-4 border-t border-border">
-            <div className={cn("flex-1 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2", accent.soft, accent.text)}>
-              <DollarSign className="h-4 w-4" />
-              Total:{" "}
-              <span className="text-lg ml-1 tabular-nums">
-                R${" "}
-                {(parseFloat(form.amount.replace(",", ".")) || 0).toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
+          <div className="sticky bottom-0 bg-card border-t border-border px-5 py-3 flex items-center justify-between gap-3">
+            <div className="flex gap-2">
+              <Button type="submit" disabled={saving || !form.title.trim() || !form.amount} className="bg-blue-600 hover:bg-blue-700 text-white h-10">
+                <Save className="h-4 w-4 mr-1.5" />
+                {saving ? "Salvando..." : "Salvar"}
+              </Button>
+              <Button type="button" variant="outline" onClick={reset} className="h-10 text-red-600 border-red-500/30 hover:bg-red-500/10">
+                <Eraser className="h-4 w-4 mr-1.5" />
+                Limpar formulário
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={saving}
-              className="h-11 rounded-xl"
-            >
-              <X className="h-4 w-4 mr-1.5" /> Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={saving || !form.description.trim() || !form.amount}
-              className={cn("h-11 rounded-xl font-bold text-white shadow-md", accent.bg, "hover:opacity-90")}
-            >
-              <Save className="h-4 w-4 mr-1.5" />
-              {saving ? "Salvando..." : expense ? "Atualizar" : `Cadastrar ${title.toLowerCase()}`}
+            <Button type="button" variant="ghost" className="h-10 text-muted-foreground">
+              <Settings2 className="h-4 w-4 mr-1.5" />
+              Configurar campos
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <Label className="text-xs font-semibold mb-1.5 block">
+        {required && <span className="text-red-500 mr-0.5">*</span>}
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border-b border-border pb-1.5">
+      <h3 className="text-sm font-bold text-foreground">{children}</h3>
+    </div>
+  );
+}
+
+function TabBtn({
+  active,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "px-4 py-2.5 text-sm font-semibold border-b-2 transition flex items-center gap-1.5",
+        active
+          ? "border-blue-600 text-blue-600"
+          : "border-transparent text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  tone: "emerald" | "amber" | "red";
+}) {
+  const map = {
+    emerald: "bg-emerald-500 text-white",
+    amber: "bg-amber-500 text-white",
+    red: "bg-red-500 text-white",
+  } as const;
+  return (
+    <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
+      <div className={cn("h-11 w-11 rounded-lg grid place-items-center shrink-0", map[tone])}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className="text-lg font-black tabular-nums truncate">R$ {value}</div>
+      </div>
+    </div>
   );
 }
