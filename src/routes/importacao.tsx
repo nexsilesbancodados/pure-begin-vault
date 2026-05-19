@@ -261,7 +261,7 @@ function KpiCard({ label, value, color, icon }: { label: string; value: number; 
   );
 }
 
-function JobCard({ job, onDelete }: { job: ImportJob; onDelete: (id: string) => void | Promise<void> }) {
+function JobCard({ job, onDelete, onClick }: { job: ImportJob; onDelete: (id: string) => void | Promise<void>; onClick: () => void }) {
   const pct = job.total > 0 ? Math.round((job.processed / job.total) * 100) : 0;
   const statusTone =
     job.status === "running" ? "bg-info/10 text-info border-info/30"
@@ -273,7 +273,8 @@ function JobCard({ job, onDelete }: { job: ImportJob; onDelete: (id: string) => 
     : job.status === "done" ? "bg-success"
     : "bg-gradient-to-b from-info to-primary";
 
-  const handleDelete = () => {
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const isActive = job.status === "running" || job.status === "queued";
     const msg = isActive
       ? `"${job.fileName}" ainda está em processamento. Remover mesmo assim?`
@@ -282,7 +283,10 @@ function JobCard({ job, onDelete }: { job: ImportJob; onDelete: (id: string) => 
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden flex shadow-sm hover:shadow-md transition-shadow group">
+    <div 
+      onClick={onClick}
+      className="rounded-2xl border border-border bg-card overflow-hidden flex shadow-sm hover:shadow-md transition-shadow group cursor-pointer"
+    >
       <div className={`w-1 shrink-0 ${stripe}`} />
       <div className="flex-1 min-w-0">
         <div className="p-4 flex items-center gap-3">
