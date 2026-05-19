@@ -44,6 +44,7 @@ const DEFAULT_PROFILES = [
   "Financeiro",
   "Fiscal",
   "Informações Gerenciais",
+  "Notas em Aberto",
   "Ordem de Serviço",
   "Relatórios",
   "Tela inicial",
@@ -62,6 +63,7 @@ const QUICK_PROFILES: Record<string, string[]> = {
   "Administrativo-Financeiro": [
     "Tela inicial",
     "Financeiro",
+    "Notas em Aberto",
     "Fiscal",
     "Relatórios",
     "Cadastros Básicos",
