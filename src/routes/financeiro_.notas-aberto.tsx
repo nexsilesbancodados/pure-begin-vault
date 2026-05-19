@@ -1396,7 +1396,7 @@ function NotasAbertoPage() {
                               updateNota(detailNota.id, { paga: false });
                               return;
                             }
-                            if (detailNota.comprovanteUrl) {
+                            if ((detailNota.comprovanteUrls ?? []).length > 0) {
                               updateNota(detailNota.id, { paga: true });
                               return;
                             }
@@ -1409,7 +1409,7 @@ function NotasAbertoPage() {
                   {/* Comprovante */}
                   <div className="mt-4 space-y-2">
                     <Label className="text-sm font-medium">
-                      Comprovante de pagamento{" "}
+                      Comprovantes de pagamento{" "}
                       <span className="text-xs text-muted-foreground font-normal">
                         (obrigatório para marcar como paga)
                       </span>
@@ -1418,27 +1418,42 @@ function NotasAbertoPage() {
                       ref={comprovanteInputRef}
                       type="file"
                       accept="image/*,application/pdf"
+                      multiple
                       className="hidden"
                       onChange={async (e) => {
-                        const file = e.target.files?.[0];
+                        const files = Array.from(e.target.files ?? []);
                         e.target.value = "";
-                        if (!file || !orgId) return;
+                        if (files.length === 0 || !orgId) return;
                         try {
                           setUploadingComprovante(true);
-                          const ext = file.name.split(".").pop() || "bin";
-                          const path = `${orgId}/notas/${detailNota.id}/comprovante-${Date.now()}.${ext}`;
-                          const { error: upErr } = await supabase.storage
-                            .from("attachments")
-                            .upload(path, file, { upsert: true });
-                          if (upErr) throw upErr;
-                          const { data: pub } = supabase.storage
-                            .from("attachments")
-                            .getPublicUrl(path);
+                          const newUrls: string[] = [];
+                          for (const file of files) {
+                            const ext = file.name.split(".").pop() || "bin";
+                            const path = `${orgId}/notas/${detailNota.id}/comprovante-${Date.now()}-${Math.random()
+                              .toString(36)
+                              .slice(2, 8)}.${ext}`;
+                            const { error: upErr } = await supabase.storage
+                              .from("attachments")
+                              .upload(path, file, { upsert: true });
+                            if (upErr) throw upErr;
+                            const { data: pub } = supabase.storage
+                              .from("attachments")
+                              .getPublicUrl(path);
+                            newUrls.push(pub.publicUrl);
+                          }
+                          const merged = [
+                            ...(detailNota.comprovanteUrls ?? []),
+                            ...newUrls,
+                          ];
                           updateNota(detailNota.id, {
-                            comprovanteUrl: pub.publicUrl,
+                            comprovanteUrls: merged,
                             paga: true,
                           });
-                          toast.success("Comprovante anexado. Nota marcada como paga.");
+                          toast.success(
+                            newUrls.length > 1
+                              ? `${newUrls.length} comprovantes anexados.`
+                              : "Comprovante anexado. Nota marcada como paga.",
+                          );
                         } catch (err) {
                           toast.error(
                             "Falha ao enviar comprovante: " +
@@ -1449,7 +1464,7 @@ function NotasAbertoPage() {
                         }
                       }}
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Button
                         type="button"
                         variant="outline"
@@ -1459,34 +1474,53 @@ function NotasAbertoPage() {
                       >
                         {uploadingComprovante
                           ? "Enviando..."
-                          : detailNota.comprovanteUrl
-                            ? "Trocar arquivo"
+                          : (detailNota.comprovanteUrls ?? []).length > 0
+                            ? "Anexar mais"
                             : "Anexar comprovante"}
                       </Button>
-                      {detailNota.comprovanteUrl && (
-                        <button
-                          type="button"
-                          onClick={() => setPreviewComprovanteUrl(detailNota.comprovanteUrl!)}
-                          className="text-xs font-medium text-primary hover:underline"
-                        >
-                          Ver comprovante
-                        </button>
-                      )}
-                      {detailNota.comprovanteUrl && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateNota(detailNota.id, {
-                              comprovanteUrl: null,
-                              paga: false,
-                            })
-                          }
-                          className="text-xs text-muted-foreground hover:text-rose-600"
-                        >
-                          Remover
-                        </button>
-                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {(detailNota.comprovanteUrls ?? []).length} arquivo(s)
+                      </span>
                     </div>
+                    {(detailNota.comprovanteUrls ?? []).length > 0 && (
+                      <ul className="mt-2 space-y-1.5">
+                        {(detailNota.comprovanteUrls ?? []).map((url, idx) => {
+                          const name = url.split("/").pop()?.split("?")[0] ?? `Comprovante ${idx + 1}`;
+                          return (
+                            <li
+                              key={url + idx}
+                              className="flex items-center justify-between gap-2 px-3 py-1.5 border rounded-md bg-muted/30 text-xs"
+                            >
+                              <span className="truncate flex-1" title={name}>
+                                {idx + 1}. {name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewComprovanteUrl(url)}
+                                className="font-medium text-primary hover:underline shrink-0"
+                              >
+                                Ver
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = (detailNota.comprovanteUrls ?? []).filter(
+                                    (u) => u !== url,
+                                  );
+                                  updateNota(detailNota.id, {
+                                    comprovanteUrls: next,
+                                    paga: next.length > 0 ? detailNota.paga : false,
+                                  });
+                                }}
+                                className="text-muted-foreground hover:text-rose-600 shrink-0"
+                              >
+                                Remover
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                   </div>
                 </section>
 
