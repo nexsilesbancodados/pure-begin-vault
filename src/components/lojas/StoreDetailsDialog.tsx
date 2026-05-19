@@ -35,6 +35,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { saveOrgSettings } from "@/lib/org-settings.functions";
+import { listOrgMembers } from "@/lib/org-members.functions";
 import { useServerFn } from "@tanstack/react-start";
 
 type Member = { user_id: string; role: string; email?: string | null; name?: string | null };
@@ -55,6 +56,7 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
   const isSuperAdmin = (profile as any)?.role === "super_admin";
   const canEdit = isSuperAdmin || role === "owner" || role === "admin";
   const saveFn = useServerFn(saveOrgSettings);
+  const listMembersFn = useServerFn(listOrgMembers);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -88,16 +90,16 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
   const load = async () => {
     setLoading(true);
     try {
-      const [{ data: settings }, { data: mems }] = await Promise.all([
+      const [{ data: settings }, membersRes] = await Promise.all([
         (supabase as any)
           .from("organization_settings")
           .select("brand_name, brand_logo_url, support_email, support_whatsapp")
           .eq("organization_id", orgId)
           .maybeSingle(),
-        (supabase as any)
-          .from("user_organizations")
-          .select("user_id, role")
-          .eq("organization_id", orgId),
+        listMembersFn({ data: { orgId } }).catch((e) => {
+          console.error("[StoreDetailsDialog] listOrgMembers failed", e);
+          return { members: [] as Member[] };
+        }),
       ]);
 
       if (settings) {
@@ -116,28 +118,7 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
         // ignore
       }
 
-      // Enriquece membros com nome/email do profile
-      const baseMembers = (mems || []) as Member[];
-      const ids = baseMembers.map((m) => m.user_id);
-      if (ids.length > 0) {
-        const { data: profs } = await (supabase as any)
-          .from("profiles")
-          .select("id, full_name, email")
-          .in("id", ids);
-        const map = new Map<string, { name?: string; email?: string }>();
-        for (const p of (profs as any[]) || []) {
-          map.set(p.id, { name: p.full_name, email: p.email });
-        }
-        setMembers(
-          baseMembers.map((m) => ({
-            ...m,
-            name: map.get(m.user_id)?.name ?? null,
-            email: map.get(m.user_id)?.email ?? null,
-          })),
-        );
-      } else {
-        setMembers(baseMembers);
-      }
+      setMembers((membersRes?.members as Member[]) || []);
     } finally {
       setLoading(false);
     }
