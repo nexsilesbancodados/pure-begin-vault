@@ -758,15 +758,133 @@ function NotasAbertoPage() {
                   pagamento.
                 </p>
               </div>
-              <Button
-                onClick={() => setOpen(true)}
-                size="lg"
-                className="gap-2 shadow-lg shadow-primary/20"
-                disabled={!orgId}
-              >
-                <Plus className="h-4 w-4" />
-                Cadastrar Nota
-              </Button>
+              <div className="flex items-center gap-2">
+                <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="gap-2 relative"
+                    >
+                      <Filter className="h-4 w-4" />
+                      Filtros
+                      {(statusFilter !== "all" || supplierFilter.length > 0) && (
+                        <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                          {(statusFilter !== "all" ? 1 : 0) + supplierFilter.length}
+                        </span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="end">
+                    <div className="p-3 border-b flex items-center justify-between">
+                      <div className="font-semibold text-sm">Filtrar notas</div>
+                      {(statusFilter !== "all" || supplierFilter.length > 0) && (
+                        <button
+                          onClick={() => {
+                            setStatusFilter("all");
+                            setSupplierFilter([]);
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
+                        >
+                          <X className="h-3 w-3" /> Limpar
+                        </button>
+                      )}
+                    </div>
+                    <div className="p-3 space-y-3">
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                          Status
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {(
+                            [
+                              { v: "all", l: "Todas" },
+                              { v: "open", l: "Em aberto" },
+                              { v: "overdue", l: "Vencidas" },
+                              { v: "paid", l: "Pagas" },
+                            ] as const
+                          ).map((opt) => (
+                            <button
+                              key={opt.v}
+                              onClick={() => setStatusFilter(opt.v)}
+                              className={`px-2.5 py-1.5 rounded-md text-xs font-semibold border transition ${
+                                statusFilter === opt.v
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "bg-background hover:bg-muted border-border"
+                              }`}
+                            >
+                              {opt.l}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                          Fornecedores
+                        </div>
+                        {(() => {
+                          const suppliers = Array.from(
+                            new Set(
+                              notas
+                                .map((n) => n.fornecedor?.trim())
+                                .filter((v): v is string => !!v && v !== "Fornecedor não informado"),
+                            ),
+                          ).sort();
+                          if (suppliers.length === 0) {
+                            return (
+                              <p className="text-xs text-muted-foreground">
+                                Nenhum fornecedor cadastrado nas notas.
+                              </p>
+                            );
+                          }
+                          return (
+                            <div className="max-h-48 overflow-y-auto space-y-1 -mx-1 px-1">
+                              {suppliers.map((s) => {
+                                const checked = supplierFilter.includes(s);
+                                return (
+                                  <button
+                                    key={s}
+                                    onClick={() =>
+                                      setSupplierFilter((prev) =>
+                                        prev.includes(s)
+                                          ? prev.filter((x) => x !== s)
+                                          : [...prev, s],
+                                      )
+                                    }
+                                    className={`w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition ${
+                                      checked ? "bg-primary/10 text-foreground" : "hover:bg-muted"
+                                    }`}
+                                  >
+                                    <span
+                                      className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 ${
+                                        checked ? "bg-primary border-primary" : "border-border"
+                                      }`}
+                                    >
+                                      {checked && (
+                                        <Check className="h-3 w-3 text-primary-foreground" />
+                                      )}
+                                    </span>
+                                    <span className="truncate flex-1">{s}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Button
+                  onClick={() => setOpen(true)}
+                  size="lg"
+                  className="gap-2 shadow-lg shadow-primary/20"
+                  disabled={!orgId}
+                >
+                  <Plus className="h-4 w-4" />
+                  Cadastrar Nota
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -904,6 +1022,7 @@ function NotasAbertoPage() {
                 if (statusFilter === "open" && n.paga) return false;
                 if (statusFilter === "paid" && !n.paga) return false;
                 if (statusFilter === "overdue" && !isOverdue) return false;
+                if (supplierFilter.length > 0 && !supplierFilter.includes(n.fornecedor)) return false;
                 if (listSearch) {
                   const s = listSearch.toLowerCase();
                   if (
