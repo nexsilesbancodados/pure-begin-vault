@@ -23,6 +23,9 @@ import {
   Check,
   Receipt,
   Filter,
+  ShoppingCart,
+  Wallet,
+  CalendarRange,
 } from "lucide-react";
 import { ExpenseForm } from "@/components/financeiro/ExpenseForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +33,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const COMPRA_RE = /compra|aparelho|estoque|fornecedor|mercadoria|produto/i;
+function isCompra(e: { category?: string | null; description?: string | null }) {
+  return COMPRA_RE.test(`${e.category || ""} ${e.description || ""}`);
+}
+function ymd(d: Date) {
+  return d.toISOString().split("T")[0];
+}
 
 export const Route = createFileRoute("/financeiro/despesas")({
   head: () => ({
@@ -69,6 +80,35 @@ function DespesasPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [kindFilter, setKindFilter] = useState<"all" | "despesa" | "compra">("all");
+
+  // Date range — default to current month
+  const initialFrom = (() => { const d = new Date(); d.setDate(1); return ymd(d); })();
+  const initialTo = (() => {
+    const d = new Date(); const e = new Date(d.getFullYear(), d.getMonth() + 1, 0); return ymd(e);
+  })();
+  const [dateFrom, setDateFrom] = useState<string>(initialFrom);
+  const [dateTo, setDateTo] = useState<string>(initialTo);
+
+  const setRangePreset = (preset: "month" | "lastMonth" | "30d" | "year" | "all") => {
+    const now = new Date();
+    if (preset === "month") {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setDateFrom(ymd(s)); setDateTo(ymd(e));
+    } else if (preset === "lastMonth") {
+      const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const e = new Date(now.getFullYear(), now.getMonth(), 0);
+      setDateFrom(ymd(s)); setDateTo(ymd(e));
+    } else if (preset === "30d") {
+      const s = new Date(); s.setDate(s.getDate() - 29);
+      setDateFrom(ymd(s)); setDateTo(ymd(now));
+    } else if (preset === "year") {
+      setDateFrom(`${now.getFullYear()}-01-01`); setDateTo(`${now.getFullYear()}-12-31`);
+    } else {
+      setDateFrom(""); setDateTo("");
+    }
+  };
 
   const { user } = useAuth();
   const { orgId } = useOrg();
@@ -100,27 +140,35 @@ function DespesasPage() {
   const isOverdue = (e: Expense) =>
     e.status !== "paid" && e.due_date && e.due_date < todayISO;
 
+  // Items in the selected date range (by due_date)
+  const inRange = useMemo(() => {
+    return items.filter((e) => {
+      if (!dateFrom && !dateTo) return true;
+      const ref = e.due_date;
+      if (!ref) return false;
+      if (dateFrom && ref < dateFrom) return false;
+      if (dateTo && ref > dateTo) return false;
+      return true;
+    });
+  }, [items, dateFrom, dateTo]);
+
   const kpis = useMemo(() => {
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
-    let total = 0;
-    let pago = 0;
-    let pendente = 0;
-    let vencido = 0;
-    for (const e of items) {
+    let total = 0, pago = 0, pendente = 0, vencido = 0, despesas = 0, compras = 0;
+    let cDespesas = 0, cCompras = 0;
+    for (const e of inRange) {
       const amount = Number(e.amount) || 0;
-      const ref = e.due_date ? new Date(e.due_date) : null;
-      if (ref && ref >= monthStart) total += amount;
+      total += amount;
       if (e.status === "paid") pago += amount;
       else {
         pendente += amount;
         if (isOverdue(e)) vencido += amount;
       }
+      if (isCompra(e)) { compras += amount; cCompras++; }
+      else { despesas += amount; cDespesas++; }
     }
-    return { total, pago, pendente, vencido };
+    return { total, pago, pendente, vencido, despesas, compras, cDespesas, cCompras };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  }, [inRange]);
 
   const categories = useMemo(() => {
     const s = new Set<string>();
@@ -129,8 +177,10 @@ function DespesasPage() {
   }, [items]);
 
   const filtered = useMemo(() => {
-    return items.filter((e) => {
+    return inRange.filter((e) => {
       if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
+      if (kindFilter === "despesa" && isCompra(e)) return false;
+      if (kindFilter === "compra" && !isCompra(e)) return false;
       if (statusFilter === "paid" && e.status !== "paid") return false;
       if (statusFilter === "pending" && (e.status === "paid" || isOverdue(e))) return false;
       if (statusFilter === "overdue" && !isOverdue(e)) return false;
@@ -144,7 +194,7 @@ function DespesasPage() {
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, search, statusFilter, categoryFilter]);
+  }, [inRange, search, statusFilter, categoryFilter, kindFilter]);
 
   const handleSave = async (data: any) => {
     if (!user?.id || !orgId) return;
@@ -249,13 +299,69 @@ function DespesasPage() {
             </Button>
           </div>
 
+          {/* Date Range Bar */}
+          <div className="bg-card border border-border rounded-2xl p-4 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
+              <CalendarRange className="h-4 w-4" />
+              Período
+            </div>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-10 w-[160px]"
+            />
+            <span className="text-muted-foreground text-sm">até</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-10 w-[160px]"
+            />
+            <div className="flex flex-wrap gap-1.5 ml-auto">
+              {[
+                { k: "month", l: "Mês atual" },
+                { k: "lastMonth", l: "Mês anterior" },
+                { k: "30d", l: "Últimos 30d" },
+                { k: "year", l: "Ano" },
+                { k: "all", l: "Tudo" },
+              ].map((p) => (
+                <Button
+                  key={p.k}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRangePreset(p.k as any)}
+                  className="h-8 text-xs rounded-lg"
+                >
+                  {p.l}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           {/* KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
             <KpiCard
               icon={<TrendingDown className="h-5 w-5" />}
-              label="Total do mês"
+              label="Total período"
               value={brl(kpis.total)}
               tone="neutral"
+            />
+            <KpiCard
+              icon={<Wallet className="h-5 w-5" />}
+              label={`Despesas (${kpis.cDespesas})`}
+              value={brl(kpis.despesas)}
+              tone="rose"
+              active={kindFilter === "despesa"}
+              onClick={() => setKindFilter(kindFilter === "despesa" ? "all" : "despesa")}
+            />
+            <KpiCard
+              icon={<ShoppingCart className="h-5 w-5" />}
+              label={`Compras (${kpis.cCompras})`}
+              value={brl(kpis.compras)}
+              tone="violet"
+              active={kindFilter === "compra"}
+              onClick={() => setKindFilter(kindFilter === "compra" ? "all" : "compra")}
             />
             <KpiCard
               icon={<Clock className="h-5 w-5" />}
@@ -288,6 +394,16 @@ function DespesasPage() {
                 className="pl-9 h-10"
               />
             </div>
+            <Select value={kindFilter} onValueChange={(v: any) => setKindFilter(v)}>
+              <SelectTrigger className="h-10 w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="despesa">Despesas</SelectItem>
+                <SelectItem value="compra">Compras</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
               <SelectTrigger className="h-10 w-[160px]">
                 <Filter className="h-4 w-4 mr-1" />
@@ -314,6 +430,7 @@ function DespesasPage() {
               </SelectContent>
             </Select>
           </div>
+
 
           {/* Table */}
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
@@ -437,39 +554,62 @@ function KpiCard({
   label,
   value,
   tone,
+  active,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  tone: "neutral" | "amber" | "red" | "emerald";
+  tone: "neutral" | "amber" | "red" | "emerald" | "rose" | "violet";
+  active?: boolean;
+  onClick?: () => void;
 }) {
   const tones = {
     neutral: "from-slate-500/10 to-slate-500/5 text-slate-700 dark:text-slate-200",
     amber: "from-amber-500/15 to-amber-500/5 text-amber-700 dark:text-amber-300",
     red: "from-red-500/15 to-red-500/5 text-red-700 dark:text-red-300",
     emerald: "from-emerald-500/15 to-emerald-500/5 text-emerald-700 dark:text-emerald-300",
+    rose: "from-rose-500/15 to-rose-500/5 text-rose-700 dark:text-rose-300",
+    violet: "from-violet-500/15 to-violet-500/5 text-violet-700 dark:text-violet-300",
   } as const;
   const iconBg = {
     neutral: "bg-slate-500/15",
     amber: "bg-amber-500/20",
     red: "bg-red-500/20",
     emerald: "bg-emerald-500/20",
+    rose: "bg-rose-500/20",
+    violet: "bg-violet-500/20",
   } as const;
+  const ring = {
+    neutral: "ring-slate-500/40",
+    amber: "ring-amber-500/40",
+    red: "ring-red-500/40",
+    emerald: "ring-emerald-500/40",
+    rose: "ring-rose-500/40",
+    violet: "ring-violet-500/40",
+  } as const;
+  const clickable = !!onClick;
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!clickable}
       className={cn(
-        "bg-gradient-to-br border border-border rounded-2xl p-5 flex items-center gap-4",
+        "bg-gradient-to-br border border-border rounded-2xl p-5 flex items-center gap-4 text-left transition-all",
         tones[tone],
+        clickable && "hover:shadow-md hover:-translate-y-0.5 cursor-pointer",
+        active && `ring-2 ${ring[tone]} shadow-md`,
+        !clickable && "cursor-default",
       )}
     >
-      <div className={cn("h-11 w-11 rounded-xl grid place-items-center", iconBg[tone])}>
+      <div className={cn("h-11 w-11 rounded-xl grid place-items-center shrink-0", iconBg[tone])}>
         {icon}
       </div>
       <div className="min-w-0">
         <div className="text-xs font-bold uppercase tracking-wider opacity-80">{label}</div>
         <div className="text-xl font-black tabular-nums truncate">{value}</div>
       </div>
-    </div>
+    </button>
   );
 }
 
