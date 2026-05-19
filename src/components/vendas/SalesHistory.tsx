@@ -1571,6 +1571,10 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
         <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60">
           {(() => {
             if (!productDetail) return null;
+            const brl = (n: number) =>
+              new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                Number.isFinite(n) ? n : 0,
+              );
             const it = productDetail.item || {};
             const p = productDetail.product || {};
             const meta = (p.metadata && typeof p.metadata === "object") ? p.metadata : {};
