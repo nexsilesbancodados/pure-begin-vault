@@ -1293,14 +1293,11 @@ function NotasAbertoPage() {
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="fornecedor" className="text-sm font-medium">
-                        Fornecedor
-                      </Label>
-                      <Input
-                        id="fornecedor"
-                        placeholder="Nome do fornecedor"
+                      <Label className="text-sm font-medium">Fornecedor</Label>
+                      <SupplierPicker
                         value={detailNota.fornecedor}
-                        onChange={(e) => updateNota(detailNota.id, { fornecedor: e.target.value })}
+                        onChange={(name) => updateNota(detailNota.id, { fornecedor: name })}
+                        placeholder="Nome do fornecedor"
                       />
                     </div>
                     <div className="space-y-1.5">
