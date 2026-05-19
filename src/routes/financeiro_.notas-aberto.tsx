@@ -89,30 +89,32 @@ interface Nota {
   dataCompra: string;
   paga: boolean;
   prazoPagamento: string;
-  comprovanteUrl?: string | null;
+  comprovanteUrls?: string[];
 }
 
 const COMPROVANTE_SENTINEL_ID = "__comprovante__";
 
-const extractComprovante = (raw: unknown[]): { url: string | null; rest: unknown[] } => {
-  let url: string | null = null;
+const extractComprovantes = (raw: unknown[]): { urls: string[]; rest: unknown[] } => {
+  const urls: string[] = [];
   const rest: unknown[] = [];
   for (const item of raw) {
     if (
       item &&
       typeof item === "object" &&
-      (item as { id?: unknown }).id === COMPROVANTE_SENTINEL_ID
+      typeof (item as { id?: unknown }).id === "string" &&
+      ((item as { id: string }).id === COMPROVANTE_SENTINEL_ID ||
+        (item as { id: string }).id.startsWith(COMPROVANTE_SENTINEL_ID))
     ) {
       const meta = (item as { metadata?: unknown }).metadata;
       if (meta && typeof meta === "object") {
         const u = (meta as Record<string, unknown>).url;
-        if (typeof u === "string") url = u;
+        if (typeof u === "string") urls.push(u);
       }
       continue;
     }
     rest.push(item);
   }
-  return { url, rest };
+  return { urls, rest };
 };
 
 interface PurchaseNoteRow {
@@ -260,7 +262,7 @@ const isPurchaseNotesUnavailable = (error: unknown) => {
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
-const serializeItems = (items: Product[], comprovanteUrl?: string | null): Json => {
+const serializeItems = (items: Product[], comprovanteUrls?: string[] | null): Json => {
   const base = items.map((p) => ({
     id: p.id,
     name: p.name,
@@ -272,9 +274,9 @@ const serializeItems = (items: Product[], comprovanteUrl?: string | null): Json 
     stock_quantity: p.stock_quantity ?? null,
     metadata: toJson(p.metadata ?? null),
   }));
-  if (comprovanteUrl) {
+  (comprovanteUrls ?? []).forEach((url, idx) => {
     base.push({
-      id: COMPROVANTE_SENTINEL_ID,
+      id: `${COMPROVANTE_SENTINEL_ID}_${idx}`,
       name: COMPROVANTE_SENTINEL_ID,
       organization_id: null,
       sku: null,
@@ -282,15 +284,15 @@ const serializeItems = (items: Product[], comprovanteUrl?: string | null): Json 
       price: null,
       cost_price: null,
       stock_quantity: null,
-      metadata: { kind: "comprovante", url: comprovanteUrl } as unknown as Json,
+      metadata: { kind: "comprovante", url } as unknown as Json,
     });
-  }
+  });
   return base as unknown as Json;
 };
 
 const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
   const raw = Array.isArray(row.items) ? row.items : [];
-  const { url: comprovanteUrl, rest } = extractComprovante(raw);
+  const { urls: comprovanteUrls, rest } = extractComprovantes(raw);
   const items = rest.map((item) => {
     const product = item as Product;
     return {
@@ -310,7 +312,7 @@ const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
     dataCompra: row.data_compra ?? new Date().toISOString().slice(0, 10),
     paga: Boolean(row.paga),
     prazoPagamento: row.prazo_pagamento ?? "",
-    comprovanteUrl,
+    comprovanteUrls,
   };
 };
 
@@ -425,7 +427,7 @@ function NotasAbertoPage() {
           prazo_pagamento: nota.prazoPagamento || null,
           paga: nota.paga,
           total: getNoteTotal(nota.items),
-          items: serializeItems(nota.items, nota.comprovanteUrl),
+          items: serializeItems(nota.items, nota.comprovanteUrls),
           updated_by: userId,
         })
         .eq("id", nota.id)
@@ -540,6 +542,7 @@ function NotasAbertoPage() {
           dataCompra: now.toISOString().slice(0, 10),
           paga: false,
           prazoPagamento: "",
+          comprovanteUrls: [],
         } satisfies Nota;
       };
 
@@ -1393,7 +1396,7 @@ function NotasAbertoPage() {
                               updateNota(detailNota.id, { paga: false });
                               return;
                             }
-                            if (detailNota.comprovanteUrl) {
+                            if ((detailNota.comprovanteUrls ?? []).length > 0) {
                               updateNota(detailNota.id, { paga: true });
                               return;
                             }
@@ -1406,7 +1409,7 @@ function NotasAbertoPage() {
                   {/* Comprovante */}
                   <div className="mt-4 space-y-2">
                     <Label className="text-sm font-medium">
-                      Comprovante de pagamento{" "}
+                      Comprovantes de pagamento{" "}
                       <span className="text-xs text-muted-foreground font-normal">
                         (obrigatório para marcar como paga)
                       </span>
@@ -1415,27 +1418,42 @@ function NotasAbertoPage() {
                       ref={comprovanteInputRef}
                       type="file"
                       accept="image/*,application/pdf"
+                      multiple
                       className="hidden"
                       onChange={async (e) => {
-                        const file = e.target.files?.[0];
+                        const files = Array.from(e.target.files ?? []);
                         e.target.value = "";
-                        if (!file || !orgId) return;
+                        if (files.length === 0 || !orgId) return;
                         try {
                           setUploadingComprovante(true);
-                          const ext = file.name.split(".").pop() || "bin";
-                          const path = `${orgId}/notas/${detailNota.id}/comprovante-${Date.now()}.${ext}`;
-                          const { error: upErr } = await supabase.storage
-                            .from("attachments")
-                            .upload(path, file, { upsert: true });
-                          if (upErr) throw upErr;
-                          const { data: pub } = supabase.storage
-                            .from("attachments")
-                            .getPublicUrl(path);
+                          const newUrls: string[] = [];
+                          for (const file of files) {
+                            const ext = file.name.split(".").pop() || "bin";
+                            const path = `${orgId}/notas/${detailNota.id}/comprovante-${Date.now()}-${Math.random()
+                              .toString(36)
+                              .slice(2, 8)}.${ext}`;
+                            const { error: upErr } = await supabase.storage
+                              .from("attachments")
+                              .upload(path, file, { upsert: true });
+                            if (upErr) throw upErr;
+                            const { data: pub } = supabase.storage
+                              .from("attachments")
+                              .getPublicUrl(path);
+                            newUrls.push(pub.publicUrl);
+                          }
+                          const merged = [
+                            ...(detailNota.comprovanteUrls ?? []),
+                            ...newUrls,
+                          ];
                           updateNota(detailNota.id, {
-                            comprovanteUrl: pub.publicUrl,
+                            comprovanteUrls: merged,
                             paga: true,
                           });
-                          toast.success("Comprovante anexado. Nota marcada como paga.");
+                          toast.success(
+                            newUrls.length > 1
+                              ? `${newUrls.length} comprovantes anexados.`
+                              : "Comprovante anexado. Nota marcada como paga.",
+                          );
                         } catch (err) {
                           toast.error(
                             "Falha ao enviar comprovante: " +
@@ -1446,7 +1464,7 @@ function NotasAbertoPage() {
                         }
                       }}
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Button
                         type="button"
                         variant="outline"
@@ -1456,34 +1474,53 @@ function NotasAbertoPage() {
                       >
                         {uploadingComprovante
                           ? "Enviando..."
-                          : detailNota.comprovanteUrl
-                            ? "Trocar arquivo"
+                          : (detailNota.comprovanteUrls ?? []).length > 0
+                            ? "Anexar mais"
                             : "Anexar comprovante"}
                       </Button>
-                      {detailNota.comprovanteUrl && (
-                        <button
-                          type="button"
-                          onClick={() => setPreviewComprovanteUrl(detailNota.comprovanteUrl!)}
-                          className="text-xs font-medium text-primary hover:underline"
-                        >
-                          Ver comprovante
-                        </button>
-                      )}
-                      {detailNota.comprovanteUrl && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateNota(detailNota.id, {
-                              comprovanteUrl: null,
-                              paga: false,
-                            })
-                          }
-                          className="text-xs text-muted-foreground hover:text-rose-600"
-                        >
-                          Remover
-                        </button>
-                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {(detailNota.comprovanteUrls ?? []).length} arquivo(s)
+                      </span>
                     </div>
+                    {(detailNota.comprovanteUrls ?? []).length > 0 && (
+                      <ul className="mt-2 space-y-1.5">
+                        {(detailNota.comprovanteUrls ?? []).map((url, idx) => {
+                          const name = url.split("/").pop()?.split("?")[0] ?? `Comprovante ${idx + 1}`;
+                          return (
+                            <li
+                              key={url + idx}
+                              className="flex items-center justify-between gap-2 px-3 py-1.5 border rounded-md bg-muted/30 text-xs"
+                            >
+                              <span className="truncate flex-1" title={name}>
+                                {idx + 1}. {name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewComprovanteUrl(url)}
+                                className="font-medium text-primary hover:underline shrink-0"
+                              >
+                                Ver
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = (detailNota.comprovanteUrls ?? []).filter(
+                                    (u) => u !== url,
+                                  );
+                                  updateNota(detailNota.id, {
+                                    comprovanteUrls: next,
+                                    paga: next.length > 0 ? detailNota.paga : false,
+                                  });
+                                }}
+                                className="text-muted-foreground hover:text-rose-600 shrink-0"
+                              >
+                                Remover
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                   </div>
                 </section>
 
