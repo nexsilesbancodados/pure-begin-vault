@@ -1401,18 +1401,36 @@ function NotasAbertoPage() {
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                     <div className="space-y-1.5">
-                      <Label htmlFor="prazo" className="text-sm font-medium">
-                        Prazo para pagamento
-                      </Label>
-                      <Input
-                        id="prazo"
-                        type="date"
-                        value={detailNota.prazoPagamento}
-                        onChange={(e) =>
-                          updateNota(detailNota.id, { prazoPagamento: e.target.value })
-                        }
-                        disabled={detailNota.paga}
-                      />
+                      {detailNota.paga ? (
+                        <>
+                          <Label htmlFor="observacao" className="text-sm font-medium">
+                            Observação
+                          </Label>
+                          <Input
+                            id="observacao"
+                            type="text"
+                            placeholder="Ex: pago via PIX, referente NF 123..."
+                            value={detailNota.observacao ?? ""}
+                            onChange={(e) =>
+                              updateNota(detailNota.id, { observacao: e.target.value })
+                            }
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <Label htmlFor="prazo" className="text-sm font-medium">
+                            Prazo para pagamento
+                          </Label>
+                          <Input
+                            id="prazo"
+                            type="date"
+                            value={detailNota.prazoPagamento}
+                            onChange={(e) =>
+                              updateNota(detailNota.id, { prazoPagamento: e.target.value })
+                            }
+                          />
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center justify-between px-3 py-2 border bg-muted/40 rounded-md h-10">
                       <span className="text-sm font-medium">Status do pagamento</span>
