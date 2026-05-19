@@ -140,27 +140,35 @@ function DespesasPage() {
   const isOverdue = (e: Expense) =>
     e.status !== "paid" && e.due_date && e.due_date < todayISO;
 
+  // Items in the selected date range (by due_date)
+  const inRange = useMemo(() => {
+    return items.filter((e) => {
+      if (!dateFrom && !dateTo) return true;
+      const ref = e.due_date;
+      if (!ref) return false;
+      if (dateFrom && ref < dateFrom) return false;
+      if (dateTo && ref > dateTo) return false;
+      return true;
+    });
+  }, [items, dateFrom, dateTo]);
+
   const kpis = useMemo(() => {
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
-    let total = 0;
-    let pago = 0;
-    let pendente = 0;
-    let vencido = 0;
-    for (const e of items) {
+    let total = 0, pago = 0, pendente = 0, vencido = 0, despesas = 0, compras = 0;
+    let cDespesas = 0, cCompras = 0;
+    for (const e of inRange) {
       const amount = Number(e.amount) || 0;
-      const ref = e.due_date ? new Date(e.due_date) : null;
-      if (ref && ref >= monthStart) total += amount;
+      total += amount;
       if (e.status === "paid") pago += amount;
       else {
         pendente += amount;
         if (isOverdue(e)) vencido += amount;
       }
+      if (isCompra(e)) { compras += amount; cCompras++; }
+      else { despesas += amount; cDespesas++; }
     }
-    return { total, pago, pendente, vencido };
+    return { total, pago, pendente, vencido, despesas, compras, cDespesas, cCompras };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  }, [inRange]);
 
   const categories = useMemo(() => {
     const s = new Set<string>();
@@ -169,8 +177,10 @@ function DespesasPage() {
   }, [items]);
 
   const filtered = useMemo(() => {
-    return items.filter((e) => {
+    return inRange.filter((e) => {
       if (categoryFilter !== "all" && e.category !== categoryFilter) return false;
+      if (kindFilter === "despesa" && isCompra(e)) return false;
+      if (kindFilter === "compra" && !isCompra(e)) return false;
       if (statusFilter === "paid" && e.status !== "paid") return false;
       if (statusFilter === "pending" && (e.status === "paid" || isOverdue(e))) return false;
       if (statusFilter === "overdue" && !isOverdue(e)) return false;
@@ -184,7 +194,7 @@ function DespesasPage() {
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, search, statusFilter, categoryFilter]);
+  }, [inRange, search, statusFilter, categoryFilter, kindFilter]);
 
   const handleSave = async (data: any) => {
     if (!user?.id || !orgId) return;
