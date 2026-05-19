@@ -224,10 +224,20 @@ export function PDVInterface() {
         };
 
         if (p.model) (product as any).model = p.model;
+        if ((p as any).brand) (product as any).brand = (p as any).brand;
+        if ((p as any).sku) (product as any).sku = (p as any).sku;
         const meta = (p as any).metadata || {};
         if (meta.capacity) (product as any).capacity = meta.capacity;
         if (meta.color) (product as any).color = meta.color;
         if (meta.battery_health) (product as any).battery_health = meta.battery_health;
+        const imei = meta.imei || meta.IMEI || meta.imei1 || (p as any).imei || null;
+        const imei2 = meta.imei2 || null;
+        const serial = meta.serial || meta.serial_number || null;
+        const condition = meta.condition || meta.condicao || null;
+        if (imei) (product as any).imei = String(imei);
+        if (imei2) (product as any).imei2 = String(imei2);
+        if (serial) (product as any).serial = String(serial);
+        if (condition) (product as any).condition = String(condition);
 
         return product;
       });
@@ -669,11 +679,25 @@ export function PDVInterface() {
 
   const filteredProducts = useMemo(() => {
     return allProducts.filter((p) => {
-      const matchesSearch =
-        !search ||
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.category.toLowerCase().includes(search.toLowerCase()) ||
-        (p.id && p.id.toLowerCase().includes(search.toLowerCase()));
+      const q = search.toLowerCase();
+      const pa = p as any;
+      const haystack = [
+        p.name,
+        p.category,
+        p.id,
+        pa.brand,
+        pa.model,
+        pa.color,
+        pa.capacity,
+        pa.imei,
+        pa.imei2,
+        pa.serial,
+        pa.sku,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      const matchesSearch = !search || haystack.includes(q);
 
       if (!matchesSearch) return false;
       if (activeCategory === "all") return true;
@@ -696,7 +720,18 @@ export function PDVInterface() {
 
   const handleBarcodeSearch = (code: string) => {
     if (!code) return;
-    const product = allProducts.find((p) => p.id === code || (p.name && p.name.includes(code)));
+    const c = code.trim();
+    const product = allProducts.find((p) => {
+      const pa = p as any;
+      return (
+        p.id === c ||
+        pa.sku === c ||
+        pa.imei === c ||
+        pa.imei2 === c ||
+        pa.serial === c ||
+        (p.name && p.name.toLowerCase().includes(c.toLowerCase()))
+      );
+    });
     if (product) {
       addToCart(product);
       setBarcode("");
@@ -1994,7 +2029,7 @@ export function PDVInterface() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
                 <Input
                   ref={searchInputRef}
-                  placeholder="Digite o nome do produto..."
+                  placeholder="Buscar por nome, IMEI, série ou cor..."
                   className="pl-9 h-11 bg-muted/20"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -2020,9 +2055,35 @@ export function PDVInterface() {
                           >
                             <div className="flex-1 min-w-0 flex flex-col">
                               <div className="font-bold text-sm truncate">{product.name}</div>
-                              {product.description && (
-                                <div className="text-[10px] text-muted-foreground line-clamp-1 italic">
-                                  {product.description}
+                              {(() => {
+                                const pa = product as any;
+                                const chips: string[] = [];
+                                if (pa.capacity) chips.push(String(pa.capacity));
+                                if (pa.color) chips.push(String(pa.color));
+                                if (pa.condition) chips.push(String(pa.condition).toUpperCase());
+                                if (pa.battery_health) chips.push(`Bat ${pa.battery_health}%`);
+                                return chips.length ? (
+                                  <div className="flex flex-wrap gap-1 mt-0.5">
+                                    {chips.map((c, i) => (
+                                      <span
+                                        key={i}
+                                        className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary"
+                                      >
+                                        {c}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null;
+                              })()}
+                              {(product as any).imei && (
+                                <div className="text-[10px] font-mono text-foreground/80 mt-0.5 truncate">
+                                  IMEI: {(product as any).imei}
+                                  {(product as any).imei2 ? ` / ${(product as any).imei2}` : ""}
+                                </div>
+                              )}
+                              {!((product as any).imei) && (product as any).serial && (
+                                <div className="text-[10px] font-mono text-foreground/80 mt-0.5 truncate">
+                                  SN: {(product as any).serial}
                                 </div>
                               )}
                               <div className="text-[10px] text-muted-foreground mt-0.5">
@@ -2177,12 +2238,42 @@ export function PDVInterface() {
                         setIsSearchFocused(false);
                       }}
                       disabled={product.stock <= 0}
-                      className={`h-24 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition flex flex-col items-center justify-center gap-1 font-medium group relative ${product.stock <= 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                      title={
+                        (product as any).imei
+                          ? `IMEI: ${(product as any).imei}`
+                          : product.name
+                      }
+                      className={`min-h-[112px] p-2 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition flex flex-col items-center justify-between gap-1 font-medium group relative ${product.stock <= 0 ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
-                      <div className="h-10 w-10 rounded-full bg-muted group-hover:bg-primary/10 grid place-items-center transition">
-                        <Package className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
+                      <div className="h-8 w-8 rounded-full bg-muted group-hover:bg-primary/10 grid place-items-center transition shrink-0">
+                        <Package className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
                       </div>
-                      <span className="text-xs text-center px-2 line-clamp-2">{product.name}</span>
+                      <span className="text-[11px] leading-tight text-center px-1 line-clamp-2 font-semibold">
+                        {product.name}
+                      </span>
+                      {(() => {
+                        const pa = product as any;
+                        const chips: string[] = [];
+                        if (pa.capacity) chips.push(String(pa.capacity));
+                        if (pa.color) chips.push(String(pa.color));
+                        return chips.length ? (
+                          <div className="flex flex-wrap gap-0.5 justify-center">
+                            {chips.slice(0, 2).map((c, i) => (
+                              <span
+                                key={i}
+                                className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-primary/10 text-primary leading-none"
+                              >
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null;
+                      })()}
+                      {(product as any).imei && (
+                        <span className="text-[8px] font-mono text-foreground/70 truncate max-w-full px-1">
+                          IMEI: …{String((product as any).imei).slice(-6)}
+                        </span>
+                      )}
                       <div className="flex flex-col items-center">
                         <span className="text-[10px] font-bold text-primary">
                           {product.price.toLocaleString("pt-BR", {
