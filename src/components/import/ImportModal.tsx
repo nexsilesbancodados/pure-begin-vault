@@ -1420,12 +1420,14 @@ function FullscreenPreview({
   rows,
   kind,
   brl,
+  hmap,
 }: {
   isOpen: boolean;
   onClose: () => void;
   rows: ParsedRow[];
   kind: ImportKind;
   brl: (n: number) => string;
+  hmap: Record<string, string>;
 }) {
   const [filter, setFilter] = useState<"all" | "valid" | "invalid">("all");
   const [search, setSearch] = useState("");
