@@ -231,24 +231,36 @@ function ReceitasPage() {
       if (receivableRes.error) throw receivableRes.error;
       if (txRes.error) throw txRes.error;
 
-      const receivables: Income[] = ((receivableRes.data as any[]) || []).map((r) => ({
-        id: r.id,
-        description: r.description,
-        category: r.sale_id ? "sales" : "income",
-        amount: Number(r.amount) || 0,
-        status: r.status || "pending",
-        due_date: r.due_date,
-        payment_date: r.paid_at,
-        transaction_date: r.paid_at || r.due_date,
-        supplier: noteField(r.notes, "Cliente") || customerFromDescription(r.description),
-        reference_type: r.sale_id ? "sale" : "manual",
-        reference_id: r.sale_id || null,
-        customer_id: r.customer_id || null,
-        source_table: "receivable",
-        origin: r.sale_id ? "sale" : "manual",
-        notes: r.notes,
-        type: "income",
-      }));
+      const receivables: Income[] = ((receivableRes.data as any[]) || []).map((r) => {
+        const person = noteField(r.notes, "Cliente") || extractPerson(r.description);
+        const origin: IncomeOrigin = r.sale_id ? "sale" : "manual";
+        return {
+          id: r.id,
+          description: r.description,
+          title: buildTitle({
+            description: r.description,
+            reference_type: r.sale_id ? "sale" : "manual",
+            origin,
+            category: r.category,
+          }),
+          person,
+          category: r.sale_id ? "sales" : "income",
+          amount: Number(r.amount) || 0,
+          status: r.status || "pending",
+          due_date: r.due_date,
+          payment_date: r.paid_at,
+          transaction_date: r.paid_at || r.due_date,
+          supplier: person,
+          reference_type: r.sale_id ? "sale" : "manual",
+          reference_id: r.sale_id || null,
+          customer_id: r.customer_id || null,
+          source_table: "receivable",
+          origin,
+          payment_method: r.payment_method || null,
+          notes: r.notes,
+          type: "income",
+        };
+      });
       const receivableSaleIds = new Set(
         receivables.map((r) => r.reference_id).filter(Boolean) as string[],
       );
@@ -258,30 +270,35 @@ function ReceitasPage() {
           (t) =>
             !(t.reference_type === "sale" && t.reference_id && receivableSaleIds.has(t.reference_id)),
         )
-        // Defensive: descarta lançamentos que vieram como income mas têm
-        // categoria/descrição típicas de despesa (legado de importações).
         .filter((t) => !isExpenseLikeIncome(t))
-        .map((t) => ({
-          id: t.id,
-          description: t.description,
-          category: t.category,
-          amount: Number(t.amount) || 0,
-          status: "paid",
-          due_date: t.transaction_date,
-          payment_date: t.transaction_date,
-          transaction_date: t.transaction_date,
-          supplier: customerFromDescription(t.description),
-          reference_type: t.reference_type,
-          reference_id: t.reference_id,
-          source_table: "transaction",
-          origin: inferOrigin({
+        .map((t) => {
+          const person = extractPerson(t.description);
+          const origin = inferOrigin({
             reference_type: t.reference_type,
             category: t.category,
             payment_method: t.payment_method,
             description: t.description,
-          }),
-          type: "income",
-        }));
+          });
+          return {
+            id: t.id,
+            description: t.description,
+            title: buildTitle({ description: t.description, reference_type: t.reference_type, origin, category: t.category }),
+            person,
+            category: t.category,
+            amount: Number(t.amount) || 0,
+            status: "paid",
+            due_date: t.transaction_date,
+            payment_date: t.transaction_date,
+            transaction_date: t.transaction_date,
+            supplier: person,
+            reference_type: t.reference_type,
+            reference_id: t.reference_id,
+            source_table: "transaction",
+            origin,
+            payment_method: t.payment_method || null,
+            type: "income",
+          };
+        });
 
       const cashMovements: Income[] = !cashRes.error
         ? ((cashRes.data as any[]) || [])
@@ -297,6 +314,8 @@ function ReceitasPage() {
               return {
                 id: m.id,
                 description: m.description || ORIGIN_LABEL[origin],
+                title: ORIGIN_LABEL[origin],
+                person: extractPerson(m.description),
                 category: "caixa",
                 amount: Number(m.amount) || 0,
                 status: "paid",
@@ -308,31 +327,40 @@ function ReceitasPage() {
                 reference_id: m.reference_id || null,
                 source_table: "cash_movement",
                 origin,
+                payment_method: m.payment_method || null,
                 type: "income",
               };
             })
         : [];
 
+      // Mapa de pagamentos de venda para descobrir customer + payment_method por sale_id
+      // Para vendas vindas do sales_orders direto (sem receivable)
       const sales: Income[] = !salesRes.error
         ? ((salesRes.data as any[]) || [])
             .filter((s) => !receivableSaleIds.has(s.id))
-            .map((s) => ({
-              id: `sale:${s.id}`,
-              description: `Venda #${s.sale_number ?? String(s.id).slice(0, 6).toUpperCase()}`,
-              category: "sales",
-              amount: Number(s.total_amount) || 0,
-              status: "paid",
-              due_date: s.created_at,
-              payment_date: s.created_at,
-              transaction_date: s.created_at,
-              supplier: null,
-              reference_type: "sale",
-              reference_id: s.id,
-              customer_id: s.customer_id || null,
-              source_table: "sale",
-              origin: "sale",
-              type: "income",
-            }))
+            .map((s) => {
+              const person = extractPerson(s.notes);
+              return {
+                id: `sale:${s.id}`,
+                description: `Venda #${s.sale_number ?? String(s.id).slice(0, 6).toUpperCase()}`,
+                title: `Venda #${s.sale_number ?? String(s.id).slice(0, 6).toUpperCase()}`,
+                person,
+                category: "sales",
+                amount: Number(s.total_amount) || 0,
+                status: "paid",
+                due_date: s.created_at,
+                payment_date: s.created_at,
+                transaction_date: s.created_at,
+                supplier: person,
+                reference_type: "sale",
+                reference_id: s.id,
+                customer_id: s.customer_id || null,
+                source_table: "sale",
+                origin: "sale",
+                payment_method: s.payment_method || null,
+                type: "income",
+              };
+            })
         : [];
 
       setItems([...receivables, ...transactions, ...cashMovements, ...sales]);
