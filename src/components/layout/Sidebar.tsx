@@ -16,7 +16,7 @@ export function AppSidebar({
   setOpen?: (val: boolean) => void;
 }) {
   const location = useLocation();
-  const { profile, logout } = useAuth();
+  const { profile, user, logout } = useAuth();
   const [flyout, setFlyout] = useState<any | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isForcedCollapsed, setIsForcedCollapsed] = useState(false);
