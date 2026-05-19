@@ -636,8 +636,10 @@ function ReceitasPage() {
                         className="w-full h-7 px-1 rounded border border-slate-200 text-[11px] bg-white"
                       >
                         <option value="">Selecionar</option>
-                        <option value="manual">Manual</option>
                         <option value="sale">Venda</option>
+                        <option value="deposit">Depósito</option>
+                        <option value="transfer">Transferência</option>
+                        <option value="manual">Manual</option>
                       </select>
                     </th>
                     <th className="px-2 py-1.5">
