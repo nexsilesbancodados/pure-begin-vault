@@ -663,12 +663,17 @@ function ReceitasPage() {
                       </select>
                     </th>
                     <th className="px-2 py-1.5">
-                      <input
+                      <select
                         value={fCategoria}
                         onChange={(e) => setFCategoria(e.target.value)}
-                        placeholder="Selecionar"
-                        className="w-full h-7 px-2 rounded border border-slate-200 text-[11px]"
-                      />
+                        className="w-full h-7 px-1 rounded border border-slate-200 text-[11px] bg-white"
+                      >
+                        <option value="">Selecionar</option>
+                        <option value="venda">Venda</option>
+                        <option value="depósito">Depósito</option>
+                        <option value="transferência">Transferência</option>
+                        <option value="manual">Manual</option>
+                      </select>
                     </th>
                     <th className="px-2 py-1.5">
                       <input
