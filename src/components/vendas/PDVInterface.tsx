@@ -679,11 +679,25 @@ export function PDVInterface() {
 
   const filteredProducts = useMemo(() => {
     return allProducts.filter((p) => {
-      const matchesSearch =
-        !search ||
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.category.toLowerCase().includes(search.toLowerCase()) ||
-        (p.id && p.id.toLowerCase().includes(search.toLowerCase()));
+      const q = search.toLowerCase();
+      const pa = p as any;
+      const haystack = [
+        p.name,
+        p.category,
+        p.id,
+        pa.brand,
+        pa.model,
+        pa.color,
+        pa.capacity,
+        pa.imei,
+        pa.imei2,
+        pa.serial,
+        pa.sku,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      const matchesSearch = !search || haystack.includes(q);
 
       if (!matchesSearch) return false;
       if (activeCategory === "all") return true;
