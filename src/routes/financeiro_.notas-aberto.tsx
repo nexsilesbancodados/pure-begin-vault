@@ -792,29 +792,8 @@ function NotasAbertoPage() {
 
     if (orgId) query = query.eq("organization_id", orgId);
 
-    let { data, error } = await query;
-
-    if (!error && orgId && (data ?? []).length === 0) {
-      const { data: memberships } = await supabase
-        .from("user_organizations")
-        .select("organization_id")
-        .eq("user_id", userId);
-      const orgIds = (memberships ?? [])
-        .map((item) => item.organization_id)
-        .filter((id): id is string => Boolean(id));
-
-      if (orgIds.length > 0) {
-        const fallback = await supabase
-          .from("products")
-          .select("*")
-          .in("organization_id", orgIds)
-          .eq("active", true)
-          .order("name")
-          .limit(500);
-        data = fallback.data;
-        error = fallback.error;
-      }
-    }
+    const { data, error } = await query;
+    // Sem fallback cross-org: estoque e produtos são isolados por loja.
 
     if (error) toast.error("Erro ao carregar produtos: " + error.message);
     const mapped: Product[] = ((data ?? []) as Product[]).map((p) => ({
