@@ -2029,7 +2029,7 @@ export function PDVInterface() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
                 <Input
                   ref={searchInputRef}
-                  placeholder="Digite o nome do produto..."
+                  placeholder="Buscar por nome, IMEI, série ou cor..."
                   className="pl-9 h-11 bg-muted/20"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
