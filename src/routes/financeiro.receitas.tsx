@@ -817,15 +817,19 @@ function ReceitasPage() {
                     </th>
                     <th className="px-2 py-1.5">
                       <select
-                        value={fCategoria}
-                        onChange={(e) => setFCategoria(e.target.value)}
+                        value={fMethod}
+                        onChange={(e) => setFMethod(e.target.value as PayKey | "")}
                         className="w-full h-7 px-1 rounded border border-slate-200 text-[11px] bg-white"
                       >
-                        <option value="">Selecionar</option>
-                        <option value="venda">Venda</option>
-                        <option value="depósito">Depósito</option>
-                        <option value="transferência">Transferência</option>
-                        <option value="manual">Manual</option>
+                        <option value="">Todas</option>
+                        <option value="pix">PIX</option>
+                        <option value="cash">Espécie</option>
+                        <option value="credit">Crédito</option>
+                        <option value="debit">Débito</option>
+                        <option value="crediario">Crediário</option>
+                        <option value="transfer">Transferência</option>
+                        <option value="boleto">Boleto</option>
+                        <option value="other">Outros</option>
                       </select>
                     </th>
                     <th className="px-2 py-1.5">
