@@ -40,6 +40,7 @@ type Receipt = {
     cnpj?: string | null;
     phone?: string | null;
     website?: string | null;
+    logo_url?: string | null;
   } | null;
   seller?: { name?: string | null } | null;
   customer:
