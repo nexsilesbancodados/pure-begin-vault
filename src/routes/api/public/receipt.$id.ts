@@ -55,18 +55,42 @@ async function fetchReceipt(id: string) {
         : Promise.resolve({ data: null }),
     ]);
 
+  // Enrich items with product details (brand/model/category/metadata)
+  const productIds = Array.from(
+    new Set((items ?? []).map((it: any) => it.product_id).filter(Boolean)),
+  );
+  let productsById: Record<string, any> = {};
+  if (productIds.length) {
+    const { data: products } = await (supabaseAdmin as any)
+      .from("products")
+      .select("id, name, brand, model, category, metadata, image_url, sku")
+      .in("id", productIds);
+    for (const p of products ?? []) productsById[p.id] = p;
+  }
+  const enrichedItems = (items ?? []).map((it: any) => {
+    const p = it.product_id ? productsById[it.product_id] : null;
+    return {
+      ...it,
+      brand: it.brand ?? p?.brand ?? null,
+      model: it.model ?? p?.model ?? null,
+      category: p?.category ?? null,
+      metadata: p?.metadata ?? null,
+    };
+  });
+
   const s: any = orgSettings ?? {};
   return {
     status: 200,
     sale: { ...sale, organization_id: undefined },
-    items: items ?? [],
+    items: enrichedItems,
     payments: payments ?? [],
-    org_name: org?.name ?? "Loja",
+    org_name: s.brand_name ?? org?.name ?? "Loja",
     org: {
       address: s.address ?? s.endereco ?? null,
       cnpj: s.cnpj ?? s.document ?? null,
-      phone: s.phone ?? s.telefone ?? null,
+      phone: s.support_whatsapp ?? s.phone ?? s.telefone ?? null,
       website: s.website ?? null,
+      logo_url: s.brand_logo_url ?? null,
     },
     seller: seller ? { name: seller.full_name || seller.email } : null,
     customer: customer
