@@ -477,7 +477,7 @@ function ReceitasPage() {
           </div>
 
 
-          <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200">
