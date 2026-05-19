@@ -71,6 +71,9 @@ const noteField = (notes: string | null | undefined, label: string) => {
   return line ? line.slice(label.length + 1).trim() : null;
 };
 
+const customerFromDescription = (description: string | null | undefined) =>
+  (description || "").includes(" · ") ? (description || "").split(" · ").slice(1).join(" · ") : null;
+
 function ReceitasPage() {
   const { user } = useAuth();
   const { orgId } = useOrg();
@@ -117,7 +120,7 @@ function ReceitasPage() {
       const receivables = ((receivableRes.data as any[]) || []).map((r) => ({
         id: r.id,
         description: r.description,
-        category: "sales",
+        category: r.sale_id ? "sales" : "income",
         amount: Number(r.amount) || 0,
         status: r.status || "pending",
         due_date: r.due_date,
@@ -134,7 +137,13 @@ function ReceitasPage() {
       const receivableSaleIds = new Set(receivables.map((r) => r.reference_id).filter(Boolean));
       const transactions = ((txRes.data as any[]) || [])
         .filter((t) => !(t.reference_type === "sale" && t.reference_id && receivableSaleIds.has(t.reference_id)))
-        .map((t) => ({ ...t, due_date: t.transaction_date, payment_date: t.transaction_date, supplier: noteField(t.description, "Cliente"), source_table: "transaction" as const }));
+        .map((t) => ({
+          ...t,
+          due_date: t.transaction_date,
+          payment_date: t.transaction_date,
+          supplier: customerFromDescription(t.description),
+          source_table: "transaction" as const,
+        }));
       setItems([...receivables, ...transactions]);
     } catch (e) {
       console.error(e);
