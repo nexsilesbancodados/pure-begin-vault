@@ -155,10 +155,22 @@ Deno.serve(async (req) => {
       organization_id: orgIds[0],
       role: role || "employee",
     };
-    if (Array.isArray(allowed_menu)) {
-      profilePayload.allowed_menu = allowed_menu.length ? allowed_menu : null;
-    }
     await admin.from("profiles").upsert(profilePayload, { onConflict: "id" });
+
+    // Persiste allowed_menu no user_metadata do auth (não há coluna dedicada em profiles).
+    if (Array.isArray(allowed_menu)) {
+      const normalizedMenu = allowed_menu.length ? allowed_menu : null;
+      try {
+        await admin.auth.admin.updateUserById(userId!, {
+          user_metadata: {
+            full_name: nome || normalizedEmail,
+            allowed_menu: normalizedMenu,
+          },
+        });
+      } catch (metaErr) {
+        console.error("Falha ao salvar allowed_menu em user_metadata", metaErr);
+      }
+    }
 
     // Marca convite como aceito (se houver)
     if (invite_id) {
