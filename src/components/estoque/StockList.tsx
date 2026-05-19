@@ -25,7 +25,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { ProductForm } from "./ProductForm";
-import { SalesImportModal } from "@/components/vendas/SalesImportModal";
+import { ImportModal } from "@/components/import/ImportModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
