@@ -926,7 +926,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                         localStorage.removeItem(`import_map_${kind}`);
                         const freshMap = buildHeaderMap(rawData[0], kind);
                         setHmap(freshMap);
-                        setRows(rawData.map((r, i) => parseRow(r, freshMap, i)));
+                        setRows(rawData.map((r, i) => parseRow(r, freshMap, i, kind)));
                         toast.info("Mapeamento resetado para o padrão inteligente");
                       }}
                       className="text-[10px] font-bold text-primary hover:underline ml-2"
