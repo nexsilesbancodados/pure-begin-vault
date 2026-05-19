@@ -1565,36 +1565,21 @@ function FullscreenPreview({
             <table className="w-full text-xs">
               <thead className="bg-muted/50 sticky top-0 z-10">
                 <tr className="border-b border-border">
-                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground w-12">#</th>
-                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground w-24">Status</th>
-                  {kind === "estoque" ? (
-                    <>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Produto</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Marca/Modelo</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">SKU / EAN</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">IMEI / Serial</th>
-                      <th className="text-center p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Qtd</th>
-                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">P. Custo</th>
-                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">P. Venda</th>
-                    </>
-                  ) : kind === "financeiro" ? (
-                    <>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Descrição</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Tipo</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
-                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Documento</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
-                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
-                    </>
-                  )}
-                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Erro/Aviso</th>
+                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground w-12 sticky left-0 bg-muted/50 z-20">#</th>
+                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground w-24 sticky left-12 bg-muted/50 z-20">Status</th>
+                  {headers.map((h) => (
+                    <th key={h} className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground whitespace-nowrap min-w-[120px]">
+                      <div className="flex flex-col">
+                        <span className="text-primary truncate" title={h}>{h}</span>
+                        {Object.entries(hmap).find(([_, head]) => head === h) && (
+                          <span className="text-[8px] text-success-foreground bg-success/20 px-1 rounded-sm w-fit mt-0.5">
+                            MAPEADO
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground min-w-[200px]">Erro/Aviso</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
