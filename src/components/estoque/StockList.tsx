@@ -1031,7 +1031,7 @@ export function StockList() {
         onSave={handleUpdateProduct}
       />
 
-      <SalesImportModal
+      <ImportModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         onImportSuccess={() => fetchProducts(0, true)}
