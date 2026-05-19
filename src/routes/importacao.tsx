@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImportModal } from "@/components/import/ImportModal";
+import { JobDetailModal } from "@/components/import/JobDetailModal";
 
 export const Route = createFileRoute("/importacao")({
   head: () => ({ meta: [{ title: "Importações — ConectaCRM" }] }),
