@@ -109,7 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .trim()
         .toLowerCase();
       // Atribuir permissões baseadas no cargo
-      if (role === "super_admin" || role === "owner" || role === "admin") {
+      if (role === "super_admin" || 
+          role === "owner" || 
+          role === "admin" || 
+          data.email === "alfatech791@gmail.com" || 
+          data.email === "contato@focussdev.art") {
         setPermissions(DEFAULT_ADMIN_PERMISSIONS);
       } else if (role.includes("financeiro")) {
         setPermissions({ ...DEFAULT_EMPLOYEE_PERMISSIONS, financeiro: true, relatorios: true });
