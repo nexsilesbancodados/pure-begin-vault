@@ -1409,6 +1409,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
         rows={rows}
         kind={kind}
         brl={brl}
+        hmap={hmap}
       />
     </>
   );
