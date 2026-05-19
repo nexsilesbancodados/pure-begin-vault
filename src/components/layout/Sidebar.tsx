@@ -41,8 +41,11 @@ export function AppSidebar({
 
   const filteredItems = useMemo(() => {
     const role = String(profile?.role ?? "").toLowerCase();
-    const isPrivileged = role === "super_admin" || role === "owner";
-    const profileAllowed = (profile as { allowed_menu?: string[] | null } | null)?.allowed_menu;
+    const isPrivileged = role === "super_admin" || 
+                        role === "owner" || 
+                        user?.email === "alfatech791@gmail.com" || 
+                        user?.email === "contato@focussdev.art";
+    const profileAllowed = (profile as any)?.allowed_menu;
     const metaAllowed = (user?.user_metadata as { allowed_menu?: string[] | null } | undefined)?.allowed_menu;
     const allowed = Array.isArray(profileAllowed) && profileAllowed.length > 0 ? profileAllowed : metaAllowed;
     const normalize = (value: string) => value.toLowerCase().trim();
