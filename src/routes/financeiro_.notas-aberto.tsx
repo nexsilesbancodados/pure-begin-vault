@@ -706,8 +706,16 @@ function NotasAbertoPage() {
       return;
     }
 
+    if (orgId) {
+      await syncStockForNotaItems(nota.items, {
+        orgId,
+        userId,
+        notaId: nota.id,
+        delta: -1,
+      });
+    }
     replaceNotas((prev) => prev.filter((x) => x.id !== nota.id));
-    toast.success(`Nota ${nota.noteNumber} excluída.`);
+    toast.success(`Nota ${nota.noteNumber} excluída. Estoque ajustado.`);
   };
 
   const handleSaveProduct = async (data: ProductFormValues) => {
