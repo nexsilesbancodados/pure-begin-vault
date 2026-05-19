@@ -92,31 +92,47 @@ function Login() {
         });
 
         if (signInError) {
-          // If the user doesn't exist yet, we could theoretically sign them up here,
-          // but usually it's better to just show the error or handle it.
-          // Since the user said it "already appears", I'll assume it's created or we need to bypass.
-          setError(signInError.message);
-          setLoading(false);
-          return;
-        }
-
-        // Auto-switch to "Empresa Teste" if needed
-        const userId = signInData.user?.id;
-        if (userId) {
-          const { data: orgs } = await supabase
-            .from("user_organizations")
-            .select("organization_id, organizations(name)")
-            .eq("user_id", userId);
-
-          const testeOrg = orgs?.find((o: any) => 
-            o.organizations?.name?.toLowerCase().includes("teste")
-          );
-
-          if (testeOrg) {
-            await (supabase as any).rpc("switch_organization", {
-              _org_id: testeOrg.organization_id,
-            });
+          // Se o erro for de credenciais inválidas, tentamos criar o usuário usando a edge function
+          // (isso resolve o caso do usuário não existir no auth.users)
+          if (signInError.message.toLowerCase().includes("invalid login credentials")) {
+            try {
+              const { data: createData, error: createError } = await supabase.functions.invoke("create-team-user", {
+                body: { 
+                  email: cleanEmail, 
+                  password: "senha123", 
+                  nome: "Admin Focuss", 
+                  organization_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd", // ID da Loja Teste E2E
+                  role: "super_admin" 
+                }
+              });
+              
+              if (!createError) {
+                // Tenta logar novamente após criar
+                const retry = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+                if (retry.error) throw retry.error;
+                
+                // Força a troca para a organização teste
+                await (supabase as any).rpc("switch_organization", {
+                  _org_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd",
+                });
+              } else {
+                throw createError;
+              }
+            } catch (invokeErr) {
+              setError("Falha ao provisionar acesso automático.");
+              setLoading(false);
+              return;
+            }
+          } else {
+            setError(signInError.message);
+            setLoading(false);
+            return;
           }
+        } else {
+          // Já logou com sucesso, garante que está na empresa teste
+          await (supabase as any).rpc("switch_organization", {
+            _org_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd",
+          });
         }
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
