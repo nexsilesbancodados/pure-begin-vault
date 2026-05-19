@@ -930,24 +930,31 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                       <div className="grid grid-cols-2 gap-2">
                         {group.fields.map(({ field, label, required }) => (
                           <div key={field} className="space-y-1">
-                            <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                              {label}
-                              {hmap[field] && (
-                                <CheckCircle2 className="h-2.5 w-2.5 text-success" />
+                            <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                              <span className="flex items-center gap-1">
+                                {label}
+                                {hmap[field] && (
+                                  <CheckCircle2 className="h-2.5 w-2.5 text-success" />
+                                )}
+                              </span>
+                              {hmap[field] && rawData.length > 0 && (
+                                <span className="text-[9px] font-normal lowercase opacity-70 truncate max-w-[80px]">
+                                  {String(rawData[0][hmap[field]]).slice(0, 20) || "vazio"}
+                                </span>
                               )}
                             </label>
                             <select
                               value={hmap[field] || ""}
                               onChange={(e) => remap(field, e.target.value)}
-                              className={`w-full text-xs px-2.5 py-1.5 rounded-lg bg-background border ${
+                              className={`w-full text-[11px] px-2 py-1.5 rounded-lg bg-background border ${
                                 required && !hmap[field]
-                                  ? "border-destructive/50"
+                                  ? "border-destructive/50 shadow-[0_0_8px_rgba(239,68,68,0.1)]"
                                   : hmap[field]
-                                  ? "border-success/40"
+                                  ? "border-success/40 bg-success/5"
                                   : "border-border"
-                              } focus:outline-none focus:ring-2 focus:ring-primary/30`}
+                              } focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all`}
                             >
-                              <option value="">— não usar —</option>
+                              <option value="">— ignorar coluna —</option>
                               {headers.map((h) => (
                                 <option key={h} value={h}>
                                   {h}
