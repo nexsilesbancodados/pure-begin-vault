@@ -231,6 +231,15 @@ function ImportPage() {
         onClose={() => setModalOpen(false)}
         onImportSuccess={() => setModalOpen(false)}
       />
+
+      <JobDetailModal
+        isOpen={detailModalOpen}
+        job={selectedJob}
+        onClose={() => {
+          setDetailModalOpen(false);
+          setSelectedJob(null);
+        }}
+      />
     </div>
   );
 }
