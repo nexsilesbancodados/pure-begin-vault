@@ -966,6 +966,8 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             { field: "product", label: "Nome do Produto *", required: true },
                             { field: "product_sku", label: "Código / SKU" },
                             { field: "category", label: "Categoria" },
+                            { field: "brand", label: "Marca" },
+                            { field: "model", label: "Modelo" },
                           ],
                         },
                         {
@@ -974,6 +976,13 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             { field: "quantity", label: "Qtd em estoque" },
                             { field: "unit_price", label: "Preço de Venda" },
                             { field: "cost_price", label: "Preço de Custo" },
+                          ],
+                        },
+                        {
+                          title: "Identificadores",
+                          fields: [
+                            { field: "imei", label: "IMEI / Serial" },
+                            { field: "ean", label: "EAN / Barras" },
                           ],
                         },
                       ]
