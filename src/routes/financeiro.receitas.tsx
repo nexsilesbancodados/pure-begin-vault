@@ -96,6 +96,23 @@ const inferOrigin = (params: {
   return "manual";
 };
 
+// Categorias que NUNCA são receita — vieram como income por erro de importação
+// (relatório de despesas misturado). Filtramos no front e também via SQL.
+const EXPENSE_CATEGORY_RE =
+  /^(marketing|public[ií]?dade|log[ií]?stica|insumo|insumos|uniforme|aluguel|sal[áa]rio|fornecedor|fornecedores|compra|despesa|imposto|taxa|combust[ií]vel|energia|[áa]gua|internet|telefone)/i;
+
+const isExpenseLikeIncome = (t: {
+  category?: string | null;
+  description?: string | null;
+  reference_type?: string | null;
+}) => {
+  // Vendas e referências de venda são sempre receita legítima
+  if ((t.reference_type || "").toLowerCase().includes("sale")) return false;
+  const cat = (t.category || "").trim();
+  if (cat && EXPENSE_CATEGORY_RE.test(cat)) return true;
+  return false;
+};
+
 const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -186,6 +203,9 @@ function ReceitasPage() {
           (t) =>
             !(t.reference_type === "sale" && t.reference_id && receivableSaleIds.has(t.reference_id)),
         )
+        // Defensive: descarta lançamentos que vieram como income mas têm
+        // categoria/descrição típicas de despesa (legado de importações).
+        .filter((t) => !isExpenseLikeIncome(t))
         .map((t) => ({
           id: t.id,
           description: t.description,
@@ -207,6 +227,7 @@ function ReceitasPage() {
           }),
           type: "income",
         }));
+
       const cashMovements: Income[] = !cashRes.error
         ? ((cashRes.data as any[]) || [])
             .filter((m) => !(m.reference_type === "sale" && m.reference_id && receivableSaleIds.has(m.reference_id)))
