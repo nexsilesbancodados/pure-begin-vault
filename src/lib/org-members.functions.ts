@@ -44,8 +44,12 @@ export const listOrgMembers = createServerFn({ method: "POST" })
       throw new Error("Forbidden");
     }
 
-    // Always use admin client to bypass RLS and read full team.
-    const { data: rows, error: rowsErr } = await supabaseAdmin
+    // Prefer admin client (bypasses RLS) when service role is available;
+    // otherwise fall back to the user-scoped client (RLS may limit results).
+    const admin = getAdmin();
+    const client: any = admin ?? supabase;
+
+    const { data: rows, error: rowsErr } = await client
       .from("user_organizations")
       .select("user_id, role")
       .eq("organization_id", data.orgId);
@@ -59,7 +63,7 @@ export const listOrgMembers = createServerFn({ method: "POST" })
     if (base.length === 0) return { members: [] };
 
     const ids = base.map((r) => r.user_id);
-    const { data: profs, error: profsErr } = await supabaseAdmin
+    const { data: profs, error: profsErr } = await client
       .from("profiles")
       .select("id, nome, display_name, email")
       .in("id", ids);
