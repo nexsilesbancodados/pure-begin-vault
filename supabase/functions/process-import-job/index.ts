@@ -267,21 +267,25 @@ async function processJob(supabase: any, jobId: string) {
       // 2) PRODUCTS  (+ sincronização com estoque atual)
       await supabase.from("import_jobs").update({ step: "products" }).eq("id", jobId);
       // Agrega quantidade total importada por produto (alimenta o estoque)
-      const productMap = new Map<string, { name: string; price?: number; sku?: string; totalQty: number }>();
+      const productMap = new Map<string, { name: string; price?: number; cost?: number; sku?: string; totalQty: number; category?: string }>();
       for (const r of rows) {
         if (!r.product_name) continue;
         const key = r.product_name.toLowerCase();
-        const qty = Number(r.product_quantity) || 1;
+        const qty = Number(r.product_quantity) || 0;
         const cur = productMap.get(key);
         if (cur) {
           cur.totalQty += qty;
           if (!cur.sku && r.product_sku) cur.sku = r.product_sku;
+          if (!cur.cost && r.cost_price) cur.cost = r.cost_price;
+          if (!cur.category && r.category) cur.category = r.category;
         } else {
           productMap.set(key, {
             name: r.product_name,
-            price: r.product_price ?? r.total_amount,
+            price: r.product_price ?? (forceStock ? undefined : r.total_amount),
+            cost: r.cost_price,
             sku: r.product_sku,
             totalQty: qty,
+            category: r.category,
           });
         }
       }
