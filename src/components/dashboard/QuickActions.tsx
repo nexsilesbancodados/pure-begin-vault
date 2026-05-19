@@ -29,7 +29,7 @@ export function QuickActions() {
             key={action.label}
             onClick={() => navigate({ to: action.url as any })}
             aria-label={action.label}
-            className="group relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl bg-card border border-border shadow-card hover:shadow-elegant hover:-translate-y-0.5 hover:border-primary/40 active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="group relative overflow-hidden flex items-center gap-3 p-3 rounded-2xl bg-card/60 backdrop-blur-md border border-border/50 shadow-card hover:shadow-elegant hover:-translate-y-0.5 hover:border-primary/40 active:scale-[0.98] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {/* Top highlight */}
             <div
