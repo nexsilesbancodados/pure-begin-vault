@@ -827,7 +827,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                     <span className="text-info">•</span>
                     Colunas aceitas:{" "}
                     <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
-                      data, valor, metodo_pagamento, status, observacao
+                      {kind === "vendas" ? "data, valor, cliente, produto, qtd" : kind === "estoque" ? "produto, sku, estoque, preco, custo" : "data, valor, descricao, categoria"}
                     </code>
                   </li>
                   <li className="flex gap-2">
