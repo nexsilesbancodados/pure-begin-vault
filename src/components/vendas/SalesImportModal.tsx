@@ -342,6 +342,12 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   const productPrice = unitPriceRaw != null && unitPriceRaw !== ""
     ? parseCurrency(unitPriceRaw)
     : undefined;
+
+  const costPriceRaw = get("cost_price");
+  const costPrice = costPriceRaw != null && costPriceRaw !== ""
+    ? parseCurrency(costPriceRaw)
+    : undefined;
+
   const discountRaw = get("discount");
   const discount = discountRaw != null && discountRaw !== ""
     ? Math.abs(parseCurrency(discountRaw))
@@ -372,7 +378,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     get("notes") || description || (customerName ? `Cliente: ${customerName}` : "Importado via sistema");
 
   return {
-    total_amount: isNaN(amount) ? 0 : Math.abs(amount),
+    total_amount: isNaN(amount) ? (productPrice ? productPrice * productQty : 0) : Math.abs(amount),
     payment_method: normalizePayment(get("payment")),
     status: normalizeStatus(get("status")),
     notes: String(notes).slice(0, 500),
@@ -384,6 +390,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     product_name: productName || undefined,
     product_quantity: productQty,
     product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
+    cost_price: costPrice && !isNaN(costPrice) ? costPrice : undefined,
     product_sku: productSku || undefined,
     discount: discount && !isNaN(discount) ? discount : undefined,
     description: description,
