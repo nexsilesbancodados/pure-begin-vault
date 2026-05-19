@@ -542,6 +542,7 @@ function NotasAbertoPage() {
           dataCompra: now.toISOString().slice(0, 10),
           paga: false,
           prazoPagamento: "",
+          comprovanteUrls: [],
         } satisfies Nota;
       };
 
