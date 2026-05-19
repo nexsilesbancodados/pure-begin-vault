@@ -316,6 +316,8 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     product_name: productName || undefined,
     product_quantity: productQty,
     product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
+    product_sku: productSku || undefined,
+    discount: discount && !isNaN(discount) ? discount : undefined,
     description: description,
     fin_type: finType,
     category: categoryRaw,
