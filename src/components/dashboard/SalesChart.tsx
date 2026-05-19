@@ -36,17 +36,19 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
   const [period, setPeriod] = useState<Period>("month");
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) {
+      setSales([]);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const base = supabase
+      const { data } = await supabase
         .from("sales_orders")
         .select("total_amount, created_at")
-        .eq("status", "concluded");
-      const { data } = await (orgId
-        ? base.eq("organization_id", orgId)
-        : base.eq("user_id", user.id));
+        .eq("status", "concluded")
+        .eq("organization_id", orgId);
       if (cancelled) return;
       setSales((data as any) ?? []);
       setLoading(false);

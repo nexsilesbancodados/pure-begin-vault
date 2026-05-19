@@ -299,11 +299,14 @@ export function DispatchCard() {
   const [stats, setStats] = useState({ total: 0, sent: 0, received: 0 });
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) {
+      setStats({ total: 0, sent: 0, received: 0 });
+      return;
+    }
     (async () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const filt = (q: any) => (orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id));
+      const filt = (q: any) => q.eq("organization_id", orgId);
       const { count: total } = await filt(
         supabase
           .from("messages")

@@ -203,7 +203,11 @@ function ReceitasPage() {
   const [fMethod, setFMethod] = useState<PayKey | "">("");
 
   const fetchData = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const receivableBase = supabase.from("accounts_receivable").select("*");
@@ -220,8 +224,7 @@ function ReceitasPage() {
         .select("id,total_amount,status,created_at,customer_id,sale_number,payment_method,notes")
         .in("status", ["completed", "concluded", "paid", "concluído", "pago"]);
 
-      const scoped = (q: any) =>
-        orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
+      const scoped = (q: any) => q.eq("organization_id", orgId);
 
       const [receivableRes, txRes, cashRes, salesRes] = await Promise.all([
         scoped(receivableBase).order("due_date", { ascending: false, nullsFirst: false }),

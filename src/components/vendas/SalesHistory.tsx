@@ -232,7 +232,8 @@ export function SalesHistory() {
       const { data } = await (supabase as any)
         .from("sale_items")
         .select("*")
-        .eq("sale_id", sale.id);
+        .eq("sale_id", sale.id)
+        .eq("organization_id", sale.organization_id);
       setDetailsItems(Array.isArray(data) ? data : []);
     } finally {
       setDetailsItemsLoading(false);
@@ -249,7 +250,11 @@ export function SalesHistory() {
   const warrantyIframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const fetchSales = useCallback(async () => {
-    if (!user?.id || !orgId) return;
+    if (!user?.id || !orgId) {
+      setSales([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -267,6 +272,7 @@ export function SalesHistory() {
         const { data: cs } = await supabase
           .from("customers")
           .select("id, name")
+          .eq("organization_id", orgId)
           .in("id", customerIds as string[]);
         customersMap = Object.fromEntries((cs || []).map((c: any) => [c.id, { name: c.name }]));
       }
@@ -282,7 +288,7 @@ export function SalesHistory() {
   useEffect(() => {
     fetchSales();
 
-    if (!user?.id) return;
+    if (!user?.id || !orgId) return;
 
     // Inscrever em mudanças na tabela sales_orders para atualização automática
     const channel = supabase
@@ -293,7 +299,7 @@ export function SalesHistory() {
           event: "*",
           schema: "public",
           table: "sales_orders",
-          filter: orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}`,
+          filter: `organization_id=eq.${orgId}`,
         },
         () => {
           fetchSales();

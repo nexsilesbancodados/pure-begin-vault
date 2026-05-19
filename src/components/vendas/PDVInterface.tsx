@@ -599,12 +599,13 @@ export function PDVInterface() {
       const action = urlParams.get("print");
       const warrantyType = urlParams.get("type") as "seminovo" | "lacrado" | "android" | null;
 
-      if (saleId && user?.id) {
+      if (saleId && user?.id && orgId) {
         try {
           const { data: sale, error } = await supabase
             .from("sales_orders")
             .select("*, customers(*), sale_items(*)")
             .eq("id", saleId)
+            .eq("organization_id", orgId)
             .single();
 
           if (error) throw error;
@@ -913,6 +914,7 @@ export function PDVInterface() {
           .from("customers")
           .select("*")
           .eq("id", selectedCustomer.id)
+          .eq("organization_id", orgId)
           .single();
         if (fullCustomer) {
           customerDetails = {

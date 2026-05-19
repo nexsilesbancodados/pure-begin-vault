@@ -128,20 +128,21 @@ export function GoalProgress({
 
   useEffect(() => {
     const calculateValue = async () => {
-      if (!user?.id) return;
+      if (!user?.id || !orgId) {
+        setCalculatedCurrent(0);
+        return;
+      }
 
       const firstDayMonth = new Date();
       firstDayMonth.setDate(1);
       firstDayMonth.setHours(0, 0, 0, 0);
 
-      const baseQuery = supabase
+      const { data: sales, error } = await supabase
         .from("sales_orders")
         .select("total_amount, status, created_at")
         .gte("created_at", firstDayMonth.toISOString())
-        .eq("status", "concluded");
-      const { data: sales, error } = await (orgId
-        ? baseQuery.eq("organization_id", orgId)
-        : baseQuery.eq("user_id", user.id));
+        .eq("status", "concluded")
+        .eq("organization_id", orgId);
 
       if (error) return;
 
@@ -158,7 +159,7 @@ export function GoalProgress({
     };
 
     calculateValue();
-  }, [goals.type, user?.id, current]);
+  }, [goals.type, user?.id, orgId, current]);
 
   const displayCurrent = calculatedCurrent;
   const pct = Math.min(100, Math.round((displayCurrent / (goals.monthly || 1)) * 100)) || 0;

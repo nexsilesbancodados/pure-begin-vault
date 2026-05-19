@@ -27,14 +27,14 @@ export function useDashboardStats(period: Period = "today") {
   const fetchingRef = useRef(false);
 
   const fetchStats = useCallback(async () => {
-    if (!user?.id) {
-      setLoading(false);
+    if (!user?.id || !orgId) {
+      setLoading(Boolean(user?.id));
       return;
     }
     if (fetchingRef.current) return;
     fetchingRef.current = true;
 
-    const scopeKey = orgId ?? user.id;
+    const scopeKey = orgId;
     // Serve cache imediatamente, atualiza em background
     if (cacheRef.current[scopeKey]) {
       setStats(cacheRef.current[scopeKey]);
@@ -64,8 +64,7 @@ export function useDashboardStats(period: Period = "today") {
       }
 
       const firstDayMonth = startOfMonth(now);
-      const scope = (q: any) =>
-        orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
+      const scope = (q: any) => q.eq("organization_id", orgId);
 
       // Vendas: apenas as do mês (cobre "hoje" + "mês"), só campos necessários, status concluído
       const salesQ = scope(
@@ -155,8 +154,8 @@ export function useDashboardStats(period: Period = "today") {
 
   // Realtime único + debounce: 1 canal para várias tabelas, refresh agrupado a cada 1.5s
   useEffect(() => {
-    if (!user?.id) return;
-    const filter = orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}`;
+    if (!user?.id || !orgId) return;
+    const filter = `organization_id=eq.${orgId}`;
     const tables = ["sales_orders", "leads", "service_orders", "products"] as const;
 
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -168,7 +167,7 @@ export function useDashboardStats(period: Period = "today") {
       }, 1500);
     };
 
-    const channel = supabase.channel(`dash-stats-${orgId ?? user.id}`);
+    const channel = supabase.channel(`dash-stats-${orgId}`);
     tables.forEach((t) => {
       channel.on(
         "postgres_changes",

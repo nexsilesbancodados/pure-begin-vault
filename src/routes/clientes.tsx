@@ -172,7 +172,8 @@ function CustomersPage() {
         const { error } = await supabase
           .from("customers")
           .update(payload)
-          .eq("id", editingCustomer.id);
+          .eq("id", editingCustomer.id)
+          .eq("organization_id", orgId);
         if (error) throw error;
         toast.success("Cliente atualizado!");
       } else {
@@ -194,7 +195,11 @@ function CustomersPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este cliente permanentemente?")) return;
     try {
-      const { error } = await supabase.from("customers").delete().eq("id", id);
+      const { error } = await supabase
+        .from("customers")
+        .delete()
+        .eq("id", id)
+        .eq("organization_id", orgId);
       if (error) throw error;
       toast.success("Cliente removido.");
       fetchCustomers();
@@ -231,11 +236,13 @@ function CustomersPage() {
           .from("sales_orders")
           .select("*")
           .eq("customer_id", customerId)
+          .eq("organization_id", orgId)
           .order("created_at", { ascending: false }),
         supabase
           .from("service_orders")
           .select("*")
           .eq("customer_id", customerId)
+          .eq("organization_id", orgId)
           .order("created_at", { ascending: false }),
       ]);
       setCustomerHistory({
