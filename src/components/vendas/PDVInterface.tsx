@@ -73,6 +73,10 @@ interface CartItem extends Product {
   capacity?: string;
   color?: string;
   battery_health?: string;
+  imei?: string;
+  imei2?: string;
+  imeis?: string[];
+  serial?: string;
 }
 
 export function PDVInterface() {
