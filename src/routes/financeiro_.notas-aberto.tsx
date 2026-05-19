@@ -459,7 +459,7 @@ function NotasAbertoPage() {
           prazo_pagamento: nota.prazoPagamento || null,
           paga: nota.paga,
           total: getNoteTotal(nota.items),
-          items: serializeItems(nota.items, nota.comprovanteUrls),
+          items: serializeItems(nota.items, nota.comprovanteUrls, nota.observacao),
           updated_by: userId,
         })
         .eq("id", nota.id)
