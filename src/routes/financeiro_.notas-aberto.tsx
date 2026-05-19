@@ -601,6 +601,13 @@ function NotasAbertoPage() {
     const isNew = !editingProduct.id;
     if (isNew) {
       if (orgId) payload.organization_id = orgId;
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (!uid) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        return;
+      }
+      payload.user_id = uid;
       payload.active = true;
     }
     const query = isNew
