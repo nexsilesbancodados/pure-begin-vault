@@ -378,9 +378,13 @@ export function KpiCard({
                                     {formatDate(new Date(sale.created_at), "HH:mm", { locale: ptBR })}
                                   </span>
                                   <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                                  <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-border/80 text-muted-foreground/80 font-medium">
-                                    {sale.payment_method || "Não inf."}
-                                  </Badge>
+                                    <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-border/80 text-muted-foreground/80 font-medium">
+                                      {sale.channel === 'pdv' ? 'PDV' : 'Importado'}
+                                    </Badge>
+                                    <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                                    <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-border/80 text-muted-foreground/80 font-medium">
+                                      {sale.payment_method || "Não inf."}
+                                    </Badge>
                                 </div>
                               </div>
                             </div>
