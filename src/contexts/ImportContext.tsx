@@ -29,6 +29,7 @@ export type ImportJob = {
   status: "queued" | "running" | "done" | "error";
   step: "preparing" | "customers" | "products" | "sales" | "items" | "finance" | "done";
   result?: { sales: number; customers: number; products: number; finance: number; totalAmount: number };
+  payload?: any[];
   error?: string;
 };
 
