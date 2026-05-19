@@ -139,10 +139,28 @@ const FIELD_ALIASES: Record<string, string[]> = {
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
 // Estratégia: prioridade exato > startsWith > inclui, e cada header só pode
 // ser atribuído a um único campo (evita "Data Venda" virar VALOR).
-function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
+function buildHeaderMap(sample: Record<string, any>, kind: ImportKind): Record<string, string> {
   const map: Record<string, string> = {};
   const headers = Object.keys(sample);
   const used = new Set<string>();
+
+  // Tenta recuperar mapeamento salvo no localStorage para este "tipo"
+  const savedKey = `import_map_${kind}`;
+  const savedMap = localStorage.getItem(savedKey);
+  if (savedMap) {
+    try {
+      const parsed = JSON.parse(savedMap);
+      // Só usa se a coluna ainda existir no arquivo atual
+      for (const [field, header] of Object.entries(parsed)) {
+        if (headers.includes(header as string)) {
+          map[field] = header as string;
+          used.add(header as string);
+        }
+      }
+    } catch (e) {
+      console.warn("Falha ao ler mapeamento salvo", e);
+    }
+  }
 
   // Cabeçalhos que NUNCA devem virar "data da venda" (datas pessoais/cadastrais)
   const DATE_BLACKLIST = [
@@ -175,6 +193,8 @@ function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
     "fin_type", "category", "description", "notes",
   ];
   for (const field of fieldOrder) {
+    if (map[field]) continue; // Pula se já veio do localStorage
+
     const aliases = FIELD_ALIASES[field];
     if (!aliases) continue;
     let bestHeader: string | undefined;
