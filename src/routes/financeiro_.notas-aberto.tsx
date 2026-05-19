@@ -380,6 +380,7 @@ function NotasAbertoPage() {
   const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
   const comprovanteInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingComprovante, setUploadingComprovante] = useState(false);
+  const [previewComprovanteUrl, setPreviewComprovanteUrl] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [notas, setNotas] = useState<Nota[]>([]);
