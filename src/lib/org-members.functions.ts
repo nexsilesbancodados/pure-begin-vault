@@ -3,6 +3,13 @@ import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export type OrgMember = {
+  user_id: string;
+  role: string;
+  name: string | null;
+  email: string | null;
+};
+
 function getAdmin() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -12,13 +19,6 @@ function getAdmin() {
   });
 }
 
-export type OrgMember = {
-  user_id: string;
-  role: string;
-  name: string | null;
-  email: string | null;
-};
-
 export const listOrgMembers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -27,7 +27,24 @@ export const listOrgMembers = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<{ members: OrgMember[] }> => {
     const { supabase, userId } = context;
 
-    // Authorize: caller must belong to org OR be super_admin.
+    // 1) Try RPC (SECURITY DEFINER) — works without service role key.
+    const rpc = await supabase.rpc("list_organization_members", {
+      _org_id: data.orgId,
+    });
+    if (!rpc.error && Array.isArray(rpc.data)) {
+      const members: OrgMember[] = (rpc.data as any[]).map((r) => ({
+        user_id: r.user_id,
+        role: r.role,
+        name: r.name ?? null,
+        email: r.email ?? null,
+      }));
+      return { members };
+    }
+    if (rpc.error) {
+      console.warn("[listOrgMembers] RPC failed, falling back", rpc.error.message);
+    }
+
+    // 2) Authorize for fallback path.
     const [{ data: self }, { data: profile }] = await Promise.all([
       supabase
         .from("user_organizations")
@@ -44,8 +61,7 @@ export const listOrgMembers = createServerFn({ method: "POST" })
       throw new Error("Forbidden");
     }
 
-    // Prefer admin client (bypasses RLS) when service role is available;
-    // otherwise fall back to the user-scoped client (RLS may limit results).
+    // 3) Prefer admin client when service role key is present; else user client.
     const admin = getAdmin();
     const client: any = admin ?? supabase;
 
@@ -53,32 +69,19 @@ export const listOrgMembers = createServerFn({ method: "POST" })
       .from("user_organizations")
       .select("user_id, role")
       .eq("organization_id", data.orgId);
-
-    if (rowsErr) {
-      console.error("[listOrgMembers] failed to read user_organizations", rowsErr);
-      throw new Error(rowsErr.message);
-    }
+    if (rowsErr) throw new Error(rowsErr.message);
 
     const base = (rows as { user_id: string; role: string }[]) ?? [];
     if (base.length === 0) return { members: [] };
 
     const ids = base.map((r) => r.user_id);
-    const { data: profs, error: profsErr } = await client
+    const { data: profs } = await client
       .from("profiles")
       .select("id, nome, display_name, email")
       .in("id", ids);
 
-    if (profsErr) {
-      console.error("[listOrgMembers] failed to read profiles", profsErr);
-    }
-
     const map = new Map<string, { name: string | null; email: string | null }>();
-    for (const p of (profs as {
-      id: string;
-      nome: string | null;
-      display_name: string | null;
-      email: string | null;
-    }[]) ?? []) {
+    for (const p of (profs as any[]) ?? []) {
       map.set(p.id, { name: p.display_name || p.nome || null, email: p.email });
     }
 
