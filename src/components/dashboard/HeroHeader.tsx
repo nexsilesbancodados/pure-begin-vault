@@ -10,6 +10,10 @@ interface HeroHeaderProps {
 
 export function HeroHeader({ userName, status }: HeroHeaderProps) {
   const navigate = useNavigate();
+  const { orgs, activeOrgId } = useUserOrgs();
+  const activeOrg = orgs.find((o) => o.organization_id === activeOrgId);
+  const activeOrgName = activeOrg?.organization?.name ?? null;
+  const hasMultipleOrgs = orgs.length > 1;
   const today = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "numeric",
