@@ -287,6 +287,18 @@ export function PDVInterface() {
           }
         }
 
+        // Fallback: para produtos-pai sem IMEI próprio, agrega IMEIs dos
+        // filhos cadastrados com o mesmo "model" (ex.: "iPhone 13").
+        if (!(product as any).imeis?.length && !(product as any).imei) {
+          const key = norm(String((p as any).model || p.name || ""));
+          const fromModel = imeisByModel[key] || [];
+          if (fromModel.length) {
+            (product as any).imeis = fromModel.map((r) => r.imei).filter(Boolean);
+            if (fromModel[0]?.imei) (product as any).imei = fromModel[0].imei;
+            if (fromModel[0]?.serial) (product as any).serial = fromModel[0].serial;
+          }
+        }
+
         return product;
       });
 
