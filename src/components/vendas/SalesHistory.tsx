@@ -215,13 +215,14 @@ export function SalesHistory() {
           .from("products")
           .select("*")
           .eq("id", item.product_id)
+          .eq("organization_id", item.organization_id || orgId)
           .maybeSingle();
         setProductDetail({ item, product: data || null });
       }
     } finally {
       setProductDetailLoading(false);
     }
-  }, []);
+  }, [orgId]);
 
   const openSaleDetails = useCallback(async (sale: any) => {
     setSelectedSale(sale);
@@ -232,7 +233,8 @@ export function SalesHistory() {
       const { data } = await (supabase as any)
         .from("sale_items")
         .select("*")
-        .eq("sale_id", sale.id);
+        .eq("sale_id", sale.id)
+        .eq("organization_id", sale.organization_id);
       setDetailsItems(Array.isArray(data) ? data : []);
     } finally {
       setDetailsItemsLoading(false);
@@ -249,7 +251,11 @@ export function SalesHistory() {
   const warrantyIframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const fetchSales = useCallback(async () => {
-    if (!user?.id || !orgId) return;
+    if (!user?.id || !orgId) {
+      setSales([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -267,6 +273,7 @@ export function SalesHistory() {
         const { data: cs } = await supabase
           .from("customers")
           .select("id, name")
+          .eq("organization_id", orgId)
           .in("id", customerIds as string[]);
         customersMap = Object.fromEntries((cs || []).map((c: any) => [c.id, { name: c.name }]));
       }
@@ -282,7 +289,7 @@ export function SalesHistory() {
   useEffect(() => {
     fetchSales();
 
-    if (!user?.id) return;
+    if (!user?.id || !orgId) return;
 
     // Inscrever em mudanças na tabela sales_orders para atualização automática
     const channel = supabase
@@ -293,7 +300,7 @@ export function SalesHistory() {
           event: "*",
           schema: "public",
           table: "sales_orders",
-          filter: orgId ? `organization_id=eq.${orgId}` : `user_id=eq.${user.id}`,
+          filter: `organization_id=eq.${orgId}`,
         },
         () => {
           fetchSales();
@@ -360,12 +367,13 @@ export function SalesHistory() {
 
   const openWarrantyPrint = useCallback(
     async (sale: any, type: "seminovo" | "lacrado" | "android") => {
+      if (!orgId) throw new Error("Loja ativa não encontrada");
       try {
         // Carrega dados completos da venda + organização + cliente + vendedor
         const [saleRes, itemsRes, paymentsRes] = await Promise.all([
-          (supabase as any).from("sales_orders").select("*").eq("id", sale.id).maybeSingle(),
-          (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id),
-          (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id),
+          (supabase as any).from("sales_orders").select("*").eq("id", sale.id).eq("organization_id", orgId).maybeSingle(),
+          (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id).eq("organization_id", orgId),
+          (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id).eq("organization_id", orgId),
         ]);
         const fullSale = saleRes.data || sale;
         const [{ data: org }, { data: orgSettings }, { data: customer }, { data: seller }] =
@@ -389,6 +397,7 @@ export function SalesHistory() {
                   .from("customers")
                   .select("*")
                   .eq("id", fullSale.customer_id)
+                  .eq("organization_id", orgId)
                   .maybeSingle()
               : Promise.resolve({ data: sale.customers || null }),
             fullSale.seller_id
@@ -446,6 +455,7 @@ export function SalesHistory() {
           const { data: prods } = await (supabase as any)
             .from("products")
             .select("id, name, brand, model, category, metadata, sku")
+            .eq("organization_id", orgId)
             .in("id", productIds);
           for (const p of prods ?? []) productsById[p.id] = p;
         }
@@ -715,7 +725,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
         setWarrantyLoading(false);
       }
     },
-    [],
+    [orgId],
   );
 
   const openWarrantyDialog = useCallback(
@@ -744,6 +754,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
 
   const openReceiptPopup = useCallback(
     async (sale: any, mode: "a4" | "80mm" = "a4", autoPrint = false) => {
+      if (!orgId) return;
       setIsDetailsOpen(false);
       setSelectedSale(null);
       setReceiptMode(mode);
@@ -754,9 +765,9 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
 
       try {
         const [saleRes, itemsRes, paymentsRes] = await Promise.all([
-          (supabase as any).from("sales_orders").select("*").eq("id", sale.id).maybeSingle(),
-          (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id),
-          (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id),
+          (supabase as any).from("sales_orders").select("*").eq("id", sale.id).eq("organization_id", orgId).maybeSingle(),
+          (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id).eq("organization_id", orgId),
+          (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id).eq("organization_id", orgId),
         ]);
 
         if (saleRes.error) throw saleRes.error;
@@ -784,6 +795,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                   .from("customers")
                   .select("*")
                   .eq("id", fullSale.customer_id)
+                  .eq("organization_id", orgId)
                   .maybeSingle()
               : Promise.resolve({ data: sale.customers || null }),
             fullSale.seller_id
@@ -805,6 +817,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
           const { data: prods } = await (supabase as any)
             .from("products")
             .select("id, name, brand, model, category, metadata, sku")
+            .eq("organization_id", orgId)
             .in("id", productIds);
           for (const p of prods ?? []) productsById[p.id] = p;
         }
@@ -854,7 +867,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
         setReceiptLoading(false);
       }
     },
-    [],
+    [orgId],
   );
 
   return (
@@ -1231,7 +1244,8 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                                   const { error } = await supabase
                                     .from("sales_orders")
                                     .update({ status: "canceled" })
-                                    .eq("id", sale.id);
+                                    .eq("id", sale.id)
+                                    .eq("organization_id", orgId);
                                   if (error) throw error;
                                   toast.success("Venda cancelada!");
                                   fetchSales();

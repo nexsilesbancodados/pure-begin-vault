@@ -92,7 +92,7 @@ export function KpiCard({
   const IconsMap: Record<string, any> = { ShoppingBag, Wrench, Box, DollarSign, Users, TrendingUp };
 
   useEffect(() => {
-    if (!isModalOpen || !date || !user?.id) return;
+    if (!isModalOpen || !date || !user?.id || !orgId) return;
 
     const fetchDayData = async () => {
       setIsLoading(true);
@@ -101,8 +101,7 @@ export function KpiCard({
         const end = endOfDay(date);
         const l = label.toLowerCase();
 
-        const filterFor = (q: any) =>
-          orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
+        const filterFor = (q: any) => q.eq("organization_id", orgId);
         if (l.includes("vendas") || l.includes("faturamento")) {
           const { data } = await filterFor(
             supabase

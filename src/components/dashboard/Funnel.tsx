@@ -15,9 +15,13 @@ export function Funnel() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) {
+      setStages([]);
+      setLoading(false);
+      return;
+    }
     (async () => {
-      const filt = (q: any) => (orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id));
+      const filt = (q: any) => q.eq("organization_id", orgId);
       const { data: stgs } = await filt(supabase.from("funnel_stages").select("*")).order(
         "order_index",
         { ascending: true },

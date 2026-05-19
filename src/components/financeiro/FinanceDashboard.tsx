@@ -57,13 +57,18 @@ export function FinanceDashboard() {
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
 
   const fetchTransactions = async () => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) {
+      setTransactions([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const baseF = supabase.from("finance_transactions").select("*");
-      const { data, error } = await (
-        orgId ? baseF.eq("organization_id", orgId) : baseF.eq("user_id", user.id)
-      ).order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("finance_transactions")
+        .select("*")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false });
       if (error) throw error;
       setTransactions(data || []);
     } catch (error) {

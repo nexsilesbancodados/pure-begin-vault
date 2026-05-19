@@ -321,7 +321,10 @@ function ReportsPage() {
   });
 
   const fetchReportsData = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       type SaleRow = { total_amount: number | null; status: string | null; created_at: string | null };
@@ -332,11 +335,7 @@ function ReportsPage() {
       type TxRow = { type: string | null; amount: number | null };
       type ProductRow = { active: boolean | null; stock_quantity: number | null; min_stock: number | null; cost_price: number | null; price: number | null };
 
-      const filt = <T,>(q: T): T => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const qq = q as any;
-        return (orgId ? qq.eq("organization_id", orgId) : qq.eq("user_id", user.id)) as T;
-      };
+      const filt = <T,>(q: T): T => ((q as any).eq("organization_id", orgId)) as T;
 
       const [salesRes, leadsRes, stagesRes, pipelineRes, payRes, recRes, txRes, prodRes] = await Promise.all([
         filt(supabase.from("sales_orders").select("total_amount, status, created_at")),

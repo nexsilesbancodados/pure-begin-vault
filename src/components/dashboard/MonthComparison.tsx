@@ -18,21 +18,23 @@ export function MonthComparison() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
     (async () => {
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
       sixMonthsAgo.setDate(1);
       sixMonthsAgo.setHours(0, 0, 0, 0);
 
-      const base = supabase
+      const { data: sales } = await supabase
         .from("sales_orders")
         .select("total_amount, created_at")
         .eq("status", "concluded")
-        .gte("created_at", sixMonthsAgo.toISOString());
-      const { data: sales } = await (orgId
-        ? base.eq("organization_id", orgId)
-        : base.eq("user_id", user.id));
+        .gte("created_at", sixMonthsAgo.toISOString())
+        .eq("organization_id", orgId);
 
       const now = new Date();
       const buckets: MonthData[] = [];

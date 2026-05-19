@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/useOrg";
 import {
   DollarSign,
   Wrench,
@@ -30,12 +31,18 @@ type Summary = {
 };
 
 export function CustomerSummary({ customerId, phone }: CustomerSummaryProps) {
+  const { orgId } = useOrg();
   const [data, setData] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancel = false;
     (async () => {
+      if (!orgId) {
+        setData(null);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       let custId = customerId;
 
@@ -47,6 +54,7 @@ export function CustomerSummary({ customerId, phone }: CustomerSummaryProps) {
         const { data: c } = await supabase
           .from("customers" as any)
           .select("id, name, phone, email")
+          .eq("organization_id", orgId)
           .ilike("phone", `%${last8}%`)
           .limit(1)
           .maybeSingle();
@@ -66,22 +74,26 @@ export function CustomerSummary({ customerId, phone }: CustomerSummaryProps) {
           .from("customers" as any)
           .select("id, name, phone, email")
           .eq("id", custId)
+          .eq("organization_id", orgId)
           .maybeSingle(),
         supabase
           .from("sales_orders")
           .select("id, total_amount, created_at, status")
-          .eq("customer_id", custId),
-        supabase.from("service_orders").select("id, status, total_cost").eq("customer_id", custId),
+          .eq("customer_id", custId)
+          .eq("organization_id", orgId),
+        supabase.from("service_orders").select("id, status, total_cost").eq("customer_id", custId).eq("organization_id", orgId),
         supabase
           .from("nps_responses")
           .select("score")
           .eq("customer_id", custId)
+          .eq("organization_id", orgId)
           .order("created_at", { ascending: false })
           .limit(1),
         supabase
           .from("accounts_receivable")
           .select("amount, paid_amount, status")
           .eq("customer_id", custId)
+          .eq("organization_id", orgId)
           .neq("status", "paid"),
       ]);
 
@@ -124,7 +136,7 @@ export function CustomerSummary({ customerId, phone }: CustomerSummaryProps) {
     return () => {
       cancel = true;
     };
-  }, [customerId, phone]);
+  }, [customerId, phone, orgId]);
 
   if (loading) {
     return <div className="text-xs text-muted-foreground py-2">Carregando histórico...</div>;

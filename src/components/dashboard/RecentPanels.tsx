@@ -15,12 +15,16 @@ export function RecentService() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) {
+      setRecentMessages([]);
+      setLoading(false);
+      return;
+    }
     (async () => {
-      const base = supabase.from("messages").select(`*, leads (name)`);
-      const { data } = await (
-        orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id)
-      )
+      const { data } = await supabase
+        .from("messages")
+        .select(`*, leads (name)`)
+        .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(2);
 
@@ -113,12 +117,16 @@ export function RecentLeads() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !orgId) {
+      setLeads([]);
+      setLoading(false);
+      return;
+    }
     (async () => {
-      const base = supabase.from("leads").select(`*, pipeline_leads (funnel_stages (name))`);
-      const { data } = await (
-        orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id)
-      )
+      const { data } = await supabase
+        .from("leads")
+        .select(`*, pipeline_leads (funnel_stages (name))`)
+        .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(5);
 
