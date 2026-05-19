@@ -858,13 +858,27 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
               </div>
 
               {/* Mapeamento de colunas */}
-              <div className="rounded-2xl border border-border overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                    Mapeamento de colunas
-                  </span>
+              <div className="rounded-2xl border border-border overflow-hidden bg-card">
+                <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                      Mapeamento de colunas
+                    </span>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem(`import_map_${kind}`);
+                        const freshMap = buildHeaderMap(rawData[0], kind);
+                        setHmap(freshMap);
+                        setRows(rawData.map((r, i) => parseRow(r, freshMap, i)));
+                        toast.info("Mapeamento resetado para o padrão inteligente");
+                      }}
+                      className="text-[10px] font-bold text-primary hover:underline ml-2"
+                    >
+                      Resetar
+                    </button>
+                  </div>
                   {!hmap.amount && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30 animate-pulse">
                       Valor obrigatório
                     </span>
                   )}
