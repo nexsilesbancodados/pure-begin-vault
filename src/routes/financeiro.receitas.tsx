@@ -49,6 +49,8 @@ type IncomeOrigin = "sale" | "deposit" | "transfer" | "manual";
 type Income = {
   id: string;
   description: string;
+  title: string;
+  person: string | null;
   category: string | null;
   amount: number;
   status: string | null;
@@ -62,6 +64,7 @@ type Income = {
   customer_id?: string | null;
   source_table: "receivable" | "transaction" | "cash_movement" | "sale";
   origin: IncomeOrigin;
+  payment_method?: string | null;
   notes?: string | null;
   type: string;
 };
@@ -96,8 +99,6 @@ const inferOrigin = (params: {
   return "manual";
 };
 
-// Categorias que NUNCA são receita — vieram como income por erro de importação
-// (relatório de despesas misturado). Filtramos no front e também via SQL.
 const EXPENSE_CATEGORY_RE =
   /^(marketing|public[ií]?dade|log[ií]?stica|insumo|insumos|uniforme|aluguel|sal[áa]rio|fornecedor|fornecedores|compra|despesa|imposto|taxa|combust[ií]vel|energia|[áa]gua|internet|telefone)/i;
 
@@ -106,7 +107,6 @@ const isExpenseLikeIncome = (t: {
   description?: string | null;
   reference_type?: string | null;
 }) => {
-  // Vendas e referências de venda são sempre receita legítima
   if ((t.reference_type || "").toLowerCase().includes("sale")) return false;
   const cat = (t.category || "").trim();
   if (cat && EXPENSE_CATEGORY_RE.test(cat)) return true;
@@ -121,8 +121,63 @@ const noteField = (notes: string | null | undefined, label: string) => {
   return line ? line.slice(label.length + 1).trim() : null;
 };
 
-const customerFromDescription = (description: string | null | undefined) =>
-  (description || "").includes(" · ") ? (description || "").split(" · ").slice(1).join(" · ") : null;
+// Extrai nome do cliente de descrições "CLIENTE: NOME" ou "Algo · NOME"
+const extractPerson = (description: string | null | undefined): string | null => {
+  if (!description) return null;
+  const m = description.match(/^\s*(?:cliente|client|customer)\s*[:\-]\s*(.+)$/i);
+  if (m) return m[1].trim();
+  if (description.includes(" · ")) return description.split(" · ").slice(1).join(" · ").trim();
+  return null;
+};
+
+// Limpa título removendo prefixo "CLIENTE:" para evitar duplicação com Pessoa
+const buildTitle = (params: {
+  description: string | null | undefined;
+  reference_type?: string | null;
+  origin: IncomeOrigin;
+  category?: string | null;
+  saleNumber?: string | number | null;
+}) => {
+  const desc = (params.description || "").trim();
+  const ref = (params.reference_type || "").toLowerCase();
+  if (ref.includes("sale")) {
+    return params.saleNumber ? `Venda #${params.saleNumber}` : "Venda";
+  }
+  if (/^\s*(cliente|client|customer)\s*[:\-]/i.test(desc)) {
+    if (params.origin === "sale") return "Venda";
+    if (params.category && params.category !== "income" && params.category !== "sales") return params.category;
+    return "Receita avulsa";
+  }
+  if (desc.includes(" · ")) return desc.split(" · ")[0].trim();
+  return desc || params.category || ORIGIN_LABEL[params.origin];
+};
+
+// Padroniza forma de pagamento
+type PayKey = "pix" | "cash" | "credit" | "debit" | "crediario" | "boleto" | "transfer" | "other";
+
+const normalizeMethod = (raw: string | null | undefined): PayKey => {
+  const s = (raw || "").toLowerCase().trim();
+  if (!s) return "other";
+  if (/pix/.test(s)) return "pix";
+  if (/(esp[ée]cie|dinheiro|cash|money)/.test(s)) return "cash";
+  if (/(d[ée]bito|debit)/.test(s)) return "debit";
+  if (/(cr[ée]dito|credit)/.test(s)) return "credit";
+  if (/(credi[áa]rio|prazo|carn[êe]|parcelad|7d)/.test(s)) return "crediario";
+  if (/(boleto|bank_slip)/.test(s)) return "boleto";
+  if (/(transfer|ted|doc)/.test(s)) return "transfer";
+  return "other";
+};
+
+const PAY_META: Record<PayKey, { label: string; grad: string; ring: string; text: string; chip: string }> = {
+  pix:       { label: "PIX",            grad: "from-teal-500 to-emerald-500",     ring: "ring-teal-200",     text: "text-teal-700",    chip: "bg-teal-50" },
+  cash:      { label: "Espécie",        grad: "from-emerald-500 to-green-600",    ring: "ring-emerald-200",  text: "text-emerald-700", chip: "bg-emerald-50" },
+  credit:    { label: "Cartão Crédito", grad: "from-indigo-500 to-violet-600",    ring: "ring-indigo-200",   text: "text-indigo-700",  chip: "bg-indigo-50" },
+  debit:     { label: "Cartão Débito",  grad: "from-sky-500 to-blue-600",         ring: "ring-sky-200",      text: "text-sky-700",     chip: "bg-sky-50" },
+  crediario: { label: "Crediário",      grad: "from-amber-500 to-orange-500",     ring: "ring-amber-200",    text: "text-amber-700",   chip: "bg-amber-50" },
+  boleto:    { label: "Boleto",         grad: "from-slate-500 to-slate-700",      ring: "ring-slate-200",    text: "text-slate-700",   chip: "bg-slate-100" },
+  transfer:  { label: "Transferência",  grad: "from-violet-500 to-purple-600",    ring: "ring-violet-200",   text: "text-violet-700",  chip: "bg-violet-50" },
+  other:     { label: "Outros",         grad: "from-slate-400 to-slate-500",      ring: "ring-slate-200",    text: "text-slate-600",   chip: "bg-slate-50" },
+};
 
 function ReceitasPage() {
   const { user } = useAuth();
