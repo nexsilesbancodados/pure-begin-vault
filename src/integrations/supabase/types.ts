@@ -3273,6 +3273,15 @@ export type Database = {
       }
       is_super_admin: { Args: never; Returns: boolean }
       leave_organization: { Args: { _org_id: string }; Returns: undefined }
+      list_organization_members: {
+        Args: { _org_id: string }
+        Returns: {
+          email: string
+          name: string
+          role: string
+          user_id: string
+        }[]
+      }
       mark_all_notifications_read: { Args: never; Returns: number }
       remove_organization_member: {
         Args: { _org_id: string; _user_id: string }
