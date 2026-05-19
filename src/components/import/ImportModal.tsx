@@ -507,7 +507,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
           }
           const hmap = buildHeaderMap(json[0], targetKind);
           const headers = Object.keys(json[0]);
-          const rows = json.map((r, i) => parseRow(r, hmap, i));
+          const rows = json.map((r, i) => parseRow(r, hmap, i, targetKind));
           resolve({ rows, hmap, headers, raw: json });
         } catch (err) {
           reject(err);
