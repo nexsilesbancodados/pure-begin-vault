@@ -460,7 +460,10 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         product_quantity: r.product_quantity,
         product_price: r.product_price,
         description: r.description,
-        fin_type: r.fin_type,
+        // Vendas SEMPRE entram pelo fluxo de vendas (cria sales_orders + sale_items +
+        // accounts_receivable + finance_transactions). Só envia fin_type quando o
+        // usuário escolheu importação financeira pura.
+        fin_type: kind === "financeiro" ? r.fin_type : undefined,
         category: r.category,
       })),
     );
