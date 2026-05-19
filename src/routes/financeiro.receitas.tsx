@@ -300,18 +300,20 @@ function ReceitasPage() {
   };
 
   const statusBadge = (status: string | null, due: string | null) => {
+    const base = "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset";
     if (status === "paid")
-      return <span className="px-3 py-1 rounded-md bg-emerald-500 text-white text-[11px] font-bold">Recebido</span>;
+      return <span className={cn(base, "bg-emerald-50 text-emerald-700 ring-emerald-200")}>Recebido</span>;
     if (due) {
       const d = startOfDay(new Date(due));
       const t = startOfDay(new Date());
       if (isBefore(d, t))
-        return <span className="px-3 py-1 rounded-md bg-red-500 text-white text-[11px] font-bold">Vencido</span>;
+        return <span className={cn(base, "bg-red-50 text-red-700 ring-red-200")}>Vencido</span>;
       if (isToday(d))
-        return <span className="px-3 py-1 rounded-md bg-amber-500 text-white text-[11px] font-bold">Recebe hoje</span>;
+        return <span className={cn(base, "bg-amber-50 text-amber-700 ring-amber-200")}>Recebe hoje</span>;
     }
-    return <span className="px-3 py-1 rounded-md bg-slate-400 text-white text-[11px] font-bold">A receber</span>;
+    return <span className={cn(base, "bg-blue-50 text-blue-700 ring-blue-200")}>A receber</span>;
   };
+
 
   return (
     <div className="min-h-screen flex w-full bg-background">
