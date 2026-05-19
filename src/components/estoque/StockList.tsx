@@ -555,17 +555,8 @@ export function StockList() {
               <DropdownMenuItem onClick={handleExport}>
                 <FileDown className="h-4 w-4" /> Exportar CSV
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <div className="px-2 py-1.5">
-                  <StockImport
-                    onImported={(newProducts) => {
-                      setLocalProducts((prev) => [
-                        ...newProducts.map((p) => ({ ...p, stock: p.stock_quantity || 0 })),
-                        ...prev,
-                      ]);
-                    }}
-                  />
-                </div>
+              <DropdownMenuItem onClick={() => setIsImportOpen(true)}>
+                <Upload className="h-4 w-4" /> Importar planilha
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
