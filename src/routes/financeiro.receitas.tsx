@@ -355,8 +355,7 @@ function ReceitasPage() {
       if (fCategoria && !(it.category || "").toLowerCase().includes(fCategoria.toLowerCase()))
         return false;
       if (fOrigem) {
-        const origem = (it.reference_type || "manual").toLowerCase();
-        if (origem !== fOrigem.toLowerCase()) return false;
+        if ((it.origin || "manual") !== fOrigem) return false;
       }
       if (fTitulo && !(it.description || "").toLowerCase().includes(fTitulo.toLowerCase()))
         return false;
