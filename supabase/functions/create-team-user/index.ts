@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     }
     const callerId = callerData.user.id;
 
-    const { email, password, nome, organization_id, organization_ids, role, invite_id } =
+    const { email, password, nome, organization_id, organization_ids, role, invite_id, allowed_menu } =
       await req.json();
     const normalizedEmail = String(email || "").trim().toLowerCase();
 
