@@ -343,9 +343,14 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
   }
 
   const errors: string[] = [];
-  if (!hmap.amount) errors.push("coluna de valor não encontrada");
-  else if (isNaN(amount)) errors.push("valor inválido");
-  else if (amount <= 0) errors.push("valor deve ser maior que zero");
+  
+  if (kind === "estoque") {
+    if (!hmap.product) errors.push("coluna de produto não encontrada");
+  } else {
+    if (!hmap.amount) errors.push("coluna de valor não encontrada");
+    else if (isNaN(amount)) errors.push("valor inválido");
+    else if (amount <= 0) errors.push("valor deve ser maior que zero");
+  }
 
   const customerName = get("customer") ? String(get("customer")).trim() : undefined;
   const customerPhone = get("customer_phone") ? String(get("customer_phone")).trim() : undefined;
