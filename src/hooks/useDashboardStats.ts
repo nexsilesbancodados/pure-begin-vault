@@ -15,6 +15,8 @@ export function useDashboardStats(period: Period = "today") {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     todaySales: 0,
+    todaySalesPDV: 0,
+    todaySalesImport: 0,
     monthRevenue: 0,
     activeOS: 0,
     lowStock: 0,
@@ -109,10 +111,12 @@ export function useDashboardStats(period: Period = "today") {
       type SaleRow = { total_amount: number | null; created_at: string | null };
       type ProductRow = { stock_quantity: number | null; min_stock: number | null };
 
-      const sales = (salesRes.data || []) as SaleRow[];
+      const sales = (salesRes.data || []) as (SaleRow & { channel: string })[];
       const products = (productsRes.data || []) as ProductRow[];
 
       let todaySales = 0;
+      let todaySalesPDV = 0;
+      let todaySalesImport = 0;
       let monthRevenue = 0;
       let monthCount = 0;
       for (const s of sales) {
@@ -121,7 +125,14 @@ export function useDashboardStats(period: Period = "today") {
         monthCount++;
         if (s.created_at) {
           const d = new Date(s.created_at);
-          if (d >= startDate && d <= endDate) todaySales += amount;
+          if (d >= startDate && d <= endDate) {
+            todaySales += amount;
+            if (s.channel === "import") {
+              todaySalesImport += amount;
+            } else {
+              todaySalesPDV += amount;
+            }
+          }
         }
       }
 
@@ -132,6 +143,8 @@ export function useDashboardStats(period: Period = "today") {
 
       const next = {
         todaySales,
+        todaySalesPDV,
+        todaySalesImport,
         monthRevenue,
         activeOS: osRes.count ?? 0,
         lowStock: lowStockCount,

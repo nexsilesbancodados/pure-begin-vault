@@ -123,7 +123,20 @@ export function KpiCard({
             (acc: number, curr: any) => acc + (Number(curr.total_amount) || 0),
             0,
           );
-          setDisplayValue(total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+          
+          const pdvTotal = (data || [])
+            .filter((s: any) => s.channel !== 'import')
+            .reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
+          
+          const importTotal = (data || [])
+            .filter((s: any) => s.channel === 'import')
+            .reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
+
+          if (l.includes("vendas") && importTotal > 0) {
+            setDisplayValue(`${pdvTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (+${importTotal.toLocaleString("pt-BR")})`);
+          } else {
+            setDisplayValue(total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+          }
         } else if (l.includes("leads")) {
           const { count } = await filterFor(
             supabase
