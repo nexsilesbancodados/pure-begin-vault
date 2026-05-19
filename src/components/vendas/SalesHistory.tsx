@@ -401,9 +401,18 @@ export function SalesHistory() {
           ]);
 
         const settings = orgSettings || {};
-        const orgName = org?.name || "Loja";
-        const cnpj = settings.cnpj ?? settings.document ?? "";
-        const phone = settings.phone ?? settings.telefone ?? "";
+        const orgName = settings.brand_name || org?.name || "Loja";
+        let extras: { cnpj?: string; address?: string } = {};
+        try {
+          if (typeof window !== "undefined" && fullSale.organization_id) {
+            extras = JSON.parse(
+              localStorage.getItem(`store-details:${fullSale.organization_id}`) || "{}",
+            );
+          }
+        } catch {}
+        const cnpj = extras.cnpj ?? settings.cnpj ?? settings.document ?? "";
+        const phone = settings.support_whatsapp ?? settings.phone ?? settings.telefone ?? "";
+        const address = extras.address ?? settings.address ?? settings.endereco ?? "";
         const logo = settings.brand_logo_url ?? "";
         const sellerName = seller?.full_name || seller?.email || "—";
         const cust = customer || sale.customers || {};
