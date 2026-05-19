@@ -933,21 +933,29 @@ function ReceitasPage() {
                             </span>
                           </td>
                           <td className="px-3 py-2">
-                            <span className={cn(
-                              "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset",
-                              origin === "sale" && "bg-emerald-50 text-emerald-700 ring-emerald-200",
-                              origin === "deposit" && "bg-blue-50 text-blue-700 ring-blue-200",
-                              origin === "transfer" && "bg-violet-50 text-violet-700 ring-violet-200",
-                              origin === "manual" && "bg-slate-100 text-slate-700 ring-slate-200",
-                            )}>
-                              {ORIGIN_LABEL[origin]}
-                            </span>
+                            {(() => {
+                              const k = normalizeMethod(it.payment_method);
+                              const meta = PAY_META[k];
+                              return (
+                                <span className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset",
+                                  meta.chip, meta.ring, meta.text,
+                                )}>
+                                  {meta.label}
+                                </span>
+                              );
+                            })()}
                           </td>
-                          <td className="px-3 py-2 text-emerald-700 font-semibold uppercase">
-                            {it.description}
+                          <td className="px-3 py-2">
+                            <div className="font-semibold text-slate-900">{it.title}</div>
+                            {it.category && it.category !== "income" && it.category !== "sales" && (
+                              <div className="text-[10px] text-slate-400 uppercase tracking-wide">{it.category}</div>
+                            )}
                           </td>
                           <td className="px-3 py-2">{statusBadge(it.status, it.due_date)}</td>
-                          <td className="px-3 py-2 uppercase">{it.supplier || "—"}</td>
+                          <td className="px-3 py-2">
+                            <span className="text-slate-700">{it.person || it.supplier || <span className="text-slate-300">—</span>}</span>
+                          </td>
                           <td className="px-3 py-2 text-right font-semibold">{fmt(amount)}</td>
                           <td className="px-3 py-2">
                             {it.due_date ? format(new Date(it.due_date), "dd/MM/yyyy") : "—"}
