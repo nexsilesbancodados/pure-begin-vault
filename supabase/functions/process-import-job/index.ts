@@ -302,7 +302,10 @@ async function processJob(supabase: any, jobId: string) {
           unit_price: row.product_price ?? row.total_amount,
           total: row.total_amount,
         }));
-      const financeRows = ok.filter(({ row }) => row.status === "concluded")
+      const PAID_STATUSES = ["concluded", "completed", "paid", "concluido", "concluído", "pago", "quitado", "recebido"];
+      const isPaidSale = (s: string) => PAID_STATUSES.includes((s || "").toLowerCase());
+
+      const financeRows = ok.filter(({ row }) => isPaidSale(row.status))
         .map(({ id, row }) => ({
           organization_id: orgId, user_id: userId, type: "income",
           amount: row.total_amount,
@@ -312,15 +315,49 @@ async function processJob(supabase: any, jobId: string) {
           transaction_date: row.created_at,
         }));
 
+      // Espelha TODA venda importada em accounts_receivable (Receitas)
+      const receivableRows = ok.map(({ id, row }) => {
+        const paid = isPaidSale(row.status);
+        const date = (row.created_at || new Date().toISOString()).split("T")[0];
+        return {
+          organization_id: orgId, user_id: userId,
+          description: `Venda importada${row.customer_name ? ` · ${row.customer_name}` : ""}`,
+          amount: row.total_amount,
+          due_date: date,
+          status: paid ? "paid" : "pending",
+          paid_at: paid ? (row.created_at || new Date().toISOString()) : null,
+          paid_amount: paid ? row.total_amount : null,
+          customer_id: resolveCust(row),
+          reference_type: "sale",
+          reference_id: id,
+          notes: [
+            row.payment_method ? `Pagamento: ${row.payment_method}` : null,
+            row.customer_name ? `Cliente: ${row.customer_name}` : null,
+          ].filter(Boolean).join("\n") || null,
+        };
+      });
+
       const itemChunks: typeof saleItems[] = [];
       for (let i = 0; i < saleItems.length; i += CHUNK) itemChunks.push(saleItems.slice(i, i + CHUNK));
       const finChunks: typeof financeRows[] = [];
       for (let i = 0; i < financeRows.length; i += CHUNK) finChunks.push(financeRows.slice(i, i + CHUNK));
+      const recvChunks: typeof receivableRows[] = [];
+      for (let i = 0; i < receivableRows.length; i += CHUNK) recvChunks.push(receivableRows.slice(i, i + CHUNK));
 
       await Promise.all([
         pool(itemChunks.map((c) => async () => { await supabase.from("sale_items").insert(c); }), PARALLEL),
         pool(finChunks.map((c) => async () => {
           const { error } = await supabase.from("finance_transactions").insert(c);
+          if (!error) counters.finance += c.length;
+        }), PARALLEL),
+        pool(recvChunks.map((c) => async () => {
+          // tenta com colunas estendidas; faz fallback se schema não tiver customer_id/reference_*
+          let { error } = await supabase.from("accounts_receivable").insert(c);
+          if (error) {
+            const fallback = c.map(({ customer_id, reference_type, reference_id, ...rest }) => rest);
+            const r2 = await supabase.from("accounts_receivable").insert(fallback);
+            error = r2.error;
+          }
           if (!error) counters.finance += c.length;
         }), PARALLEL),
       ]);
