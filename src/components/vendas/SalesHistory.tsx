@@ -437,21 +437,42 @@ export function SalesHistory() {
         const subtotal = Number(fullSale.subtotal ?? total);
         const discount = Number(fullSale.discount ?? 0);
 
+        // Enrich items with product brand/model/category/metadata for the rich description
+        const productIds = Array.from(
+          new Set(items.map((it: any) => it.product_id).filter(Boolean)),
+        );
+        let productsById: Record<string, any> = {};
+        if (productIds.length) {
+          const { data: prods } = await (supabase as any)
+            .from("products")
+            .select("id, name, brand, model, category, metadata, sku")
+            .in("id", productIds);
+          for (const p of prods ?? []) productsById[p.id] = p;
+        }
+
         const itemsRows = items.length
           ? items
-              .map(
-                (it: any) => `
+              .map((it: any) => {
+                const p = it.product_id ? productsById[it.product_id] : null;
+                const description = buildReceiptItemDescription(it, {
+                  brand: it.brand ?? p?.brand ?? null,
+                  model: it.model ?? p?.model ?? null,
+                  category: p?.category ?? null,
+                  metadata: p?.metadata ?? null,
+                  sku: it.sku ?? p?.sku ?? null,
+                  id: it.product_id,
+                  name: it.product_name ?? p?.name,
+                });
+                return `
             <tr>
               <td>${toProductCode({ id: it.product_id, sku: it.sku })}</td>
-              <td>${[it.product_name, it.imei ? `IMEI: ${it.imei}` : "", it.model || ""]
-                .filter(Boolean)
-                .join(" - ")}</td>
+              <td>${description}</td>
               <td style="text-align:center;">${it.quantity ?? 1}</td>
               <td style="text-align:right;">${brl(Number(it.unit_price))}</td>
               <td style="text-align:right;">${it.discount ? brl(Number(it.discount)) : "R$"}</td>
               <td style="text-align:right;">${brl(Number(it.total))}</td>
-            </tr>`,
-              )
+            </tr>`;
+              })
               .join("")
           : `<tr><td colspan="6" style="text-align:center;color:#777;">Sem itens</td></tr>`;
 
