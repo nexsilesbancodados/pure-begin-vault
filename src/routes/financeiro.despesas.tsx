@@ -23,6 +23,9 @@ import {
   Check,
   Receipt,
   Filter,
+  ShoppingCart,
+  Wallet,
+  CalendarRange,
 } from "lucide-react";
 import { ExpenseForm } from "@/components/financeiro/ExpenseForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +33,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+const COMPRA_RE = /compra|aparelho|estoque|fornecedor|mercadoria|produto/i;
+function isCompra(e: { category?: string | null; description?: string | null }) {
+  return COMPRA_RE.test(`${e.category || ""} ${e.description || ""}`);
+}
+function ymd(d: Date) {
+  return d.toISOString().split("T")[0];
+}
 
 export const Route = createFileRoute("/financeiro/despesas")({
   head: () => ({
