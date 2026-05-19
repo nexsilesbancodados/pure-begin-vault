@@ -224,10 +224,20 @@ export function PDVInterface() {
         };
 
         if (p.model) (product as any).model = p.model;
+        if ((p as any).brand) (product as any).brand = (p as any).brand;
+        if ((p as any).sku) (product as any).sku = (p as any).sku;
         const meta = (p as any).metadata || {};
         if (meta.capacity) (product as any).capacity = meta.capacity;
         if (meta.color) (product as any).color = meta.color;
         if (meta.battery_health) (product as any).battery_health = meta.battery_health;
+        const imei = meta.imei || meta.IMEI || meta.imei1 || (p as any).imei || null;
+        const imei2 = meta.imei2 || null;
+        const serial = meta.serial || meta.serial_number || null;
+        const condition = meta.condition || meta.condicao || null;
+        if (imei) (product as any).imei = String(imei);
+        if (imei2) (product as any).imei2 = String(imei2);
+        if (serial) (product as any).serial = String(serial);
+        if (condition) (product as any).condition = String(condition);
 
         return product;
       });
