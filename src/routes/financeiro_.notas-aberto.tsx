@@ -844,12 +844,23 @@ function NotasAbertoPage() {
         const nota = notas.find((n) => n.id === addingToNotaId);
         if (nota) {
           const existing = new Set(nota.items.map((i) => i.id));
-          const merged = [...nota.items, ...items.filter((i) => !existing.has(i.id))];
+          const newItems = items.filter((i) => !existing.has(i.id));
+          const merged = [...nota.items, ...newItems];
           const updated = { ...nota, items: merged, total: getNoteTotal(merged) };
           updateNota(addingToNotaId, { items: updated.items, total: updated.total });
           const ok = await persistNota(updated);
           if (!ok) return;
-          toast.success(`Produto(s) adicionado(s) à Nota ${nota.noteNumber}.`);
+          if (orgId && newItems.length > 0) {
+            await syncStockForNotaItems(newItems, {
+              orgId,
+              userId,
+              notaId: nota.id,
+              delta: 1,
+            });
+          }
+          toast.success(
+            `Produto(s) adicionado(s) à Nota ${nota.noteNumber}. Estoque atualizado.`,
+          );
         }
         setAddingToNotaId(null);
       } else {
