@@ -338,8 +338,10 @@ async function processJob(supabase: any, jobId: string) {
           organization_id: orgId, sale_id: id,
           product_id: productIdByName.get(row.product_name!.toLowerCase())!,
           product_name: row.product_name!,
+          sku: row.product_sku || null,
           quantity: row.product_quantity || 1,
           unit_price: row.product_price ?? row.total_amount,
+          discount: Number(row.discount) || 0,
           total: row.total_amount,
         }));
       const PAID_STATUSES = ["concluded", "completed", "paid", "concluido", "concluído", "pago", "quitado", "recebido"];
