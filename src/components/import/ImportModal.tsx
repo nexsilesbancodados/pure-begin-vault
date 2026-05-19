@@ -1151,9 +1151,18 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                   <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
                     Prévia
                   </span>
-                  <span className="ml-auto text-[10px] font-bold text-muted-foreground">
-                    Mostrando {Math.min(8, rows.length)} de {rows.length}
-                  </span>
+                  <div className="ml-auto flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-muted-foreground">
+                      Mostrando {Math.min(8, rows.length)} de {rows.length}
+                    </span>
+                    <button
+                      onClick={() => setShowFullscreenPreview(true)}
+                      className="p-1 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-primary"
+                      title="Expandir prévia"
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <div className="max-h-[260px] overflow-y-auto">
                   <table className="w-full text-xs">
