@@ -323,7 +323,7 @@ const serializeItems = (
 
 const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
   const raw = Array.isArray(row.items) ? row.items : [];
-  const { urls: comprovanteUrls, rest } = extractComprovantes(raw);
+  const { urls: comprovanteUrls, observacao, rest } = extractComprovantes(raw);
   const items = rest.map((item) => {
     const product = item as Product;
     return {
@@ -344,6 +344,7 @@ const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
     paga: Boolean(row.paga),
     prazoPagamento: row.prazo_pagamento ?? "",
     comprovanteUrls,
+    observacao,
   };
 };
 
