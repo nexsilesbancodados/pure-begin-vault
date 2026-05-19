@@ -183,6 +183,7 @@ export function AppSidebar({
                 <Link
                   key={child.url}
                   to={child.url}
+                  preload={false}
                   className={cn(
                     "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] transition-all",
                     location.pathname === child.url
