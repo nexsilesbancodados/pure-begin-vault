@@ -373,7 +373,7 @@ function ReceitasPage() {
         if (isBefore(d, fromD) || isAfter(d, toD)) return false;
       }
       if (fId && !String(it.id).toLowerCase().includes(fId.toLowerCase())) return false;
-      if (fCategoria && !(it.category || "").toLowerCase().includes(fCategoria.toLowerCase()))
+      if (fCategoria && !ORIGIN_LABEL[(it.origin || "manual") as IncomeOrigin].toLowerCase().includes(fCategoria.toLowerCase()))
         return false;
       if (fOrigem) {
         if ((it.origin || "manual") !== fOrigem) return false;
@@ -663,12 +663,17 @@ function ReceitasPage() {
                       </select>
                     </th>
                     <th className="px-2 py-1.5">
-                      <input
+                      <select
                         value={fCategoria}
                         onChange={(e) => setFCategoria(e.target.value)}
-                        placeholder="Selecionar"
-                        className="w-full h-7 px-2 rounded border border-slate-200 text-[11px]"
-                      />
+                        className="w-full h-7 px-1 rounded border border-slate-200 text-[11px] bg-white"
+                      >
+                        <option value="">Selecionar</option>
+                        <option value="venda">Venda</option>
+                        <option value="depósito">Depósito</option>
+                        <option value="transferência">Transferência</option>
+                        <option value="manual">Manual</option>
+                      </select>
                     </th>
                     <th className="px-2 py-1.5">
                       <input
@@ -774,8 +779,16 @@ function ReceitasPage() {
                               {ORIGIN_LABEL[origin]}
                             </span>
                           </td>
-                          <td className="px-3 py-2 font-bold text-slate-700 uppercase">
-                            {(it.category || "RECEITA").toUpperCase()}
+                          <td className="px-3 py-2">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset",
+                              origin === "sale" && "bg-emerald-50 text-emerald-700 ring-emerald-200",
+                              origin === "deposit" && "bg-blue-50 text-blue-700 ring-blue-200",
+                              origin === "transfer" && "bg-violet-50 text-violet-700 ring-violet-200",
+                              origin === "manual" && "bg-slate-100 text-slate-700 ring-slate-200",
+                            )}>
+                              {ORIGIN_LABEL[origin]}
+                            </span>
                           </td>
                           <td className="px-3 py-2 text-emerald-700 font-semibold uppercase">
                             {it.description}
