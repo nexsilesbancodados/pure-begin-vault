@@ -354,6 +354,12 @@ async function processJob(supabase: any, jobId: string) {
       }
 
       // 3) SALES
+      if (forceStock) {
+        // Se for importação de estoque pura, encerramos aqui (após criar produtos e movimentos)
+        await supabase.from("import_jobs").update({ status: "done", finished_at: new Date().toISOString() }).eq("id", jobId);
+        return;
+      }
+
       await supabase.from("import_jobs").update({ step: "sales" }).eq("id", jobId);
       const inserted: { id: string; row: Row }[] = new Array(rows.length);
       const saleChunks: { offset: number; slice: Row[] }[] = [];
