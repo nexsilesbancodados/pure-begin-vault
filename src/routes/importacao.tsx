@@ -213,7 +213,7 @@ function ImportPage() {
         </main>
       </div>
 
-      <SalesImportModal
+      <ImportModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onImportSuccess={() => setModalOpen(false)}
