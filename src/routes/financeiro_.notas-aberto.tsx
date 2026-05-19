@@ -380,6 +380,7 @@ function NotasAbertoPage() {
   const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
   const comprovanteInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingComprovante, setUploadingComprovante] = useState(false);
+  const [previewComprovanteUrl, setPreviewComprovanteUrl] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [notas, setNotas] = useState<Nota[]>([]);
@@ -1460,14 +1461,13 @@ function NotasAbertoPage() {
                             : "Anexar comprovante"}
                       </Button>
                       {detailNota.comprovanteUrl && (
-                        <a
-                          href={detailNota.comprovanteUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => setPreviewComprovanteUrl(detailNota.comprovanteUrl!)}
                           className="text-xs font-medium text-primary hover:underline"
                         >
                           Ver comprovante
-                        </a>
+                        </button>
                       )}
                       {detailNota.comprovanteUrl && (
                         <button
@@ -1574,6 +1574,54 @@ function NotasAbertoPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!previewComprovanteUrl}
+        onOpenChange={(o) => !o && setPreviewComprovanteUrl(null)}
+      >
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b">
+            <DialogTitle>Comprovante de pagamento</DialogTitle>
+            <DialogDescription className="sr-only">
+              Visualização do comprovante anexado à nota.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-muted/30 h-[70vh] overflow-auto flex items-center justify-center">
+            {previewComprovanteUrl &&
+              (/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(previewComprovanteUrl) ? (
+                <img
+                  src={previewComprovanteUrl}
+                  alt="Comprovante"
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : (
+                <iframe
+                  src={previewComprovanteUrl}
+                  title="Comprovante"
+                  className="w-full h-full bg-white"
+                />
+              ))}
+          </div>
+          <div className="flex items-center justify-end gap-2 px-6 py-3 border-t">
+            <a
+              href={previewComprovanteUrl ?? "#"}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              Abrir em nova aba
+            </a>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewComprovanteUrl(null)}
+            >
+              Fechar
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
