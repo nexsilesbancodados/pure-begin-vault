@@ -202,6 +202,25 @@ export function SalesHistory() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [detailsItems, setDetailsItems] = useState<any[]>([]);
   const [detailsItemsLoading, setDetailsItemsLoading] = useState(false);
+  const [productDetail, setProductDetail] = useState<any | null>(null);
+  const [productDetailLoading, setProductDetailLoading] = useState(false);
+
+  const openProductDetail = useCallback(async (item: any) => {
+    setProductDetail({ item, product: null });
+    setProductDetailLoading(true);
+    try {
+      if (item?.product_id) {
+        const { data } = await (supabase as any)
+          .from("products")
+          .select("*")
+          .eq("id", item.product_id)
+          .maybeSingle();
+        setProductDetail({ item, product: data || null });
+      }
+    } finally {
+      setProductDetailLoading(false);
+    }
+  }, []);
 
   const openSaleDetails = useCallback(async (sale: any) => {
     setSelectedSale(sale);
@@ -1343,7 +1362,21 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                             const unit = Number(it.unit_price || 0);
                             const lineTotal = Number(it.total ?? unit * qty);
                             return (
-                              <li key={it.id} className="p-3 flex items-start gap-3">
+                              <li
+                                key={it.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => {
+                                  void openProductDetail(it);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    void openProductDetail(it);
+                                  }
+                                }}
+                                className="p-3 flex items-start gap-3 cursor-pointer hover:bg-primary/[0.04] transition-colors focus:outline-none focus:bg-primary/[0.06]"
+                              >
                                 <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                                   <Package className="h-4 w-4" />
                                 </div>
@@ -1532,6 +1565,155 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
             })()}
         </DialogContent>
       </Dialog>
+
+      {/* Modal — Detalhes do Produto vendido */}
+      <Dialog open={!!productDetail} onOpenChange={(o) => !o && setProductDetail(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden p-0 rounded-2xl bg-card border-border/60">
+          {(() => {
+            if (!productDetail) return null;
+            const brl = (n: number) =>
+              new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                Number.isFinite(n) ? n : 0,
+              );
+            const it = productDetail.item || {};
+            const p = productDetail.product || {};
+            const meta = (p.metadata && typeof p.metadata === "object") ? p.metadata : {};
+            // Excluir custo e fornecedor
+            const HIDE = new Set([
+              "cost", "cost_price", "purchase_price", "custo", "preco_custo",
+              "supplier", "supplier_id", "supplier_name", "fornecedor",
+            ]);
+            const pickFirst = (...keys: string[]) => {
+              for (const k of keys) {
+                const v = (it as any)[k] ?? (p as any)[k] ?? (meta as any)[k];
+                if (v !== undefined && v !== null && String(v).trim() !== "") return v;
+              }
+              return null;
+            };
+            const brand = pickFirst("brand", "marca", "manufacturer");
+            const model = pickFirst("model", "modelo");
+            const storage = pickFirst("storage", "gigas", "capacity", "gb");
+            const color = pickFirst("color", "cor");
+            const imei = pickFirst("imei", "imei1", "imei_1");
+            const imei2 = pickFirst("imei2", "imei_2");
+            const serial = pickFirst("serial", "serial_number", "sn");
+            const condition = pickFirst("condition", "estado", "status_produto");
+            const battery = pickFirst("battery_health", "bateria", "battery");
+            const warranty = pickFirst("warranty", "garantia");
+            const category = pickFirst("category", "categoria");
+            const description = pickFirst("description", "descricao", "notes");
+            const qty = Number(it.quantity || 0);
+            const unit = Number(it.unit_price || 0);
+            const lineTotal = Number(it.total ?? unit * qty);
+            const productName = it.product_name || p.name || "Produto";
+
+            // Coletar campos extras do metadata, exceto os escondidos / já exibidos
+            const shown = new Set([
+              "brand","marca","manufacturer","model","modelo","storage","gigas","capacity","gb",
+              "color","cor","imei","imei1","imei_1","imei2","imei_2","serial","serial_number","sn",
+              "condition","estado","status_produto","battery_health","bateria","battery",
+              "warranty","garantia","category","categoria","description","descricao","notes",
+            ]);
+            const extras = Object.entries(meta).filter(
+              ([k, v]) =>
+                !HIDE.has(k) &&
+                !shown.has(k) &&
+                v !== null &&
+                v !== "" &&
+                typeof v !== "object",
+            );
+
+            const Row = ({ label, value }: { label: string; value: any }) =>
+              value === null || value === undefined || value === "" ? null : (
+                <div className="flex items-start justify-between gap-3 py-2 border-b border-border/40 last:border-0">
+                  <span className="text-[11px] uppercase tracking-widest font-black text-muted-foreground/70">
+                    {label}
+                  </span>
+                  <span className="text-sm font-semibold text-foreground text-right break-all">
+                    {String(value)}
+                  </span>
+                </div>
+              );
+
+            return (
+              <>
+                <div className="relative bg-gradient-to-br from-primary via-primary to-primary/80 p-6 text-primary-foreground">
+                  <div className="flex items-start gap-3">
+                    <div className="h-12 w-12 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center shrink-0">
+                      <Package className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] uppercase tracking-widest font-black opacity-80">
+                        Detalhes do produto
+                      </div>
+                      <DialogTitle className="text-xl font-black truncate">
+                        {productName}
+                      </DialogTitle>
+                      <div className="mt-1 flex items-center gap-2 flex-wrap text-[11px] opacity-90">
+                        <Badge variant="secondary" className="rounded-full font-mono text-[10px] bg-white/15 text-white border-0">
+                          <Hash className="h-3 w-3 mr-0.5" />
+                          {toProductCode({ id: it.product_id, sku: it.sku ?? p.sku })}
+                        </Badge>
+                        {category && <span>{String(category)}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 overflow-y-auto max-h-[60vh] space-y-4">
+                  {productDetailLoading && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando informações…
+                    </div>
+                  )}
+
+                  <div className="rounded-2xl border border-border/60 bg-muted/20 px-4 py-2">
+                    <Row label="Marca" value={brand} />
+                    <Row label="Modelo" value={model} />
+                    <Row label="Capacidade" value={storage ? `${storage}${String(storage).match(/gb|tb/i) ? "" : " GB"}` : null} />
+                    <Row label="Cor" value={color} />
+                    <Row label="Condição" value={condition} />
+                    <Row label="Saúde da bateria" value={battery ? `${battery}${String(battery).includes("%") ? "" : "%"}` : null} />
+                    <Row label="IMEI" value={imei} />
+                    <Row label="IMEI 2" value={imei2} />
+                    <Row label="Serial" value={serial} />
+                    <Row label="Garantia" value={warranty} />
+                    {extras.map(([k, v]) => (
+                      <Row key={k} label={k.replace(/_/g, " ")} value={v} />
+                    ))}
+                  </div>
+
+                  {description && (
+                    <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
+                      <div className="text-[10px] uppercase tracking-widest font-black text-muted-foreground/70 mb-1.5">
+                        Descrição
+                      </div>
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{String(description)}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-xl bg-muted/40 border border-border/60 p-3 text-center">
+                      <div className="text-[10px] uppercase font-black text-muted-foreground/70">Qtd</div>
+                      <div className="text-lg font-black text-foreground">{qty}</div>
+                    </div>
+                    <div className="rounded-xl bg-muted/40 border border-border/60 p-3 text-center">
+                      <div className="text-[10px] uppercase font-black text-muted-foreground/70">Unitário</div>
+                      <div className="text-lg font-black text-foreground">{brl(unit)}</div>
+                    </div>
+                    <div className="rounded-xl bg-primary/10 border border-primary/30 p-3 text-center">
+                      <div className="text-[10px] uppercase font-black text-primary/80">Total</div>
+                      <div className="text-lg font-black text-primary">{brl(lineTotal)}</div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+
 
       {/* Modal do Recibo */}
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
