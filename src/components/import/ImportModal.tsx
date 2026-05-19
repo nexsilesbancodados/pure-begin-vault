@@ -463,7 +463,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
     localStorage.setItem(`import_map_${kind}`, JSON.stringify(newMap));
 
     if (rawData.length) {
-      setRows(rawData.map((r, i) => parseRow(r, newMap, i)));
+      setRows(rawData.map((r, i) => parseRow(r, newMap, i, kind)));
     }
   };
 
