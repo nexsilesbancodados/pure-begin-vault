@@ -35,6 +35,9 @@ import { cn } from "@/lib/utils";
 import { SupplierPicker } from "@/components/estoque/SupplierPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Package, User as UserIcon } from "lucide-react";
 
 interface ExpenseFormProps {
   open: boolean;
