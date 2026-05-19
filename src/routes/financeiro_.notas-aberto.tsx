@@ -89,7 +89,31 @@ interface Nota {
   dataCompra: string;
   paga: boolean;
   prazoPagamento: string;
+  comprovanteUrl?: string | null;
 }
+
+const COMPROVANTE_SENTINEL_ID = "__comprovante__";
+
+const extractComprovante = (raw: unknown[]): { url: string | null; rest: unknown[] } => {
+  let url: string | null = null;
+  const rest: unknown[] = [];
+  for (const item of raw) {
+    if (
+      item &&
+      typeof item === "object" &&
+      (item as { id?: unknown }).id === COMPROVANTE_SENTINEL_ID
+    ) {
+      const meta = (item as { metadata?: unknown }).metadata;
+      if (meta && typeof meta === "object") {
+        const u = (meta as Record<string, unknown>).url;
+        if (typeof u === "string") url = u;
+      }
+      continue;
+    }
+    rest.push(item);
+  }
+  return { url, rest };
+};
 
 interface PurchaseNoteRow {
   id: string;
