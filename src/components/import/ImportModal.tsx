@@ -1410,6 +1410,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
         kind={kind}
         brl={brl}
         hmap={hmap}
+        headers={headers}
       />
     </>
   );
