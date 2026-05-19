@@ -80,9 +80,11 @@ function Dashboard() {
   const kpis = [
     {
       label: "Vendas de hoje",
-      value: stats.todaySales.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+      value: stats.todaySalesPDV.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
       trend: "+12%",
-      sub: "Total faturado hoje",
+      sub: stats.todaySalesImport > 0 
+        ? `R$ ${stats.todaySalesImport.toLocaleString("pt-BR")} importados`
+        : "Total faturado via PDV",
       icon: "ShoppingBag",
       tone: "success",
     },
