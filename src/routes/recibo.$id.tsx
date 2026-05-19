@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { toProductCode } from "@/lib/product-code";
+import { buildReceiptItemDescription } from "@/lib/receipt-format";
 import { useEffect, useState } from "react";
 import { Printer, AlertCircle } from "lucide-react";
 
@@ -39,6 +40,7 @@ type Receipt = {
     cnpj?: string | null;
     phone?: string | null;
     website?: string | null;
+    logo_url?: string | null;
   } | null;
   seller?: { name?: string | null } | null;
   customer:
@@ -158,10 +160,22 @@ function ReciboPage() {
         <table className="w-full border-collapse text-[12px] border-t-0">
           <tbody>
             <tr>
-              <td className="border border-black px-3 py-2 text-center align-top w-[60%]">
+              <td className="border border-black px-3 py-2 align-middle w-[22%] text-center">
+                {data.org?.logo_url ? (
+                  <img
+                    src={data.org.logo_url}
+                    alt={data.org_name}
+                    className="mx-auto max-h-[70px] object-contain"
+                  />
+                ) : (
+                  <div className="text-[11px] text-neutral-500">{data.org_name}</div>
+                )}
+              </td>
+              <td className="border border-black px-3 py-2 text-center align-middle">
                 <p className="font-bold">{data.org_name}</p>
                 {data.org?.cnpj && <p>CNPJ: {data.org.cnpj}</p>}
                 {data.org?.phone && <p>Telefone: {data.org.phone}</p>}
+                {data.org?.address && <p className="text-[11px]">{data.org.address}</p>}
               </td>
               <td className="border border-black px-3 py-2 align-top">
                 <p>
@@ -243,16 +257,22 @@ function ReciboPage() {
             </tr>
           </thead>
           <tbody>
-            {data.items.map((it) => {
-              const desc: string[] = [it.product_name];
-              if (it.imei) desc.push(`IMEI: ${it.imei}`);
-              if (it.model) desc.push(it.model);
+            {data.items.map((it: any) => {
+              const description = buildReceiptItemDescription(it, {
+                brand: it.brand,
+                model: it.model,
+                category: it.category,
+                metadata: it.metadata,
+                sku: it.sku,
+                id: it.product_id,
+                name: it.product_name,
+              });
               return (
                 <tr key={it.id}>
                   <td className="border border-black px-2 py-1 align-top">
                     {toProductCode({ id: it.product_id, sku: it.sku })}
                   </td>
-                  <td className="border border-black px-2 py-1 align-top">{desc.join(" - ")}</td>
+                  <td className="border border-black px-2 py-1 align-top">{description}</td>
                   <td className="border border-black px-2 py-1 align-top text-center">
                     {it.quantity}
                   </td>

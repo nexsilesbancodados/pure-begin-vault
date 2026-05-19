@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toProductCode } from "@/lib/product-code";
+import { buildReceiptItemDescription } from "@/lib/receipt-format";
 import {
   Search,
   Filter,
@@ -761,16 +762,50 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
               : Promise.resolve({ data: null }),
           ]);
 
+        // Enrich items with product details (brand/model/category/metadata)
+        const items = itemsRes.data || [];
+        const productIds = Array.from(
+          new Set(items.map((it: any) => it.product_id).filter(Boolean)),
+        );
+        let productsById: Record<string, any> = {};
+        if (productIds.length) {
+          const { data: prods } = await (supabase as any)
+            .from("products")
+            .select("id, name, brand, model, category, metadata, sku")
+            .in("id", productIds);
+          for (const p of prods ?? []) productsById[p.id] = p;
+        }
+        const enrichedItems = items.map((it: any) => {
+          const p = it.product_id ? productsById[it.product_id] : null;
+          return {
+            ...it,
+            brand: it.brand ?? p?.brand ?? null,
+            model: it.model ?? p?.model ?? null,
+            category: p?.category ?? null,
+            metadata: p?.metadata ?? null,
+          };
+        });
+
         const settings = orgSettings || {};
+        // Local-only store extras (CNPJ/address persisted from the store dialog)
+        let extras: { cnpj?: string; address?: string } = {};
+        try {
+          if (typeof window !== "undefined" && fullSale.organization_id) {
+            extras = JSON.parse(
+              localStorage.getItem(`store-details:${fullSale.organization_id}`) || "{}",
+            );
+          }
+        } catch {}
+
         setReceiptData({
           sale: fullSale,
-          items: itemsRes.data || [],
+          items: enrichedItems,
           payments: paymentsRes.data || [],
-          org_name: org?.name || "Loja",
+          org_name: settings.brand_name || org?.name || "Loja",
           org: {
-            address: settings.address ?? settings.endereco ?? null,
-            cnpj: settings.cnpj ?? settings.document ?? null,
-            phone: settings.phone ?? settings.telefone ?? null,
+            address: extras.address ?? settings.address ?? settings.endereco ?? null,
+            cnpj: extras.cnpj ?? settings.cnpj ?? settings.document ?? null,
+            phone: settings.support_whatsapp ?? settings.phone ?? settings.telefone ?? null,
             website: settings.website ?? null,
             logo_url: settings.brand_logo_url ?? null,
           },
@@ -1857,19 +1892,24 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
       <table className="w-full border-collapse text-[12px] border-t-0">
         <tbody>
           <tr>
-            <td className="border border-black px-3 py-2 text-center align-top w-[60%]">
-              {data.org?.logo_url && (
+            <td className="border border-black px-3 py-2 align-middle w-[22%] text-center">
+              {data.org?.logo_url ? (
                 <img
                   src={data.org.logo_url}
                   alt={data.org_name}
-                  className="mx-auto mb-1 max-h-16 object-contain"
+                  className="mx-auto max-h-[70px] object-contain"
                 />
+              ) : (
+                <div className="text-[11px] text-neutral-500">{data.org_name}</div>
               )}
+            </td>
+            <td className="border border-black px-3 py-2 text-center align-middle">
               <p className="font-bold">{data.org_name}</p>
               {data.org?.cnpj && <p>CNPJ: {data.org.cnpj}</p>}
               {data.org?.phone && <p>Telefone: {data.org.phone}</p>}
+              {data.org?.address && <p className="text-[11px]">{data.org.address}</p>}
             </td>
-            <td className="border border-black px-3 py-2 align-top">
+            <td className="border border-black px-3 py-2 align-top w-[28%]">
               <p>
                 <span className="font-bold">{saleDate}</span>
               </p>
@@ -1957,13 +1997,15 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
                 },
               ]
           ).map((item: any) => {
-            const description = [
-              item.product_name,
-              item.imei ? `IMEI: ${item.imei}` : null,
-              item.model,
-            ]
-              .filter(Boolean)
-              .join(" - ");
+            const description = buildReceiptItemDescription(item, {
+              brand: item.brand,
+              model: item.model,
+              category: item.category,
+              metadata: item.metadata,
+              sku: item.sku,
+              id: item.product_id,
+              name: item.product_name,
+            });
             return (
               <tr key={item.id}>
                 <td className="border border-black px-2 py-1 align-top">
@@ -2210,13 +2252,15 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
                   },
                 ]
             ).map((item: any) => {
-              const description = [
-                item.product_name,
-                item.imei ? `IMEI: ${item.imei}` : null,
-                item.sku ? `Id: ${item.sku}` : null,
-              ]
-                .filter(Boolean)
-                .join(" - ");
+              const description = buildReceiptItemDescription(item, {
+                brand: item.brand,
+                model: item.model,
+                category: item.category,
+                metadata: item.metadata,
+                sku: item.sku,
+                id: item.product_id,
+                name: item.product_name,
+              });
               return (
                 <tr key={item.id} className="align-top">
                   <td className="py-0.5 pr-1 break-words">{description}</td>
