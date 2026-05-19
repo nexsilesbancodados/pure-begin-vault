@@ -1460,14 +1460,13 @@ function NotasAbertoPage() {
                             : "Anexar comprovante"}
                       </Button>
                       {detailNota.comprovanteUrl && (
-                        <a
-                          href={detailNota.comprovanteUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => setPreviewComprovanteUrl(detailNota.comprovanteUrl!)}
                           className="text-xs font-medium text-primary hover:underline"
                         >
                           Ver comprovante
-                        </a>
+                        </button>
                       )}
                       {detailNota.comprovanteUrl && (
                         <button
