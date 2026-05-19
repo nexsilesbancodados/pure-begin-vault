@@ -102,7 +102,7 @@ function ReceitasPage() {
     try {
       const receivableBase = supabase
         .from("accounts_receivable")
-        .select("*, customers(name)");
+        .select("*");
       const transactionBase = supabase
         .from("finance_transactions")
         .select("*")
@@ -126,7 +126,7 @@ function ReceitasPage() {
         due_date: r.due_date,
         payment_date: r.paid_at,
         transaction_date: r.paid_at || r.due_date,
-        supplier: r.customers?.name || noteField(r.notes, "Cliente"),
+        supplier: noteField(r.notes, "Cliente") || customerFromDescription(r.description),
         reference_type: r.sale_id ? "sale" : "manual",
         reference_id: r.sale_id || null,
         customer_id: r.customer_id || null,
