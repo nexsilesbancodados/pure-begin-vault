@@ -90,31 +90,45 @@ interface Nota {
   paga: boolean;
   prazoPagamento: string;
   comprovanteUrls?: string[];
+  observacao?: string;
 }
 
 const COMPROVANTE_SENTINEL_ID = "__comprovante__";
+const OBSERVACAO_SENTINEL_ID = "__observacao__";
 
-const extractComprovantes = (raw: unknown[]): { urls: string[]; rest: unknown[] } => {
+const extractComprovantes = (
+  raw: unknown[],
+): { urls: string[]; observacao: string; rest: unknown[] } => {
   const urls: string[] = [];
+  let observacao = "";
   const rest: unknown[] = [];
   for (const item of raw) {
     if (
       item &&
       typeof item === "object" &&
-      typeof (item as { id?: unknown }).id === "string" &&
-      ((item as { id: string }).id === COMPROVANTE_SENTINEL_ID ||
-        (item as { id: string }).id.startsWith(COMPROVANTE_SENTINEL_ID))
+      typeof (item as { id?: unknown }).id === "string"
     ) {
-      const meta = (item as { metadata?: unknown }).metadata;
-      if (meta && typeof meta === "object") {
-        const u = (meta as Record<string, unknown>).url;
-        if (typeof u === "string") urls.push(u);
+      const id = (item as { id: string }).id;
+      if (id === COMPROVANTE_SENTINEL_ID || id.startsWith(COMPROVANTE_SENTINEL_ID)) {
+        const meta = (item as { metadata?: unknown }).metadata;
+        if (meta && typeof meta === "object") {
+          const u = (meta as Record<string, unknown>).url;
+          if (typeof u === "string") urls.push(u);
+        }
+        continue;
       }
-      continue;
+      if (id === OBSERVACAO_SENTINEL_ID) {
+        const meta = (item as { metadata?: unknown }).metadata;
+        if (meta && typeof meta === "object") {
+          const t = (meta as Record<string, unknown>).text;
+          if (typeof t === "string") observacao = t;
+        }
+        continue;
+      }
     }
     rest.push(item);
   }
-  return { urls, rest };
+  return { urls, observacao, rest };
 };
 
 interface PurchaseNoteRow {
@@ -262,7 +276,11 @@ const isPurchaseNotesUnavailable = (error: unknown) => {
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
-const serializeItems = (items: Product[], comprovanteUrls?: string[] | null): Json => {
+const serializeItems = (
+  items: Product[],
+  comprovanteUrls?: string[] | null,
+  observacao?: string | null,
+): Json => {
   const base = items.map((p) => ({
     id: p.id,
     name: p.name,
@@ -287,12 +305,25 @@ const serializeItems = (items: Product[], comprovanteUrls?: string[] | null): Js
       metadata: { kind: "comprovante", url } as unknown as Json,
     });
   });
+  if (observacao && observacao.trim()) {
+    base.push({
+      id: OBSERVACAO_SENTINEL_ID,
+      name: OBSERVACAO_SENTINEL_ID,
+      organization_id: null,
+      sku: null,
+      imei: null,
+      price: null,
+      cost_price: null,
+      stock_quantity: null,
+      metadata: { kind: "observacao", text: observacao } as unknown as Json,
+    });
+  }
   return base as unknown as Json;
 };
 
 const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
   const raw = Array.isArray(row.items) ? row.items : [];
-  const { urls: comprovanteUrls, rest } = extractComprovantes(raw);
+  const { urls: comprovanteUrls, observacao, rest } = extractComprovantes(raw);
   const items = rest.map((item) => {
     const product = item as Product;
     return {
@@ -313,6 +344,7 @@ const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
     paga: Boolean(row.paga),
     prazoPagamento: row.prazo_pagamento ?? "",
     comprovanteUrls,
+    observacao,
   };
 };
 
@@ -427,7 +459,7 @@ function NotasAbertoPage() {
           prazo_pagamento: nota.prazoPagamento || null,
           paga: nota.paga,
           total: getNoteTotal(nota.items),
-          items: serializeItems(nota.items, nota.comprovanteUrls),
+          items: serializeItems(nota.items, nota.comprovanteUrls, nota.observacao),
           updated_by: userId,
         })
         .eq("id", nota.id)
@@ -1369,18 +1401,36 @@ function NotasAbertoPage() {
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                     <div className="space-y-1.5">
-                      <Label htmlFor="prazo" className="text-sm font-medium">
-                        Prazo para pagamento
-                      </Label>
-                      <Input
-                        id="prazo"
-                        type="date"
-                        value={detailNota.prazoPagamento}
-                        onChange={(e) =>
-                          updateNota(detailNota.id, { prazoPagamento: e.target.value })
-                        }
-                        disabled={detailNota.paga}
-                      />
+                      {detailNota.paga ? (
+                        <>
+                          <Label htmlFor="observacao" className="text-sm font-medium">
+                            Observação
+                          </Label>
+                          <Input
+                            id="observacao"
+                            type="text"
+                            placeholder="Ex: pago via PIX, referente NF 123..."
+                            value={detailNota.observacao ?? ""}
+                            onChange={(e) =>
+                              updateNota(detailNota.id, { observacao: e.target.value })
+                            }
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <Label htmlFor="prazo" className="text-sm font-medium">
+                            Prazo para pagamento
+                          </Label>
+                          <Input
+                            id="prazo"
+                            type="date"
+                            value={detailNota.prazoPagamento}
+                            onChange={(e) =>
+                              updateNota(detailNota.id, { prazoPagamento: e.target.value })
+                            }
+                          />
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center justify-between px-3 py-2 border bg-muted/40 rounded-md h-10">
                       <span className="text-sm font-medium">Status do pagamento</span>
