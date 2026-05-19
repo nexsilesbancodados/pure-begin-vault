@@ -28,7 +28,7 @@ export const listOrgMembers = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
 
     // 1) Try RPC (SECURITY DEFINER) — works without service role key.
-    const rpc = await supabase.rpc("list_organization_members", {
+    const rpc = await (supabase as any).rpc("list_organization_members", {
       _org_id: data.orgId,
     });
     if (!rpc.error && Array.isArray(rpc.data)) {
