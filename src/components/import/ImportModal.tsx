@@ -1422,6 +1422,7 @@ function FullscreenPreview({
   kind,
   brl,
   hmap,
+  headers,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -1429,6 +1430,7 @@ function FullscreenPreview({
   kind: ImportKind;
   brl: (n: number) => string;
   hmap: Record<string, string>;
+  headers: string[];
 }) {
   const [filter, setFilter] = useState<"all" | "valid" | "invalid">("all");
   const [search, setSearch] = useState("");
