@@ -1044,10 +1044,10 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                   <table className="w-full text-[10px] border-collapse">
                     <thead className="bg-muted/30">
                       <tr className="border-b border-border">
-                        <th className="p-2 text-left font-black">Data</th>
-                        <th className="p-2 text-left font-black">Cliente</th>
+                        <th className="p-2 text-left font-black">{kind === "estoque" ? "SKU" : "Data"}</th>
+                        <th className="p-2 text-left font-black">{kind === "estoque" ? "Categoria" : "Cliente"}</th>
                         <th className="p-2 text-left font-black">Produto</th>
-                        <th className="p-2 text-right font-black">Valor</th>
+                        <th className="p-2 text-right font-black">{kind === "estoque" ? "Estoque" : "Valor"}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
