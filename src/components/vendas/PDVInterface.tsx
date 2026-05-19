@@ -2055,9 +2055,35 @@ export function PDVInterface() {
                           >
                             <div className="flex-1 min-w-0 flex flex-col">
                               <div className="font-bold text-sm truncate">{product.name}</div>
-                              {product.description && (
-                                <div className="text-[10px] text-muted-foreground line-clamp-1 italic">
-                                  {product.description}
+                              {(() => {
+                                const pa = product as any;
+                                const chips: string[] = [];
+                                if (pa.capacity) chips.push(String(pa.capacity));
+                                if (pa.color) chips.push(String(pa.color));
+                                if (pa.condition) chips.push(String(pa.condition).toUpperCase());
+                                if (pa.battery_health) chips.push(`Bat ${pa.battery_health}%`);
+                                return chips.length ? (
+                                  <div className="flex flex-wrap gap-1 mt-0.5">
+                                    {chips.map((c, i) => (
+                                      <span
+                                        key={i}
+                                        className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary"
+                                      >
+                                        {c}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null;
+                              })()}
+                              {(product as any).imei && (
+                                <div className="text-[10px] font-mono text-foreground/80 mt-0.5 truncate">
+                                  IMEI: {(product as any).imei}
+                                  {(product as any).imei2 ? ` / ${(product as any).imei2}` : ""}
+                                </div>
+                              )}
+                              {!((product as any).imei) && (product as any).serial && (
+                                <div className="text-[10px] font-mono text-foreground/80 mt-0.5 truncate">
+                                  SN: {(product as any).serial}
                                 </div>
                               )}
                               <div className="text-[10px] text-muted-foreground mt-0.5">
