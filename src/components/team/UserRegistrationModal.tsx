@@ -65,23 +65,23 @@ const DEFAULT_PROFILES = [
 
 const QUICK_PROFILES: Record<string, string[]> = {
   "Gerente Comercial": [
-    "Tela inicial",
-    "Venda",
-    "Cadastros Básicos",
+    "Dashboard",
     "Relatórios",
-    "Informações Gerenciais",
+    "CRM",
+    "Vendas & PDV",
+    "Clientes",
     "Estoque",
   ],
   "Administrativo-Financeiro": [
-    "Tela inicial",
+    "Dashboard",
     "Financeiro",
     "Notas em Aberto",
-    "Fiscal",
+    "Notas Fiscais",
     "Relatórios",
-    "Cadastros Básicos",
+    "Clientes",
   ],
-  Vendedor: ["Tela inicial", "Venda", "Cadastros Básicos"],
-  Técnico: ["Tela inicial", "Ordem de Serviço"],
+  Vendedor: ["Dashboard", "Vendas & PDV", "Clientes"],
+  Técnico: ["Dashboard", "Serviços & OS"],
 };
 
 const HOME_SCREENS = [
