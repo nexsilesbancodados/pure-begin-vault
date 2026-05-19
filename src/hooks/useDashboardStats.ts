@@ -93,7 +93,8 @@ export function useDashboardStats(period: Period = "today") {
           .not("status", "in", `(${INACTIVE_OS_STATUSES.join(",")})`),
       );
 
-      // Produtos: só os campos de estoque
+      // Produtos: só os campos de estoque — sempre filtrado pela loja ativa
+      // (multi-tenant: cada loja tem seu próprio estoque, nunca compartilhar)
       const productsQ = scope(
         supabase.from("products").select("stock_quantity, min_stock"),
       );
