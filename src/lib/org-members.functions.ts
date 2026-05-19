@@ -72,6 +72,23 @@ export const listOrgMembers = createServerFn({ method: "POST" })
     if (rowsErr) throw new Error(rowsErr.message);
 
     const base = (rows as { user_id: string; role: string }[]) ?? [];
+    const roleByUser = new Map(base.map((r) => [r.user_id, r.role]));
+
+    const { data: orgProfiles, error: orgProfilesErr } = await supabase
+      .from("profiles")
+      .select("id, nome, display_name, email, role")
+      .eq("organization_id", data.orgId);
+
+    if (!orgProfilesErr && Array.isArray(orgProfiles) && orgProfiles.length > 0) {
+      const members: OrgMember[] = (orgProfiles as any[]).map((p) => ({
+        user_id: p.id,
+        role: roleByUser.get(p.id) ?? p.role ?? "member",
+        name: p.display_name || p.nome || null,
+        email: p.email || null,
+      }));
+      return { members };
+    }
+
     if (base.length === 0) return { members: [] };
 
     const ids = base.map((r) => r.user_id);
