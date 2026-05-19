@@ -25,6 +25,8 @@ type Row = {
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
+  product_sku?: string;
+  discount?: number;
   description?: string;
   fin_type?: "income" | "expense";
   category?: string;
