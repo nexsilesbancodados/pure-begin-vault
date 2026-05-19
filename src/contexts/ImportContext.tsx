@@ -72,7 +72,7 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const { data } = await supabase
         .from("import_jobs")
-        .select("id,file_name,status,step,total,processed,result,error,started_at,finished_at,created_at")
+        .select("id,file_name,status,step,total,processed,result,payload,error,started_at,finished_at,created_at")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(50);
