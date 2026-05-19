@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Mail,
   Lock,
@@ -48,7 +48,6 @@ export const Route = createFileRoute("/login")({
 });
 
 function Login() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,58 +58,68 @@ function Login() {
   const [shake, setShake] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus + remember email
+  // Auto-focus + remember email + redirect if already signed in
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("conecta:lastEmail") : null;
     if (saved) setEmail(saved);
     const t = setTimeout(() => emailRef.current?.focus(), 150);
+
+    // Se já existe sessão válida, manda direto pro painel
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) window.location.replace("/painel");
+    });
+
     return () => clearTimeout(t);
   }, []);
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
-    setLoading(true);
 
     const cleanEmail = email.trim().toLowerCase();
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: cleanEmail,
-      password,
-    });
-
-    if (signInError) {
-      setError(
-        signInError.message.toLowerCase().includes("invalid")
-          ? "E-mail ou senha incorretos. Verifique seus dados e tente novamente."
-          : signInError.message,
-      );
+    if (!cleanEmail || !password) {
+      setError("Preencha e-mail e senha para continuar.");
       setShake(true);
       setTimeout(() => setShake(false), 500);
-      setLoading(false);
       return;
     }
 
-    if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
-    else localStorage.removeItem("conecta:lastEmail");
+    setLoading(true);
 
-    const uid = signInData.user?.id;
-    if (uid) {
-      const [{ data: prof }, { data: superAdmin }] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("display_name, organization_id, role")
-          .eq("id", uid)
-          .maybeSingle(),
-        (supabase as any).from("super_admins").select("user_id").eq("user_id", uid).maybeSingle(),
-      ]);
-      const isOwner = prof?.role === "owner" || !!superAdmin;
-      const onboardingComplete = !!prof?.display_name && !!prof?.organization_id;
-      if (!isOwner && !onboardingComplete) {
-        navigate({ to: "/onboarding" });
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (signInError) {
+        const msg = signInError.message.toLowerCase();
+        setError(
+          msg.includes("invalid") || msg.includes("credentials")
+            ? "E-mail ou senha incorretos. Verifique seus dados e tente novamente."
+            : msg.includes("email not confirmed")
+              ? "Confirme seu e-mail antes de entrar."
+              : signInError.message,
+        );
+        setShake(true);
+        setTimeout(() => setShake(false), 500);
+        setLoading(false);
         return;
       }
+
+      if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
+      else localStorage.removeItem("conecta:lastEmail");
+
+      // Hard redirect: garante que o AuthContext recarregue com a sessão nova
+      // e evita qualquer race condition com o roteador.
+      window.location.assign("/painel");
+    } catch (err: any) {
+      setError(err?.message || "Não foi possível entrar agora. Tente novamente.");
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      setLoading(false);
     }
-    navigate({ to: "/painel" });
   };
 
   const onPwdKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
