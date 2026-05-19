@@ -365,17 +365,24 @@ async function processJob(supabase: any, jobId: string) {
       for (let i = 0; i < receivableRows.length; i += CHUNK) recvChunks.push(receivableRows.slice(i, i + CHUNK));
 
       await Promise.all([
-        pool(itemChunks.map((c) => async () => { await supabase.from("sale_items").insert(c); }), PARALLEL),
+        pool(itemChunks.map((c) => async () => { await insertTagged("sale_items", c); }), PARALLEL),
         pool(finChunks.map((c) => async () => {
-          const { error } = await supabase.from("finance_transactions").insert(c);
+          const { error } = await insertTagged("finance_transactions", c);
           if (!error) counters.finance += c.length;
         }), PARALLEL),
         pool(recvChunks.map((c) => async () => {
-          // tenta com colunas estendidas; faz fallback se schema não tiver customer_id/sale_id
-          let { error } = await supabase.from("accounts_receivable").insert(c);
+          // tenta com colunas estendidas + tag; faz fallback se schema não tiver
+          const tagged = c.map((r) => ({ ...r, import_job_id: jobId }));
+          let { error } = await supabase.from("accounts_receivable").insert(tagged);
           if (error) {
-            const fallback = c.map(({ customer_id, sale_id, ...rest }) => rest);
-            const r2 = await supabase.from("accounts_receivable").insert(fallback);
+            // tenta sem import_job_id, mantendo customer_id/sale_id
+            const noTag = c.map((r) => ({ ...r }));
+            let r2 = await supabase.from("accounts_receivable").insert(noTag);
+            if (r2.error) {
+              // último fallback: sem colunas estendidas
+              const minimal = c.map(({ customer_id, sale_id, ...rest }) => rest);
+              r2 = await supabase.from("accounts_receivable").insert(minimal);
+            }
             error = r2.error;
           }
           if (!error) counters.finance += c.length;
