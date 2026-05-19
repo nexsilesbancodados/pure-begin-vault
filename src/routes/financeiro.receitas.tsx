@@ -284,26 +284,36 @@ function ReceitasPage() {
   };
 
   const kpiCards = [
-    { label: "Recebem hoje (R$)", value: kpis.receberHoje, icon: Hourglass, key: "hoje" },
-    { label: "Vencidos (R$)", value: kpis.vencidos, icon: X, key: "vencidos" },
-    { label: "A receber (R$)", value: kpis.aReceber, icon: Calendar, key: "a_receber" },
-    { label: "Recebidos (R$)", value: kpis.recebidos, icon: CheckCircle2, key: "recebidos" },
-    { label: "Total no período (R$)", value: kpis.total, icon: DollarSign, key: "" },
+    { label: "Recebem hoje", value: kpis.receberHoje, icon: Hourglass, key: "hoje", tone: "blue" as const },
+    { label: "Vencidos", value: kpis.vencidos, icon: X, key: "vencidos", tone: "red" as const },
+    { label: "A receber", value: kpis.aReceber, icon: Calendar, key: "a_receber", tone: "amber" as const },
+    { label: "Recebidos", value: kpis.recebidos, icon: CheckCircle2, key: "recebidos", tone: "emerald" as const },
+    { label: "Total no período", value: kpis.total, icon: DollarSign, key: "", tone: "dark" as const },
   ];
 
+  const toneStyles: Record<string, { border: string; accent: string; chip: string }> = {
+    blue: { border: "border-l-blue-500", accent: "text-blue-600", chip: "bg-blue-50 text-blue-600" },
+    red: { border: "border-l-red-500", accent: "text-red-600", chip: "bg-red-50 text-red-600" },
+    amber: { border: "border-l-amber-500", accent: "text-amber-600", chip: "bg-amber-50 text-amber-600" },
+    emerald: { border: "border-l-emerald-500", accent: "text-emerald-600", chip: "bg-emerald-50 text-emerald-600" },
+    dark: { border: "border-l-slate-700", accent: "text-white", chip: "bg-white/10 text-white" },
+  };
+
   const statusBadge = (status: string | null, due: string | null) => {
+    const base = "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset";
     if (status === "paid")
-      return <span className="px-3 py-1 rounded-md bg-emerald-500 text-white text-[11px] font-bold">Recebido</span>;
+      return <span className={cn(base, "bg-emerald-50 text-emerald-700 ring-emerald-200")}>Recebido</span>;
     if (due) {
       const d = startOfDay(new Date(due));
       const t = startOfDay(new Date());
       if (isBefore(d, t))
-        return <span className="px-3 py-1 rounded-md bg-red-500 text-white text-[11px] font-bold">Vencido</span>;
+        return <span className={cn(base, "bg-red-50 text-red-700 ring-red-200")}>Vencido</span>;
       if (isToday(d))
-        return <span className="px-3 py-1 rounded-md bg-amber-500 text-white text-[11px] font-bold">Recebe hoje</span>;
+        return <span className={cn(base, "bg-amber-50 text-amber-700 ring-amber-200")}>Recebe hoje</span>;
     }
-    return <span className="px-3 py-1 rounded-md bg-slate-400 text-white text-[11px] font-bold">A receber</span>;
+    return <span className={cn(base, "bg-blue-50 text-blue-700 ring-blue-200")}>A receber</span>;
   };
+
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -314,140 +324,160 @@ function ReceitasPage() {
           subtitle="Gerencie todas as receitas e contas a receber"
           toggleSidebar={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto p-6 space-y-5">
-          <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold">
+        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
             <Home className="h-3.5 w-3.5" />
             <span>Financeiro</span>
             <ChevronRight className="h-3 w-3" />
-            <span>Receitas</span>
+            <span className="text-slate-900 font-semibold">Receitas</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {kpiCards.map((k) => {
               const Icon = k.icon;
               const active = quickFilter === k.key && k.key !== "";
+              const t = toneStyles[k.tone];
+              const isDark = k.tone === "dark";
               return (
-                <div
+                <button
                   key={k.label}
+                  type="button"
+                  onClick={() => k.key && setQuickFilter(quickFilter === k.key ? "" : k.key)}
                   className={cn(
-                    "rounded-md overflow-hidden border border-emerald-600 bg-emerald-500 text-white shadow-sm transition hover:shadow-md",
-                    active && "ring-2 ring-emerald-900",
+                    "group relative text-left rounded-xl border border-slate-200 border-l-4 p-4 shadow-sm transition hover:shadow-md hover:-translate-y-0.5",
+                    t.border,
+                    isDark ? "bg-slate-900 text-white" : "bg-white",
+                    active && "ring-2 ring-emerald-500/40",
                   )}
                 >
-                  <div className="px-4 py-3 flex items-start justify-between">
-                    <div>
-                      <div className="text-2xl font-black leading-tight">{fmt(k.value)}</div>
-                      <div className="text-[11px] opacity-90 mt-1 font-medium">{k.label}</div>
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0">
+                      <p className={cn("text-[10px] font-bold uppercase tracking-wider", isDark ? "text-slate-300" : "text-slate-500")}>
+                        {k.label}
+                      </p>
+                      <p className={cn("text-2xl font-bold mt-1 tabular-nums", isDark ? "text-white" : "text-slate-900")}>
+                        R$ {fmt(k.value)}
+                      </p>
                     </div>
-                    <Icon className="h-7 w-7 opacity-70" strokeWidth={2.2} />
+                    <div className={cn("h-9 w-9 rounded-lg grid place-items-center shrink-0", t.chip)}>
+                      <Icon className="h-4.5 w-4.5" strokeWidth={2.2} />
+                    </div>
                   </div>
-                  <button
-                    onClick={() => k.key && setQuickFilter(quickFilter === k.key ? "" : k.key)}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-[11px] font-bold uppercase tracking-wide py-2 flex items-center justify-center gap-1 transition border-t border-emerald-700"
-                  >
-                    Ver detalhes <ArrowRight className="h-3 w-3" />
-                  </button>
-                </div>
+                  <div className={cn("mt-3 inline-flex items-center text-[10px] font-bold uppercase tracking-wider", isDark ? "text-slate-300 group-hover:text-white" : t.accent)}>
+                    Ver detalhes <ArrowRight className="h-3 w-3 ml-1 transition group-hover:translate-x-0.5" />
+                  </div>
+                </button>
               );
             })}
           </div>
 
-          <div className="bg-slate-50 border border-slate-200 rounded-md p-3 flex flex-wrap items-center gap-2 justify-end">
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setIsFormOpen(true);
-              }}
-              className="h-9 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-md"
-            >
-              <Plus className="h-4 w-4 mr-1" /> Nova receita
-            </Button>
-            <Button variant="outline" className="h-9 text-xs border-emerald-500 text-emerald-700 hover:bg-emerald-50 font-bold rounded-md">
-              <RefreshCw className="h-4 w-4 mr-1" /> Receitas Fixas
-            </Button>
-            <Button variant="outline" className="h-9 text-xs font-bold rounded-md">
-              <List className="h-4 w-4 mr-1" /> Modelo de lista
-            </Button>
-            <Button variant="outline" className="h-9 text-xs font-bold rounded-md">
-              <Filter className="h-4 w-4 mr-1" /> Filtros
-            </Button>
-            <Button
-              variant="outline"
-              onClick={clearFilters}
-              className="h-9 text-xs font-bold rounded-md text-amber-700 border-amber-300"
-            >
-              <Eraser className="h-4 w-4 mr-1" /> Limpar filtros
-            </Button>
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="h-9 px-3 rounded-md border border-slate-300 text-xs font-bold bg-white"
-            >
-              {[25, 50, 100, 200].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            <Button variant="outline" className="h-9 text-xs font-bold rounded-md">
-              <LayoutGrid className="h-4 w-4 mr-1" /> Ações em lote
-            </Button>
-            <Button variant="outline" className="h-9 text-xs font-bold rounded-md">
-              <Wrench className="h-4 w-4 mr-1" /> Ferramentas
-            </Button>
-          </div>
-
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">
-                Filtro rápido
-              </label>
-              <select
-                value={quickFilter}
-                onChange={(e) => setQuickFilter(e.target.value)}
-                className="h-9 w-52 px-3 rounded-md border border-slate-300 text-xs bg-white"
-              >
-                <option value="">Selecionar</option>
-                <option value="hoje">Recebem hoje</option>
-                <option value="vencidos">Vencidos</option>
-                <option value="a_receber">A receber</option>
-                <option value="recebidos">Recebidos</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-600 block mb-1">
-                Período de vencimento
-              </label>
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
+            <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  onClick={() => {
+                    setEditing(null);
+                    setIsFormOpen(true);
+                  }}
+                  className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-lg shadow-sm"
+                >
+                  <Plus className="h-4 w-4 mr-1.5" /> Nova receita
+                </Button>
+                <Button variant="outline" className="h-9 text-xs font-medium rounded-lg border-slate-200">
+                  <RefreshCw className="h-4 w-4 mr-1.5 text-slate-400" /> Receitas Fixas
+                </Button>
+                <div className="h-6 w-px bg-slate-200 mx-1" />
+                <Button variant="ghost" className="h-9 text-xs font-medium rounded-lg text-slate-600">
+                  <List className="h-4 w-4 mr-1.5 text-slate-400" /> Modelo de lista
+                </Button>
+                <Button variant="ghost" className="h-9 text-xs font-medium rounded-lg text-slate-600">
+                  <Filter className="h-4 w-4 mr-1.5 text-slate-400" /> Filtros
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={clearFilters}
+                  className="h-9 text-xs font-medium rounded-lg text-amber-600 hover:bg-amber-50"
+                >
+                  <Eraser className="h-4 w-4 mr-1.5" /> Limpar filtros
+                </Button>
+              </div>
               <div className="flex items-center gap-2">
-                <button className="h-9 w-9 grid place-items-center border border-slate-300 rounded-md hover:bg-slate-50">
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
-                <input
-                  type="date"
-                  value={from}
-                  onChange={(e) => setFrom(e.target.value)}
-                  className="h-9 px-3 rounded-md border border-slate-300 text-xs"
-                />
-                <input
-                  type="date"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                  className="h-9 px-3 rounded-md border border-slate-300 text-xs"
-                />
-                <button className="h-9 w-9 grid place-items-center border border-slate-300 rounded-md hover:bg-slate-50">
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="h-9 px-3 rounded-lg border border-slate-200 text-xs font-medium bg-white"
+                >
+                  {[25, 50, 100, 200].map((n) => (
+                    <option key={n} value={n}>
+                      {n} por página
+                    </option>
+                  ))}
+                </select>
+                <Button variant="outline" className="h-9 text-xs font-medium rounded-lg border-slate-200">
+                  <LayoutGrid className="h-4 w-4 mr-1.5 text-slate-400" /> Ações em lote
+                </Button>
+                <Button variant="outline" className="h-9 text-xs font-medium rounded-lg border-slate-200">
+                  <Wrench className="h-4 w-4 mr-1.5 text-slate-400" /> Ferramentas
+                </Button>
               </div>
             </div>
-            <Button
-              onClick={() => fetchData()}
-              className="h-9 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-md"
-            >
-              <Search className="h-4 w-4 mr-1" /> Buscar
-            </Button>
+
+            <div className="p-4 grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-3 items-end">
+              <div className="lg:col-span-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                  Filtro rápido
+                </label>
+                <select
+                  value={quickFilter}
+                  onChange={(e) => setQuickFilter(e.target.value)}
+                  className="h-9 w-full px-3 rounded-lg border border-slate-200 text-xs bg-white focus:ring-2 focus:ring-emerald-500/40 outline-none"
+                >
+                  <option value="">Selecionar</option>
+                  <option value="hoje">Recebem hoje</option>
+                  <option value="vencidos">Vencidos</option>
+                  <option value="a_receber">A receber</option>
+                  <option value="recebidos">Recebidos</option>
+                </select>
+              </div>
+              <div className="lg:col-span-3">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
+                  Período de vencimento
+                </label>
+                <div className="flex items-center gap-2">
+                  <button className="h-9 w-9 grid place-items-center border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-500">
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="date"
+                    value={from}
+                    onChange={(e) => setFrom(e.target.value)}
+                    className="h-9 flex-1 px-3 rounded-lg border border-slate-200 text-xs"
+                  />
+                  <span className="text-slate-400 text-xs">até</span>
+                  <input
+                    type="date"
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
+                    className="h-9 flex-1 px-3 rounded-lg border border-slate-200 text-xs"
+                  />
+                  <button className="h-9 w-9 grid place-items-center border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-500">
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div>
+                <Button
+                  onClick={() => fetchData()}
+                  className="h-9 w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg"
+                >
+                  <Search className="h-4 w-4 mr-1.5" /> Buscar
+                </Button>
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-md overflow-hidden">
+
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 border-b border-slate-200">
@@ -603,7 +633,7 @@ function ReceitasPage() {
                           </td>
                           <td className="px-3 py-2 font-mono text-[11px]">{shortId}</td>
                           <td className="px-3 py-2">
-                            <span className="px-2 py-0.5 rounded bg-slate-500 text-white text-[10px] font-bold capitalize">
+                            <span className="inline-flex px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
                               {origem}
                             </span>
                           </td>
