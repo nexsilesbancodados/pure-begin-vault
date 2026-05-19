@@ -11,6 +11,10 @@ import {
   Info,
   Target,
   AlertTriangle,
+  CreditCard,
+  Wallet,
+  Smartphone,
+  ChevronRight,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -62,7 +66,7 @@ import { useOrg } from "@/lib/useOrg";
 import { startOfDay, endOfDay, format as formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Package, User as UserIcon } from "lucide-react";
+import { Package, User as UserIcon, Coins } from "lucide-react";
 
 export function KpiCard({
   label,
@@ -89,7 +93,7 @@ export function KpiCard({
   const { user } = useAuth();
   const { orgId } = useOrg();
 
-  const IconsMap: Record<string, any> = { ShoppingBag, Wrench, Box, DollarSign, Users, TrendingUp };
+  const IconsMap: Record<string, any> = { ShoppingBag, Wrench, Box, DollarSign, Users, TrendingUp, Activity, Smartphone, CreditCard, Wallet };
 
   useEffect(() => {
     if (!isModalOpen || !date || !user?.id || !orgId) return;
@@ -102,12 +106,12 @@ export function KpiCard({
         const l = label.toLowerCase();
 
         const filterFor = (q: any) => q.eq("organization_id", orgId);
-        if (l.includes("vendas") || l.includes("faturamento")) {
+        if (l.includes("vendas") || l.includes("faturamento") || l.includes("ticket")) {
           const { data } = await filterFor(
             supabase
               .from("sales_orders")
-              .select("total_amount, items, created_at, id, customers(name)")
-              .eq("status", "concluded")
+              .select("total_amount, items, created_at, id, payment_method, customers(name)")
+              .in("status", ["completed", "concluded"])
               .gte("created_at", start.toISOString())
               .lte("created_at", end.toISOString())
               .order("created_at", { ascending: false }),
@@ -173,7 +177,7 @@ export function KpiCard({
       <button
         onClick={() => setIsModalOpen(true)}
         aria-label={`${label}: ${initialValue}${trend ? `, tendência ${trend}` : ""}. Ver detalhes`}
-        className={`relative overflow-hidden rounded-2xl bg-card border border-border p-3 sm:p-4 shadow-card hover:shadow-elegant hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 text-left w-full group hover:ring-2 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${styles.ring}`}
+        className={`relative overflow-hidden rounded-2xl bg-card border border-border p-3 sm:p-4 shadow-card hover:shadow-elegant hover:-translate-y-1 active:scale-[0.98] transition-all duration-300 text-left w-full group hover:ring-2 min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${styles.ring}`}
       >
         {/* Top highlight line */}
         <div
@@ -183,7 +187,7 @@ export function KpiCard({
         {/* Gradient wash */}
         <div
           aria-hidden
-          className={`absolute inset-0 bg-gradient-to-br ${styles.gradient} opacity-40 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-0`}
+          className={`absolute inset-0 bg-gradient-to-br ${styles.gradient} opacity-20 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-0`}
         />
         {/* Corner glow on hover */}
         <div
@@ -195,34 +199,31 @@ export function KpiCard({
           aria-hidden
           className="pointer-events-none absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1100ms] ease-out bg-gradient-to-r from-transparent via-white/[0.07] to-transparent"
         />
-        <span
-          role="button"
-          tabIndex={0}
-          aria-label={`Abrir página de ${label}`}
-          onClick={handleAction}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              handleAction(e as unknown as React.MouseEvent);
-            }
-          }}
-          className="absolute top-3 right-3 p-1 rounded-md hover:bg-primary/10 transition-colors z-20 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          title="Ver detalhes na página"
-        >
-          <ArrowUpRight aria-hidden className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-        </span>
+        
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+          <span className="text-[10px] font-bold text-muted-foreground/60">Detalhar</span>
+          <div 
+            role="button"
+            tabIndex={0}
+            onClick={handleAction}
+            className="p-1 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors"
+          >
+            <ArrowUpRight aria-hidden className="h-3.5 w-3.5 text-primary" />
+          </div>
+        </div>
+
         <div className="flex items-start gap-3 relative z-10">
           <div
-            className={`h-10 w-10 rounded-xl grid place-items-center shrink-0 ring-1 ring-inset ring-current/15 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-4deg] group-hover:shadow-md ${styles.icon}`}
+            className={`h-11 w-11 rounded-xl grid place-items-center shrink-0 ring-1 ring-inset ring-current/15 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-[-4deg] group-hover:shadow-md ${styles.icon}`}
           >
-            <Icon aria-hidden className="h-[18px] w-[18px]" />
+            <Icon aria-hidden className="h-[20px] w-[20px]" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[10.5px] text-muted-foreground font-semibold uppercase tracking-wider group-hover:text-foreground transition-colors pr-5">
+            <div className="text-[10.5px] text-muted-foreground font-semibold uppercase tracking-wider group-hover:text-foreground transition-colors pr-8">
               {label}
             </div>
-            <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
-              <span className="text-[17px] sm:text-[20px] lg:text-[22px] font-bold tracking-tight font-display truncate max-w-full">
+            <div className="mt-1 flex items-baseline gap-2 flex-wrap">
+              <span className="text-[18px] sm:text-[22px] lg:text-[24px] font-bold tracking-tight font-display truncate max-w-full">
                 {initialValue}
               </span>
               {trend && (
@@ -231,7 +232,10 @@ export function KpiCard({
                 </span>
               )}
             </div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>
+            <div className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1">
+              <div className="w-1 h-1 rounded-full bg-current opacity-40" />
+              {sub}
+            </div>
           </div>
         </div>
       </button>
@@ -302,64 +306,114 @@ export function KpiCard({
 
             {salesData.length > 0 &&
               (label.toLowerCase().includes("vendas") ||
-                label.toLowerCase().includes("faturamento")) && (
-                <div className="space-y-3">
+                label.toLowerCase().includes("faturamento") ||
+                label.toLowerCase().includes("ticket")) && (
+                <div className="space-y-4 mt-2">
                   <div className="flex items-center justify-between px-1">
                     <h4 className="text-sm font-bold flex items-center gap-2">
                       <ShoppingBag className="h-4 w-4 text-primary" />
-                      Vendas Realizadas
+                      Vendas do Período
                     </h4>
-                    <Badge variant="outline" className="text-[10px] font-bold">
+                    <Badge variant="secondary" className="text-[10px] font-bold bg-primary/10 text-primary border-none">
                       {salesData.length} {salesData.length === 1 ? "venda" : "vendas"}
                     </Badge>
                   </div>
 
-                  <ScrollArea className="h-[200px] w-full rounded-xl border border-border bg-muted/20 p-3">
+                  {/* Payment Summary */}
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {Object.entries(
+                      salesData.reduce((acc: any, curr: any) => {
+                        const method = curr.payment_method || "Outros";
+                        acc[method] = (acc[method] || 0) + (Number(curr.total_amount) || 0);
+                        return acc;
+                      }, {}),
+                    ).map(([method, total]: [string, any]) => (
+                      <div
+                        key={method}
+                        className="shrink-0 px-3 py-2 rounded-xl border border-border bg-card shadow-sm flex items-center gap-2"
+                      >
+                        <div className="h-6 w-6 rounded-lg bg-primary/5 grid place-items-center">
+                          {method.toLowerCase().includes("pix") ? (
+                            <Smartphone className="h-3 w-3 text-primary" />
+                          ) : method.toLowerCase().includes("cart") ? (
+                            <CreditCard className="h-3 w-3 text-primary" />
+                          ) : (
+                            <Coins className="h-3 w-3 text-primary" />
+                          )}
+                        </div>
+                        <div className="min-w-[60px]">
+                          <p className="text-[9px] uppercase font-bold text-muted-foreground leading-none mb-1">
+                            {method}
+                          </p>
+                          <p className="text-[11px] font-black tracking-tight leading-none">
+                            {total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <ScrollArea className="h-[240px] w-full rounded-2xl border border-border bg-muted/20 p-3">
                     <div className="space-y-3">
                       {salesData.map((sale) => (
                         <div
                           key={sale.id}
-                          className="p-2.5 rounded-lg bg-card border border-border/50 shadow-sm space-y-2"
+                          className="p-3 rounded-xl bg-card border border-border/60 shadow-sm space-y-3 group/sale relative overflow-hidden"
                         >
+                          <div
+                            className="absolute inset-y-0 left-0 w-1 bg-primary/40 opacity-0 group-hover/sale:opacity-100 transition-opacity"
+                          />
                           <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-2">
-                              <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
-                                <UserIcon className="h-3.5 w-3.5 text-primary" />
+                            <div className="flex items-center gap-2.5">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                                <UserIcon className="h-4 w-4 text-primary" />
                               </div>
                               <div>
-                                <p className="text-[11px] font-bold leading-none">
+                                <p className="text-[12px] font-bold leading-none">
                                   {sale.customers?.name || "Consumidor Final"}
                                 </p>
-                                <p className="text-[9px] text-muted-foreground mt-1">
-                                  {formatDate(new Date(sale.created_at), "HH:mm", { locale: ptBR })}{" "}
-                                  • #{sale.id.slice(0, 8)}
-                                </p>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {formatDate(new Date(sale.created_at), "HH:mm", { locale: ptBR })}
+                                  </span>
+                                  <div className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                                  <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-border/80 text-muted-foreground/80 font-medium">
+                                    {sale.payment_method || "Não inf."}
+                                  </Badge>
+                                </div>
                               </div>
                             </div>
-                            <span className="text-xs font-black text-primary">
-                              {(Number(sale.total_amount) || 0).toLocaleString("pt-BR", {
-                                style: "currency",
-                                currency: "BRL",
-                              })}
-                            </span>
+                            <div className="text-right">
+                              <span className="text-sm font-black text-primary block">
+                                {(Number(sale.total_amount) || 0).toLocaleString("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })}
+                              </span>
+                              <span className="text-[9px] text-muted-foreground font-mono">
+                                #{sale.id.slice(0, 8)}
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="pt-1.5 border-t border-dashed border-border flex flex-wrap gap-1">
+                          <div className="pt-2.5 border-t border-dashed border-border/80 flex flex-col gap-1.5">
                             {Array.isArray(sale.items) && sale.items.length > 0 ? (
                               sale.items.map((item: any, idx: number) => (
                                 <div
                                   key={idx}
-                                  className="flex flex-col gap-0.5 bg-muted/50 p-1.5 rounded-md border border-border/30 w-full"
+                                  className="flex flex-col gap-1 bg-muted/30 p-2 rounded-lg border border-border/20"
                                 >
                                   <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                      <Package className="h-3 w-3 text-muted-foreground shrink-0" />
-                                      <span className="text-[10px] font-bold truncate">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="h-5 w-5 rounded bg-card border border-border/50 grid place-items-center shrink-0">
+                                        <Package className="h-3 w-3 text-muted-foreground" />
+                                      </div>
+                                      <span className="text-[11px] font-bold truncate">
                                         {item.quantity}x {item.name}
                                       </span>
                                     </div>
-                                    <span className="text-[9px] font-black text-muted-foreground shrink-0">
-                                      {(item.price * item.quantity).toLocaleString("pt-BR", {
+                                    <span className="text-[10px] font-black text-foreground/70 shrink-0">
+                                      {(Number(item.price || 0) * (Number(item.quantity) || 1)).toLocaleString("pt-BR", {
                                         style: "currency",
                                         currency: "BRL",
                                       })}
