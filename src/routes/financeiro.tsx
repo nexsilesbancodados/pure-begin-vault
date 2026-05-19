@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { HubHero } from "@/components/layout/HubHero";
@@ -91,7 +91,13 @@ const modules: { title: string; desc: string; url: string; icon: any; tone: Feat
 ];
 
 function FinancePage() {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  if (location.pathname !== "/financeiro") {
+    return <Outlet />;
+  }
+
   return (
     <div className="min-h-screen flex w-full bg-background">
       <AppSidebar open={sidebarOpen} setOpen={setSidebarOpen} />
