@@ -16,7 +16,7 @@ export function AppSidebar({
   setOpen?: (val: boolean) => void;
 }) {
   const location = useLocation();
-  const { profile, logout } = useAuth();
+  const { profile, user, logout } = useAuth();
   const [flyout, setFlyout] = useState<any | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isForcedCollapsed, setIsForcedCollapsed] = useState(false);
@@ -42,7 +42,9 @@ export function AppSidebar({
   const filteredItems = useMemo(() => {
     const role = String(profile?.role ?? "").toLowerCase();
     const isPrivileged = role === "super_admin" || role === "owner";
-    const allowed = (profile as { allowed_menu?: string[] | null } | null)?.allowed_menu;
+    const profileAllowed = (profile as { allowed_menu?: string[] | null } | null)?.allowed_menu;
+    const metaAllowed = (user?.user_metadata as { allowed_menu?: string[] | null } | undefined)?.allowed_menu;
+    const allowed = Array.isArray(profileAllowed) && profileAllowed.length > 0 ? profileAllowed : metaAllowed;
     const normalize = (value: string) => value.toLowerCase().trim();
     const aliases: Record<string, string[]> = {
       "Sistema": ["Sistema / Parametrização", "Parametrização"],
@@ -61,25 +63,50 @@ export function AppSidebar({
       return (aliases[title] ?? []).some((alias) => allowedSet.has(normalize(alias)));
     };
 
-    return sidebarItems
-      .filter((item: any) => {
-        if (item.type === "header") return true;
-        if (item.roleRestriction === "super_admin" && profile?.role !== "super_admin") return false;
-        if (allowedSet && !isAllowed(String(item.title))) {
-          return item.children?.some((child: any) => isAllowed(String(child.title)));
+    // Primeiro passe: filtra itens (e filhos) por permissão.
+    const visibleItems: any[] = [];
+    for (const item of sidebarItems as any[]) {
+      if (item.type === "header") {
+        visibleItems.push(item);
+        continue;
+      }
+      if (item.roleRestriction === "super_admin" && profile?.role !== "super_admin") continue;
+
+      const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+      const filteredChildren = hasChildren && allowedSet
+        ? item.children.filter((c: any) => isAllowed(String(c.title)))
+        : item.children;
+
+      const parentAllowed = isAllowed(String(item.title));
+      const anyChildAllowed = Array.isArray(filteredChildren) && filteredChildren.length > 0;
+
+      // Quando existe restrição: parent só aparece se ele OU pelo menos um filho for permitido.
+      if (allowedSet && !parentAllowed && !anyChildAllowed) continue;
+
+      const next: any = { ...item, children: filteredChildren };
+      if (item.url === "/importacao") {
+        next.badge = activeCount > 0 ? String(activeCount) : undefined;
+      }
+      visibleItems.push(next);
+    }
+
+    // Segundo passe: remove headers sem itens visíveis abaixo.
+    const result: any[] = [];
+    for (let i = 0; i < visibleItems.length; i += 1) {
+      const it = visibleItems[i];
+      if (it.type === "header") {
+        let hasAny = false;
+        for (let j = i + 1; j < visibleItems.length; j += 1) {
+          if (visibleItems[j].type === "header") break;
+          hasAny = true;
+          break;
         }
-        return true;
-      })
-      .map((item: any) => {
-        const visibleChildren = allowedSet && Array.isArray(item.children)
-          ? item.children.filter((child: any) => isAllowed(String(child.title)))
-          : item.children;
-        if (item.url === "/importacao") {
-          return { ...item, children: visibleChildren, badge: activeCount > 0 ? String(activeCount) : undefined };
-        }
-        return { ...item, children: visibleChildren };
-      });
-  }, [profile, activeCount]);
+        if (!hasAny) continue;
+      }
+      result.push(it);
+    }
+    return result;
+  }, [profile, user, activeCount]);
 
   const isSmall = isCollapsed || !!flyout || isForcedCollapsed;
 
