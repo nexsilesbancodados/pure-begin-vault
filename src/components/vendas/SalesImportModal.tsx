@@ -937,13 +937,32 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                           ],
                         },
                       ]
+                    : kind === "estoque"
+                    ? [
+                        {
+                          title: "Dados do Produto",
+                          fields: [
+                            { field: "product", label: "Nome do Produto *", required: true },
+                            { field: "product_sku", label: "Código / SKU" },
+                            { field: "category", label: "Categoria" },
+                          ],
+                        },
+                        {
+                          title: "Valores e Estoque",
+                          fields: [
+                            { field: "quantity", label: "Qtd em estoque" },
+                            { field: "unit_price", label: "Preço de Venda" },
+                            { field: "cost_price", label: "Preço de Custo" },
+                          ],
+                        },
+                      ]
                     : [
                         {
                           title: "Venda",
                           fields: [
-                            { field: "amount", label: "Valor *", required: true },
-                            { field: "date", label: "Data" },
-                            { field: "payment", label: "Pagamento" },
+                            { field: "amount", label: "Valor Total *", required: true },
+                            { field: "date", label: "Data da Venda" },
+                            { field: "payment", label: "Forma de Pagamento" },
                             { field: "status", label: "Status" },
                           ],
                         },
@@ -957,12 +976,12 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                           ],
                         },
                         {
-                          title: "Produto",
+                          title: "Item Vendido",
                           fields: [
                             { field: "product", label: "Produto" },
                             { field: "quantity", label: "Quantidade" },
                             { field: "unit_price", label: "Preço unitário" },
-                            { field: "notes", label: "Observação" },
+                            { field: "discount", label: "Desconto" },
                           ],
                         },
                       ]
