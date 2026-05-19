@@ -12,7 +12,7 @@ import {
   Activity,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { SalesImportModal } from "./SalesImportModal";
+import { ImportModal } from "@/components/import/ImportModal";
 import { useNavigate } from "@tanstack/react-router";
 import { SalesHistory } from "./SalesHistory";
 import { supabase } from "@/integrations/supabase/client";
