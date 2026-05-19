@@ -454,6 +454,7 @@ export function SalesHistory() {
           const { data: prods } = await (supabase as any)
             .from("products")
             .select("id, name, brand, model, category, metadata, sku")
+            .eq("organization_id", orgId)
             .in("id", productIds);
           for (const p of prods ?? []) productsById[p.id] = p;
         }
@@ -1241,7 +1242,8 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                                   const { error } = await supabase
                                     .from("sales_orders")
                                     .update({ status: "canceled" })
-                                    .eq("id", sale.id);
+                                    .eq("id", sale.id)
+                                    .eq("organization_id", orgId);
                                   if (error) throw error;
                                   toast.success("Venda cancelada!");
                                   fetchSales();
