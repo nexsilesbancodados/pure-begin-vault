@@ -276,6 +276,46 @@ const isPurchaseNotesUnavailable = (error: unknown) => {
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
+// Sincroniza estoque para itens vinculados a uma nota de compra.
+// delta = +1 para entrada (nota criada), -1 para estorno (nota excluída).
+async function syncStockForNotaItems(
+  items: Product[],
+  opts: { orgId: string; userId: string | null; notaId: string; delta: 1 | -1 },
+) {
+  const valid = items.filter((p) => p && p.id && !p.id.startsWith("__"));
+  if (valid.length === 0) return;
+  await Promise.all(
+    valid.map(async (p) => {
+      try {
+        const { data: current } = await supabase
+          .from("products")
+          .select("stock_quantity")
+          .eq("id", p.id)
+          .maybeSingle();
+        const cur = Number((current as { stock_quantity?: number } | null)?.stock_quantity ?? 0);
+        const next = Math.max(0, cur + opts.delta);
+        await supabase
+          .from("products")
+          .update({ stock_quantity: next, updated_at: new Date().toISOString() })
+          .eq("id", p.id);
+        await supabase.from("stock_movements" as never).insert({
+          organization_id: opts.orgId,
+          user_id: opts.userId,
+          product_id: p.id,
+          movement_type: opts.delta > 0 ? "in" : "out",
+          quantity: 1,
+          unit_cost: Number(p.cost_price ?? p.price ?? 0) || null,
+          reason: opts.delta > 0 ? "compra" : "estorno",
+          reference_type: "purchase_note",
+          reference_id: opts.notaId,
+        } as never);
+      } catch {
+        // não bloqueia o fluxo se sincronização falhar
+      }
+    }),
+  );
+}
+
 const serializeItems = (
   items: Product[],
   comprovanteUrls?: string[] | null,
@@ -613,7 +653,16 @@ function NotasAbertoPage() {
           .select("*")
           .single();
 
-        if (!error) return mapPurchaseNote(data as PurchaseNoteRow);
+          if (!error) {
+            const created = mapPurchaseNote(data as PurchaseNoteRow);
+            await syncStockForNotaItems(items, {
+              orgId,
+              userId,
+              notaId: created.id,
+              delta: 1,
+            });
+            return created;
+          }
         if (isPurchaseNotesUnavailable(error)) {
           setNotesDbUnavailable(true);
           toast.warning("Banco de notas ainda não aplicado. A nota será salva localmente por enquanto.");
@@ -657,8 +706,16 @@ function NotasAbertoPage() {
       return;
     }
 
+    if (orgId) {
+      await syncStockForNotaItems(nota.items, {
+        orgId,
+        userId,
+        notaId: nota.id,
+        delta: -1,
+      });
+    }
     replaceNotas((prev) => prev.filter((x) => x.id !== nota.id));
-    toast.success(`Nota ${nota.noteNumber} excluída.`);
+    toast.success(`Nota ${nota.noteNumber} excluída. Estoque ajustado.`);
   };
 
   const handleSaveProduct = async (data: ProductFormValues) => {
@@ -795,19 +852,32 @@ function NotasAbertoPage() {
         const nota = notas.find((n) => n.id === addingToNotaId);
         if (nota) {
           const existing = new Set(nota.items.map((i) => i.id));
-          const merged = [...nota.items, ...items.filter((i) => !existing.has(i.id))];
+          const newItems = items.filter((i) => !existing.has(i.id));
+          const merged = [...nota.items, ...newItems];
           const updated = { ...nota, items: merged, total: getNoteTotal(merged) };
           updateNota(addingToNotaId, { items: updated.items, total: updated.total });
           const ok = await persistNota(updated);
           if (!ok) return;
-          toast.success(`Produto(s) adicionado(s) à Nota ${nota.noteNumber}.`);
+          if (orgId && newItems.length > 0) {
+            await syncStockForNotaItems(newItems, {
+              orgId,
+              userId,
+              notaId: nota.id,
+              delta: 1,
+            });
+          }
+          toast.success(
+            `Produto(s) adicionado(s) à Nota ${nota.noteNumber}. Estoque atualizado.`,
+          );
         }
         setAddingToNotaId(null);
       } else {
         const created = await createNota(items);
         if (!created) return;
         replaceNotas((prev) => [...prev, created].sort((a, b) => a.noteNumber - b.noteNumber));
-        toast.success(`Nota ${created.noteNumber} criada com ${items.length} produto(s).`);
+        toast.success(
+          `Nota ${created.noteNumber} criada com ${items.length} produto(s). Estoque sincronizado.`,
+        );
       }
 
       setSelected({});
