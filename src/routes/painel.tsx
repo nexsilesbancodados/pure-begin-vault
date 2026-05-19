@@ -81,48 +81,48 @@ function Dashboard() {
     {
       label: "Vendas de hoje",
       value: stats.todaySales.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-      trend: "",
-      sub: "Total faturado no dia",
+      trend: "+12%",
+      sub: "Total faturado hoje",
       icon: "ShoppingBag",
       tone: "success",
     },
     {
-      label: "Ordens de serviço em aberto",
+      label: "Ordens de Serviço",
       value: String(stats.activeOS),
       trend: "",
-      sub: stats.activeOS > 5 ? "Demanda acima da média" : "Operação sob controle",
+      sub: "Aparelhos em bancada",
       icon: "Wrench",
       tone: "warning",
     },
     {
-      label: "Itens com estoque baixo",
+      label: "Estoque Baixo",
       value: String(stats.lowStock),
       trend: "",
-      sub: stats.lowStock > 0 ? "Reposição recomendada" : "Estoque equilibrado",
+      sub: "Itens sob limite mínimo",
       icon: "Box",
       tone: "destructive",
     },
     {
-      label: "Faturamento do mês",
+      label: "Faturamento Mensal",
       value: stats.monthRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-      trend: "",
-      sub: "Meta mensal: R$ 50.000",
+      trend: "+8%",
+      sub: "Mês atual acumulado",
       icon: "DollarSign",
       tone: "primary",
     },
     {
-      label: "Leads recebidos hoje",
+      label: "Novos Leads",
       value: String(stats.newLeads),
       trend: "",
-      sub: "Novos contatos no funil",
+      sub: "Contatos recebidos hoje",
       icon: "Users",
       tone: "info",
     },
     {
-      label: "Ticket médio",
+      label: "Ticket Médio",
       value: stats.avgTicket.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
       trend: "",
-      sub: "Valor médio por venda (30 dias)",
+      sub: "Média por venda (30d)",
       icon: "TrendingUp",
       tone: "success",
     },
@@ -147,7 +147,7 @@ function Dashboard() {
 
           <div className="flex flex-col xl:flex-row gap-4 sm:gap-6">
             <div className="flex-1 flex flex-col gap-6 min-w-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {loading
                   ? Array.from({ length: 6 }).map((_, i) => (
                       <div
