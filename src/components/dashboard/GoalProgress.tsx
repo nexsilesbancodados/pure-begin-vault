@@ -13,8 +13,10 @@ import {
   Rocket,
   DollarSign,
   Package,
-  TrendingDown,
   CheckCircle2,
+  PieChart,
+  ArrowRight,
+  Calculator,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,8 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -43,7 +45,7 @@ interface GoalProgressProps {
 }
 
 export function GoalProgress({
-  current,
+  current: parentCurrent,
   goal: initialGoal = 50000,
   onGoalUpdate,
 }: GoalProgressProps) {
@@ -63,18 +65,20 @@ export function GoalProgress({
   };
   const [goals, setGoals] = useState(initialGoalState);
   const [editGoals, setEditGoals] = useState(initialGoalState);
+  const [stats, setStats] = useState({ revenue: 0, units: 0, profit: 0, avgTicket: 0 });
 
   useEffect(() => {
-    if (user?.id) {
-      fetchGoals();
-    }
+    if (user?.id) fetchGoals();
   }, [user?.id]);
 
+  useEffect(() => {
+    if (user?.id && orgId) fetchStats();
+  }, [user?.id, orgId]);
+
   const fetchGoals = async () => {
-    const { data, error } = await (supabase.from("business_goals").select("*") as any)
+    const { data } = await (supabase.from("business_goals").select("*") as any)
       .eq("user_id", user?.id || "")
       .maybeSingle();
-
     if (data) {
       const fetchedGoals = {
         daily: Number(data.daily_goal) || 0,
@@ -89,6 +93,28 @@ export function GoalProgress({
       setGoals(fetchedGoals);
       setEditGoals(fetchedGoals);
     }
+  };
+
+  const fetchStats = async () => {
+    const firstDayMonth = new Date();
+    firstDayMonth.setDate(1);
+    firstDayMonth.setHours(0, 0, 0, 0);
+
+    const { data: sales } = await supabase
+      .from("sales_orders")
+      .select("total_amount")
+      .gte("created_at", firstDayMonth.toISOString())
+      .eq("status", "concluded")
+      .eq("organization_id", orgId);
+
+    const revenue = sales?.reduce((acc, s) => acc + (Number(s.total_amount) || 0), 0) || 0;
+    const units = sales?.length || 0;
+    setStats({
+      revenue,
+      units,
+      profit: revenue * 0.3,
+      avgTicket: units > 0 ? revenue / units : 0,
+    });
   };
 
   const handleSave = async () => {
@@ -107,77 +133,27 @@ export function GoalProgress({
         notes: editGoals.notes,
         updated_at: new Date().toISOString(),
       } as any);
-
       if (error) throw error;
-
       setGoals({ ...editGoals });
       setIsModalOpen(false);
       toast.success("Metas atualizadas com sucesso!");
       if (onGoalUpdate) onGoalUpdate();
-    } catch (error) {
-      console.error("Erro ao salvar metas:", error);
+    } catch (e) {
       toast.error("Erro ao salvar metas");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // We need to fetch the actual value based on the goal type (revenue, units, profit)
-  // since the parent might only pass revenue.
-  const [calculatedCurrent, setCalculatedCurrent] = useState(current);
-
-  useEffect(() => {
-    const calculateValue = async () => {
-      if (!user?.id || !orgId) {
-        setCalculatedCurrent(0);
-        return;
-      }
-
-      const firstDayMonth = new Date();
-      firstDayMonth.setDate(1);
-      firstDayMonth.setHours(0, 0, 0, 0);
-
-      const { data: sales, error } = await supabase
-        .from("sales_orders")
-        .select("total_amount, status, created_at")
-        .gte("created_at", firstDayMonth.toISOString())
-        .eq("status", "concluded")
-        .eq("organization_id", orgId);
-
-      if (error) return;
-
-      if (goals.type === "units") {
-        setCalculatedCurrent(sales?.length || 0);
-      } else if (goals.type === "profit") {
-        // Assuming 30% profit if no cost data is available, otherwise sum profit field
-        const revenue = sales?.reduce((acc, s) => acc + (s.total_amount || 0), 0) || 0;
-        setCalculatedCurrent(revenue * 0.3);
-      } else {
-        const revenue = sales?.reduce((acc, s) => acc + (s.total_amount || 0), 0) || 0;
-        setCalculatedCurrent(revenue);
-      }
-    };
-
-    calculateValue();
-  }, [goals.type, user?.id, orgId, current]);
-
-  const displayCurrent = calculatedCurrent;
-  const pct = Math.min(100, Math.round((displayCurrent / (goals.monthly || 1)) * 100)) || 0;
-  const remaining = Math.max(0, (goals.monthly || 0) - displayCurrent);
+  const currentDisplay = goals.type === "units" ? stats.units : goals.type === "profit" ? stats.profit : stats.revenue;
+  const pct = Math.min(100, Math.round((currentDisplay / (goals.monthly || 1)) * 100)) || 0;
 
   const dayOfMonth = new Date().getDate();
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
   const expectedPct = Math.round((dayOfMonth / daysInMonth) * 100);
   const onTrack = pct >= expectedPct;
 
-  // Projections
-  const dailyProjection = editGoals.daily * daysInMonth;
-  const formatValue = (val: number) => {
-    if (editGoals.type === "units") return `${val} un.`;
-    return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  };
-
-  // SVG ring
+  // SVG ring logic
   const radius = 56;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (pct / 100) * circumference;
@@ -201,7 +177,7 @@ export function GoalProgress({
           </div>
           <div className="flex items-center gap-2">
             <span
-              className={`text-[10px] font-semibold px-2 py-1 rounded-full ${onTrack ? "bg-success/15 text-success" : "bg-warning/15 text-[oklch(0.55_0.15_75)]"}`}
+              className={`text-[10px] font-semibold px-2 py-1 rounded-full ${onTrack ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}
             >
               {onTrack ? "No ritmo" : "Atrasado"}
             </span>
@@ -210,83 +186,38 @@ export function GoalProgress({
         </div>
 
         <div className="flex items-center gap-4 relative min-w-0">
-          <div className="relative h-[120px] w-[120px] sm:h-[130px] sm:w-[130px] shrink-0">
+          <div className="relative h-[110px] w-[110px] shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 140 140">
-              <defs>
-                <linearGradient id="goalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="var(--color-primary)" />
-                  <stop offset="100%" stopColor="oklch(0.65 0.2 330)" />
-                </linearGradient>
-              </defs>
+              <circle cx="70" cy="70" r={radius} stroke="var(--color-muted)" strokeWidth="10" fill="none" />
               <circle
-                cx="70"
-                cy="70"
-                r={radius}
-                stroke="var(--color-muted)"
-                strokeWidth="10"
-                fill="none"
-              />
-              <circle
-                cx="70"
-                cy="70"
-                r={radius}
-                stroke="url(#goalGrad)"
-                strokeWidth="10"
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={offset}
+                cx="70" cy="70" r={radius}
+                stroke="var(--color-primary)" strokeWidth="10" fill="none" strokeLinecap="round"
+                strokeDasharray={circumference} strokeDashoffset={offset}
                 style={{ transition: "stroke-dashoffset 1s ease-out" }}
               />
             </svg>
             <div className="absolute inset-0 grid place-items-center text-center">
               <div>
-                <div className="text-[32px] font-black font-display tracking-tight bg-gradient-primary bg-clip-text text-transparent leading-none">
+                <div className="text-[28px] font-black font-display tracking-tight text-primary leading-none">
                   {pct}%
-                </div>
-                <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mt-1">
-                  atingido
                 </div>
               </div>
             </div>
           </div>
 
           <div className="flex-1 min-w-0 space-y-3">
-            <div className="min-w-0">
+            <div>
               <div className="text-[11px] text-muted-foreground">Realizado</div>
-              <div className="text-base sm:text-lg font-bold font-display truncate">
-                {goals.type === "units"
-                  ? `${displayCurrent} un.`
-                  : displayCurrent.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              <div className="text-lg font-bold font-display truncate">
+                {goals.type === "units" ? `${stats.units} un.` : stats.revenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </div>
             </div>
-            <div className="min-w-0">
-              <div className="text-[11px] text-muted-foreground">
-                Meta (
-                {goals.type === "revenue"
-                  ? "Faturamento"
-                  : goals.type === "units"
-                    ? "Aparelhos"
-                    : "Lucro"}
-                )
-              </div>
-              <div className="text-xs sm:text-sm font-semibold text-foreground/70 truncate">
-                {goals.type === "units"
-                  ? `${goals.monthly} un.`
-                  : (goals.monthly || 0).toLocaleString("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    })}
-              </div>
-            </div>
-            <div className="pt-2 border-t border-border min-w-0">
+            <div className="pt-2 border-t border-border">
               <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <TrendingUp className="h-3 w-3" /> Faltam
+                <PieChart className="h-3 w-3" /> Lucro Est.
               </div>
-              <div className="text-[13px] font-semibold text-primary truncate">
-                {goals.type === "units"
-                  ? `${remaining} un.`
-                  : remaining.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              <div className="text-[13px] font-semibold text-emerald-600 truncate">
+                {stats.profit.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
               </div>
             </div>
           </div>
@@ -294,282 +225,183 @@ export function GoalProgress({
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
-          <div className="bg-gradient-to-br from-primary/10 via-background to-background p-6">
-            <DialogHeader className="mb-6">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-2xl bg-primary shadow-lg shadow-primary/20 flex items-center justify-center transform -rotate-3 hover:rotate-0 transition-transform">
-                  <Trophy className="h-8 w-8 text-primary-foreground" />
-                </div>
-                <div>
-                  <DialogTitle className="text-2xl font-black tracking-tight">
-                    Definição de Metas
-                  </DialogTitle>
-                  <DialogDescription className="text-muted-foreground font-medium">
-                    Configure seus objetivos e acelere seus resultados.
-                  </DialogDescription>
-                </div>
-              </div>
-            </DialogHeader>
-
-            <div className="space-y-6">
-              {/* Goal Type Selection with Better UX */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[13px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Focar em:
-                  </Label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="max-w-xs text-xs">
-                          Escolha a métrica principal que deseja acompanhar no seu dashboard.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <ToggleGroup
-                  type="single"
-                  value={editGoals.type}
-                  onValueChange={(val) => val && setEditGoals({ ...editGoals, type: val as any })}
-                  className="grid grid-cols-3 gap-3"
-                >
-                  <ToggleGroupItem
-                    value="revenue"
-                    className="flex flex-col gap-2 h-auto py-4 rounded-2xl border-2 data-[state=on]:border-primary data-[state=on]:bg-primary/5 transition-all"
-                  >
-                    <DollarSign className="h-5 w-5" />
-                    <span className="text-[11px] font-bold">Faturamento</span>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="units"
-                    className="flex flex-col gap-2 h-auto py-4 rounded-2xl border-2 data-[state=on]:border-primary data-[state=on]:bg-primary/5 transition-all"
-                  >
-                    <Package className="h-5 w-5" />
-                    <span className="text-[11px] font-bold">Vendas (un)</span>
-                  </ToggleGroupItem>
-                  <ToggleGroupItem
-                    value="profit"
-                    className="flex flex-col gap-2 h-auto py-4 rounded-2xl border-2 data-[state=on]:border-primary data-[state=on]:bg-primary/5 transition-all"
-                  >
-                    <BarChart3 className="h-5 w-5" />
-                    <span className="text-[11px] font-bold">Lucro</span>
-                  </ToggleGroupItem>
-                </ToggleGroup>
-              </div>
-
-              <Separator className="bg-border/50" />
-
-              {/* Inputs Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="name" className="text-[13px] font-bold">
-                      Nome da Meta
-                    </Label>
-                    <Input
-                      id="name"
-                      value={editGoals.goal_name}
-                      onChange={(e) => setEditGoals({ ...editGoals, goal_name: e.target.value })}
-                      className="h-12 rounded-xl bg-card border-border/50"
-                      placeholder="Ex: Vendas de Verão"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="start" className="text-[13px] font-bold">
-                        Início
-                      </Label>
-                      <Input
-                        id="start"
-                        type="date"
-                        value={editGoals.start_date}
-                        onChange={(e) => setEditGoals({ ...editGoals, start_date: e.target.value })}
-                        className="h-12 rounded-xl bg-card border-border/50"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="end" className="text-[13px] font-bold">
-                        Término
-                      </Label>
-                      <Input
-                        id="end"
-                        type="date"
-                        value={editGoals.end_date}
-                        onChange={(e) => setEditGoals({ ...editGoals, end_date: e.target.value })}
-                        className="h-12 rounded-xl bg-card border-border/50"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label
-                      htmlFor="daily"
-                      className="text-[13px] font-bold flex items-center gap-2"
-                    >
-                      <Zap className="h-4 w-4 text-warning fill-warning/20" />
-                      Meta Diária
-                    </Label>
-                    <div className="relative group">
-                      {editGoals.type !== "units" && (
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">
-                          R$
-                        </span>
-                      )}
-                      <Input
-                        id="daily"
-                        type="number"
-                        value={editGoals.daily}
-                        onChange={(e) =>
-                          setEditGoals({ ...editGoals, daily: Number(e.target.value) })
-                        }
-                        className={`${editGoals.type !== "units" ? "pl-10" : "pl-4"} h-12 rounded-xl bg-card border-border/50 focus:border-primary focus:ring-primary/20 font-black text-lg transition-all`}
-                      />
-                      {editGoals.type === "units" && (
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">
-                          un.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label
-                      htmlFor="weekly"
-                      className="text-[13px] font-bold flex items-center gap-2"
-                    >
-                      <Calendar className="h-4 w-4 text-sky-500 fill-sky-500/20" />
-                      Meta Semanal
-                    </Label>
-                    <div className="relative group">
-                      {editGoals.type !== "units" && (
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">
-                          R$
-                        </span>
-                      )}
-                      <Input
-                        id="weekly"
-                        type="number"
-                        value={editGoals.weekly}
-                        onChange={(e) =>
-                          setEditGoals({ ...editGoals, weekly: Number(e.target.value) })
-                        }
-                        className={`${editGoals.type !== "units" ? "pl-10" : "pl-4"} h-12 rounded-xl bg-card border-border/50 focus:border-primary focus:ring-primary/20 font-black text-lg transition-all`}
-                      />
-                      {editGoals.type === "units" && (
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">
-                          un.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="notes" className="text-[13px] font-bold">
-                      Observações / Plano de Ação
-                    </Label>
-                    <textarea
-                      id="notes"
-                      value={editGoals.notes}
-                      onChange={(e) => setEditGoals({ ...editGoals, notes: e.target.value })}
-                      className="flex min-h-[80px] w-full rounded-xl border border-border/50 bg-card px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all resize-none"
-                      placeholder="Quais estratégias você vai usar para bater essa meta?"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="grid gap-2 h-full">
-                    <Label
-                      htmlFor="monthly"
-                      className="text-[13px] font-bold flex items-center gap-2"
-                    >
-                      <Target className="h-4 w-4 text-primary fill-primary/20" />
-                      Meta Mensal (Foco)
-                    </Label>
-                    <div className="relative group">
-                      {editGoals.type !== "units" && (
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">
-                          R$
-                        </span>
-                      )}
-                      <Input
-                        id="monthly"
-                        type="number"
-                        value={editGoals.monthly}
-                        onChange={(e) =>
-                          setEditGoals({ ...editGoals, monthly: Number(e.target.value) })
-                        }
-                        className={`${editGoals.type !== "units" ? "pl-10" : "pl-4"} h-full min-h-[112px] rounded-xl bg-card border-border/50 focus:border-primary focus:ring-primary/20 font-black text-2xl transition-all text-primary`}
-                      />
-                      {editGoals.type === "units" && (
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-sm">
-                          un.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Insight/Projection Box */}
-              <div
-                className={`p-4 rounded-2xl border transition-all ${Math.abs(dailyProjection - editGoals.monthly) < 10 ? "bg-emerald-500/5 border-emerald-500/20" : "bg-amber-500/5 border-amber-500/20"}`}
-              >
-                <div className="flex gap-3">
-                  <div
-                    className={`h-10 w-10 shrink-0 rounded-xl flex items-center justify-center ${Math.abs(dailyProjection - editGoals.monthly) < 10 ? "bg-emerald-500/20 text-emerald-600" : "bg-amber-500/20 text-amber-600"}`}
-                  >
-                    {Math.abs(dailyProjection - editGoals.monthly) < 10 ? (
-                      <CheckCircle2 className="h-5 w-5" />
-                    ) : (
-                      <Rocket className="h-5 w-5" />
-                    )}
+        <DialogContent className="sm:max-w-[650px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+          <Tabs defaultValue="overview" className="w-full">
+            <div className="bg-gradient-to-br from-primary/10 via-background to-background p-6 pb-0">
+              <DialogHeader className="mb-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                    <Trophy className="h-6 w-6 text-primary-foreground" />
                   </div>
                   <div>
-                    <h4 className="text-[13px] font-bold">Projeção Baseada no Dia</h4>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                      Mantendo a meta diária de{" "}
-                      <span className="font-bold text-foreground">
-                        {formatValue(editGoals.daily)}
-                      </span>
-                      , seu resultado mensal será de{" "}
-                      <span className="font-black text-primary">
-                        {formatValue(dailyProjection)}
-                      </span>
-                      .
-                    </p>
+                    <DialogTitle className="text-2xl font-black tracking-tight">Análise de Metas</DialogTitle>
+                    <DialogDescription className="font-medium">Gestão integrada de vendas, faturamento e lucratividade.</DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 h-12 rounded-2xl">
+                <TabsTrigger value="overview" className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm">Visão Geral de Performance</TabsTrigger>
+                <TabsTrigger value="settings" className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm">Ajustar Objetivos</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="overview" className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Main Progress Cards */}
+                <div className="space-y-4">
+                  {[
+                    { label: "Vendas Concluídas", value: stats.units, goal: goals.type === "units" ? goals.monthly : null, unit: "un.", icon: Package, color: "bg-blue-500", progress: goals.type === "units" ? pct : Math.min(100, (stats.units / 100) * 100) },
+                    { label: "Faturamento Total", value: stats.revenue, goal: goals.type === "revenue" ? goals.monthly : null, icon: DollarSign, color: "bg-emerald-500", progress: goals.type === "revenue" ? pct : Math.min(100, (stats.revenue / 50000) * 100) },
+                    { label: "Lucro Estimado (30%)", value: stats.profit, goal: goals.type === "profit" ? goals.monthly : null, icon: PieChart, color: "bg-amber-500", progress: goals.type === "profit" ? pct : Math.min(100, (stats.profit / 15000) * 100) },
+                  ].map((m) => (
+                    <div key={m.label} className="p-4 rounded-2xl bg-card border border-border shadow-sm group hover:border-primary/50 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`p-2 rounded-xl ${m.color}/10 ${m.color.replace('bg-', 'text-')}`}>
+                            <m.icon className="h-4 w-4" />
+                          </div>
+                          <span className="text-[12px] font-bold text-muted-foreground">{m.label}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-black">{m.unit ? `${m.value} ${m.unit}` : m.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+                        </div>
+                      </div>
+                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full ${m.color} transition-all duration-1000`} style={{ width: `${m.progress}%` }} />
+                      </div>
+                      {m.goal && (
+                        <div className="flex justify-between mt-2 text-[10px] font-bold uppercase tracking-wider">
+                          <span className="text-muted-foreground">Progresso</span>
+                          <span className="text-primary">{m.progress}% da meta</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Insights and Calculations */}
+                <div className="space-y-4">
+                  <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 text-primary mb-3">
+                        <Calculator className="h-5 w-5" />
+                        <h4 className="font-bold text-sm">Insights do Mês</h4>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground font-medium">Ticket Médio</span>
+                          <span className="font-bold">{stats.avgTicket.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-muted-foreground font-medium">Projeção Final</span>
+                          <span className="font-bold">{(stats.revenue / (dayOfMonth || 1) * daysInMonth).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <Separator className="my-4 bg-primary/10" />
+                    <div className="flex gap-3">
+                      <div className={`h-10 w-10 shrink-0 rounded-xl flex items-center justify-center ${onTrack ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'}`}>
+                        {onTrack ? <CheckCircle2 className="h-5 w-5" /> : <Rocket className="h-5 w-5" />}
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
+                        {onTrack 
+                          ? "Excelente! Você está acima do ritmo esperado para este dia do mês."
+                          : "Atenção: Para bater sua meta, você precisa acelerar o ritmo de vendas diárias."}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-muted/30 border border-border">
+                    <h4 className="text-[13px] font-bold mb-3 flex items-center gap-2">
+                      <ArrowRight className="h-4 w-4 text-primary" /> Próximos Passos
+                    </h4>
+                    <ul className="space-y-2">
+                      <li className="text-[11px] text-muted-foreground flex items-center gap-2">
+                        <div className="h-1 w-1 rounded-full bg-primary" /> Aumentar ticket médio em 10%
+                      </li>
+                      <li className="text-[11px] text-muted-foreground flex items-center gap-2">
+                        <div className="h-1 w-1 rounded-full bg-primary" /> Focar em produtos de maior margem
+                      </li>
+                    </ul>
                   </div>
                 </div>
               </div>
+            </TabsContent>
 
-              {/* Footer / Actions */}
-              <div className="flex items-center gap-3 pt-4">
-                <Button
-                  variant="ghost"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 h-12 rounded-xl font-bold text-muted-foreground hover:bg-muted"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={isLoading}
-                  className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 active:scale-[0.98] transition-all"
-                >
-                  {isLoading ? (
-                    <Activity className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  Definir Novas Metas
-                </Button>
+            <TabsContent value="settings" className="p-6 pt-2 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold">Métrica de Foco</Label>
+                    <ToggleGroup 
+                      type="single" 
+                      value={editGoals.type} 
+                      onValueChange={(v) => v && setEditGoals({...editGoals, type: v as any})}
+                      className="grid grid-cols-3 gap-2"
+                    >
+                      <ToggleGroupItem value="revenue" className="h-10 rounded-xl border data-[state=on]:bg-primary/10">Vendas R$</ToggleGroupItem>
+                      <ToggleGroupItem value="units" className="h-10 rounded-xl border data-[state=on]:bg-primary/10">Qtd. un</ToggleGroupItem>
+                      <ToggleGroupItem value="profit" className="h-10 rounded-xl border data-[state=on]:bg-primary/10">Lucro R$</ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold">Meta Mensal (Alvo)</Label>
+                    <div className="relative">
+                      {editGoals.type !== "units" && <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>}
+                      <Input 
+                        type="number" 
+                        value={editGoals.monthly} 
+                        onChange={(e) => setEditGoals({...editGoals, monthly: Number(e.target.value)})}
+                        className={`h-12 rounded-xl text-lg font-black ${editGoals.type !== "units" ? "pl-11" : "pl-4"}`}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[13px] font-bold">Meta Diária</Label>
+                      <Input 
+                        type="number" 
+                        value={editGoals.daily} 
+                        onChange={(e) => setEditGoals({...editGoals, daily: Number(e.target.value)})}
+                        className="h-10 rounded-xl"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[13px] font-bold">Meta Semanal</Label>
+                      <Input 
+                        type="number" 
+                        value={editGoals.weekly} 
+                        onChange={(e) => setEditGoals({...editGoals, weekly: Number(e.target.value)})}
+                        className="h-10 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold">Plano de Ação</Label>
+                    <textarea
+                      value={editGoals.notes}
+                      onChange={(e) => setEditGoals({ ...editGoals, notes: e.target.value })}
+                      className="w-full min-h-[120px] rounded-2xl border border-border bg-card p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none transition-all"
+                      placeholder="Descreva as estratégias para alcançar estes objetivos..."
+                    />
+                  </div>
+                  
+                  <div className="flex gap-3 pt-4">
+                    <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="flex-1 h-12 rounded-xl font-bold">Cancelar</Button>
+                    <Button onClick={handleSave} disabled={isLoading} className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25">
+                      {isLoading ? <Activity className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                      Salvar Meta
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </>
