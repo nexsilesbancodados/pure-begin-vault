@@ -61,6 +61,7 @@ type ParsedRow = {
   product_quantity?: number;
   product_price?: number;
   product_sku?: string;
+  cost_price?: number;
   discount?: number;
   // Financeiro
   description?: string;
@@ -81,59 +82,77 @@ const norm = (s: any) =>
     .toLowerCase()
     .trim();
 
-// Aliases por campo — qualquer coluna que contenha um destes termos é considerada match
-const FIELD_ALIASES: Record<string, string[]> = {
-  amount: [
-    "valor", "total", "vlr", "amount", "value", "venda", "faturamento", "subtotal", "vlr total", "valor total", "recebido", "bruto", "liquido", "líquido", "total venda"
-  ],
-  date: [
-    "data", "date", "dt", "emissao", "vencimento", "created", "criado", "data pedido", "data venda", "competencia", "dia", "momento"
-  ],
-  payment: [
-    "pagamento", "pagto", "metodo", "method", "forma", "payment", "meio", "condicao", "condição", "forma pgto", "meio pagamento"
-  ],
-  status: [
-    "status", "situacao", "estado", "etapa", "fase", "posicao", "posição"
-  ],
-  notes: [
-    "obs", "observacao", "observacoes", "notes", "descricao", "description", "comentario", "comentário", "memo", "detalhes"
-  ],
-  customer: [
-    "cliente", "customer", "comprador", "nome cliente", "nome do cliente", "razao social", "razao", "razão", "destinatario", "contato"
-  ],
-  customer_phone: [
-    "telefone", "celular", "whatsapp", "fone", "phone", "tel", "whats", "cel", "contato fone"
-  ],
-  customer_email: [
-    "email", "e-mail", "mail", "correio", "endereço eletronico"
-  ],
-  customer_document: [
-    "cpf", "cnpj", "documento", "doc", "cpf/cnpj", "cpf cnpj", "rg", "inscricao", "inscrição", "identidade"
-  ],
-  product: [
-    "produto", "item", "product", "mercadoria", "descricao produto", "modelo", "aparelho", "nome produto", "servico", "serviço"
-  ],
-  product_sku: [
-    "sku", "codigo", "código", "cod", "ref", "referencia", "referência", "part number", "ean", "barras", "ncm", "id produto"
-  ],
-  quantity: [
-    "qtd", "quantidade", "qty", "quantity", "volume", "itens", "unidades", "num itens"
-  ],
-  unit_price: [
-    "preco", "preço", "preco unit", "valor unitario", "unit price", "vlr unit", "vlr unitario", "valor cada"
-  ],
-  discount: [
-    "desconto", "discount", "abatimento", "descontos", "promo", "cupom", "off"
-  ],
-  description: [
-    "descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título", "identificador"
-  ],
-  fin_type: [
-    "tipo", "natureza", "type", "operacao", "operação", "movimento", "credito/debito", "c/d", "fluxo", "e/s"
-  ],
-  category: [
-    "categoria", "category", "classe", "classificacao", "classificação", "centro de custo", "grupo", "plano", "tag", "etiqueta"
-  ],
+// Aliases por campo e tipo de importação — evita colisões de nomenclatura
+const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
+  vendas: {
+    amount: [
+      "valor", "total", "vlr", "amount", "value", "venda", "faturamento", "subtotal", "vlr total", "valor total", "recebido", "bruto", "liquido", "líquido", "total venda"
+    ],
+    date: [
+      "data", "date", "dt", "emissao", "created", "criado", "data pedido", "data venda", "momento"
+    ],
+    payment: [
+      "pagamento", "pagto", "metodo", "method", "forma", "payment", "meio", "condicao", "condição", "forma pgto", "meio pagamento"
+    ],
+    status: [
+      "status", "situacao", "estado", "etapa", "fase", "posicao", "posição"
+    ],
+    customer: [
+      "cliente", "customer", "comprador", "nome cliente", "nome do cliente", "razao social", "destinatario"
+    ],
+    product: [
+      "produto", "item", "product", "mercadoria", "modelo", "aparelho", "nome produto"
+    ],
+    quantity: [
+      "qtd", "quantidade", "qty", "quantity", "volume", "itens", "unidades"
+    ],
+    unit_price: [
+      "preco", "preço", "preco unit", "valor unitario", "unit price", "vlr unit"
+    ],
+    discount: [
+      "desconto", "discount", "abatimento", "descontos", "promo", "cupom"
+    ],
+  },
+  estoque: {
+    product: [
+      "produto", "nome", "item", "product", "mercadoria", "descri", "modelo", "nome produto"
+    ],
+    product_sku: [
+      "sku", "codigo", "código", "cod", "ref", "referencia", "referência", "part number", "ean", "barras", "id produto"
+    ],
+    quantity: [
+      "estoque", "saldo", "qtd", "quantidade", "qty", "quantity", "volume", "itens", "unidades", "disponivel"
+    ],
+    unit_price: [
+      "preco venda", "valor venda", "venda", "preco", "preço", "unitario", "valor cada", "p.venda"
+    ],
+    cost_price: [
+      "custo", "compra", "valor custo", "preco custo", "p.custo", "vlr custo", "vlr compra"
+    ],
+    category: [
+      "categoria", "category", "grupo", "classe", "classificacao", "classificação", "familia", "tipo"
+    ],
+  },
+  financeiro: {
+    amount: [
+      "valor", "total", "vlr", "amount", "value", "recebido", "pago", "bruto", "liquido"
+    ],
+    date: [
+      "data", "date", "dt", "emissao", "vencimento", "created", "criado", "dia", "competencia"
+    ],
+    description: [
+      "descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título", "identificador"
+    ],
+    fin_type: [
+      "tipo", "natureza", "type", "operacao", "operação", "movimento", "fluxo"
+    ],
+    category: [
+      "categoria", "category", "classe", "centro de custo", "grupo", "plano", "tag"
+    ],
+    payment: [
+      "pagamento", "pagto", "metodo", "method", "forma", "payment", "meio"
+    ],
+  }
 };
 
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
@@ -185,17 +204,21 @@ function buildHeaderMap(sample: Record<string, any>, kind: ImportKind): Record<s
     }
     return best;
   };
+
   // Ordena campos por prioridade: campos mais específicos primeiro
   const fieldOrder = [
     "customer_document", "customer_email", "customer_phone", "customer",
     "amount", "discount", "date", "payment", "status",
-    "unit_price", "quantity", "product_sku", "product",
+    "unit_price", "cost_price", "quantity", "product_sku", "product",
     "fin_type", "category", "description", "notes",
   ];
+
+  const aliasesForKind = FIELD_ALIASES[kind] || {};
+
   for (const field of fieldOrder) {
     if (map[field]) continue; // Pula se já veio do localStorage
 
-    const aliases = FIELD_ALIASES[field];
+    const aliases = aliasesForKind[field];
     if (!aliases) continue;
     let bestHeader: string | undefined;
     let bestScore = 0;
@@ -319,6 +342,12 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   const productPrice = unitPriceRaw != null && unitPriceRaw !== ""
     ? parseCurrency(unitPriceRaw)
     : undefined;
+
+  const costPriceRaw = get("cost_price");
+  const costPrice = costPriceRaw != null && costPriceRaw !== ""
+    ? parseCurrency(costPriceRaw)
+    : undefined;
+
   const discountRaw = get("discount");
   const discount = discountRaw != null && discountRaw !== ""
     ? Math.abs(parseCurrency(discountRaw))
@@ -349,7 +378,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     get("notes") || description || (customerName ? `Cliente: ${customerName}` : "Importado via sistema");
 
   return {
-    total_amount: isNaN(amount) ? 0 : Math.abs(amount),
+    total_amount: isNaN(amount) ? (productPrice ? productPrice * productQty : 0) : Math.abs(amount),
     payment_method: normalizePayment(get("payment")),
     status: normalizeStatus(get("status")),
     notes: String(notes).slice(0, 500),
@@ -361,6 +390,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     product_name: productName || undefined,
     product_quantity: productQty,
     product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
+    cost_price: costPrice && !isNaN(costPrice) ? costPrice : undefined,
     product_sku: productSku || undefined,
     discount: discount && !isNaN(discount) ? discount : undefined,
     description: description,
@@ -524,6 +554,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         product_price: r.product_price,
         product_sku: r.product_sku,
         discount: r.discount,
+        cost_price: r.cost_price,
         description: r.description,
         // Vendas SEMPRE entram pelo fluxo de vendas (cria sales_orders + sale_items +
         // accounts_receivable + finance_transactions). Só envia fin_type quando o
@@ -796,7 +827,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                     <span className="text-info">•</span>
                     Colunas aceitas:{" "}
                     <code className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">
-                      data, valor, metodo_pagamento, status, observacao
+                      {kind === "vendas" ? "data, valor, cliente, produto, qtd" : kind === "estoque" ? "produto, sku, estoque, preco, custo" : "data, valor, descricao, categoria"}
                     </code>
                   </li>
                   <li className="flex gap-2">
@@ -907,13 +938,32 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                           ],
                         },
                       ]
+                    : kind === "estoque"
+                    ? [
+                        {
+                          title: "Dados do Produto",
+                          fields: [
+                            { field: "product", label: "Nome do Produto *", required: true },
+                            { field: "product_sku", label: "Código / SKU" },
+                            { field: "category", label: "Categoria" },
+                          ],
+                        },
+                        {
+                          title: "Valores e Estoque",
+                          fields: [
+                            { field: "quantity", label: "Qtd em estoque" },
+                            { field: "unit_price", label: "Preço de Venda" },
+                            { field: "cost_price", label: "Preço de Custo" },
+                          ],
+                        },
+                      ]
                     : [
                         {
                           title: "Venda",
                           fields: [
-                            { field: "amount", label: "Valor *", required: true },
-                            { field: "date", label: "Data" },
-                            { field: "payment", label: "Pagamento" },
+                            { field: "amount", label: "Valor Total *", required: true },
+                            { field: "date", label: "Data da Venda" },
+                            { field: "payment", label: "Forma de Pagamento" },
                             { field: "status", label: "Status" },
                           ],
                         },
@@ -927,12 +977,12 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                           ],
                         },
                         {
-                          title: "Produto",
+                          title: "Item Vendido",
                           fields: [
                             { field: "product", label: "Produto" },
                             { field: "quantity", label: "Quantidade" },
                             { field: "unit_price", label: "Preço unitário" },
-                            { field: "notes", label: "Observação" },
+                            { field: "discount", label: "Desconto" },
                           ],
                         },
                       ]
@@ -995,26 +1045,26 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                   <table className="w-full text-[10px] border-collapse">
                     <thead className="bg-muted/30">
                       <tr className="border-b border-border">
-                        <th className="p-2 text-left font-black">Data</th>
-                        <th className="p-2 text-left font-black">Cliente</th>
+                        <th className="p-2 text-left font-black">{kind === "estoque" ? "SKU" : "Data"}</th>
+                        <th className="p-2 text-left font-black">{kind === "estoque" ? "Categoria" : "Cliente"}</th>
                         <th className="p-2 text-left font-black">Produto</th>
-                        <th className="p-2 text-right font-black">Valor</th>
+                        <th className="p-2 text-right font-black">{kind === "estoque" ? "Estoque" : "Valor"}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {rows.slice(0, 3).map((r, i) => (
                         <tr key={i} className={r._valid ? "" : "bg-destructive/5"}>
                           <td className="p-2 whitespace-nowrap">
-                            {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                            {kind === "estoque" ? (r.product_sku || "-") : new Date(r.created_at).toLocaleDateString("pt-BR")}
                           </td>
                           <td className="p-2 truncate max-w-[120px]">
-                            {r.customer_name || "-"}
+                            {kind === "estoque" ? (r.category || "-") : (r.customer_name || "-")}
                           </td>
                           <td className="p-2 truncate max-w-[150px]">
                             {r.product_name || r.description || "-"}
                           </td>
                           <td className="p-2 text-right font-bold">
-                            {brl(r.total_amount)}
+                            {kind === "estoque" ? r.product_quantity : brl(r.total_amount)}
                           </td>
                         </tr>
                       ))}
@@ -1084,6 +1134,12 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Tipo</th>
                             <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</th>
                           </>
+                        ) : kind === "estoque" ? (
+                          <>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Produto</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">SKU</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">P. Custo</th>
+                          </>
                         ) : (
                           <>
                             <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
@@ -1091,7 +1147,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
                           </>
                         )}
-                        <th className="text-right p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
+                        <th className="text-right p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">{kind === "estoque" ? "P. Venda" : "Valor"}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1143,78 +1199,40 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             {kind === "financeiro" ? (
                               <>
                                 <td className="p-2.5 text-[11px] max-w-[200px] truncate" title={r.description || r.notes}>
-                                  {r.description || r.notes ? (
-                                    <span className="font-semibold">{r.description || r.notes}</span>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
+                                  {r.description || r.notes || "—"}
                                 </td>
                                 <td className="p-2.5">
-                                  {r.fin_type ? (
-                                    <span
-                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-black ${
-                                        isIncome
-                                          ? "bg-success/10 text-success border-success/30"
-                                          : "bg-destructive/10 text-destructive border-destructive/30"
-                                      }`}
-                                    >
-                                      {isIncome ? "↑ Entrada" : "↓ Saída"}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
+                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${isIncome ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                                    {isIncome ? "Receita" : "Despesa"}
+                                  </span>
                                 </td>
-                                <td className="p-2.5 text-[11px] max-w-[140px] truncate" title={r.category}>
-                                  {r.category ? (
-                                    <span className="px-2 py-0.5 rounded-full bg-primary/5 border border-primary/20 text-primary text-[10px] font-bold">
-                                      {r.category}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
+                                <td className="p-2.5 text-muted-foreground text-[10px]">{r.category || "—"}</td>
+                              </>
+                            ) : kind === "estoque" ? (
+                              <>
+                                <td className="p-2.5 text-[11px] max-w-[200px] truncate font-bold" title={r.product_name}>
+                                  {r.product_name || "—"}
+                                </td>
+                                <td className="p-2.5 font-mono text-[10px] text-muted-foreground">{r.product_sku || "—"}</td>
+                                <td className="p-2.5 text-muted-foreground text-[10px]">
+                                  {r.cost_price ? brl(r.cost_price) : "—"}
                                 </td>
                               </>
                             ) : (
                               <>
-                                <td className="p-2.5 text-[11px] max-w-[160px] truncate">
-                                  {r.customer_name ? (
-                                    <span className="font-semibold">{r.customer_name}</span>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
+                                <td className="p-2.5 text-[11px] max-w-[150px] truncate" title={r.customer_name}>
+                                  {r.customer_name || "—"}
                                 </td>
-                                <td className="p-2.5 font-mono text-[11px]">
-                                  {r.customer_document ? (
-                                    <span className="px-1.5 py-0.5 rounded-md bg-primary/5 border border-primary/20 text-primary">
-                                      {r.customer_document.length === 11
-                                        ? r.customer_document.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4")
-                                        : r.customer_document.length === 14
-                                        ? r.customer_document.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")
-                                        : r.customer_document}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                </td>
+                                <td className="p-2.5 text-muted-foreground text-[10px]">{r.customer_document || "—"}</td>
                                 <td className="p-2.5">
-                                  {pm ? (
-                                    <span className={`inline-block px-2 py-0.5 rounded-full border text-[10px] font-bold ${pmColor}`}>
-                                      {pm}
-                                    </span>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
+                                  <span className={`px-1.5 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-wider ${pmColor}`}>
+                                    {pm}
+                                  </span>
                                 </td>
                               </>
                             )}
-                            <td className="p-2.5 text-right font-black tabular-nums">
-                              {r._valid ? (
-                                <span className={kind === "financeiro" && r.fin_type === "expense" ? "text-destructive" : "text-foreground"}>
-                                  {kind === "financeiro" && r.fin_type === "expense" ? "−" : ""}{brl(r.total_amount)}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
+                            <td className="p-2.5 text-right font-black">
+                              {kind === "estoque" ? (r.product_price ? brl(r.product_price) : "—") : brl(r.total_amount)}
                             </td>
                           </tr>
                         );

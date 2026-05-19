@@ -26,6 +26,7 @@ type Row = {
   product_quantity?: number;
   product_price?: number;
   product_sku?: string;
+  cost_price?: number;
   discount?: number;
   description?: string;
   fin_type?: "income" | "expense";
@@ -80,10 +81,12 @@ async function processJob(supabase: any, jobId: string) {
   // tenha inferido fin_type por engano (ex.: descrição "Venda ...").
   const jobLabel = String(job.label || "").toLowerCase();
   const forceSales = /vendas|sale|sales|pedido|order/.test(jobLabel);
+  const forceStock = /estoque|stock|produto|product/.test(jobLabel);
   const looksLikeSale = (r: Row) =>
     !!r.product_name || !!r.customer_name || !!r.customer_document;
+
   const finRows = allRows.filter((r) => {
-    if (forceSales) return false;
+    if (forceSales || forceStock) return false;
     if (looksLikeSale(r)) return false;
     return r.fin_type === "income" || r.fin_type === "expense";
   });
@@ -264,21 +267,25 @@ async function processJob(supabase: any, jobId: string) {
       // 2) PRODUCTS  (+ sincronização com estoque atual)
       await supabase.from("import_jobs").update({ step: "products" }).eq("id", jobId);
       // Agrega quantidade total importada por produto (alimenta o estoque)
-      const productMap = new Map<string, { name: string; price?: number; sku?: string; totalQty: number }>();
+      const productMap = new Map<string, { name: string; price?: number; cost?: number; sku?: string; totalQty: number; category?: string }>();
       for (const r of rows) {
         if (!r.product_name) continue;
         const key = r.product_name.toLowerCase();
-        const qty = Number(r.product_quantity) || 1;
+        const qty = Number(r.product_quantity) || 0;
         const cur = productMap.get(key);
         if (cur) {
           cur.totalQty += qty;
           if (!cur.sku && r.product_sku) cur.sku = r.product_sku;
+          if (!cur.cost && r.cost_price) cur.cost = r.cost_price;
+          if (!cur.category && r.category) cur.category = r.category;
         } else {
           productMap.set(key, {
             name: r.product_name,
-            price: r.product_price ?? r.total_amount,
+            price: r.product_price ?? (forceStock ? undefined : r.total_amount),
+            cost: r.cost_price,
             sku: r.product_sku,
             totalQty: qty,
+            category: r.category,
           });
         }
       }
@@ -296,7 +303,9 @@ async function processJob(supabase: any, jobId: string) {
             const payload = c.map((p) => ({
               organization_id: orgId, user_id: userId, name: p.name,
               sku: p.sku || null,
-              price: p.price ?? 0, category: "Importado", active: true,
+              price: p.price ?? 0,
+              cost_price: p.cost || null,
+              category: p.category || "Importado", active: true,
               stock_quantity: p.totalQty,
               min_stock: 1,
               status: "in_stock",
@@ -306,7 +315,9 @@ async function processJob(supabase: any, jobId: string) {
             if (error) {
               const simple = c.map((p) => ({
                 organization_id: orgId, user_id: userId, name: p.name,
-                price: p.price ?? 0, category: "Importado", active: true,
+                price: p.price ?? 0,
+                cost_price: p.cost || null,
+                category: p.category || "Importado", active: true,
                 stock_quantity: p.totalQty,
               }));
               const r2 = await supabase.from("products").insert(simple).select("id,name");
@@ -343,6 +354,12 @@ async function processJob(supabase: any, jobId: string) {
       }
 
       // 3) SALES
+      if (forceStock) {
+        // Se for importação de estoque pura, encerramos aqui (após criar produtos e movimentos)
+        await supabase.from("import_jobs").update({ status: "done", finished_at: new Date().toISOString() }).eq("id", jobId);
+        return;
+      }
+
       await supabase.from("import_jobs").update({ step: "sales" }).eq("id", jobId);
       const inserted: { id: string; row: Row }[] = new Array(rows.length);
       const saleChunks: { offset: number; slice: Row[] }[] = [];
