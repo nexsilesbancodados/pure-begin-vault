@@ -1997,13 +1997,15 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
                 },
               ]
           ).map((item: any) => {
-            const description = [
-              item.product_name,
-              item.imei ? `IMEI: ${item.imei}` : null,
-              item.model,
-            ]
-              .filter(Boolean)
-              .join(" - ");
+            const description = buildReceiptItemDescription(item, {
+              brand: item.brand,
+              model: item.model,
+              category: item.category,
+              metadata: item.metadata,
+              sku: item.sku,
+              id: item.product_id,
+              name: item.product_name,
+            });
             return (
               <tr key={item.id}>
                 <td className="border border-black px-2 py-1 align-top">
