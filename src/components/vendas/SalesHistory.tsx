@@ -215,13 +215,14 @@ export function SalesHistory() {
           .from("products")
           .select("*")
           .eq("id", item.product_id)
+          .eq("organization_id", item.organization_id || orgId)
           .maybeSingle();
         setProductDetail({ item, product: data || null });
       }
     } finally {
       setProductDetailLoading(false);
     }
-  }, []);
+  }, [orgId]);
 
   const openSaleDetails = useCallback(async (sale: any) => {
     setSelectedSale(sale);
@@ -816,6 +817,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
           const { data: prods } = await (supabase as any)
             .from("products")
             .select("id, name, brand, model, category, metadata, sku")
+            .eq("organization_id", orgId)
             .in("id", productIds);
           for (const p of prods ?? []) productsById[p.id] = p;
         }
