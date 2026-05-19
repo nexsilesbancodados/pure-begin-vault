@@ -114,8 +114,21 @@ function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
   const map: Record<string, string> = {};
   const headers = Object.keys(sample);
   const used = new Set<string>();
-  const score = (h: string, aliases: string[]): number => {
+
+  // Cabeçalhos que NUNCA devem virar "data da venda" (datas pessoais/cadastrais)
+  const DATE_BLACKLIST = [
+    "nasc", "aniversari", "birth", "cadastr",
+    "atualiz", "modific", "updated", "modified",
+  ];
+  // Boost para datas claramente de venda
+  const DATE_BOOST = ["data venda", "data da venda", "emissao", "emissão", "data emissao", "venda em"];
+
+  const score = (h: string, aliases: string[], field?: string): number => {
     const n = norm(h);
+    if (field === "date") {
+      if (DATE_BLACKLIST.some((b) => n.includes(b))) return 0;
+      if (DATE_BOOST.some((b) => n.includes(b))) return 120;
+    }
     let best = 0;
     for (const a of aliases) {
       if (n === a) best = Math.max(best, 100);
@@ -139,7 +152,7 @@ function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
     let bestScore = 0;
     for (const h of headers) {
       if (used.has(h)) continue;
-      const s = score(h, aliases);
+      const s = score(h, aliases, field);
       if (s > bestScore) {
         bestScore = s;
         bestHeader = h;
