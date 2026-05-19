@@ -94,28 +94,41 @@ interface Nota {
 }
 
 const COMPROVANTE_SENTINEL_ID = "__comprovante__";
+const OBSERVACAO_SENTINEL_ID = "__observacao__";
 
-const extractComprovantes = (raw: unknown[]): { urls: string[]; rest: unknown[] } => {
+const extractComprovantes = (
+  raw: unknown[],
+): { urls: string[]; observacao: string; rest: unknown[] } => {
   const urls: string[] = [];
+  let observacao = "";
   const rest: unknown[] = [];
   for (const item of raw) {
     if (
       item &&
       typeof item === "object" &&
-      typeof (item as { id?: unknown }).id === "string" &&
-      ((item as { id: string }).id === COMPROVANTE_SENTINEL_ID ||
-        (item as { id: string }).id.startsWith(COMPROVANTE_SENTINEL_ID))
+      typeof (item as { id?: unknown }).id === "string"
     ) {
-      const meta = (item as { metadata?: unknown }).metadata;
-      if (meta && typeof meta === "object") {
-        const u = (meta as Record<string, unknown>).url;
-        if (typeof u === "string") urls.push(u);
+      const id = (item as { id: string }).id;
+      if (id === COMPROVANTE_SENTINEL_ID || id.startsWith(COMPROVANTE_SENTINEL_ID)) {
+        const meta = (item as { metadata?: unknown }).metadata;
+        if (meta && typeof meta === "object") {
+          const u = (meta as Record<string, unknown>).url;
+          if (typeof u === "string") urls.push(u);
+        }
+        continue;
       }
-      continue;
+      if (id === OBSERVACAO_SENTINEL_ID) {
+        const meta = (item as { metadata?: unknown }).metadata;
+        if (meta && typeof meta === "object") {
+          const t = (meta as Record<string, unknown>).text;
+          if (typeof t === "string") observacao = t;
+        }
+        continue;
+      }
     }
     rest.push(item);
   }
-  return { urls, rest };
+  return { urls, observacao, rest };
 };
 
 interface PurchaseNoteRow {
