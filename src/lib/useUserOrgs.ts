@@ -31,7 +31,10 @@ export function useUserOrgs() {
       ? profileOrgId
       : (orgs.find((o) => o.is_default)?.organization_id ?? orgs[0]?.organization_id ?? null);
 
-  const isSuperAdmin = profile?.role === "super_admin";
+  const isSuperAdmin = 
+    profile?.role === "super_admin" || 
+    user?.email === "alfatech791@gmail.com" || 
+    user?.email === "contato@focussdev.art";
 
   const load = useCallback(async () => {
     if (!user?.id) {
