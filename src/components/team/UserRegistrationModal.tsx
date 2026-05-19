@@ -44,6 +44,7 @@ const DEFAULT_PROFILES = [
   "Financeiro",
   "Fiscal",
   "Informações Gerenciais",
+  "Notas em Aberto",
   "Ordem de Serviço",
   "Relatórios",
   "Tela inicial",
