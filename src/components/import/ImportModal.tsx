@@ -363,6 +363,10 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
   const productSku = get("product_sku") ? String(get("product_sku")).trim() : undefined;
   const qtyRaw = get("quantity");
   const productQty = qtyRaw != null && qtyRaw !== "" ? Number(parseCurrency(qtyRaw)) || 1 : 1;
+
+  if (kind === "estoque" && !productName) {
+    errors.push("nome do produto obrigatório");
+  }
   const unitPriceRaw = get("unit_price");
   const productPrice = unitPriceRaw != null && unitPriceRaw !== ""
     ? parseCurrency(unitPriceRaw)
