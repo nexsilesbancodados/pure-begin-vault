@@ -222,11 +222,13 @@ function normalizePayment(raw: any): string {
   const n = norm(raw);
   if (!n) return "Pix";
   if (n.includes("pix")) return "Pix";
-  if (n.includes("dinh") || n.includes("cash") || n === "esp") return "Dinheiro";
+  if (n.includes("dinh") || n.includes("cash") || n === "esp" || n.includes("especie")) return "Dinheiro";
   if (n.includes("debit")) return "Débito";
-  if (n.includes("cred") || n.includes("card")) return "Crédito";
+  if (n.includes("parcel") || n.includes("crediar")) return "Crediário";
+  if (n.includes("fiado") || n.includes("prazo")) return "Prazo";
+  if (n.includes("cred") || n.includes("card") || n.includes("cart")) return "Crédito";
   if (n.includes("boleto")) return "Boleto";
-  if (n.includes("transf")) return "Transferência";
+  if (n.includes("transf") || n.includes("ted") || n.includes("doc")) return "Transferência";
   return String(raw).slice(0, 30);
 }
 
