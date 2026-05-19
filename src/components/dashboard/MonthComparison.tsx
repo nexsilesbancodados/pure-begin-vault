@@ -31,8 +31,9 @@ export function MonthComparison() {
 
       const { data: sales } = await supabase
         .from("sales_orders")
-        .select("total_amount, created_at")
-        .eq("status", "concluded")
+        .select("total_amount, created_at, channel")
+        .in("status", ["completed", "concluded"])
+        .in("channel", ["pdv", "import"])
         .gte("created_at", sixMonthsAgo.toISOString())
         .eq("organization_id", orgId);
 
