@@ -202,6 +202,25 @@ export function SalesHistory() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [detailsItems, setDetailsItems] = useState<any[]>([]);
   const [detailsItemsLoading, setDetailsItemsLoading] = useState(false);
+  const [productDetail, setProductDetail] = useState<any | null>(null);
+  const [productDetailLoading, setProductDetailLoading] = useState(false);
+
+  const openProductDetail = useCallback(async (item: any) => {
+    setProductDetail({ item, product: null });
+    setProductDetailLoading(true);
+    try {
+      if (item?.product_id) {
+        const { data } = await (supabase as any)
+          .from("products")
+          .select("*")
+          .eq("id", item.product_id)
+          .maybeSingle();
+        setProductDetail({ item, product: data || null });
+      }
+    } finally {
+      setProductDetailLoading(false);
+    }
+  }, []);
 
   const openSaleDetails = useCallback(async (sale: any) => {
     setSelectedSale(sale);
