@@ -90,6 +90,7 @@ interface Nota {
   paga: boolean;
   prazoPagamento: string;
   comprovanteUrls?: string[];
+  observacao?: string;
 }
 
 const COMPROVANTE_SENTINEL_ID = "__comprovante__";
