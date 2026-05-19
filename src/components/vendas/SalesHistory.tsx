@@ -988,8 +988,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                     key={sale.id}
                     className="hover:bg-primary/[0.02] transition-colors group cursor-pointer"
                     onClick={() => {
-                      setSelectedSale(sale);
-                      setIsDetailsOpen(true);
+                      void openSaleDetails(sale);
                     }}
                   >
                     <td className="px-6 py-5">
