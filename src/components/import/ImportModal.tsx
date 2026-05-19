@@ -1409,6 +1409,8 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
         rows={rows}
         kind={kind}
         brl={brl}
+        hmap={hmap}
+        headers={headers}
       />
     </>
   );
@@ -1420,12 +1422,16 @@ function FullscreenPreview({
   rows,
   kind,
   brl,
+  hmap,
+  headers,
 }: {
   isOpen: boolean;
   onClose: () => void;
   rows: ParsedRow[];
   kind: ImportKind;
   brl: (n: number) => string;
+  hmap: Record<string, string>;
+  headers: string[];
 }) {
   const [filter, setFilter] = useState<"all" | "valid" | "invalid">("all");
   const [search, setSearch] = useState("");
@@ -1524,41 +1530,56 @@ function FullscreenPreview({
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-4 space-y-4">
+          {/* Mapping Summary */}
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3 flex items-center gap-2">
+              <ShieldCheck className="h-3 w-3" /> Conferência de Mapeamento (Coluna no Arquivo → Campo no Sistema)
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(hmap).map(([field, header]) => (
+                <div key={field} className="flex items-center bg-white border border-border rounded-lg px-2.5 py-1.5 shadow-sm">
+                  <span className="text-[10px] font-black text-muted-foreground uppercase">{header}</span>
+                  <ArrowRight className="h-3 w-3 mx-2 text-primary" />
+                  <span className="text-[10px] font-black text-primary uppercase">
+                    {field === "amount" ? "Valor Total" 
+                     : field === "date" ? "Data" 
+                     : field === "payment" ? "Pagamento"
+                     : field === "customer" ? "Cliente"
+                     : field === "product" ? "Produto"
+                     : field === "quantity" ? "Quantidade"
+                     : field === "unit_price" ? "Preço Unitário"
+                     : field === "cost_price" ? "Custo"
+                     : field === "product_sku" ? "SKU"
+                     : field === "imei" ? "IMEI/Serial"
+                     : field === "fin_type" ? "Tipo Financeiro"
+                     : field === "category" ? "Categoria"
+                     : field}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-border bg-background overflow-hidden">
             <table className="w-full text-xs">
               <thead className="bg-muted/50 sticky top-0 z-10">
                 <tr className="border-b border-border">
-                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground w-12">#</th>
-                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground w-24">Status</th>
-                  {kind === "estoque" ? (
-                    <>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Produto</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Marca/Modelo</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">SKU / EAN</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">IMEI / Serial</th>
-                      <th className="text-center p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Qtd</th>
-                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">P. Custo</th>
-                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">P. Venda</th>
-                    </>
-                  ) : kind === "financeiro" ? (
-                    <>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Descrição</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Tipo</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
-                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
-                    </>
-                  ) : (
-                    <>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Data</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Documento</th>
-                      <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
-                      <th className="text-right p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
-                    </>
-                  )}
-                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Erro/Aviso</th>
+                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground w-12 sticky left-0 bg-muted/50 z-20">#</th>
+                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground w-24 sticky left-12 bg-muted/50 z-20">Status</th>
+                  {headers.map((h) => (
+                    <th key={h} className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground whitespace-nowrap min-w-[120px]">
+                      <div className="flex flex-col">
+                        <span className="text-primary truncate" title={h}>{h}</span>
+                        {Object.entries(hmap).find(([_, head]) => head === h) && (
+                          <span className="text-[8px] text-success-foreground bg-success/20 px-1 rounded-sm w-fit mt-0.5">
+                            MAPEADO
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                  <th className="text-left p-3 font-black text-[10px] uppercase tracking-wider text-muted-foreground min-w-[200px]">Erro/Aviso</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -1572,10 +1593,10 @@ function FullscreenPreview({
                         !r._valid ? "bg-destructive/5" : ""
                       }`}
                     >
-                      <td className="p-3 text-[10px] font-mono text-muted-foreground">
+                      <td className="p-3 text-[10px] font-mono text-muted-foreground sticky left-0 bg-background group-hover:bg-primary/5 z-20">
                         {String(i + 1).padStart(3, "0")}
                       </td>
-                      <td className="p-3">
+                      <td className="p-3 sticky left-12 bg-background group-hover:bg-primary/5 z-20">
                         {r._valid ? (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-success/10 text-success border border-success/20 text-[10px] font-black uppercase">
                             <Check className="h-3 w-3" /> OK
@@ -1587,79 +1608,15 @@ function FullscreenPreview({
                         )}
                       </td>
 
-                      {kind === "estoque" ? (
-                        <>
-                          <td className="p-3 font-bold truncate max-w-[200px]">
-                            {r.product_name || <span className="text-destructive font-black">MALTANDO NOME</span>}
-                          </td>
-                          <td className="p-3">
-                            <div className="flex flex-col">
-                              <span className="font-bold">{r.brand || "—"}</span>
-                              <span className="text-[10px] text-muted-foreground">{r.model || "—"}</span>
-                            </div>
-                          </td>
-                          <td className="p-3 font-mono text-[10px]">
-                            <div className="flex flex-col">
-                              <span className={!r.product_sku ? "text-muted-foreground" : "font-bold"}>
-                                SKU: {r.product_sku || "—"}
-                              </span>
-                              <span className="text-muted-foreground">
-                                EAN: {r.ean || "—"}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="p-3 font-mono text-[10px] text-muted-foreground">
-                            {r.imei || "—"}
-                          </td>
-                          <td className="p-3 text-center font-bold">
-                            {r.product_quantity}
-                          </td>
-                          <td className="p-3 text-right text-muted-foreground">
-                            {r.cost_price ? brl(r.cost_price) : "—"}
-                          </td>
-                          <td className="p-3 text-right font-black">
-                            {r.product_price ? brl(r.product_price) : "—"}
-                          </td>
-                        </>
-                      ) : kind === "financeiro" ? (
-                        <>
-                          <td className="p-3 truncate max-w-[200px]" title={r.description || r.notes}>
-                            {r.description || r.notes || "—"}
-                          </td>
-                          <td className="p-3">
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${isIncome ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
-                              {isIncome ? "Receita" : "Despesa"}
-                            </span>
-                          </td>
-                          <td className="p-3 text-muted-foreground">{r.category || "—"}</td>
-                          <td className="p-3 font-mono">
-                            {dt?.toLocaleDateString("pt-BR") || "—"}
-                          </td>
-                          <td className="p-3 text-right font-black">
-                            {brl(r.total_amount)}
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="p-3 font-mono">
-                            {dt?.toLocaleDateString("pt-BR") || "—"}
-                          </td>
-                          <td className="p-3 font-bold">
-                            {r.customer_name || "—"}
-                          </td>
-                          <td className="p-3 text-muted-foreground font-mono">
-                            {r.customer_document || "—"}
-                          </td>
-                          <td className="p-3 font-black text-[10px] uppercase">
-                            {r.payment_method || "—"}
-                          </td>
-                          <td className="p-3 text-right font-black">
-                            {brl(r.total_amount)}
-                          </td>
-                        </>
-                      )}
+                      {headers.map((h) => (
+                        <td key={h} className="p-3 truncate max-w-[200px]" title={String(r._raw[h] || "")}>
+                          <span className="text-[11px]">
+                            {String(r._raw[h] || "—")}
+                          </span>
+                        </td>
+                      ))}
 
-                      <td className="p-3">
+                      <td className="p-3 whitespace-nowrap">
                         {!r._valid ? (
                           <div className="flex items-center gap-2 text-destructive font-bold">
                             <AlertCircle className="h-3 w-3 shrink-0" />
