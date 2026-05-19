@@ -431,6 +431,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
 
   const processFile = async (
     file: File,
+    targetKind: ImportKind,
   ): Promise<{
     rows: ParsedRow[];
     hmap: Record<string, string>;
@@ -449,7 +450,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
             resolve({ rows: [], hmap: {}, headers: [], raw: [] });
             return;
           }
-          const hmap = buildHeaderMap(json[0]);
+          const hmap = buildHeaderMap(json[0], targetKind);
           const headers = Object.keys(json[0]);
           const rows = json.map((r, i) => parseRow(r, hmap, i));
           resolve({ rows, hmap, headers, raw: json });
@@ -474,7 +475,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     }
     setFile(f);
     try {
-      const parsed = await processFile(f);
+      const parsed = await processFile(f, kind);
       if (parsed.rows.length === 0) {
         toast.error("Arquivo vazio ou sem registros válidos.");
         return;
