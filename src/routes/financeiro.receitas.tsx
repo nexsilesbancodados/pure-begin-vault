@@ -782,7 +782,7 @@ function ReceitasPage() {
                     </th>
                     <th className="px-3 py-2">Id</th>
                     <th className="px-3 py-2">Origem</th>
-                    <th className="px-3 py-2">Categoria</th>
+                    <th className="px-3 py-2">Forma Pgto</th>
                     <th className="px-3 py-2">Título</th>
                     <th className="px-3 py-2">Situação</th>
                     <th className="px-3 py-2">Pessoa</th>
