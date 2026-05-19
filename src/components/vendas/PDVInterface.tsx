@@ -720,7 +720,18 @@ export function PDVInterface() {
 
   const handleBarcodeSearch = (code: string) => {
     if (!code) return;
-    const product = allProducts.find((p) => p.id === code || (p.name && p.name.includes(code)));
+    const c = code.trim();
+    const product = allProducts.find((p) => {
+      const pa = p as any;
+      return (
+        p.id === c ||
+        pa.sku === c ||
+        pa.imei === c ||
+        pa.imei2 === c ||
+        pa.serial === c ||
+        (p.name && p.name.toLowerCase().includes(c.toLowerCase()))
+      );
+    });
     if (product) {
       addToCart(product);
       setBarcode("");
