@@ -219,10 +219,10 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const n = count ?? ids.length;
-    const extras = removed.sales + removed.finance + removed.receivable + removed.payable;
+    const extras = removed.sales + removed.finance + removed.receivable + removed.payable + removed.stock + removed.products;
     toast.success(
       `${n} ${n === 1 ? "importação removida" : "importações removidas"}${
-        extras > 0 ? ` · ${extras} lançamentos correlatos limpos` : ""
+        extras > 0 ? ` · ${extras} registros limpos` : ""
       }`,
     );
   }, [orgId, jobs, cascadeDelete]);
