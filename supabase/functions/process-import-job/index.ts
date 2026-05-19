@@ -293,8 +293,14 @@ async function processJob(supabase: any, jobId: string) {
           notes: r.notes, channel: "import",
           customer_id: resolveCust(r),
           created_at: r.created_at,
+          import_job_id: jobId,
         }));
-        const { data, error } = await supabase.from("sales_orders").insert(payload).select("id");
+        let { data, error } = await supabase.from("sales_orders").insert(payload).select("id");
+        if (error && /import_job_id/i.test(error.message)) {
+          const fallback = payload.map(({ import_job_id, ...rest }) => rest);
+          const r2 = await supabase.from("sales_orders").insert(fallback).select("id");
+          data = r2.data; error = r2.error;
+        }
         if (error) throw error;
         (data || []).forEach((s: any, i: number) => {
           inserted[offset + i] = { id: s.id, row: slice[i] };
