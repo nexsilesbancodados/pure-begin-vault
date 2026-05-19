@@ -154,7 +154,7 @@ async function processJob(supabase: any, jobId: string) {
       const insertChunks = async (table: string, rows: any[]) => {
         for (let i = 0; i < rows.length; i += CHUNK) {
           const slice = rows.slice(i, i + CHUNK);
-          const { error } = await supabase.from(table).insert(slice);
+          const { error } = await insertTagged(table, slice);
           if (!error) counters.finance += slice.length;
           else throw new Error(`${table}: ${error.message}`);
           await supabase.from("import_jobs")
@@ -168,7 +168,7 @@ async function processJob(supabase: any, jobId: string) {
       if (finTx.length) {
         for (let i = 0; i < finTx.length; i += CHUNK) {
           const slice = finTx.slice(i, i + CHUNK);
-          await supabase.from("finance_transactions").insert(slice);
+          await insertTagged("finance_transactions", slice);
         }
       }
     }
