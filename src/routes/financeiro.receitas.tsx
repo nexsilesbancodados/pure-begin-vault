@@ -162,9 +162,20 @@ function ReceitasPage() {
     try {
       const payload = { ...data, type: "income" };
       if (editing) {
+        const table = editing.source_table === "receivable" ? "accounts_receivable" : "finance_transactions";
+        const receivablePayload = {
+          description: payload.description,
+          amount: payload.amount,
+          due_date: payload.due_date || payload.transaction_date,
+          status: payload.status,
+          paid_at: payload.status === "paid" ? payload.payment_date || new Date().toISOString() : null,
+          paid_amount: payload.status === "paid" ? payload.amount : null,
+          notes: payload.notes,
+          updated_at: new Date().toISOString(),
+        };
         const { error } = await supabase
-          .from("finance_transactions")
-          .update({ ...payload, updated_at: new Date().toISOString() })
+          .from(table as any)
+          .update(table === "accounts_receivable" ? receivablePayload : { ...payload, updated_at: new Date().toISOString() })
           .eq("id", editing.id);
         if (error) throw error;
         toast.success("Receita atualizada!");
@@ -184,7 +195,9 @@ function ReceitasPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir esta receita?")) return;
-    const { error } = await supabase.from("finance_transactions").delete().eq("id", id);
+    const item = items.find((it) => it.id === id);
+    const table = item?.source_table === "receivable" ? "accounts_receivable" : "finance_transactions";
+    const { error } = await supabase.from(table as any).delete().eq("id", id);
     if (error) return toast.error("Erro ao excluir");
     toast.success("Receita excluída");
     fetchData();
