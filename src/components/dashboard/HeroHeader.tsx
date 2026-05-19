@@ -1,5 +1,6 @@
-import { Sparkles, TrendingUp, Calendar, ArrowUpRight } from "lucide-react";
+import { Sparkles, TrendingUp, Calendar, ArrowUpRight, Store } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { useUserOrgs } from "@/lib/useUserOrgs";
 
 interface HeroHeaderProps {
   userName: string;
