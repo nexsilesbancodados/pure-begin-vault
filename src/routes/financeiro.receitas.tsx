@@ -462,14 +462,17 @@ function ReceitasPage() {
       if (fOrigem) {
         if ((it.origin || "manual") !== fOrigem) return false;
       }
-      if (fTitulo && !(it.description || "").toLowerCase().includes(fTitulo.toLowerCase()))
-        return false;
+      if (fTitulo) {
+        const hay = `${it.title || ""} ${it.description || ""}`.toLowerCase();
+        if (!hay.includes(fTitulo.toLowerCase())) return false;
+      }
       if (fSituacao) {
         const s = (it.status || "pending").toLowerCase();
         if (!s.includes(fSituacao.toLowerCase())) return false;
       }
-      if (fPessoa && !((it.supplier as string) || "").toLowerCase().includes(fPessoa.toLowerCase()))
+      if (fPessoa && !((it.person || it.supplier || "") as string).toLowerCase().includes(fPessoa.toLowerCase()))
         return false;
+      if (fMethod && normalizeMethod(it.payment_method) !== fMethod) return false;
       if (quickFilter === "vencidos") {
         if (it.status === "paid") return false;
         if (!it.due_date) return false;
