@@ -303,7 +303,9 @@ async function processJob(supabase: any, jobId: string) {
             const payload = c.map((p) => ({
               organization_id: orgId, user_id: userId, name: p.name,
               sku: p.sku || null,
-              price: p.price ?? 0, category: "Importado", active: true,
+              price: p.price ?? 0,
+              cost_price: p.cost || null,
+              category: p.category || "Importado", active: true,
               stock_quantity: p.totalQty,
               min_stock: 1,
               status: "in_stock",
@@ -313,7 +315,9 @@ async function processJob(supabase: any, jobId: string) {
             if (error) {
               const simple = c.map((p) => ({
                 organization_id: orgId, user_id: userId, name: p.name,
-                price: p.price ?? 0, category: "Importado", active: true,
+                price: p.price ?? 0,
+                cost_price: p.cost || null,
+                category: p.category || "Importado", active: true,
                 stock_quantity: p.totalQty,
               }));
               const r2 = await supabase.from("products").insert(simple).select("id,name");
