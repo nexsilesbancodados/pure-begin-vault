@@ -44,6 +44,8 @@ export const Route = createFileRoute("/financeiro/receitas")({
   component: ReceitasPage,
 });
 
+type IncomeOrigin = "sale" | "deposit" | "transfer" | "manual";
+
 type Income = {
   id: string;
   description: string;
@@ -58,9 +60,40 @@ type Income = {
   reference_type?: string | null;
   reference_id?: string | null;
   customer_id?: string | null;
-  source_table: "receivable" | "transaction";
+  source_table: "receivable" | "transaction" | "cash_movement" | "sale";
+  origin: IncomeOrigin;
   notes?: string | null;
   type: string;
+};
+
+const ORIGIN_LABEL: Record<IncomeOrigin, string> = {
+  sale: "Venda",
+  deposit: "Depósito",
+  transfer: "Transferência",
+  manual: "Manual",
+};
+
+const ORIGIN_STYLE: Record<IncomeOrigin, string> = {
+  sale: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  deposit: "bg-blue-50 text-blue-700 ring-blue-200",
+  transfer: "bg-violet-50 text-violet-700 ring-violet-200",
+  manual: "bg-slate-100 text-slate-600 ring-slate-200",
+};
+
+const inferOrigin = (params: {
+  reference_type?: string | null;
+  category?: string | null;
+  payment_method?: string | null;
+  description?: string | null;
+}): IncomeOrigin => {
+  const ref = (params.reference_type || "").toLowerCase();
+  if (ref === "sale" || ref === "sales_order") return "sale";
+  const blob = `${params.category || ""} ${params.payment_method || ""} ${params.description || ""}`.toLowerCase();
+  if (/transfer|transferência|transferencia|ted|doc|pix.*transfer/.test(blob)) return "transfer";
+  if (/dep[óo]sito|deposit/.test(blob)) return "deposit";
+  if (ref === "deposit") return "deposit";
+  if (ref === "transfer") return "transfer";
+  return "manual";
 };
 
 const fmt = (v: number) =>
@@ -100,24 +133,33 @@ function ReceitasPage() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const receivableBase = supabase
-        .from("accounts_receivable")
-        .select("*");
+      const receivableBase = supabase.from("accounts_receivable").select("*");
       const transactionBase = supabase
         .from("finance_transactions")
         .select("*")
         .eq("type", "income");
+      const cashBase = supabase
+        .from("cash_register_movements")
+        .select("*")
+        .in("type", ["deposit", "transfer_in", "sale", "deposito", "transferencia"]);
+      const salesBase = supabase
+        .from("sales_orders")
+        .select("id,total_amount,status,created_at,customer_id,sale_number,payment_method,notes")
+        .in("status", ["completed", "concluded", "paid", "concluído", "pago"]);
 
-      const [receivableRes, txRes] = await Promise.all([
-        (orgId ? receivableBase.eq("organization_id", orgId) : receivableBase.eq("user_id", user.id))
-          .order("due_date", { ascending: false, nullsFirst: false }),
-        (orgId ? transactionBase.eq("organization_id", orgId) : transactionBase.eq("user_id", user.id))
-          .order("transaction_date", { ascending: false, nullsFirst: false }),
+      const scoped = (q: any) =>
+        orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
+
+      const [receivableRes, txRes, cashRes, salesRes] = await Promise.all([
+        scoped(receivableBase).order("due_date", { ascending: false, nullsFirst: false }),
+        scoped(transactionBase).order("transaction_date", { ascending: false, nullsFirst: false }),
+        scoped(cashBase).order("created_at", { ascending: false, nullsFirst: false }),
+        scoped(salesBase).order("created_at", { ascending: false, nullsFirst: false }),
       ]);
       if (receivableRes.error) throw receivableRes.error;
       if (txRes.error) throw txRes.error;
 
-      const receivables = ((receivableRes.data as any[]) || []).map((r) => ({
+      const receivables: Income[] = ((receivableRes.data as any[]) || []).map((r) => ({
         id: r.id,
         description: r.description,
         category: r.sale_id ? "sales" : "income",
@@ -130,21 +172,94 @@ function ReceitasPage() {
         reference_type: r.sale_id ? "sale" : "manual",
         reference_id: r.sale_id || null,
         customer_id: r.customer_id || null,
-        source_table: "receivable" as const,
+        source_table: "receivable",
+        origin: r.sale_id ? "sale" : "manual",
         notes: r.notes,
         type: "income",
       }));
-      const receivableSaleIds = new Set(receivables.map((r) => r.reference_id).filter(Boolean));
-      const transactions = ((txRes.data as any[]) || [])
-        .filter((t) => !(t.reference_type === "sale" && t.reference_id && receivableSaleIds.has(t.reference_id)))
+      const receivableSaleIds = new Set(
+        receivables.map((r) => r.reference_id).filter(Boolean) as string[],
+      );
+
+      const transactions: Income[] = ((txRes.data as any[]) || [])
+        .filter(
+          (t) =>
+            !(t.reference_type === "sale" && t.reference_id && receivableSaleIds.has(t.reference_id)),
+        )
         .map((t) => ({
-          ...t,
+          id: t.id,
+          description: t.description,
+          category: t.category,
+          amount: Number(t.amount) || 0,
+          status: "paid",
           due_date: t.transaction_date,
           payment_date: t.transaction_date,
+          transaction_date: t.transaction_date,
           supplier: customerFromDescription(t.description),
-          source_table: "transaction" as const,
+          reference_type: t.reference_type,
+          reference_id: t.reference_id,
+          source_table: "transaction",
+          origin: inferOrigin({
+            reference_type: t.reference_type,
+            category: t.category,
+            payment_method: t.payment_method,
+            description: t.description,
+          }),
+          type: "income",
         }));
-      setItems([...receivables, ...transactions]);
+      const cashMovements: Income[] = !cashRes.error
+        ? ((cashRes.data as any[]) || [])
+            .filter((m) => !(m.reference_type === "sale" && m.reference_id && receivableSaleIds.has(m.reference_id)))
+            .map((m) => {
+              const t = String(m.type || "").toLowerCase();
+              const origin: IncomeOrigin =
+                t === "transfer_in" || t === "transferencia"
+                  ? "transfer"
+                  : t === "sale"
+                  ? "sale"
+                  : "deposit";
+              return {
+                id: m.id,
+                description: m.description || ORIGIN_LABEL[origin],
+                category: "caixa",
+                amount: Number(m.amount) || 0,
+                status: "paid",
+                due_date: m.created_at,
+                payment_date: m.created_at,
+                transaction_date: m.created_at,
+                supplier: null,
+                reference_type: m.reference_type || origin,
+                reference_id: m.reference_id || null,
+                source_table: "cash_movement",
+                origin,
+                type: "income",
+              };
+            })
+        : [];
+
+      const sales: Income[] = !salesRes.error
+        ? ((salesRes.data as any[]) || [])
+            .filter((s) => !receivableSaleIds.has(s.id))
+            .map((s) => ({
+              id: `sale:${s.id}`,
+              description: `Venda #${s.sale_number ?? String(s.id).slice(0, 6).toUpperCase()}`,
+              category: "sales",
+              amount: Number(s.total_amount) || 0,
+              status: "paid",
+              due_date: s.created_at,
+              payment_date: s.created_at,
+              transaction_date: s.created_at,
+              supplier: null,
+              reference_type: "sale",
+              reference_id: s.id,
+              customer_id: s.customer_id || null,
+              source_table: "sale",
+              origin: "sale",
+              type: "income",
+            }))
+        : [];
+
+      setItems([...receivables, ...transactions, ...cashMovements, ...sales]);
     } catch (e) {
       console.error(e);
       toast.error("Erro ao carregar receitas");
@@ -240,8 +355,7 @@ function ReceitasPage() {
       if (fCategoria && !(it.category || "").toLowerCase().includes(fCategoria.toLowerCase()))
         return false;
       if (fOrigem) {
-        const origem = (it.reference_type || "manual").toLowerCase();
-        if (origem !== fOrigem.toLowerCase()) return false;
+        if ((it.origin || "manual") !== fOrigem) return false;
       }
       if (fTitulo && !(it.description || "").toLowerCase().includes(fTitulo.toLowerCase()))
         return false;
@@ -521,8 +635,10 @@ function ReceitasPage() {
                         className="w-full h-7 px-1 rounded border border-slate-200 text-[11px] bg-white"
                       >
                         <option value="">Selecionar</option>
-                        <option value="manual">Manual</option>
                         <option value="sale">Venda</option>
+                        <option value="deposit">Depósito</option>
+                        <option value="transfer">Transferência</option>
+                        <option value="manual">Manual</option>
                       </select>
                     </th>
                     <th className="px-2 py-1.5">
@@ -591,7 +707,7 @@ function ReceitasPage() {
                       const paid = it.status === "paid" ? amount : 0;
                       const aReceber = amount - paid;
                       const shortId = String(it.id).replace(/-/g, "").slice(0, 6).toUpperCase();
-                      const origem = (it.reference_type || "manual").toLowerCase();
+                      const origin = (it.origin || "manual") as IncomeOrigin;
                       return (
                         <tr key={it.id} className={cn("hover:bg-emerald-50/40", idx % 2 && "bg-slate-50/40")}>
                           <td className="px-3 py-2">
@@ -633,8 +749,8 @@ function ReceitasPage() {
                           </td>
                           <td className="px-3 py-2 font-mono text-[11px]">{shortId}</td>
                           <td className="px-3 py-2">
-                            <span className="inline-flex px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
-                              {origem}
+                            <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset", ORIGIN_STYLE[origin])}>
+                              {ORIGIN_LABEL[origin]}
                             </span>
                           </td>
                           <td className="px-3 py-2 font-bold text-slate-700 uppercase">
