@@ -1589,20 +1589,41 @@ function NotasAbertoPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="bg-muted/30 h-[70vh] overflow-auto flex items-center justify-center">
-            {previewComprovanteUrl &&
-              (/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(previewComprovanteUrl) ? (
-                <img
-                  src={previewComprovanteUrl}
-                  alt="Comprovante"
-                  className="max-w-full max-h-full object-contain"
-                />
-              ) : (
+            {previewComprovanteUrl && (() => {
+              const isImage = /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(previewComprovanteUrl);
+              const isPdf = /\.pdf(\?|$)/i.test(previewComprovanteUrl);
+              if (isImage) {
+                return (
+                  <img
+                    src={previewComprovanteUrl}
+                    alt="Comprovante"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                );
+              }
+              if (isPdf) {
+                return (
+                  <object
+                    data={previewComprovanteUrl}
+                    type="application/pdf"
+                    className="w-full h-full bg-white"
+                  >
+                    <iframe
+                      src={`https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(previewComprovanteUrl)}`}
+                      title="Comprovante PDF"
+                      className="w-full h-full bg-white"
+                    />
+                  </object>
+                );
+              }
+              return (
                 <iframe
                   src={previewComprovanteUrl}
                   title="Comprovante"
                   className="w-full h-full bg-white"
                 />
-              ))}
+              );
+            })()}
           </div>
           <div className="flex items-center justify-end gap-2 px-6 py-3 border-t">
             <a
