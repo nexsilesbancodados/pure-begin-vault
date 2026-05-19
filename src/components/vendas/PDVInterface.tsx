@@ -2105,13 +2105,24 @@ export function PDVInterface() {
                                   </div>
                                 ) : null;
                               })()}
-                              {(product as any).imei && (
-                                <div className="text-[10px] font-mono text-foreground/80 mt-0.5 truncate">
-                                  IMEI: {(product as any).imei}
-                                  {(product as any).imei2 ? ` / ${(product as any).imei2}` : ""}
-                                </div>
-                              )}
-                              {!((product as any).imei) && (product as any).serial && (
+                              {(() => {
+                                const pa = product as any;
+                                const list: string[] = Array.isArray(pa.imeis) && pa.imeis.length
+                                  ? pa.imeis
+                                  : pa.imei
+                                  ? [pa.imei, pa.imei2].filter(Boolean)
+                                  : [];
+                                if (!list.length) return null;
+                                const shown = list.slice(0, 2);
+                                const extra = list.length - shown.length;
+                                return (
+                                  <div className="text-[10px] font-mono text-foreground/80 mt-0.5 truncate">
+                                    IMEI: {shown.join(" / ")}
+                                    {extra > 0 ? ` +${extra}` : ""}
+                                  </div>
+                                );
+                              })()}
+                              {!((product as any).imei) && !((product as any).imeis?.length) && (product as any).serial && (
                                 <div className="text-[10px] font-mono text-foreground/80 mt-0.5 truncate">
                                   SN: {(product as any).serial}
                                 </div>
