@@ -761,16 +761,50 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
               : Promise.resolve({ data: null }),
           ]);
 
+        // Enrich items with product details (brand/model/category/metadata)
+        const items = itemsRes.data || [];
+        const productIds = Array.from(
+          new Set(items.map((it: any) => it.product_id).filter(Boolean)),
+        );
+        let productsById: Record<string, any> = {};
+        if (productIds.length) {
+          const { data: prods } = await (supabase as any)
+            .from("products")
+            .select("id, name, brand, model, category, metadata, sku")
+            .in("id", productIds);
+          for (const p of prods ?? []) productsById[p.id] = p;
+        }
+        const enrichedItems = items.map((it: any) => {
+          const p = it.product_id ? productsById[it.product_id] : null;
+          return {
+            ...it,
+            brand: it.brand ?? p?.brand ?? null,
+            model: it.model ?? p?.model ?? null,
+            category: p?.category ?? null,
+            metadata: p?.metadata ?? null,
+          };
+        });
+
         const settings = orgSettings || {};
+        // Local-only store extras (CNPJ/address persisted from the store dialog)
+        let extras: { cnpj?: string; address?: string } = {};
+        try {
+          if (typeof window !== "undefined" && fullSale.organization_id) {
+            extras = JSON.parse(
+              localStorage.getItem(`store-details:${fullSale.organization_id}`) || "{}",
+            );
+          }
+        } catch {}
+
         setReceiptData({
           sale: fullSale,
-          items: itemsRes.data || [],
+          items: enrichedItems,
           payments: paymentsRes.data || [],
-          org_name: org?.name || "Loja",
+          org_name: settings.brand_name || org?.name || "Loja",
           org: {
-            address: settings.address ?? settings.endereco ?? null,
-            cnpj: settings.cnpj ?? settings.document ?? null,
-            phone: settings.phone ?? settings.telefone ?? null,
+            address: extras.address ?? settings.address ?? settings.endereco ?? null,
+            cnpj: extras.cnpj ?? settings.cnpj ?? settings.document ?? null,
+            phone: settings.support_whatsapp ?? settings.phone ?? settings.telefone ?? null,
             website: settings.website ?? null,
             logo_url: settings.brand_logo_url ?? null,
           },
