@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export type OrgMember = {
   user_id: string;
@@ -34,30 +35,29 @@ export const listOrgMembers = createServerFn({ method: "POST" })
       throw new Error("Forbidden");
     }
 
-    // Use admin client to bypass RLS and read full team.
-    let client: typeof supabase = supabase;
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const mod = await import("@/integrations/supabase/client.server");
-        client = mod.supabaseAdmin as unknown as typeof supabase;
-      } catch {
-        // fall back
-      }
-    }
-
-    const { data: rows } = await client
+    // Always use admin client to bypass RLS and read full team.
+    const { data: rows, error: rowsErr } = await supabaseAdmin
       .from("user_organizations")
       .select("user_id, role")
       .eq("organization_id", data.orgId);
+
+    if (rowsErr) {
+      console.error("[listOrgMembers] failed to read user_organizations", rowsErr);
+      throw new Error(rowsErr.message);
+    }
 
     const base = (rows as { user_id: string; role: string }[]) ?? [];
     if (base.length === 0) return { members: [] };
 
     const ids = base.map((r) => r.user_id);
-    const { data: profs } = await client
+    const { data: profs, error: profsErr } = await supabaseAdmin
       .from("profiles")
       .select("id, nome, display_name, email")
       .in("id", ids);
+
+    if (profsErr) {
+      console.error("[listOrgMembers] failed to read profiles", profsErr);
+    }
 
     const map = new Map<string, { name: string | null; email: string | null }>();
     for (const p of (profs as {
