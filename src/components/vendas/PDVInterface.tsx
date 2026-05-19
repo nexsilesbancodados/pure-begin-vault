@@ -2238,12 +2238,42 @@ export function PDVInterface() {
                         setIsSearchFocused(false);
                       }}
                       disabled={product.stock <= 0}
-                      className={`h-24 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition flex flex-col items-center justify-center gap-1 font-medium group relative ${product.stock <= 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                      title={
+                        (product as any).imei
+                          ? `IMEI: ${(product as any).imei}`
+                          : product.name
+                      }
+                      className={`min-h-[112px] p-2 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-primary/5 transition flex flex-col items-center justify-between gap-1 font-medium group relative ${product.stock <= 0 ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
-                      <div className="h-10 w-10 rounded-full bg-muted group-hover:bg-primary/10 grid place-items-center transition">
-                        <Package className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
+                      <div className="h-8 w-8 rounded-full bg-muted group-hover:bg-primary/10 grid place-items-center transition shrink-0">
+                        <Package className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
                       </div>
-                      <span className="text-xs text-center px-2 line-clamp-2">{product.name}</span>
+                      <span className="text-[11px] leading-tight text-center px-1 line-clamp-2 font-semibold">
+                        {product.name}
+                      </span>
+                      {(() => {
+                        const pa = product as any;
+                        const chips: string[] = [];
+                        if (pa.capacity) chips.push(String(pa.capacity));
+                        if (pa.color) chips.push(String(pa.color));
+                        return chips.length ? (
+                          <div className="flex flex-wrap gap-0.5 justify-center">
+                            {chips.slice(0, 2).map((c, i) => (
+                              <span
+                                key={i}
+                                className="text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-primary/10 text-primary leading-none"
+                              >
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null;
+                      })()}
+                      {(product as any).imei && (
+                        <span className="text-[8px] font-mono text-foreground/70 truncate max-w-full px-1">
+                          IMEI: …{String((product as any).imei).slice(-6)}
+                        </span>
+                      )}
                       <div className="flex flex-col items-center">
                         <span className="text-[10px] font-bold text-primary">
                           {product.price.toLocaleString("pt-BR", {
