@@ -81,10 +81,12 @@ async function processJob(supabase: any, jobId: string) {
   // tenha inferido fin_type por engano (ex.: descrição "Venda ...").
   const jobLabel = String(job.label || "").toLowerCase();
   const forceSales = /vendas|sale|sales|pedido|order/.test(jobLabel);
+  const forceStock = /estoque|stock|produto|product/.test(jobLabel);
   const looksLikeSale = (r: Row) =>
     !!r.product_name || !!r.customer_name || !!r.customer_document;
+
   const finRows = allRows.filter((r) => {
-    if (forceSales) return false;
+    if (forceSales || forceStock) return false;
     if (looksLikeSale(r)) return false;
     return r.fin_type === "income" || r.fin_type === "expense";
   });
