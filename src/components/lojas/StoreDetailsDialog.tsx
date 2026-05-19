@@ -122,11 +122,11 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
       if (ids.length > 0) {
         const { data: profs } = await (supabase as any)
           .from("profiles")
-          .select("id, full_name, email")
+          .select("id, nome, display_name, email")
           .in("id", ids);
         const map = new Map<string, { name?: string; email?: string }>();
         for (const p of (profs as any[]) || []) {
-          map.set(p.id, { name: p.full_name, email: p.email });
+          map.set(p.id, { name: p.display_name || p.nome, email: p.email });
         }
         setMembers(
           baseMembers.map((m) => ({
