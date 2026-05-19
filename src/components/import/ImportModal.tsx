@@ -441,6 +441,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
   const [rawData, setRawData] = useState<any[]>([]);
   const [kind, setKind] = useState<ImportKind>(initialKind || "vendas");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showFullscreenPreview, setShowFullscreenPreview] = useState(false);
 
   const stats = useMemo(() => {
     const valid = rows.filter((r) => r._valid);
