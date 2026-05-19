@@ -56,13 +56,29 @@ export function HeroHeader({ userName, status }: HeroHeaderProps) {
 
       <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="text-white min-w-0">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-[11px] font-medium mb-3 shadow-sm">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75 animate-ping" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
-            </span>
-            <Calendar className="h-3 w-3" />
-            <span className="capitalize">{today}</span>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-[11px] font-medium shadow-sm">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75 animate-ping" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
+              </span>
+              <Calendar className="h-3 w-3" />
+              <span className="capitalize">{today}</span>
+            </div>
+            {activeOrgName && (
+              <div
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-[11px] font-semibold shadow-sm max-w-[260px]"
+                title={`Visualizando dados exclusivos da loja: ${activeOrgName}`}
+              >
+                <Store className="h-3 w-3 shrink-0" />
+                <span className="truncate">{activeOrgName}</span>
+                {hasMultipleOrgs && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/20 ml-1 shrink-0">
+                    {orgs.length} lojas
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-[34px] font-bold font-display tracking-tight break-words leading-tight drop-shadow-sm">
             Olá, {userName}!{" "}
@@ -71,7 +87,10 @@ export function HeroHeader({ userName, status }: HeroHeaderProps) {
             </span>
           </h1>
           <p className="text-white/85 text-sm mt-1.5 max-w-xl">
-            {status ?? "Aqui está o resumo do seu negócio em tempo real."}
+            {status ??
+              (activeOrgName
+                ? `Resumo em tempo real de ${activeOrgName}. Vendas, estoque e financeiro são exclusivos desta loja.`
+                : "Aqui está o resumo do seu negócio em tempo real.")}
           </p>
         </div>
 
