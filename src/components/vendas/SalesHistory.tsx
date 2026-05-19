@@ -2252,13 +2252,15 @@ function Receipt80mm({ data }: { data: ReceiptData }) {
                   },
                 ]
             ).map((item: any) => {
-              const description = [
-                item.product_name,
-                item.imei ? `IMEI: ${item.imei}` : null,
-                item.sku ? `Id: ${item.sku}` : null,
-              ]
-                .filter(Boolean)
-                .join(" - ");
+              const description = buildReceiptItemDescription(item, {
+                brand: item.brand,
+                model: item.model,
+                category: item.category,
+                metadata: item.metadata,
+                sku: item.sku,
+                id: item.product_id,
+                name: item.product_name,
+              });
               return (
                 <tr key={item.id} className="align-top">
                   <td className="py-0.5 pr-1 break-words">{description}</td>
