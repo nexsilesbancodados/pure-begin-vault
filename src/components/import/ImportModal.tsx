@@ -32,10 +32,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImport } from "@/contexts/ImportContext";
 import * as XLSX from "xlsx";
 
-interface SalesImportModalProps {
+interface ImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImportSuccess?: () => void;
+  initialKind?: ImportKind;
 }
 
 type Step = "upload" | "preview" | "done";
@@ -63,6 +64,10 @@ type ParsedRow = {
   product_sku?: string;
   cost_price?: number;
   discount?: number;
+  brand?: string;
+  model?: string;
+  ean?: string;
+  imei?: string;
   // Financeiro
   description?: string;
   fin_type?: "income" | "expense";
@@ -131,6 +136,18 @@ const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
     ],
     category: [
       "categoria", "category", "grupo", "classe", "classificacao", "classificação", "familia", "tipo"
+    ],
+    brand: [
+      "marca", "brand", "fabricante"
+    ],
+    model: [
+      "modelo", "model", "versao", "versão"
+    ],
+    ean: [
+      "ean", "barras", "barcode", "codigo de barras"
+    ],
+    imei: [
+      "imei", "serial", "s/n", "sn", "n de serie", "numero de serie"
     ],
   },
   financeiro: {
@@ -393,6 +410,10 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     cost_price: costPrice && !isNaN(costPrice) ? costPrice : undefined,
     product_sku: productSku || undefined,
     discount: discount && !isNaN(discount) ? discount : undefined,
+    brand: get("brand") ? String(get("brand")).trim() : undefined,
+    model: get("model") ? String(get("model")).trim() : undefined,
+    ean: get("ean") ? String(get("ean")).trim() : undefined,
+    imei: get("imei") ? String(get("imei")).trim() : undefined,
     description: description,
     fin_type: finType,
     category: categoryRaw,
@@ -402,7 +423,7 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
   };
 }
 
-export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImportModalProps) {
+export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: ImportModalProps) {
   const { user } = useAuth();
   const { startImport } = useImport();
   const [isImporting, setIsImporting] = useState(false);
@@ -415,7 +436,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
   const [hmap, setHmap] = useState<Record<string, string>>({});
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawData, setRawData] = useState<any[]>([]);
-  const [kind, setKind] = useState<ImportKind>("vendas");
+  const [kind, setKind] = useState<ImportKind>(initialKind || "vendas");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const stats = useMemo(() => {
@@ -946,6 +967,8 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             { field: "product", label: "Nome do Produto *", required: true },
                             { field: "product_sku", label: "Código / SKU" },
                             { field: "category", label: "Categoria" },
+                            { field: "brand", label: "Marca" },
+                            { field: "model", label: "Modelo" },
                           ],
                         },
                         {
@@ -954,6 +977,13 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             { field: "quantity", label: "Qtd em estoque" },
                             { field: "unit_price", label: "Preço de Venda" },
                             { field: "cost_price", label: "Preço de Custo" },
+                          ],
+                        },
+                        {
+                          title: "Identificadores",
+                          fields: [
+                            { field: "imei", label: "IMEI / Serial" },
+                            { field: "ean", label: "EAN / Barras" },
                           ],
                         },
                       ]

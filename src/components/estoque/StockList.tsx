@@ -15,7 +15,7 @@ import {
   TrendingUp,
   Clock,
   FileDown,
-  FileUp,
+  Upload,
   Smartphone,
   Tablet,
   Watch,
@@ -25,7 +25,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { ProductForm } from "./ProductForm";
-import { StockImport } from "./StockImport";
+import { ImportModal } from "@/components/import/ImportModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +51,7 @@ export function StockList() {
   const { user } = useAuth();
   const { orgId } = useOrg();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [localProducts, setLocalProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -554,17 +555,8 @@ export function StockList() {
               <DropdownMenuItem onClick={handleExport}>
                 <FileDown className="h-4 w-4" /> Exportar CSV
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <div className="px-2 py-1.5">
-                  <StockImport
-                    onImported={(newProducts) => {
-                      setLocalProducts((prev) => [
-                        ...newProducts.map((p) => ({ ...p, stock: p.stock_quantity || 0 })),
-                        ...prev,
-                      ]);
-                    }}
-                  />
-                </div>
+              <DropdownMenuItem onClick={() => setIsImportOpen(true)}>
+                <Upload className="h-4 w-4" /> Importar planilha
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1037,6 +1029,13 @@ export function StockList() {
         onOpenChange={(open) => !open && setEditingProduct(null)}
         product={editingProduct}
         onSave={handleUpdateProduct}
+      />
+
+      <ImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImportSuccess={() => fetchProducts(0, true)}
+        initialKind="estoque"
       />
     </div>
   );

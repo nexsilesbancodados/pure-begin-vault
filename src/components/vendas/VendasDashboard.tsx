@@ -12,7 +12,7 @@ import {
   Activity,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { SalesImportModal } from "./SalesImportModal";
+import { ImportModal } from "@/components/import/ImportModal";
 import { useNavigate } from "@tanstack/react-router";
 import { SalesHistory } from "./SalesHistory";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,7 +123,7 @@ export default function Vendas() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <SalesImportModal
+      <ImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={() => setRefreshKey((p) => p + 1)}
