@@ -366,12 +366,13 @@ export function SalesHistory() {
 
   const openWarrantyPrint = useCallback(
     async (sale: any, type: "seminovo" | "lacrado" | "android") => {
+      if (!orgId) throw new Error("Loja ativa não encontrada");
       try {
         // Carrega dados completos da venda + organização + cliente + vendedor
         const [saleRes, itemsRes, paymentsRes] = await Promise.all([
-          (supabase as any).from("sales_orders").select("*").eq("id", sale.id).maybeSingle(),
-          (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id),
-          (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id),
+          (supabase as any).from("sales_orders").select("*").eq("id", sale.id).eq("organization_id", orgId).maybeSingle(),
+          (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id).eq("organization_id", orgId),
+          (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id).eq("organization_id", orgId),
         ]);
         const fullSale = saleRes.data || sale;
         const [{ data: org }, { data: orgSettings }, { data: customer }, { data: seller }] =
@@ -395,6 +396,7 @@ export function SalesHistory() {
                   .from("customers")
                   .select("*")
                   .eq("id", fullSale.customer_id)
+                  .eq("organization_id", orgId)
                   .maybeSingle()
               : Promise.resolve({ data: sale.customers || null }),
             fullSale.seller_id
@@ -721,7 +723,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
         setWarrantyLoading(false);
       }
     },
-    [],
+    [orgId],
   );
 
   const openWarrantyDialog = useCallback(
@@ -750,6 +752,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
 
   const openReceiptPopup = useCallback(
     async (sale: any, mode: "a4" | "80mm" = "a4", autoPrint = false) => {
+      if (!orgId) return;
       setIsDetailsOpen(false);
       setSelectedSale(null);
       setReceiptMode(mode);
@@ -760,9 +763,9 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
 
       try {
         const [saleRes, itemsRes, paymentsRes] = await Promise.all([
-          (supabase as any).from("sales_orders").select("*").eq("id", sale.id).maybeSingle(),
-          (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id),
-          (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id),
+          (supabase as any).from("sales_orders").select("*").eq("id", sale.id).eq("organization_id", orgId).maybeSingle(),
+          (supabase as any).from("sale_items").select("*").eq("sale_id", sale.id).eq("organization_id", orgId),
+          (supabase as any).from("sale_payments").select("*").eq("sale_id", sale.id).eq("organization_id", orgId),
         ]);
 
         if (saleRes.error) throw saleRes.error;
@@ -790,6 +793,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                   .from("customers")
                   .select("*")
                   .eq("id", fullSale.customer_id)
+                  .eq("organization_id", orgId)
                   .maybeSingle()
               : Promise.resolve({ data: sale.customers || null }),
             fullSale.seller_id
@@ -860,7 +864,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
         setReceiptLoading(false);
       }
     },
-    [],
+    [orgId],
   );
 
   return (
