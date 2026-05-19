@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
@@ -89,7 +89,31 @@ interface Nota {
   dataCompra: string;
   paga: boolean;
   prazoPagamento: string;
+  comprovanteUrl?: string | null;
 }
+
+const COMPROVANTE_SENTINEL_ID = "__comprovante__";
+
+const extractComprovante = (raw: unknown[]): { url: string | null; rest: unknown[] } => {
+  let url: string | null = null;
+  const rest: unknown[] = [];
+  for (const item of raw) {
+    if (
+      item &&
+      typeof item === "object" &&
+      (item as { id?: unknown }).id === COMPROVANTE_SENTINEL_ID
+    ) {
+      const meta = (item as { metadata?: unknown }).metadata;
+      if (meta && typeof meta === "object") {
+        const u = (meta as Record<string, unknown>).url;
+        if (typeof u === "string") url = u;
+      }
+      continue;
+    }
+    rest.push(item);
+  }
+  return { url, rest };
+};
 
 interface PurchaseNoteRow {
   id: string;
@@ -236,8 +260,8 @@ const isPurchaseNotesUnavailable = (error: unknown) => {
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
-const serializeItems = (items: Product[]): Json =>
-  items.map((p) => ({
+const serializeItems = (items: Product[], comprovanteUrl?: string | null): Json => {
+  const base = items.map((p) => ({
     id: p.id,
     name: p.name,
     organization_id: p.organization_id ?? null,
@@ -248,10 +272,26 @@ const serializeItems = (items: Product[]): Json =>
     stock_quantity: p.stock_quantity ?? null,
     metadata: toJson(p.metadata ?? null),
   }));
+  if (comprovanteUrl) {
+    base.push({
+      id: COMPROVANTE_SENTINEL_ID,
+      name: COMPROVANTE_SENTINEL_ID,
+      organization_id: null,
+      sku: null,
+      imei: null,
+      price: null,
+      cost_price: null,
+      stock_quantity: null,
+      metadata: { kind: "comprovante", url: comprovanteUrl } as unknown as Json,
+    });
+  }
+  return base as unknown as Json;
+};
 
 const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
-  const rawItems = Array.isArray(row.items) ? row.items : [];
-  const items = rawItems.map((item) => {
+  const raw = Array.isArray(row.items) ? row.items : [];
+  const { url: comprovanteUrl, rest } = extractComprovante(raw);
+  const items = rest.map((item) => {
     const product = item as Product;
     return {
       ...product,
@@ -270,6 +310,7 @@ const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
     dataCompra: row.data_compra ?? new Date().toISOString().slice(0, 10),
     paga: Boolean(row.paga),
     prazoPagamento: row.prazo_pagamento ?? "",
+    comprovanteUrl,
   };
 };
 
@@ -337,6 +378,8 @@ function NotasAbertoPage() {
   const [listSearch, setListSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "overdue" | "paid">("all");
   const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
+  const comprovanteInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingComprovante, setUploadingComprovante] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [notas, setNotas] = useState<Nota[]>([]);
@@ -381,7 +424,7 @@ function NotasAbertoPage() {
           prazo_pagamento: nota.prazoPagamento || null,
           paga: nota.paga,
           total: getNoteTotal(nota.items),
-          items: serializeItems(nota.items),
+          items: serializeItems(nota.items, nota.comprovanteUrl),
           updated_by: userId,
         })
         .eq("id", nota.id)
@@ -1344,9 +1387,102 @@ function NotasAbertoPage() {
                         <Switch
                           id="paga"
                           checked={detailNota.paga}
-                          onCheckedChange={(v) => updateNota(detailNota.id, { paga: v })}
+                          onCheckedChange={(v) => {
+                            if (!v) {
+                              updateNota(detailNota.id, { paga: false });
+                              return;
+                            }
+                            if (detailNota.comprovanteUrl) {
+                              updateNota(detailNota.id, { paga: true });
+                              return;
+                            }
+                            comprovanteInputRef.current?.click();
+                          }}
                         />
                       </div>
+                    </div>
+                  </div>
+                  {/* Comprovante */}
+                  <div className="mt-4 space-y-2">
+                    <Label className="text-sm font-medium">
+                      Comprovante de pagamento{" "}
+                      <span className="text-xs text-muted-foreground font-normal">
+                        (obrigatório para marcar como paga)
+                      </span>
+                    </Label>
+                    <input
+                      ref={comprovanteInputRef}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file || !orgId) return;
+                        try {
+                          setUploadingComprovante(true);
+                          const ext = file.name.split(".").pop() || "bin";
+                          const path = `${orgId}/notas/${detailNota.id}/comprovante-${Date.now()}.${ext}`;
+                          const { error: upErr } = await supabase.storage
+                            .from("attachments")
+                            .upload(path, file, { upsert: true });
+                          if (upErr) throw upErr;
+                          const { data: pub } = supabase.storage
+                            .from("attachments")
+                            .getPublicUrl(path);
+                          updateNota(detailNota.id, {
+                            comprovanteUrl: pub.publicUrl,
+                            paga: true,
+                          });
+                          toast.success("Comprovante anexado. Nota marcada como paga.");
+                        } catch (err) {
+                          toast.error(
+                            "Falha ao enviar comprovante: " +
+                              ((err as Error).message ?? "erro desconhecido"),
+                          );
+                        } finally {
+                          setUploadingComprovante(false);
+                        }
+                      }}
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={uploadingComprovante}
+                        onClick={() => comprovanteInputRef.current?.click()}
+                      >
+                        {uploadingComprovante
+                          ? "Enviando..."
+                          : detailNota.comprovanteUrl
+                            ? "Trocar arquivo"
+                            : "Anexar comprovante"}
+                      </Button>
+                      {detailNota.comprovanteUrl && (
+                        <a
+                          href={detailNota.comprovanteUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-medium text-primary hover:underline"
+                        >
+                          Ver comprovante
+                        </a>
+                      )}
+                      {detailNota.comprovanteUrl && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateNota(detailNota.id, {
+                              comprovanteUrl: null,
+                              paga: false,
+                            })
+                          }
+                          className="text-xs text-muted-foreground hover:text-rose-600"
+                        >
+                          Remover
+                        </button>
+                      )}
                     </div>
                   </div>
                 </section>
