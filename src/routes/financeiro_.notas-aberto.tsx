@@ -875,7 +875,9 @@ function NotasAbertoPage() {
         const created = await createNota(items);
         if (!created) return;
         replaceNotas((prev) => [...prev, created].sort((a, b) => a.noteNumber - b.noteNumber));
-        toast.success(`Nota ${created.noteNumber} criada com ${items.length} produto(s).`);
+        toast.success(
+          `Nota ${created.noteNumber} criada com ${items.length} produto(s). Estoque sincronizado.`,
+        );
       }
 
       setSelected({});
