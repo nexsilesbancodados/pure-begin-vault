@@ -653,7 +653,16 @@ function NotasAbertoPage() {
           .select("*")
           .single();
 
-        if (!error) return mapPurchaseNote(data as PurchaseNoteRow);
+          if (!error) {
+            const created = mapPurchaseNote(data as PurchaseNoteRow);
+            await syncStockForNotaItems(items, {
+              orgId,
+              userId,
+              notaId: created.id,
+              delta: 1,
+            });
+            return created;
+          }
         if (isPurchaseNotesUnavailable(error)) {
           setNotesDbUnavailable(true);
           toast.warning("Banco de notas ainda não aplicado. A nota será salva localmente por enquanto.");
