@@ -212,6 +212,25 @@ export function PDVInterface() {
 
       if (error) throw error;
 
+      // Carrega IMEIs disponíveis (não vendidos) para mostrar no PDV
+      const productIds = (data || []).map((p: any) => p.id);
+      const imeisByProduct: Record<string, { imei: string; serial: string | null }[]> = {};
+      if (productIds.length) {
+        const { data: imeiRows } = await supabase
+          .from("product_imei")
+          .select("product_id, imei, serial, status")
+          .eq("organization_id", orgId)
+          .in("product_id", productIds)
+          .neq("status", "sold");
+        for (const row of imeiRows || []) {
+          const pid = (row as any).product_id as string;
+          (imeisByProduct[pid] ||= []).push({
+            imei: String((row as any).imei || ""),
+            serial: (row as any).serial ? String((row as any).serial) : null,
+          });
+        }
+      }
+
       const formattedProducts: Product[] = (data || []).map((p) => {
         const product: Product = {
           id: p.id,
@@ -238,6 +257,17 @@ export function PDVInterface() {
         if (imei2) (product as any).imei2 = String(imei2);
         if (serial) (product as any).serial = String(serial);
         if (condition) (product as any).condition = String(condition);
+
+        const extraImeis = imeisByProduct[p.id] || [];
+        if (extraImeis.length) {
+          (product as any).imeis = extraImeis.map((r) => r.imei).filter(Boolean);
+          if (!(product as any).imei && extraImeis[0]?.imei) {
+            (product as any).imei = extraImeis[0].imei;
+          }
+          if (!(product as any).serial && extraImeis[0]?.serial) {
+            (product as any).serial = extraImeis[0].serial;
+          }
+        }
 
         return product;
       });
@@ -691,6 +721,7 @@ export function PDVInterface() {
         pa.capacity,
         pa.imei,
         pa.imei2,
+        ...(Array.isArray(pa.imeis) ? pa.imeis : []),
         pa.serial,
         pa.sku,
       ]
@@ -2075,13 +2106,24 @@ export function PDVInterface() {
                                   </div>
                                 ) : null;
                               })()}
-                              {(product as any).imei && (
-                                <div className="text-[10px] font-mono text-foreground/80 mt-0.5 truncate">
-                                  IMEI: {(product as any).imei}
-                                  {(product as any).imei2 ? ` / ${(product as any).imei2}` : ""}
-                                </div>
-                              )}
-                              {!((product as any).imei) && (product as any).serial && (
+                              {(() => {
+                                const pa = product as any;
+                                const list: string[] = Array.isArray(pa.imeis) && pa.imeis.length
+                                  ? pa.imeis
+                                  : pa.imei
+                                  ? [pa.imei, pa.imei2].filter(Boolean)
+                                  : [];
+                                if (!list.length) return null;
+                                const shown = list.slice(0, 2);
+                                const extra = list.length - shown.length;
+                                return (
+                                  <div className="text-[10px] font-mono text-foreground/80 mt-0.5 truncate">
+                                    IMEI: {shown.join(" / ")}
+                                    {extra > 0 ? ` +${extra}` : ""}
+                                  </div>
+                                );
+                              })()}
+                              {!((product as any).imei) && !((product as any).imeis?.length) && (product as any).serial && (
                                 <div className="text-[10px] font-mono text-foreground/80 mt-0.5 truncate">
                                   SN: {(product as any).serial}
                                 </div>
