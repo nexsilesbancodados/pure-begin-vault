@@ -136,6 +136,18 @@ const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
     category: [
       "categoria", "category", "grupo", "classe", "classificacao", "classificação", "familia", "tipo"
     ],
+    brand: [
+      "marca", "brand", "fabricante"
+    ],
+    model: [
+      "modelo", "model", "versao", "versão"
+    ],
+    ean: [
+      "ean", "barras", "barcode", "codigo de barras"
+    ],
+    imei: [
+      "imei", "serial", "s/n", "sn", "n de serie", "numero de serie"
+    ],
   },
   financeiro: {
     amount: [
