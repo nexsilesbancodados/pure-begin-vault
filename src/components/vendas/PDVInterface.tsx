@@ -231,6 +231,24 @@ export function PDVInterface() {
         }
       }
 
+      // Indexa IMEIs de unidades-filhas (produtos individuais com metadata.imei)
+      // agrupadas pelo "model" — permite que o produto-pai (ex.: "iPhone 13")
+      // mostre os IMEIs disponíveis dos itens cadastrados (ex.: "iPhone 13 128GB Preto").
+      const imeisByModel: Record<string, { imei: string; serial: string | null }[]> = {};
+      const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+      for (const p of (data as any[]) || []) {
+        const meta = p.metadata || {};
+        const im = meta.imei || meta.IMEI || meta.imei1;
+        const sr = meta.serial || meta.serial_number;
+        if (!im && !sr) continue;
+        const key = norm(String(p.model || p.name || ""));
+        if (!key) continue;
+        (imeisByModel[key] ||= []).push({
+          imei: im ? String(im) : "",
+          serial: sr ? String(sr) : null,
+        });
+      }
+
       const formattedProducts: Product[] = (data || []).map((p) => {
         const product: Product = {
           id: p.id,
@@ -266,6 +284,18 @@ export function PDVInterface() {
           }
           if (!(product as any).serial && extraImeis[0]?.serial) {
             (product as any).serial = extraImeis[0].serial;
+          }
+        }
+
+        // Fallback: para produtos-pai sem IMEI próprio, agrega IMEIs dos
+        // filhos cadastrados com o mesmo "model" (ex.: "iPhone 13").
+        if (!(product as any).imeis?.length && !(product as any).imei) {
+          const key = norm(String((p as any).model || p.name || ""));
+          const fromModel = imeisByModel[key] || [];
+          if (fromModel.length) {
+            (product as any).imeis = fromModel.map((r) => r.imei).filter(Boolean);
+            if (fromModel[0]?.imei) (product as any).imei = fromModel[0].imei;
+            if (fromModel[0]?.serial) (product as any).serial = fromModel[0].serial;
           }
         }
 
