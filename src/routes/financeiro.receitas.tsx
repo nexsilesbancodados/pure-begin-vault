@@ -207,9 +207,6 @@ function ReceitasPage() {
           }),
           type: "income",
         }));
-      if (t_or_skip_cash(cashRes)) {
-        // no-op
-      }
       const cashMovements: Income[] = !cashRes.error
         ? ((cashRes.data as any[]) || [])
             .filter((m) => !(m.reference_type === "sale" && m.reference_id && receivableSaleIds.has(m.reference_id)))
