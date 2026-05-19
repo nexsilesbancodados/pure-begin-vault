@@ -145,8 +145,8 @@ function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
   // Ordena campos por prioridade: campos mais específicos primeiro
   const fieldOrder = [
     "customer_document", "customer_email", "customer_phone", "customer",
-    "amount", "date", "payment", "status",
-    "unit_price", "quantity", "product",
+    "amount", "discount", "date", "payment", "status",
+    "unit_price", "quantity", "product_sku", "product",
     "fin_type", "category", "description", "notes",
   ];
   for (const field of fieldOrder) {
