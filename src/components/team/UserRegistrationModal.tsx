@@ -63,6 +63,7 @@ const QUICK_PROFILES: Record<string, string[]> = {
   "Administrativo-Financeiro": [
     "Tela inicial",
     "Financeiro",
+    "Notas em Aberto",
     "Fiscal",
     "Relatórios",
     "Cadastros Básicos",
