@@ -276,7 +276,11 @@ const isPurchaseNotesUnavailable = (error: unknown) => {
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
-const serializeItems = (items: Product[], comprovanteUrls?: string[] | null): Json => {
+const serializeItems = (
+  items: Product[],
+  comprovanteUrls?: string[] | null,
+  observacao?: string | null,
+): Json => {
   const base = items.map((p) => ({
     id: p.id,
     name: p.name,
@@ -301,6 +305,19 @@ const serializeItems = (items: Product[], comprovanteUrls?: string[] | null): Js
       metadata: { kind: "comprovante", url } as unknown as Json,
     });
   });
+  if (observacao && observacao.trim()) {
+    base.push({
+      id: OBSERVACAO_SENTINEL_ID,
+      name: OBSERVACAO_SENTINEL_ID,
+      organization_id: null,
+      sku: null,
+      imei: null,
+      price: null,
+      cost_price: null,
+      stock_quantity: null,
+      metadata: { kind: "observacao", text: observacao } as unknown as Json,
+    });
+  }
   return base as unknown as Json;
 };
 
