@@ -1030,6 +1030,13 @@ export function StockList() {
         product={editingProduct}
         onSave={handleUpdateProduct}
       />
+
+      <SalesImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImportSuccess={() => fetchProducts()}
+        initialKind="estoque"
+      />
     </div>
   );
 }
