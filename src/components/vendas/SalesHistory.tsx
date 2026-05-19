@@ -401,9 +401,18 @@ export function SalesHistory() {
           ]);
 
         const settings = orgSettings || {};
-        const orgName = org?.name || "Loja";
-        const cnpj = settings.cnpj ?? settings.document ?? "";
-        const phone = settings.phone ?? settings.telefone ?? "";
+        const orgName = settings.brand_name || org?.name || "Loja";
+        let extras: { cnpj?: string; address?: string } = {};
+        try {
+          if (typeof window !== "undefined" && fullSale.organization_id) {
+            extras = JSON.parse(
+              localStorage.getItem(`store-details:${fullSale.organization_id}`) || "{}",
+            );
+          }
+        } catch {}
+        const cnpj = extras.cnpj ?? settings.cnpj ?? settings.document ?? "";
+        const phone = settings.support_whatsapp ?? settings.phone ?? settings.telefone ?? "";
+        const address = extras.address ?? settings.address ?? settings.endereco ?? "";
         const logo = settings.brand_logo_url ?? "";
         const sellerName = seller?.full_name || seller?.email || "—";
         const cust = customer || sale.customers || {};
@@ -428,21 +437,42 @@ export function SalesHistory() {
         const subtotal = Number(fullSale.subtotal ?? total);
         const discount = Number(fullSale.discount ?? 0);
 
+        // Enrich items with product brand/model/category/metadata for the rich description
+        const productIds = Array.from(
+          new Set(items.map((it: any) => it.product_id).filter(Boolean)),
+        );
+        let productsById: Record<string, any> = {};
+        if (productIds.length) {
+          const { data: prods } = await (supabase as any)
+            .from("products")
+            .select("id, name, brand, model, category, metadata, sku")
+            .in("id", productIds);
+          for (const p of prods ?? []) productsById[p.id] = p;
+        }
+
         const itemsRows = items.length
           ? items
-              .map(
-                (it: any) => `
+              .map((it: any) => {
+                const p = it.product_id ? productsById[it.product_id] : null;
+                const description = buildReceiptItemDescription(it, {
+                  brand: it.brand ?? p?.brand ?? null,
+                  model: it.model ?? p?.model ?? null,
+                  category: p?.category ?? null,
+                  metadata: p?.metadata ?? null,
+                  sku: it.sku ?? p?.sku ?? null,
+                  id: it.product_id,
+                  name: it.product_name ?? p?.name,
+                });
+                return `
             <tr>
               <td>${toProductCode({ id: it.product_id, sku: it.sku })}</td>
-              <td>${[it.product_name, it.imei ? `IMEI: ${it.imei}` : "", it.model || ""]
-                .filter(Boolean)
-                .join(" - ")}</td>
+              <td>${description}</td>
               <td style="text-align:center;">${it.quantity ?? 1}</td>
               <td style="text-align:right;">${brl(Number(it.unit_price))}</td>
               <td style="text-align:right;">${it.discount ? brl(Number(it.discount)) : "R$"}</td>
               <td style="text-align:right;">${brl(Number(it.total))}</td>
-            </tr>`,
-              )
+            </tr>`;
+              })
               .join("")
           : `<tr><td colspan="6" style="text-align:center;color:#777;">Sem itens</td></tr>`;
 
@@ -584,13 +614,16 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
 
 <table>
   <tr>
-    <td class="store-info" style="width:60%;">
-      ${logo ? `<img src="${logo}" alt="${orgName}"/>` : ""}
+    <td class="store-info" style="width:22%;">
+      ${logo ? `<img src="${logo}" alt="${orgName}"/>` : `<b>${orgName}</b>`}
+    </td>
+    <td class="store-info">
       <b>${orgName}</b><br/>
       ${cnpj ? `CNPJ: ${cnpj}<br/>` : ""}
-      ${phone ? `Telefone: ${phone}` : ""}
+      ${phone ? `Telefone: ${phone}<br/>` : ""}
+      ${address ? `<span style="font-size:11px;">${address}</span>` : ""}
     </td>
-    <td>
+    <td style="width:28%;">
       <b>${fmt(start)}</b><br/>
       <b>VENDEDOR:</b> ${sellerName}<br/>
       <b>RECIBO DA VENDA:</b> ${receiptId}
