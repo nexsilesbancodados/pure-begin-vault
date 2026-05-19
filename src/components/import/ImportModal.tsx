@@ -32,7 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImport } from "@/contexts/ImportContext";
 import * as XLSX from "xlsx";
 
-interface SalesImportModalProps {
+interface ImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImportSuccess?: () => void;
