@@ -63,6 +63,10 @@ type ParsedRow = {
   product_sku?: string;
   cost_price?: number;
   discount?: number;
+  brand?: string;
+  model?: string;
+  ean?: string;
+  imei?: string;
   // Financeiro
   description?: string;
   fin_type?: "income" | "expense";
