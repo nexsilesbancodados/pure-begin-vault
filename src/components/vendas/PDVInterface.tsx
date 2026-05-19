@@ -2405,7 +2405,16 @@ export function PDVInterface() {
           <ScrollArea className="flex-1 px-4">
             <div className="py-4 space-y-3">
               {cart.length > 0 ? (
-                cart.map((item) => (
+                cart.map((item) => {
+                  const itemImeis = Array.from(
+                    new Set(
+                      [item.imei, item.imei2, ...(Array.isArray(item.imeis) ? item.imeis : [])]
+                        .filter(Boolean)
+                        .map((value) => String(value)),
+                    ),
+                  );
+
+                  return (
                   <div
                     key={item.id}
                     onClick={() =>
@@ -2465,6 +2474,29 @@ export function PDVInterface() {
                                     🔋 {item.battery_health}%
                                   </Badge>
                                 )}
+                              </div>
+                            )}
+
+                            {itemImeis.length > 0 && (
+                              <div className="mt-1.5 rounded-lg border border-primary/15 bg-primary/5 px-2 py-1">
+                                <span className="block text-[9px] font-black uppercase tracking-widest text-primary">
+                                  IMEI
+                                </span>
+                                <span className="block break-all font-mono text-[11px] font-bold leading-snug text-foreground">
+                                  {itemImeis.slice(0, 2).join(" / ")}
+                                  {itemImeis.length > 2 ? ` +${itemImeis.length - 2}` : ""}
+                                </span>
+                              </div>
+                            )}
+
+                            {itemImeis.length === 0 && item.serial && (
+                              <div className="mt-1.5 rounded-lg border border-border/70 bg-muted/30 px-2 py-1">
+                                <span className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                                  Série
+                                </span>
+                                <span className="block break-all font-mono text-[11px] font-bold leading-snug text-foreground">
+                                  {item.serial}
+                                </span>
                               </div>
                             )}
 
@@ -2545,7 +2577,8 @@ export function PDVInterface() {
                       </div>
                     </div>
                   </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="h-64 flex flex-col items-center justify-center text-muted-foreground text-center animate-in fade-in zoom-in duration-500">
                   <div className="relative mb-4">
