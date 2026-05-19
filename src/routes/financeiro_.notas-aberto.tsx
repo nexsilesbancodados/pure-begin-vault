@@ -276,6 +276,46 @@ const isPurchaseNotesUnavailable = (error: unknown) => {
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
+// Sincroniza estoque para itens vinculados a uma nota de compra.
+// delta = +1 para entrada (nota criada), -1 para estorno (nota excluída).
+async function syncStockForNotaItems(
+  items: Product[],
+  opts: { orgId: string; userId: string | null; notaId: string; delta: 1 | -1 },
+) {
+  const valid = items.filter((p) => p && p.id && !p.id.startsWith("__"));
+  if (valid.length === 0) return;
+  await Promise.all(
+    valid.map(async (p) => {
+      try {
+        const { data: current } = await supabase
+          .from("products")
+          .select("stock_quantity")
+          .eq("id", p.id)
+          .maybeSingle();
+        const cur = Number((current as { stock_quantity?: number } | null)?.stock_quantity ?? 0);
+        const next = Math.max(0, cur + opts.delta);
+        await supabase
+          .from("products")
+          .update({ stock_quantity: next, updated_at: new Date().toISOString() })
+          .eq("id", p.id);
+        await supabase.from("stock_movements" as never).insert({
+          organization_id: opts.orgId,
+          user_id: opts.userId,
+          product_id: p.id,
+          movement_type: opts.delta > 0 ? "in" : "out",
+          quantity: 1,
+          unit_cost: Number(p.cost_price ?? p.price ?? 0) || null,
+          reason: opts.delta > 0 ? "compra" : "estorno",
+          reference_type: "purchase_note",
+          reference_id: opts.notaId,
+        } as never);
+      } catch {
+        // não bloqueia o fluxo se sincronização falhar
+      }
+    }),
+  );
+}
+
 const serializeItems = (
   items: Product[],
   comprovanteUrls?: string[] | null,
