@@ -110,7 +110,7 @@ export function KpiCard({
           const { data } = await filterFor(
             supabase
               .from("sales_orders")
-              .select("total_amount, items, created_at, id, payment_method, channel, customers(name)")
+              .select("total_amount, created_at, id, payment_method, channel, customers(name), sale_items(product_name, quantity, unit_price, imei, metadata)")
               .in("status", ["completed", "concluded"])
               .in("channel", ["pdv", "import"])
               .gte("created_at", start.toISOString())
