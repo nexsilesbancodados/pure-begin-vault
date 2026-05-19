@@ -1527,7 +1527,37 @@ function FullscreenPreview({
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto p-4 space-y-4">
+          {/* Mapping Summary */}
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-primary mb-3 flex items-center gap-2">
+              <ShieldCheck className="h-3 w-3" /> Conferência de Mapeamento (Coluna no Arquivo → Campo no Sistema)
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(hmap).map(([field, header]) => (
+                <div key={field} className="flex items-center bg-white border border-border rounded-lg px-2.5 py-1.5 shadow-sm">
+                  <span className="text-[10px] font-black text-muted-foreground uppercase">{header}</span>
+                  <ArrowRight className="h-3 w-3 mx-2 text-primary" />
+                  <span className="text-[10px] font-black text-primary uppercase">
+                    {field === "amount" ? "Valor Total" 
+                     : field === "date" ? "Data" 
+                     : field === "payment" ? "Pagamento"
+                     : field === "customer" ? "Cliente"
+                     : field === "product" ? "Produto"
+                     : field === "quantity" ? "Quantidade"
+                     : field === "unit_price" ? "Preço Unitário"
+                     : field === "cost_price" ? "Custo"
+                     : field === "product_sku" ? "SKU"
+                     : field === "imei" ? "IMEI/Serial"
+                     : field === "fin_type" ? "Tipo Financeiro"
+                     : field === "category" ? "Categoria"
+                     : field}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-border bg-background overflow-hidden">
             <table className="w-full text-xs">
               <thead className="bg-muted/50 sticky top-0 z-10">
