@@ -1593,10 +1593,10 @@ function FullscreenPreview({
                         !r._valid ? "bg-destructive/5" : ""
                       }`}
                     >
-                      <td className="p-3 text-[10px] font-mono text-muted-foreground">
+                      <td className="p-3 text-[10px] font-mono text-muted-foreground sticky left-0 bg-background group-hover:bg-primary/5 z-20">
                         {String(i + 1).padStart(3, "0")}
                       </td>
-                      <td className="p-3">
+                      <td className="p-3 sticky left-12 bg-background group-hover:bg-primary/5 z-20">
                         {r._valid ? (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-success/10 text-success border border-success/20 text-[10px] font-black uppercase">
                             <Check className="h-3 w-3" /> OK
@@ -1608,79 +1608,15 @@ function FullscreenPreview({
                         )}
                       </td>
 
-                      {kind === "estoque" ? (
-                        <>
-                          <td className="p-3 font-bold truncate max-w-[200px]">
-                            {r.product_name || <span className="text-destructive font-black">MALTANDO NOME</span>}
-                          </td>
-                          <td className="p-3">
-                            <div className="flex flex-col">
-                              <span className="font-bold">{r.brand || "—"}</span>
-                              <span className="text-[10px] text-muted-foreground">{r.model || "—"}</span>
-                            </div>
-                          </td>
-                          <td className="p-3 font-mono text-[10px]">
-                            <div className="flex flex-col">
-                              <span className={!r.product_sku ? "text-muted-foreground" : "font-bold"}>
-                                SKU: {r.product_sku || "—"}
-                              </span>
-                              <span className="text-muted-foreground">
-                                EAN: {r.ean || "—"}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="p-3 font-mono text-[10px] text-muted-foreground">
-                            {r.imei || "—"}
-                          </td>
-                          <td className="p-3 text-center font-bold">
-                            {r.product_quantity}
-                          </td>
-                          <td className="p-3 text-right text-muted-foreground">
-                            {r.cost_price ? brl(r.cost_price) : "—"}
-                          </td>
-                          <td className="p-3 text-right font-black">
-                            {r.product_price ? brl(r.product_price) : "—"}
-                          </td>
-                        </>
-                      ) : kind === "financeiro" ? (
-                        <>
-                          <td className="p-3 truncate max-w-[200px]" title={r.description || r.notes}>
-                            {r.description || r.notes || "—"}
-                          </td>
-                          <td className="p-3">
-                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${isIncome ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
-                              {isIncome ? "Receita" : "Despesa"}
-                            </span>
-                          </td>
-                          <td className="p-3 text-muted-foreground">{r.category || "—"}</td>
-                          <td className="p-3 font-mono">
-                            {dt?.toLocaleDateString("pt-BR") || "—"}
-                          </td>
-                          <td className="p-3 text-right font-black">
-                            {brl(r.total_amount)}
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="p-3 font-mono">
-                            {dt?.toLocaleDateString("pt-BR") || "—"}
-                          </td>
-                          <td className="p-3 font-bold">
-                            {r.customer_name || "—"}
-                          </td>
-                          <td className="p-3 text-muted-foreground font-mono">
-                            {r.customer_document || "—"}
-                          </td>
-                          <td className="p-3 font-black text-[10px] uppercase">
-                            {r.payment_method || "—"}
-                          </td>
-                          <td className="p-3 text-right font-black">
-                            {brl(r.total_amount)}
-                          </td>
-                        </>
-                      )}
+                      {headers.map((h) => (
+                        <td key={h} className="p-3 truncate max-w-[200px]" title={String(r._raw[h] || "")}>
+                          <span className="text-[11px]">
+                            {String(r._raw[h] || "—")}
+                          </span>
+                        </td>
+                      ))}
 
-                      <td className="p-3">
+                      <td className="p-3 whitespace-nowrap">
                         {!r._valid ? (
                           <div className="flex items-center gap-2 text-destructive font-bold">
                             <AlertCircle className="h-3 w-3 shrink-0" />
