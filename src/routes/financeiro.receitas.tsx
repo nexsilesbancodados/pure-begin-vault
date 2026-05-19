@@ -284,12 +284,20 @@ function ReceitasPage() {
   };
 
   const kpiCards = [
-    { label: "Recebem hoje (R$)", value: kpis.receberHoje, icon: Hourglass, key: "hoje" },
-    { label: "Vencidos (R$)", value: kpis.vencidos, icon: X, key: "vencidos" },
-    { label: "A receber (R$)", value: kpis.aReceber, icon: Calendar, key: "a_receber" },
-    { label: "Recebidos (R$)", value: kpis.recebidos, icon: CheckCircle2, key: "recebidos" },
-    { label: "Total no período (R$)", value: kpis.total, icon: DollarSign, key: "" },
+    { label: "Recebem hoje", value: kpis.receberHoje, icon: Hourglass, key: "hoje", tone: "blue" as const },
+    { label: "Vencidos", value: kpis.vencidos, icon: X, key: "vencidos", tone: "red" as const },
+    { label: "A receber", value: kpis.aReceber, icon: Calendar, key: "a_receber", tone: "amber" as const },
+    { label: "Recebidos", value: kpis.recebidos, icon: CheckCircle2, key: "recebidos", tone: "emerald" as const },
+    { label: "Total no período", value: kpis.total, icon: DollarSign, key: "", tone: "dark" as const },
   ];
+
+  const toneStyles: Record<string, { border: string; accent: string; chip: string }> = {
+    blue: { border: "border-l-blue-500", accent: "text-blue-600", chip: "bg-blue-50 text-blue-600" },
+    red: { border: "border-l-red-500", accent: "text-red-600", chip: "bg-red-50 text-red-600" },
+    amber: { border: "border-l-amber-500", accent: "text-amber-600", chip: "bg-amber-50 text-amber-600" },
+    emerald: { border: "border-l-emerald-500", accent: "text-emerald-600", chip: "bg-emerald-50 text-emerald-600" },
+    dark: { border: "border-l-slate-700", accent: "text-white", chip: "bg-white/10 text-white" },
+  };
 
   const statusBadge = (status: string | null, due: string | null) => {
     if (status === "paid")
