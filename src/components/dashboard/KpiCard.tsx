@@ -110,7 +110,7 @@ export function KpiCard({
           const { data } = await filterFor(
             supabase
               .from("sales_orders")
-              .select("total_amount, items, created_at, id, payment_method, channel, customers(name)")
+              .select("total_amount, created_at, id, payment_method, channel, customers(name), sale_items(product_name, quantity, unit_price, imei, metadata)")
               .in("status", ["completed", "concluded"])
               .in("channel", ["pdv", "import"])
               .gte("created_at", start.toISOString())
@@ -320,8 +320,57 @@ export function KpiCard({
                     </Badge>
                   </div>
 
+                  {/* Product Summary - Direct response to "descrição dos produtos vendidos" */}
+                  <div className="space-y-2">
+                    <h5 className="text-[10px] uppercase font-black text-muted-foreground/60 px-1 tracking-widest">
+                      Produtos Vendidos (Resumo)
+                    </h5>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                      {(() => {
+                        const aggregated = salesData.reduce((acc: any, sale: any) => {
+                          if (Array.isArray(sale.sale_items)) {
+                            sale.sale_items.forEach((item: any) => {
+                              const key = item.product_name;
+                              if (!acc[key]) acc[key] = { name: key, qty: 0, total: 0 };
+                              acc[key].qty += Number(item.quantity) || 0;
+                              acc[key].total += (Number(item.unit_price) || 0) * (Number(item.quantity) || 1);
+                            });
+                          }
+                          return acc;
+                        }, {});
+                        
+                        const items = Object.values(aggregated);
+                        
+                        if (items.length === 0) {
+                          return <div className="text-[10px] text-muted-foreground italic px-1">Nenhum produto identificado</div>;
+                        }
+                        
+                        return items.map((prod: any) => (
+                          <div
+                            key={prod.name}
+                            className="shrink-0 px-3 py-2 rounded-xl border border-primary/20 bg-primary/5 flex flex-col min-w-[140px]"
+                          >
+                            <span className="text-[11px] font-bold truncate max-w-[180px]">{prod.name}</span>
+                            <div className="flex items-center justify-between mt-1">
+                              <Badge variant="secondary" className="h-4 text-[9px] px-1 bg-primary/10 text-primary border-none">
+                                {prod.qty} un
+                              </Badge>
+                              <span className="text-[10px] font-black opacity-70">
+                                {prod.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </span>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+
                   {/* Payment Summary */}
-                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  <div className="space-y-2">
+                    <h5 className="text-[10px] uppercase font-black text-muted-foreground/60 px-1 tracking-widest">
+                      Formas de Pagamento
+                    </h5>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     {Object.entries(
                       salesData.reduce((acc: any, curr: any) => {
                         const method = curr.payment_method || "Outros";
@@ -353,9 +402,10 @@ export function KpiCard({
                       </div>
                     ))}
                   </div>
+                </div>
 
-                  <ScrollArea className="h-[240px] w-full rounded-2xl border border-border bg-muted/20 p-3">
-                    <div className="space-y-3">
+                <ScrollArea className="h-[240px] w-full rounded-2xl border border-border bg-muted/20 p-3">
+                  <div className="space-y-3">
                       {salesData.map((sale) => (
                         <div
                           key={sale.id}
@@ -402,8 +452,8 @@ export function KpiCard({
                           </div>
 
                           <div className="pt-2.5 border-t border-dashed border-border/80 flex flex-col gap-1.5">
-                            {Array.isArray(sale.items) && sale.items.length > 0 ? (
-                              sale.items.map((item: any, idx: number) => (
+                            {Array.isArray(sale.sale_items) && sale.sale_items.length > 0 ? (
+                              sale.sale_items.map((item: any, idx: number) => (
                                 <div
                                   key={idx}
                                   className="flex flex-col gap-1 bg-muted/30 p-2 rounded-lg border border-border/20"
@@ -414,52 +464,53 @@ export function KpiCard({
                                         <Package className="h-3 w-3 text-muted-foreground" />
                                       </div>
                                       <span className="text-[11px] font-bold truncate">
-                                        {item.quantity}x {item.name}
+                                        {item.quantity}x {item.product_name}
                                       </span>
                                     </div>
                                     <span className="text-[10px] font-black text-foreground/70 shrink-0">
-                                      {(Number(item.price || 0) * (Number(item.quantity) || 1)).toLocaleString("pt-BR", {
+                                      {(Number(item.unit_price || 0) * (Number(item.quantity) || 1)).toLocaleString("pt-BR", {
                                         style: "currency",
                                         currency: "BRL",
                                       })}
                                     </span>
                                   </div>
-                                  {(item.model ||
-                                    item.capacity ||
-                                    item.color ||
-                                    item.battery_health) && (
+                                  {(item.metadata?.model ||
+                                    item.metadata?.capacity ||
+                                    item.metadata?.color ||
+                                    item.metadata?.battery_health ||
+                                    item.imei) && (
                                     <div className="flex flex-wrap gap-1 mt-0.5">
-                                      {item.model && (
+                                      {item.metadata?.model && (
                                         <Badge
                                           variant="secondary"
                                           className="h-3.5 text-[8px] px-1 bg-primary/5 text-primary border-primary/10"
                                         >
-                                          {item.model}
+                                          {item.metadata.model}
                                         </Badge>
                                       )}
-                                      {item.capacity && (
+                                      {item.metadata?.capacity && (
                                         <Badge
                                           variant="secondary"
                                           className="h-3.5 text-[8px] px-1"
                                         >
-                                          {item.capacity}
+                                          {item.metadata.capacity}
                                         </Badge>
                                       )}
-                                      {item.color && (
+                                      {item.imei && (
                                         <Badge
-                                          variant="secondary"
-                                          className="h-3.5 text-[8px] px-1"
+                                          variant="outline"
+                                          className="h-3.5 text-[8px] px-1 border-primary/20 text-primary/70"
                                         >
-                                          {item.color}
+                                          IMEI: {item.imei}
                                         </Badge>
                                       )}
-                                      {item.battery_health && (
+                                      {item.metadata?.battery_health && (
                                         <Badge
                                           variant="secondary"
                                           className="h-3.5 text-[8px] px-1 flex items-center gap-0.5"
                                         >
                                           <Activity className="h-2 w-2" />
-                                          {item.battery_health}%
+                                          {item.metadata.battery_health}%
                                         </Badge>
                                       )}
                                     </div>
