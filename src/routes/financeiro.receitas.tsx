@@ -97,15 +97,45 @@ function ReceitasPage() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const base = supabase
+      const receivableBase = supabase
+        .from("accounts_receivable")
+        .select("*, customers(name)");
+      const transactionBase = supabase
         .from("finance_transactions")
         .select("*")
         .eq("type", "income");
-      const { data, error } = await (
-        orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id)
-      ).order("due_date", { ascending: false, nullsFirst: false });
-      if (error) throw error;
-      setItems((data as any) || []);
+
+      const [receivableRes, txRes] = await Promise.all([
+        (orgId ? receivableBase.eq("organization_id", orgId) : receivableBase.eq("user_id", user.id))
+          .order("due_date", { ascending: false, nullsFirst: false }),
+        (orgId ? transactionBase.eq("organization_id", orgId) : transactionBase.eq("user_id", user.id))
+          .order("transaction_date", { ascending: false, nullsFirst: false }),
+      ]);
+      if (receivableRes.error) throw receivableRes.error;
+      if (txRes.error) throw txRes.error;
+
+      const receivables = ((receivableRes.data as any[]) || []).map((r) => ({
+        id: r.id,
+        description: r.description,
+        category: "sales",
+        amount: Number(r.amount) || 0,
+        status: r.status || "pending",
+        due_date: r.due_date,
+        payment_date: r.paid_at,
+        transaction_date: r.paid_at || r.due_date,
+        supplier: r.customers?.name || noteField(r.notes, "Cliente"),
+        reference_type: r.sale_id ? "sale" : "manual",
+        reference_id: r.sale_id || null,
+        customer_id: r.customer_id || null,
+        source_table: "receivable" as const,
+        notes: r.notes,
+        type: "income",
+      }));
+      const receivableSaleIds = new Set(receivables.map((r) => r.reference_id).filter(Boolean));
+      const transactions = ((txRes.data as any[]) || [])
+        .filter((t) => !(t.reference_type === "sale" && t.reference_id && receivableSaleIds.has(t.reference_id)))
+        .map((t) => ({ ...t, due_date: t.transaction_date, payment_date: t.transaction_date, supplier: noteField(t.description, "Cliente"), source_table: "transaction" as const }));
+      setItems([...receivables, ...transactions]);
     } catch (e) {
       console.error(e);
       toast.error("Erro ao carregar receitas");
