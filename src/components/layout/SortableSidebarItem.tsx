@@ -65,7 +65,7 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
           <div className="flex items-center gap-1 pl-3">
             <Link
               to={item.url}
-              preload="render"
+              preload={false}
               className={cn(
                 "group relative flex min-w-0 flex-1 items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
                 active
@@ -110,7 +110,7 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
       ) : (
         <Link
           to={item.url}
-          preload="intent"
+          preload={false}
           className={cn(
             "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all",
             isSmall ? "justify-center" : "ml-3",
@@ -138,7 +138,7 @@ export const SortableSidebarItem: React.FC<SortableSidebarItemProps> = ({
             <Link
               key={child.url}
               to={child.url}
-              preload="intent"
+              preload={false}
               className={cn(
                 "block rounded-md px-3 py-1.5 text-[12.5px] transition-colors",
                 location.pathname === child.url

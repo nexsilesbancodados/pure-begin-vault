@@ -43,22 +43,41 @@ export function AppSidebar({
     const role = String(profile?.role ?? "").toLowerCase();
     const isPrivileged = role === "super_admin" || role === "owner";
     const allowed = (profile as { allowed_menu?: string[] | null } | null)?.allowed_menu;
-    const allowedSet = !isPrivileged && Array.isArray(allowed) && allowed.length > 0
-      ? new Set(allowed.map((s) => s.toLowerCase().trim()))
-      : null;
+    const normalize = (value: string) => value.toLowerCase().trim();
+    const aliases: Record<string, string[]> = {
+      "Sistema": ["Sistema / Parametrização", "Parametrização"],
+      "Parametrização": ["Sistema / Parametrização", "Sistema"],
+      "Integrações externas": ["Integrações"],
+      "Cupons Fiscais": ["Notas Fiscais"],
+      "Config. (Pix/PIN/Comissão)": ["Loja", "Configurações da Loja"],
+    };
+    const allowedSet =
+      !isPrivileged && Array.isArray(allowed) && allowed.length > 0
+        ? new Set(allowed.map(normalize))
+        : null;
+    const isAllowed = (title: string) => {
+      if (!allowedSet) return true;
+      if (allowedSet.has(normalize(title))) return true;
+      return (aliases[title] ?? []).some((alias) => allowedSet.has(normalize(alias)));
+    };
 
     return sidebarItems
       .filter((item: any) => {
         if (item.type === "header") return true;
         if (item.roleRestriction === "super_admin" && profile?.role !== "super_admin") return false;
-        if (allowedSet && !allowedSet.has(String(item.title).toLowerCase().trim())) return false;
+        if (allowedSet && !isAllowed(String(item.title))) {
+          return item.children?.some((child: any) => isAllowed(String(child.title)));
+        }
         return true;
       })
       .map((item: any) => {
+        const visibleChildren = allowedSet && Array.isArray(item.children)
+          ? item.children.filter((child: any) => isAllowed(String(child.title)))
+          : item.children;
         if (item.url === "/importacao") {
-          return { ...item, badge: activeCount > 0 ? String(activeCount) : undefined };
+          return { ...item, children: visibleChildren, badge: activeCount > 0 ? String(activeCount) : undefined };
         }
-        return item;
+        return { ...item, children: visibleChildren };
       });
   }, [profile, activeCount]);
 
@@ -183,6 +202,7 @@ export function AppSidebar({
                 <Link
                   key={child.url}
                   to={child.url}
+                  preload={false}
                   className={cn(
                     "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] transition-all",
                     location.pathname === child.url
