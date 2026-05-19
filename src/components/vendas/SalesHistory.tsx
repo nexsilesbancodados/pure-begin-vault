@@ -1362,7 +1362,21 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                             const unit = Number(it.unit_price || 0);
                             const lineTotal = Number(it.total ?? unit * qty);
                             return (
-                              <li key={it.id} className="p-3 flex items-start gap-3">
+                              <li
+                                key={it.id}
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => {
+                                  void openProductDetail(it);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    void openProductDetail(it);
+                                  }
+                                }}
+                                className="p-3 flex items-start gap-3 cursor-pointer hover:bg-primary/[0.04] transition-colors focus:outline-none focus:bg-primary/[0.06]"
+                              >
                                 <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                                   <Package className="h-4 w-4" />
                                 </div>
