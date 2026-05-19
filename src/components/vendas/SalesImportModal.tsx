@@ -554,6 +554,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         product_price: r.product_price,
         product_sku: r.product_sku,
         discount: r.discount,
+        cost_price: r.cost_price,
         description: r.description,
         // Vendas SEMPRE entram pelo fluxo de vendas (cria sales_orders + sale_items +
         // accounts_receivable + finance_transactions). Só envia fin_type quando o
