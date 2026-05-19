@@ -1133,6 +1133,12 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Tipo</th>
                             <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Categoria</th>
                           </>
+                        ) : kind === "estoque" ? (
+                          <>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Produto</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">SKU</th>
+                            <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">P. Custo</th>
+                          </>
                         ) : (
                           <>
                             <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Cliente</th>
@@ -1140,7 +1146,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                             <th className="text-left p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Pagamento</th>
                           </>
                         )}
-                        <th className="text-right p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">Valor</th>
+                        <th className="text-right p-2.5 font-black text-[10px] uppercase tracking-wider text-muted-foreground">{kind === "estoque" ? "P. Venda" : "Valor"}</th>
                       </tr>
                     </thead>
                     <tbody>
