@@ -32,6 +32,8 @@ import {
   Mail,
   CreditCard,
   ShieldCheck,
+  Package,
+  Hash,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -198,6 +200,24 @@ export function SalesHistory() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedSale, setSelectedSale] = useState<any | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [detailsItems, setDetailsItems] = useState<any[]>([]);
+  const [detailsItemsLoading, setDetailsItemsLoading] = useState(false);
+
+  const openSaleDetails = useCallback(async (sale: any) => {
+    setSelectedSale(sale);
+    setIsDetailsOpen(true);
+    setDetailsItems([]);
+    setDetailsItemsLoading(true);
+    try {
+      const { data } = await (supabase as any)
+        .from("sale_items")
+        .select("*")
+        .eq("sale_id", sale.id);
+      setDetailsItems(Array.isArray(data) ? data : []);
+    } finally {
+      setDetailsItemsLoading(false);
+    }
+  }, []);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
   const [receiptLoading, setReceiptLoading] = useState(false);
@@ -1068,11 +1088,10 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                               },
                             },
                             {
-                              icon: Info,
-                              label: "Detalhes",
+                              icon: Package,
+                              label: "Detalhes do produto",
                               onClick: () => {
-                                setSelectedSale(sale);
-                                setIsDetailsOpen(true);
+                                void openSaleDetails(sale);
                               },
                             },
                             {
