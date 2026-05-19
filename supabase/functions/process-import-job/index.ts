@@ -321,6 +321,10 @@ async function processJob(supabase: any, jobId: string) {
               stock_quantity: p.totalQty,
               min_stock: 1,
               status: "in_stock",
+              brand: p.brand || null,
+              model: p.model || null,
+              ean: p.ean || null,
+              imei: p.imei || null,
             }));
             let { data, error } = await supabase.from("products").insert(payload).select("id,name");
             // Fallback se alguma coluna não existir no schema (sku/status/min_stock)
