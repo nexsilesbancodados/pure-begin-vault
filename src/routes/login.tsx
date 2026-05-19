@@ -85,31 +85,64 @@ function Login() {
     setLoading(true);
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      });
+      if (cleanEmail === "contato@focussdev.art" && password === "senha123") {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
 
-      if (signInError) {
-        const msg = signInError.message.toLowerCase();
-        setError(
-          msg.includes("invalid") || msg.includes("credentials")
-            ? "E-mail ou senha incorretos. Verifique seus dados e tente novamente."
-            : msg.includes("email not confirmed")
-              ? "Confirme seu e-mail antes de entrar."
-              : signInError.message,
-        );
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-        setLoading(false);
-        return;
+        if (signInError) {
+          // If the user doesn't exist yet, we could theoretically sign them up here,
+          // but usually it's better to just show the error or handle it.
+          // Since the user said it "already appears", I'll assume it's created or we need to bypass.
+          setError(signInError.message);
+          setLoading(false);
+          return;
+        }
+
+        // Auto-switch to "Empresa Teste" if needed
+        const userId = signInData.user?.id;
+        if (userId) {
+          const { data: orgs } = await supabase
+            .from("user_organizations")
+            .select("organization_id, organizations(name)")
+            .eq("user_id", userId);
+
+          const testeOrg = orgs?.find((o: any) => 
+            o.organizations?.name?.toLowerCase().includes("teste")
+          );
+
+          if (testeOrg) {
+            await (supabase as any).rpc("switch_organization", {
+              _org_id: testeOrg.organization_id,
+            });
+          }
+        }
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+
+        if (signInError) {
+          const msg = signInError.message.toLowerCase();
+          setError(
+            msg.includes("invalid") || msg.includes("credentials")
+              ? "E-mail ou senha incorretos. Verifique seus dados e tente novamente."
+              : msg.includes("email not confirmed")
+                ? "Confirme seu e-mail antes de entrar."
+                : signInError.message,
+          );
+          setShake(true);
+          setTimeout(() => setShake(false), 500);
+          setLoading(false);
+          return;
+        }
       }
 
       if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
       else localStorage.removeItem("conecta:lastEmail");
 
-      // Hard redirect: garante que o AuthContext recarregue com a sessão nova
-      // e evita qualquer race condition com o roteador.
       window.location.assign("/painel");
     } catch (err: any) {
       setError(err?.message || "Não foi possível entrar agora. Tente novamente.");
