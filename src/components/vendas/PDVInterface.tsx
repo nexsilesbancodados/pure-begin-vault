@@ -258,6 +258,17 @@ export function PDVInterface() {
         if (serial) (product as any).serial = String(serial);
         if (condition) (product as any).condition = String(condition);
 
+        const extraImeis = imeisByProduct[p.id] || [];
+        if (extraImeis.length) {
+          (product as any).imeis = extraImeis.map((r) => r.imei).filter(Boolean);
+          if (!(product as any).imei && extraImeis[0]?.imei) {
+            (product as any).imei = extraImeis[0].imei;
+          }
+          if (!(product as any).serial && extraImeis[0]?.serial) {
+            (product as any).serial = extraImeis[0].serial;
+          }
+        }
+
         return product;
       });
 
