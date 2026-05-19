@@ -257,16 +257,22 @@ function ReciboPage() {
             </tr>
           </thead>
           <tbody>
-            {data.items.map((it) => {
-              const desc: string[] = [it.product_name];
-              if (it.imei) desc.push(`IMEI: ${it.imei}`);
-              if (it.model) desc.push(it.model);
+            {data.items.map((it: any) => {
+              const description = buildReceiptItemDescription(it, {
+                brand: it.brand,
+                model: it.model,
+                category: it.category,
+                metadata: it.metadata,
+                sku: it.sku,
+                id: it.product_id,
+                name: it.product_name,
+              });
               return (
                 <tr key={it.id}>
                   <td className="border border-black px-2 py-1 align-top">
                     {toProductCode({ id: it.product_id, sku: it.sku })}
                   </td>
-                  <td className="border border-black px-2 py-1 align-top">{desc.join(" - ")}</td>
+                  <td className="border border-black px-2 py-1 align-top">{description}</td>
                   <td className="border border-black px-2 py-1 align-top text-center">
                     {it.quantity}
                   </td>
