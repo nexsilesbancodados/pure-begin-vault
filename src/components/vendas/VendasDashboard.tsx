@@ -123,7 +123,7 @@ export default function Vendas() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <SalesImportModal
+      <ImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImportSuccess={() => setRefreshKey((p) => p + 1)}
