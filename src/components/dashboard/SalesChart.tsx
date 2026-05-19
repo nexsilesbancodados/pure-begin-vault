@@ -135,7 +135,7 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
 
   const wrapperClass = embedded
     ? "flex flex-col gap-5"
-    : "rounded-2xl bg-card border border-border p-6 shadow-card flex flex-col gap-5";
+    : "rounded-2xl bg-card/60 backdrop-blur-md border border-border/50 p-6 shadow-card flex flex-col gap-5 transition-all duration-300";
 
   const isEmpty = !loading && total === 0 && prevTotal === 0;
 
