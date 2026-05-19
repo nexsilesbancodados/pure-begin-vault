@@ -61,6 +61,7 @@ type ParsedRow = {
   product_quantity?: number;
   product_price?: number;
   product_sku?: string;
+  cost_price?: number;
   discount?: number;
   // Financeiro
   description?: string;
@@ -81,59 +82,77 @@ const norm = (s: any) =>
     .toLowerCase()
     .trim();
 
-// Aliases por campo — qualquer coluna que contenha um destes termos é considerada match
-const FIELD_ALIASES: Record<string, string[]> = {
-  amount: [
-    "valor", "total", "vlr", "amount", "value", "venda", "faturamento", "subtotal", "vlr total", "valor total", "recebido", "bruto", "liquido", "líquido", "total venda"
-  ],
-  date: [
-    "data", "date", "dt", "emissao", "vencimento", "created", "criado", "data pedido", "data venda", "competencia", "dia", "momento"
-  ],
-  payment: [
-    "pagamento", "pagto", "metodo", "method", "forma", "payment", "meio", "condicao", "condição", "forma pgto", "meio pagamento"
-  ],
-  status: [
-    "status", "situacao", "estado", "etapa", "fase", "posicao", "posição"
-  ],
-  notes: [
-    "obs", "observacao", "observacoes", "notes", "descricao", "description", "comentario", "comentário", "memo", "detalhes"
-  ],
-  customer: [
-    "cliente", "customer", "comprador", "nome cliente", "nome do cliente", "razao social", "razao", "razão", "destinatario", "contato"
-  ],
-  customer_phone: [
-    "telefone", "celular", "whatsapp", "fone", "phone", "tel", "whats", "cel", "contato fone"
-  ],
-  customer_email: [
-    "email", "e-mail", "mail", "correio", "endereço eletronico"
-  ],
-  customer_document: [
-    "cpf", "cnpj", "documento", "doc", "cpf/cnpj", "cpf cnpj", "rg", "inscricao", "inscrição", "identidade"
-  ],
-  product: [
-    "produto", "item", "product", "mercadoria", "descricao produto", "modelo", "aparelho", "nome produto", "servico", "serviço"
-  ],
-  product_sku: [
-    "sku", "codigo", "código", "cod", "ref", "referencia", "referência", "part number", "ean", "barras", "ncm", "id produto"
-  ],
-  quantity: [
-    "qtd", "quantidade", "qty", "quantity", "volume", "itens", "unidades", "num itens"
-  ],
-  unit_price: [
-    "preco", "preço", "preco unit", "valor unitario", "unit price", "vlr unit", "vlr unitario", "valor cada"
-  ],
-  discount: [
-    "desconto", "discount", "abatimento", "descontos", "promo", "cupom", "off"
-  ],
-  description: [
-    "descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título", "identificador"
-  ],
-  fin_type: [
-    "tipo", "natureza", "type", "operacao", "operação", "movimento", "credito/debito", "c/d", "fluxo", "e/s"
-  ],
-  category: [
-    "categoria", "category", "classe", "classificacao", "classificação", "centro de custo", "grupo", "plano", "tag", "etiqueta"
-  ],
+// Aliases por campo e tipo de importação — evita colisões de nomenclatura
+const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
+  vendas: {
+    amount: [
+      "valor", "total", "vlr", "amount", "value", "venda", "faturamento", "subtotal", "vlr total", "valor total", "recebido", "bruto", "liquido", "líquido", "total venda"
+    ],
+    date: [
+      "data", "date", "dt", "emissao", "created", "criado", "data pedido", "data venda", "momento"
+    ],
+    payment: [
+      "pagamento", "pagto", "metodo", "method", "forma", "payment", "meio", "condicao", "condição", "forma pgto", "meio pagamento"
+    ],
+    status: [
+      "status", "situacao", "estado", "etapa", "fase", "posicao", "posição"
+    ],
+    customer: [
+      "cliente", "customer", "comprador", "nome cliente", "nome do cliente", "razao social", "destinatario"
+    ],
+    product: [
+      "produto", "item", "product", "mercadoria", "modelo", "aparelho", "nome produto"
+    ],
+    quantity: [
+      "qtd", "quantidade", "qty", "quantity", "volume", "itens", "unidades"
+    ],
+    unit_price: [
+      "preco", "preço", "preco unit", "valor unitario", "unit price", "vlr unit"
+    ],
+    discount: [
+      "desconto", "discount", "abatimento", "descontos", "promo", "cupom"
+    ],
+  },
+  estoque: {
+    product: [
+      "produto", "nome", "item", "product", "mercadoria", "descri", "modelo", "nome produto"
+    ],
+    product_sku: [
+      "sku", "codigo", "código", "cod", "ref", "referencia", "referência", "part number", "ean", "barras", "id produto"
+    ],
+    quantity: [
+      "estoque", "saldo", "qtd", "quantidade", "qty", "quantity", "volume", "itens", "unidades", "disponivel"
+    ],
+    unit_price: [
+      "preco venda", "valor venda", "venda", "preco", "preço", "unitario", "valor cada", "p.venda"
+    ],
+    cost_price: [
+      "custo", "compra", "valor custo", "preco custo", "p.custo", "vlr custo", "vlr compra"
+    ],
+    category: [
+      "categoria", "category", "grupo", "classe", "classificacao", "classificação", "familia", "tipo"
+    ],
+  },
+  financeiro: {
+    amount: [
+      "valor", "total", "vlr", "amount", "value", "recebido", "pago", "bruto", "liquido"
+    ],
+    date: [
+      "data", "date", "dt", "emissao", "vencimento", "created", "criado", "dia", "competencia"
+    ],
+    description: [
+      "descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título", "identificador"
+    ],
+    fin_type: [
+      "tipo", "natureza", "type", "operacao", "operação", "movimento", "fluxo"
+    ],
+    category: [
+      "categoria", "category", "classe", "centro de custo", "grupo", "plano", "tag"
+    ],
+    payment: [
+      "pagamento", "pagto", "metodo", "method", "forma", "payment", "meio"
+    ],
+  }
 };
 
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
