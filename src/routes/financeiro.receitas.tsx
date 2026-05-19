@@ -56,11 +56,20 @@ type Income = {
   supplier?: string | null;
   metadata?: any;
   reference_type?: string | null;
+  reference_id?: string | null;
+  customer_id?: string | null;
+  source_table: "receivable" | "transaction";
+  notes?: string | null;
   type: string;
 };
 
 const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const noteField = (notes: string | null | undefined, label: string) => {
+  const line = (notes || "").split("\n").find((l) => l.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+  return line ? line.slice(label.length + 1).trim() : null;
+};
 
 function ReceitasPage() {
   const { user } = useAuth();
