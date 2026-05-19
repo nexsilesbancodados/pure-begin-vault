@@ -237,6 +237,8 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
     }
     const summary = [
       removed.sales && `${removed.sales} vendas`,
+      removed.stock && `${removed.stock} mov. estoque`,
+      removed.products && `${removed.products} produtos`,
       removed.receivable && `${removed.receivable} receitas`,
       removed.payable && `${removed.payable} despesas`,
       removed.finance && `${removed.finance} mov. financeiras`,
