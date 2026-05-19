@@ -338,6 +338,56 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     </div>
   );
 
+  const renderKpiGrid = (
+    title: string,
+    subtitle: string,
+    items: { label: string; value: string; tone: "primary" | "success" | "warning" | "destructive" | "info" }[],
+  ) => {
+    const toneClass: Record<string, string> = {
+      primary: "bg-primary/10 text-primary",
+      success: "bg-success/10 text-success",
+      warning: "bg-warning/10 text-warning",
+      destructive: "bg-destructive/10 text-destructive",
+      info: "bg-info/10 text-info",
+    };
+    return (
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div>
+          <h2 className="text-2xl font-black text-foreground">{title}</h2>
+          <p className="text-sm font-bold text-muted-foreground">{subtitle}</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {items.map((it, i) => (
+            <div
+              key={i}
+              className="bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+            >
+              <div
+                className={`inline-flex h-8 px-3 items-center rounded-full text-[10px] font-black uppercase tracking-widest ${toneClass[it.tone]}`}
+              >
+                {it.label}
+              </div>
+              {loading ? (
+                <div className="h-7 w-24 bg-muted animate-pulse rounded-md mt-3" />
+              ) : (
+                <h3 className="mt-3 text-2xl font-black font-display tracking-tight text-foreground">
+                  {it.value}
+                </h3>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const e = extra ?? {
+    despesasOpen: 0, despesasOverdue: 0, despesasTotal: 0, despesasPaid: 0,
+    receitasOpen: 0, receitasTotal: 0, receitasPaid: 0,
+    caixaSaldo: 0, caixaIncome: 0, caixaExpense: 0,
+    productsCount: 0, productsActive: 0, lowStock: 0, outOfStock: 0, stockValue: 0,
+  };
+
   const getContent = () => {
     switch (activeCategory) {
       case "visao-geral":
@@ -354,17 +404,56 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
       case "financeiro":
       case "fin-dre-gerencial":
       case "fin-relatorio":
+      case "fin-relatorio-vendas":
+      case "fin-relatorio-vendas-os":
+      case "fin-multilojas":
+      case "fin-dre-2":
+      case "fin-relatorio-vendas-os-2":
       case "fin-formas-pagamento":
-        return renderGenericReport(
+      case "fin-formas-pagamento-dia":
+        return renderKpiGrid(
           "Saúde Financeira",
-          "Relatórios de DRE, fluxo de caixa e formas de pagamento mais utilizadas.",
+          "Sincronizado em tempo real com Despesas, Receitas e Caixa.",
+          [
+            { label: "Despesas em aberto", value: fmtBRL(e.despesasOpen), tone: "warning" },
+            { label: "Despesas vencidas", value: fmtBRL(e.despesasOverdue), tone: "destructive" },
+            { label: "Despesas pagas", value: fmtBRL(e.despesasPaid), tone: "success" },
+            { label: "Total a pagar", value: fmtBRL(e.despesasTotal), tone: "primary" },
+            { label: "Receitas em aberto", value: fmtBRL(e.receitasOpen), tone: "info" },
+            { label: "Receitas recebidas", value: fmtBRL(e.receitasPaid), tone: "success" },
+            { label: "Total a receber", value: fmtBRL(e.receitasTotal), tone: "primary" },
+            { label: "Saldo de caixa", value: fmtBRL(e.caixaSaldo), tone: e.caixaSaldo >= 0 ? "success" : "destructive" },
+          ],
         );
       case "vendas":
       case "vendas-relatorio":
       case "vendas-historico":
-        return renderGenericReport(
+      case "vendas-projecoes":
+      case "vendas-produtos":
+        return renderKpiGrid(
           "Performance de Vendas",
-          "Conversão de leads, metas atingidas e desempenho por produto.",
+          "Indicadores do mês atual sincronizados com o histórico de vendas.",
+          [
+            { label: "Faturamento", value: fmtBRL(stats.revenue || 0), tone: "primary" },
+            { label: "Ticket médio", value: fmtBRL(stats.avgTicket || 0), tone: "info" },
+            { label: "Conversão", value: `${(stats.conversion || 0).toFixed(1)}%`, tone: "success" },
+            { label: "Leads no mês", value: String(stats.leads || 0), tone: "warning" },
+          ],
+        );
+      case "produto":
+      case "prod-vendidos":
+      case "prod-resumo-estoque":
+      case "prod-detalhes-estoque":
+        return renderKpiGrid(
+          "Estoque & Produtos",
+          "Sincronizado em tempo real com o cadastro de produtos.",
+          [
+            { label: "Produtos ativos", value: String(e.productsActive), tone: "primary" },
+            { label: "Total cadastrado", value: String(e.productsCount), tone: "info" },
+            { label: "Estoque baixo", value: String(e.lowStock), tone: "warning" },
+            { label: "Sem estoque", value: String(e.outOfStock), tone: "destructive" },
+            { label: "Valor de estoque", value: fmtBRL(e.stockValue), tone: "success" },
+          ],
         );
       case "ordem-servico":
       case "os-dashboard":
@@ -386,6 +475,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         );
     }
   };
+
 
   return <div className="space-y-8 pb-12">{getContent()}</div>;
 };
