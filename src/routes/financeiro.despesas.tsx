@@ -554,39 +554,62 @@ function KpiCard({
   label,
   value,
   tone,
+  active,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  tone: "neutral" | "amber" | "red" | "emerald";
+  tone: "neutral" | "amber" | "red" | "emerald" | "rose" | "violet";
+  active?: boolean;
+  onClick?: () => void;
 }) {
   const tones = {
     neutral: "from-slate-500/10 to-slate-500/5 text-slate-700 dark:text-slate-200",
     amber: "from-amber-500/15 to-amber-500/5 text-amber-700 dark:text-amber-300",
     red: "from-red-500/15 to-red-500/5 text-red-700 dark:text-red-300",
     emerald: "from-emerald-500/15 to-emerald-500/5 text-emerald-700 dark:text-emerald-300",
+    rose: "from-rose-500/15 to-rose-500/5 text-rose-700 dark:text-rose-300",
+    violet: "from-violet-500/15 to-violet-500/5 text-violet-700 dark:text-violet-300",
   } as const;
   const iconBg = {
     neutral: "bg-slate-500/15",
     amber: "bg-amber-500/20",
     red: "bg-red-500/20",
     emerald: "bg-emerald-500/20",
+    rose: "bg-rose-500/20",
+    violet: "bg-violet-500/20",
   } as const;
+  const ring = {
+    neutral: "ring-slate-500/40",
+    amber: "ring-amber-500/40",
+    red: "ring-red-500/40",
+    emerald: "ring-emerald-500/40",
+    rose: "ring-rose-500/40",
+    violet: "ring-violet-500/40",
+  } as const;
+  const clickable = !!onClick;
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!clickable}
       className={cn(
-        "bg-gradient-to-br border border-border rounded-2xl p-5 flex items-center gap-4",
+        "bg-gradient-to-br border border-border rounded-2xl p-5 flex items-center gap-4 text-left transition-all",
         tones[tone],
+        clickable && "hover:shadow-md hover:-translate-y-0.5 cursor-pointer",
+        active && `ring-2 ${ring[tone]} shadow-md`,
+        !clickable && "cursor-default",
       )}
     >
-      <div className={cn("h-11 w-11 rounded-xl grid place-items-center", iconBg[tone])}>
+      <div className={cn("h-11 w-11 rounded-xl grid place-items-center shrink-0", iconBg[tone])}>
         {icon}
       </div>
       <div className="min-w-0">
         <div className="text-xs font-bold uppercase tracking-wider opacity-80">{label}</div>
         <div className="text-xl font-black tabular-nums truncate">{value}</div>
       </div>
-    </div>
+    </button>
   );
 }
 
