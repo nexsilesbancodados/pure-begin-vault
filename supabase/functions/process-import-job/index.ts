@@ -57,6 +57,21 @@ async function processJob(supabase: any, jobId: string) {
   const userId = job.user_id as string;
   const allRows = (job.payload || []) as Row[];
 
+  // Insere stampando import_job_id; se a coluna ainda não existir no schema,
+  // refaz a inserção sem ela (deleção em cascata só funciona após migração).
+  const insertTagged = async (table: string, rows: any[]) => {
+    if (!rows.length) return { error: null, count: 0 };
+    const tagged = rows.map((r) => ({ ...r, import_job_id: jobId }));
+    let { error } = await supabase.from(table).insert(tagged);
+    if (error && /import_job_id/i.test(error.message)) {
+      const r2 = await supabase.from(table).insert(rows);
+      error = r2.error;
+    }
+    return { error, count: rows.length };
+  };
+
+
+
   // Split: financial rows (have fin_type) vs sale rows
   const finRows = allRows.filter((r) => r.fin_type === "income" || r.fin_type === "expense");
   const saleRows = allRows.filter((r) => !(r.fin_type === "income" || r.fin_type === "expense"));
