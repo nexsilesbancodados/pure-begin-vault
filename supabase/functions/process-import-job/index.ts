@@ -28,6 +28,10 @@ type Row = {
   product_sku?: string;
   cost_price?: number;
   discount?: number;
+  brand?: string;
+  model?: string;
+  ean?: string;
+  imei?: string;
   description?: string;
   fin_type?: "income" | "expense";
   category?: string;
