@@ -56,11 +56,23 @@ type Income = {
   supplier?: string | null;
   metadata?: any;
   reference_type?: string | null;
+  reference_id?: string | null;
+  customer_id?: string | null;
+  source_table: "receivable" | "transaction";
+  notes?: string | null;
   type: string;
 };
 
 const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const noteField = (notes: string | null | undefined, label: string) => {
+  const line = (notes || "").split("\n").find((l) => l.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+  return line ? line.slice(label.length + 1).trim() : null;
+};
+
+const customerFromDescription = (description: string | null | undefined) =>
+  (description || "").includes(" · ") ? (description || "").split(" · ").slice(1).join(" · ") : null;
 
 function ReceitasPage() {
   const { user } = useAuth();
@@ -88,15 +100,51 @@ function ReceitasPage() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const base = supabase
+      const receivableBase = supabase
+        .from("accounts_receivable")
+        .select("*");
+      const transactionBase = supabase
         .from("finance_transactions")
         .select("*")
         .eq("type", "income");
-      const { data, error } = await (
-        orgId ? base.eq("organization_id", orgId) : base.eq("user_id", user.id)
-      ).order("due_date", { ascending: false, nullsFirst: false });
-      if (error) throw error;
-      setItems((data as any) || []);
+
+      const [receivableRes, txRes] = await Promise.all([
+        (orgId ? receivableBase.eq("organization_id", orgId) : receivableBase.eq("user_id", user.id))
+          .order("due_date", { ascending: false, nullsFirst: false }),
+        (orgId ? transactionBase.eq("organization_id", orgId) : transactionBase.eq("user_id", user.id))
+          .order("transaction_date", { ascending: false, nullsFirst: false }),
+      ]);
+      if (receivableRes.error) throw receivableRes.error;
+      if (txRes.error) throw txRes.error;
+
+      const receivables = ((receivableRes.data as any[]) || []).map((r) => ({
+        id: r.id,
+        description: r.description,
+        category: r.sale_id ? "sales" : "income",
+        amount: Number(r.amount) || 0,
+        status: r.status || "pending",
+        due_date: r.due_date,
+        payment_date: r.paid_at,
+        transaction_date: r.paid_at || r.due_date,
+        supplier: noteField(r.notes, "Cliente") || customerFromDescription(r.description),
+        reference_type: r.sale_id ? "sale" : "manual",
+        reference_id: r.sale_id || null,
+        customer_id: r.customer_id || null,
+        source_table: "receivable" as const,
+        notes: r.notes,
+        type: "income",
+      }));
+      const receivableSaleIds = new Set(receivables.map((r) => r.reference_id).filter(Boolean));
+      const transactions = ((txRes.data as any[]) || [])
+        .filter((t) => !(t.reference_type === "sale" && t.reference_id && receivableSaleIds.has(t.reference_id)))
+        .map((t) => ({
+          ...t,
+          due_date: t.transaction_date,
+          payment_date: t.transaction_date,
+          supplier: customerFromDescription(t.description),
+          source_table: "transaction" as const,
+        }));
+      setItems([...receivables, ...transactions]);
     } catch (e) {
       console.error(e);
       toast.error("Erro ao carregar receitas");
@@ -114,9 +162,20 @@ function ReceitasPage() {
     try {
       const payload = { ...data, type: "income" };
       if (editing) {
+        const table = editing.source_table === "receivable" ? "accounts_receivable" : "finance_transactions";
+        const receivablePayload = {
+          description: payload.description,
+          amount: payload.amount,
+          due_date: payload.due_date || payload.transaction_date,
+          status: payload.status,
+          paid_at: payload.status === "paid" ? payload.payment_date || new Date().toISOString() : null,
+          paid_amount: payload.status === "paid" ? payload.amount : null,
+          notes: payload.notes,
+          updated_at: new Date().toISOString(),
+        };
         const { error } = await supabase
-          .from("finance_transactions")
-          .update({ ...payload, updated_at: new Date().toISOString() })
+          .from(table as any)
+          .update(table === "accounts_receivable" ? receivablePayload : { ...payload, updated_at: new Date().toISOString() })
           .eq("id", editing.id);
         if (error) throw error;
         toast.success("Receita atualizada!");
@@ -136,7 +195,9 @@ function ReceitasPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir esta receita?")) return;
-    const { error } = await supabase.from("finance_transactions").delete().eq("id", id);
+    const item = items.find((it) => it.id === id);
+    const table = item?.source_table === "receivable" ? "accounts_receivable" : "finance_transactions";
+    const { error } = await supabase.from(table as any).delete().eq("id", id);
     if (error) return toast.error("Erro ao excluir");
     toast.success("Receita excluída");
     fetchData();
@@ -178,6 +239,10 @@ function ReceitasPage() {
       if (fId && !String(it.id).toLowerCase().includes(fId.toLowerCase())) return false;
       if (fCategoria && !(it.category || "").toLowerCase().includes(fCategoria.toLowerCase()))
         return false;
+      if (fOrigem) {
+        const origem = (it.reference_type || "manual").toLowerCase();
+        if (origem !== fOrigem.toLowerCase()) return false;
+      }
       if (fTitulo && !(it.description || "").toLowerCase().includes(fTitulo.toLowerCase()))
         return false;
       if (fSituacao) {
@@ -202,7 +267,7 @@ function ReceitasPage() {
       }
       return true;
     });
-  }, [items, from, to, fId, fCategoria, fTitulo, fSituacao, fPessoa, quickFilter]);
+  }, [items, from, to, fId, fOrigem, fCategoria, fTitulo, fSituacao, fPessoa, quickFilter]);
 
   const visible = filtered.slice(0, pageSize);
 

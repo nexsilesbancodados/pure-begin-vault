@@ -328,8 +328,7 @@ async function processJob(supabase: any, jobId: string) {
           paid_at: paid ? (row.created_at || new Date().toISOString()) : null,
           paid_amount: paid ? row.total_amount : null,
           customer_id: resolveCust(row),
-          reference_type: "sale",
-          reference_id: id,
+          sale_id: id,
           notes: [
             row.payment_method ? `Pagamento: ${row.payment_method}` : null,
             row.customer_name ? `Cliente: ${row.customer_name}` : null,
@@ -351,10 +350,10 @@ async function processJob(supabase: any, jobId: string) {
           if (!error) counters.finance += c.length;
         }), PARALLEL),
         pool(recvChunks.map((c) => async () => {
-          // tenta com colunas estendidas; faz fallback se schema não tiver customer_id/reference_*
+          // tenta com colunas estendidas; faz fallback se schema não tiver customer_id/sale_id
           let { error } = await supabase.from("accounts_receivable").insert(c);
           if (error) {
-            const fallback = c.map(({ customer_id, reference_type, reference_id, ...rest }) => rest);
+            const fallback = c.map(({ customer_id, sale_id, ...rest }) => rest);
             const r2 = await supabase.from("accounts_receivable").insert(fallback);
             error = r2.error;
           }
