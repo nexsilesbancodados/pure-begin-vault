@@ -369,9 +369,15 @@ async function processJob(supabase: any, jobId: string) {
             reason: "Importação de vendas",
             reference_type: "import",
             reference_id: jobId,
+            import_job_id: jobId,
           }));
         for (let i = 0; i < moves.length; i += CHUNK) {
-          await supabase.from("stock_movements").insert(moves.slice(i, i + CHUNK));
+          const slice = moves.slice(i, i + CHUNK);
+          let { error } = await supabase.from("stock_movements").insert(slice);
+          if (error && /import_job_id/i.test(error.message)) {
+            const fallback = slice.map(({ import_job_id, ...rest }: any) => rest);
+            await supabase.from("stock_movements").insert(fallback);
+          }
         }
       }
 
