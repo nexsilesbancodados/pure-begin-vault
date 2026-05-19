@@ -262,7 +262,7 @@ const isPurchaseNotesUnavailable = (error: unknown) => {
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
-const serializeItems = (items: Product[], comprovanteUrl?: string | null): Json => {
+const serializeItems = (items: Product[], comprovanteUrls?: string[] | null): Json => {
   const base = items.map((p) => ({
     id: p.id,
     name: p.name,
@@ -274,9 +274,9 @@ const serializeItems = (items: Product[], comprovanteUrl?: string | null): Json 
     stock_quantity: p.stock_quantity ?? null,
     metadata: toJson(p.metadata ?? null),
   }));
-  if (comprovanteUrl) {
+  (comprovanteUrls ?? []).forEach((url, idx) => {
     base.push({
-      id: COMPROVANTE_SENTINEL_ID,
+      id: `${COMPROVANTE_SENTINEL_ID}_${idx}`,
       name: COMPROVANTE_SENTINEL_ID,
       organization_id: null,
       sku: null,
@@ -284,15 +284,15 @@ const serializeItems = (items: Product[], comprovanteUrl?: string | null): Json 
       price: null,
       cost_price: null,
       stock_quantity: null,
-      metadata: { kind: "comprovante", url: comprovanteUrl } as unknown as Json,
+      metadata: { kind: "comprovante", url } as unknown as Json,
     });
-  }
+  });
   return base as unknown as Json;
 };
 
 const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
   const raw = Array.isArray(row.items) ? row.items : [];
-  const { url: comprovanteUrl, rest } = extractComprovante(raw);
+  const { urls: comprovanteUrls, rest } = extractComprovantes(raw);
   const items = rest.map((item) => {
     const product = item as Product;
     return {
@@ -312,7 +312,7 @@ const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
     dataCompra: row.data_compra ?? new Date().toISOString().slice(0, 10),
     paga: Boolean(row.paga),
     prazoPagamento: row.prazo_pagamento ?? "",
-    comprovanteUrl,
+    comprovanteUrls,
   };
 };
 
