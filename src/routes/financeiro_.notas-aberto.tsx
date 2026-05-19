@@ -1385,9 +1385,102 @@ function NotasAbertoPage() {
                         <Switch
                           id="paga"
                           checked={detailNota.paga}
-                          onCheckedChange={(v) => updateNota(detailNota.id, { paga: v })}
+                          onCheckedChange={(v) => {
+                            if (!v) {
+                              updateNota(detailNota.id, { paga: false });
+                              return;
+                            }
+                            if (detailNota.comprovanteUrl) {
+                              updateNota(detailNota.id, { paga: true });
+                              return;
+                            }
+                            comprovanteInputRef.current?.click();
+                          }}
                         />
                       </div>
+                    </div>
+                  </div>
+                  {/* Comprovante */}
+                  <div className="mt-4 space-y-2">
+                    <Label className="text-sm font-medium">
+                      Comprovante de pagamento{" "}
+                      <span className="text-xs text-muted-foreground font-normal">
+                        (obrigatório para marcar como paga)
+                      </span>
+                    </Label>
+                    <input
+                      ref={comprovanteInputRef}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file || !orgId) return;
+                        try {
+                          setUploadingComprovante(true);
+                          const ext = file.name.split(".").pop() || "bin";
+                          const path = `${orgId}/notas/${detailNota.id}/comprovante-${Date.now()}.${ext}`;
+                          const { error: upErr } = await supabase.storage
+                            .from("attachments")
+                            .upload(path, file, { upsert: true });
+                          if (upErr) throw upErr;
+                          const { data: pub } = supabase.storage
+                            .from("attachments")
+                            .getPublicUrl(path);
+                          updateNota(detailNota.id, {
+                            comprovanteUrl: pub.publicUrl,
+                            paga: true,
+                          });
+                          toast.success("Comprovante anexado. Nota marcada como paga.");
+                        } catch (err) {
+                          toast.error(
+                            "Falha ao enviar comprovante: " +
+                              ((err as Error).message ?? "erro desconhecido"),
+                          );
+                        } finally {
+                          setUploadingComprovante(false);
+                        }
+                      }}
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={uploadingComprovante}
+                        onClick={() => comprovanteInputRef.current?.click()}
+                      >
+                        {uploadingComprovante
+                          ? "Enviando..."
+                          : detailNota.comprovanteUrl
+                            ? "Trocar arquivo"
+                            : "Anexar comprovante"}
+                      </Button>
+                      {detailNota.comprovanteUrl && (
+                        <a
+                          href={detailNota.comprovanteUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-medium text-primary hover:underline"
+                        >
+                          Ver comprovante
+                        </a>
+                      )}
+                      {detailNota.comprovanteUrl && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateNota(detailNota.id, {
+                              comprovanteUrl: null,
+                              paga: false,
+                            })
+                          }
+                          className="text-xs text-muted-foreground hover:text-rose-600"
+                        >
+                          Remover
+                        </button>
+                      )}
                     </div>
                   </div>
                 </section>
