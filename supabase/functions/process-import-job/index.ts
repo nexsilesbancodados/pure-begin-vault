@@ -73,8 +73,19 @@ async function processJob(supabase: any, jobId: string) {
 
 
   // Split: financial rows (have fin_type) vs sale rows
-  const finRows = allRows.filter((r) => r.fin_type === "income" || r.fin_type === "expense");
-  const saleRows = allRows.filter((r) => !(r.fin_type === "income" || r.fin_type === "expense"));
+  // SAFETY NET: se a linha tem product_name OU customer_name OU job rotulado
+  // como [Vendas], ela SEMPRE é tratada como venda — mesmo que algum mapeamento
+  // tenha inferido fin_type por engano (ex.: descrição "Venda ...").
+  const jobLabel = String(job.label || "").toLowerCase();
+  const forceSales = /vendas|sale|sales|pedido|order/.test(jobLabel);
+  const looksLikeSale = (r: Row) =>
+    !!r.product_name || !!r.customer_name || !!r.customer_document;
+  const finRows = allRows.filter((r) => {
+    if (forceSales) return false;
+    if (looksLikeSale(r)) return false;
+    return r.fin_type === "income" || r.fin_type === "expense";
+  });
+  const saleRows = allRows.filter((r) => !finRows.includes(r));
 
   await supabase.from("import_jobs").update({
     status: "running", started_at: new Date().toISOString(), step: "customers", processed: 0, total: allRows.length,
