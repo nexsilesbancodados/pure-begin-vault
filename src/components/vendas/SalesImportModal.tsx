@@ -1054,16 +1054,16 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                       {rows.slice(0, 3).map((r, i) => (
                         <tr key={i} className={r._valid ? "" : "bg-destructive/5"}>
                           <td className="p-2 whitespace-nowrap">
-                            {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                            {kind === "estoque" ? (r.product_sku || "-") : new Date(r.created_at).toLocaleDateString("pt-BR")}
                           </td>
                           <td className="p-2 truncate max-w-[120px]">
-                            {r.customer_name || "-"}
+                            {kind === "estoque" ? (r.category || "-") : (r.customer_name || "-")}
                           </td>
                           <td className="p-2 truncate max-w-[150px]">
                             {r.product_name || r.description || "-"}
                           </td>
                           <td className="p-2 text-right font-bold">
-                            {brl(r.total_amount)}
+                            {kind === "estoque" ? r.product_quantity : brl(r.total_amount)}
                           </td>
                         </tr>
                       ))}
