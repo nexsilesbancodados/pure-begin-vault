@@ -373,7 +373,7 @@ function ReceitasPage() {
         if (isBefore(d, fromD) || isAfter(d, toD)) return false;
       }
       if (fId && !String(it.id).toLowerCase().includes(fId.toLowerCase())) return false;
-      if (fCategoria && !(it.category || "").toLowerCase().includes(fCategoria.toLowerCase()))
+      if (fCategoria && !ORIGIN_LABEL[(it.origin || "manual") as IncomeOrigin].toLowerCase().includes(fCategoria.toLowerCase()))
         return false;
       if (fOrigem) {
         if ((it.origin || "manual") !== fOrigem) return false;
