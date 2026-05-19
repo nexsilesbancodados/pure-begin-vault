@@ -707,7 +707,7 @@ function ReceitasPage() {
                       const paid = it.status === "paid" ? amount : 0;
                       const aReceber = amount - paid;
                       const shortId = String(it.id).replace(/-/g, "").slice(0, 6).toUpperCase();
-                      const origem = (it.reference_type || "manual").toLowerCase();
+                      const origin = (it.origin || "manual") as IncomeOrigin;
                       return (
                         <tr key={it.id} className={cn("hover:bg-emerald-50/40", idx % 2 && "bg-slate-50/40")}>
                           <td className="px-3 py-2">
