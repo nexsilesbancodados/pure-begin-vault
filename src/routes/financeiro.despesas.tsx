@@ -80,6 +80,35 @@ function DespesasPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [kindFilter, setKindFilter] = useState<"all" | "despesa" | "compra">("all");
+
+  // Date range — default to current month
+  const initialFrom = (() => { const d = new Date(); d.setDate(1); return ymd(d); })();
+  const initialTo = (() => {
+    const d = new Date(); const e = new Date(d.getFullYear(), d.getMonth() + 1, 0); return ymd(e);
+  })();
+  const [dateFrom, setDateFrom] = useState<string>(initialFrom);
+  const [dateTo, setDateTo] = useState<string>(initialTo);
+
+  const setRangePreset = (preset: "month" | "lastMonth" | "30d" | "year" | "all") => {
+    const now = new Date();
+    if (preset === "month") {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      const e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      setDateFrom(ymd(s)); setDateTo(ymd(e));
+    } else if (preset === "lastMonth") {
+      const s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const e = new Date(now.getFullYear(), now.getMonth(), 0);
+      setDateFrom(ymd(s)); setDateTo(ymd(e));
+    } else if (preset === "30d") {
+      const s = new Date(); s.setDate(s.getDate() - 29);
+      setDateFrom(ymd(s)); setDateTo(ymd(now));
+    } else if (preset === "year") {
+      setDateFrom(`${now.getFullYear()}-01-01`); setDateTo(`${now.getFullYear()}-12-31`);
+    } else {
+      setDateFrom(""); setDateTo("");
+    }
+  };
 
   const { user } = useAuth();
   const { orgId } = useOrg();
