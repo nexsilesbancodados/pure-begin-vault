@@ -46,12 +46,21 @@ export function AppSidebar({
     const metaAllowed = (user?.user_metadata as { allowed_menu?: string[] | null } | undefined)?.allowed_menu;
     const allowed = Array.isArray(profileAllowed) && profileAllowed.length > 0 ? profileAllowed : metaAllowed;
     const normalize = (value: string) => value.toLowerCase().trim();
+    // Mapeamento sidebar-title -> rótulos equivalentes vindos do cadastro.
+    // Um item do menu lateral é considerado permitido se QUALQUER um dos seus apelidos
+    // (ou o próprio título) estiver presente em allowed_menu.
     const aliases: Record<string, string[]> = {
       "Sistema": ["Sistema / Parametrização", "Parametrização"],
       "Parametrização": ["Sistema / Parametrização", "Sistema"],
       "Integrações externas": ["Integrações"],
       "Cupons Fiscais": ["Notas Fiscais"],
+      "Notas": ["Notas em Aberto", "Notas Fiscais"],
+      "Notas Fiscais": ["Notas em Aberto"],
       "Config. (Pix/PIN/Comissão)": ["Loja", "Configurações da Loja"],
+      "Minhas Lojas": ["Loja"],
+      "Programa de Afiliados": ["Afiliados"],
+      "Central de Ajuda": ["Ajuda"],
+      "Dashboard": ["Tela inicial", "Painel inicial"],
     };
     const allowedSet =
       !isPrivileged && Array.isArray(allowed) && allowed.length > 0
