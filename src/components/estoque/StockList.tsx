@@ -15,7 +15,7 @@ import {
   TrendingUp,
   Clock,
   FileDown,
-  FileUp,
+  Upload,
   Smartphone,
   Tablet,
   Watch,
@@ -25,7 +25,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { ProductForm } from "./ProductForm";
-import { StockImport } from "./StockImport";
+import { SalesImportModal } from "@/components/vendas/SalesImportModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
