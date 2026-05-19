@@ -66,7 +66,7 @@ export function MonthComparison() {
   const positive = diff >= 0;
 
   return (
-    <div className="rounded-2xl bg-card border border-border p-5 shadow-card">
+    <div className="rounded-2xl bg-card/60 backdrop-blur-md border border-border/50 p-5 shadow-card transition-all duration-300">
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="text-[15px] font-semibold flex items-center gap-2">
