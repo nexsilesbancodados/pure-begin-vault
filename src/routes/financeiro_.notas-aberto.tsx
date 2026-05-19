@@ -269,7 +269,7 @@ const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
 
 const readLegacyNotas = (orgId: string): Nota[] => {
   if (typeof window === "undefined") return [];
-  const candidates = [getLocalNotesKey(orgId), "notas_abertas_default"];
+  const candidates = [getLocalNotesKey(orgId)];
 
   for (const key of candidates) {
     const raw = localStorage.getItem(key);
