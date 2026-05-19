@@ -40,6 +40,7 @@ import {
   Upload,
   Calendar as CalendarIcon,
 } from "lucide-react";
+import { SupplierPicker } from "./SupplierPicker";
 
 type ProductType = "Aparelho" | "Acessório" | "Peça";
 
@@ -883,10 +884,9 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                     </Select>
                   </FieldRow>
                   <FieldRow label="Fornecedor">
-                    <Input
+                    <SupplierPicker
                       value={form.fornecedor}
-                      onChange={(e) => set("fornecedor", e.target.value)}
-                      placeholder="Buscar"
+                      onChange={(name) => set("fornecedor", name)}
                     />
                   </FieldRow>
                 </div>
