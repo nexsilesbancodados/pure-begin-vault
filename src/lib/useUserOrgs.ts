@@ -99,12 +99,14 @@ export function useUserOrgs() {
   }, [load]);
 
   const switchOrg = async (orgId: string) => {
+    const target = orgs.find((o) => o.organization_id === orgId);
+    const targetName = target?.organization?.name ?? "loja";
     const { error } = await supabase.rpc("switch_organization", { _org_id: orgId });
     if (error) {
       toast.error("Erro ao trocar loja: " + error.message);
       return false;
     }
-    toast.success("Loja alterada");
+    toast.success(`Alternando para "${targetName}" — dados isolados desta loja`);
     // hard reload pra todas queries reagirem com novo organization_id
     setTimeout(() => window.location.reload(), 600);
     return true;
