@@ -36,6 +36,7 @@ interface SalesImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImportSuccess?: () => void;
+  initialKind?: ImportKind;
 }
 
 type Step = "upload" | "preview" | "done";
