@@ -249,7 +249,7 @@ function ReciboPage() {
               return (
                 <tr key={it.id}>
                   <td className="border border-black px-2 py-1 align-top">
-                    {it.sku || (it.product_id ? it.product_id.slice(0, 7) : "")}
+                    {toProductCode({ id: it.product_id, sku: it.sku })}
                   </td>
                   <td className="border border-black px-2 py-1 align-top">{desc.join(" - ")}</td>
                   <td className="border border-black px-2 py-1 align-top text-center">

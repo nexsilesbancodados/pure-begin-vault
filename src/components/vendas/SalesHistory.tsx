@@ -392,7 +392,7 @@ export function SalesHistory() {
               .map(
                 (it: any) => `
             <tr>
-              <td>${it.sku || (it.product_id ? String(it.product_id).slice(0, 7) : "")}</td>
+              <td>${toProductCode({ id: it.product_id, sku: it.sku })}</td>
               <td>${[it.product_name, it.imei ? `IMEI: ${it.imei}` : "", it.model || ""]
                 .filter(Boolean)
                 .join(" - ")}</td>
@@ -1689,7 +1689,7 @@ function ReceiptPreview({ data }: { data: ReceiptData }) {
             return (
               <tr key={item.id}>
                 <td className="border border-black px-2 py-1 align-top">
-                  {item.sku || (item.product_id ? item.product_id.slice(0, 7) : "")}
+                  {toProductCode({ id: item.product_id, sku: item.sku })}
                 </td>
                 <td className="border border-black px-2 py-1 align-top">{description}</td>
                 <td className="border border-black px-2 py-1 align-top text-center">

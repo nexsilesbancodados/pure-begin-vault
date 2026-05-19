@@ -768,7 +768,7 @@ export function StockList() {
               {finalProducts.map((product) => {
                 const days = daysInStock(product.created_at);
                 const available = (product.stock || 0) > 0;
-                const cod = product.sku || String(product.id).slice(0, 7);
+                const cod = toProductCode({ id: product.id, sku: product.sku });
                 const descricao = [
                   product.category || "Produto",
                   product.name,
