@@ -58,16 +58,13 @@ function Login() {
   const [shake, setShake] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus + remember email + redirect if already signed in
+  // Auto-focus + remember email.
+  // Não redireciona automaticamente: quando o usuário acessa /login ou faz Ctrl+Shift+R,
+  // a tela de login deve permanecer visível mesmo que exista uma sessão salva no navegador.
   useEffect(() => {
     const saved = typeof window !== "undefined" ? localStorage.getItem("conecta:lastEmail") : null;
     if (saved) setEmail(saved);
     const t = setTimeout(() => emailRef.current?.focus(), 150);
-
-    // Se já existe sessão válida, manda direto pro painel
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) window.location.replace("/painel");
-    });
 
     return () => clearTimeout(t);
   }, []);
