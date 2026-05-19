@@ -304,9 +304,21 @@ function ReportsPage() {
   type FunnelDatum = { name: string; value: number; color: string };
   type OriginDatum = { name: string; value: number; color: string };
   type AgentDatum = { name: string; avatar: string; sales: number; revenue: string; trend: string };
+  type ExtraStats = {
+    despesasOpen: number; despesasOverdue: number; despesasTotal: number; despesasPaid: number;
+    receitasOpen: number; receitasTotal: number; receitasPaid: number;
+    caixaSaldo: number; caixaIncome: number; caixaExpense: number;
+    productsCount: number; productsActive: number; lowStock: number; outOfStock: number; stockValue: number;
+  };
   const [funnelData, setFunnelData] = useState<FunnelDatum[]>([]);
   const [originData, setOriginData] = useState<OriginDatum[]>([]);
   const [topAgents, setTopAgents] = useState<AgentDatum[]>([]);
+  const [extra, setExtra] = useState<ExtraStats>({
+    despesasOpen: 0, despesasOverdue: 0, despesasTotal: 0, despesasPaid: 0,
+    receitasOpen: 0, receitasTotal: 0, receitasPaid: 0,
+    caixaSaldo: 0, caixaIncome: 0, caixaExpense: 0,
+    productsCount: 0, productsActive: 0, lowStock: 0, outOfStock: 0, stockValue: 0,
+  });
 
   const fetchReportsData = useCallback(async () => {
     if (!user?.id) return;
@@ -316,6 +328,9 @@ function ReportsPage() {
       type LeadRow = { source: string | null; status: string | null; created_at: string | null };
       type StageRow = { id: string; name: string; color: string | null };
       type PipelineRow = { stage_id: string | null };
+      type PayRow = { amount: number | null; paid_amount: number | null; status: string | null; due_date: string | null };
+      type TxRow = { type: string | null; amount: number | null };
+      type ProductRow = { active: boolean | null; stock_quantity: number | null; min_stock: number | null; cost_price: number | null; price: number | null };
 
       const filt = <T,>(q: T): T => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -323,34 +338,35 @@ function ReportsPage() {
         return (orgId ? qq.eq("organization_id", orgId) : qq.eq("user_id", user.id)) as T;
       };
 
-      const [salesRes, leadsRes, stagesRes, pipelineRes] = await Promise.all([
+      const [salesRes, leadsRes, stagesRes, pipelineRes, payRes, recRes, txRes, prodRes] = await Promise.all([
         filt(supabase.from("sales_orders").select("total_amount, status, created_at")),
         filt(supabase.from("leads").select("source, status, created_at")),
         filt(supabase.from("funnel_stages").select("name, color, id")).order("order_index"),
         filt(supabase.from("pipeline_leads").select("stage_id")),
+        filt(supabase.from("accounts_payable").select("amount, paid_amount, status, due_date")),
+        filt(supabase.from("accounts_receivable").select("amount, paid_amount, status, due_date")),
+        filt(supabase.from("finance_transactions").select("type, amount")),
+        filt(supabase.from("products").select("active, stock_quantity, min_stock, cost_price, price")),
       ]);
 
       const sales = (salesRes.data || []) as SaleRow[];
       const leads = (leadsRes.data || []) as LeadRow[];
       const stages = (stagesRes.data || []) as StageRow[];
       const pipeline = (pipelineRes.data || []) as PipelineRow[];
+      const pays = (payRes.data || []) as PayRow[];
+      const recs = (recRes.data || []) as PayRow[];
+      const txs = (txRes.data || []) as TxRow[];
+      const prods = (prodRes.data || []) as ProductRow[];
 
       const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-      const concludedSales = sales.filter((s) => s.status === "concluded");
+      const concludedSales = sales.filter((s) => s.status === "concluded" || s.status === "completed");
       const currentMonthSales = concludedSales.filter(
         (s) => s.created_at != null && new Date(s.created_at) >= monthStart,
       );
-      const monthRevenue = currentMonthSales.reduce(
-        (acc, curr) => acc + (curr.total_amount || 0),
-        0,
-      );
+      const monthRevenue = currentMonthSales.reduce((acc, c) => acc + (c.total_amount || 0), 0);
 
-      const currentLeads = leads.filter(
-        (l) => l.created_at != null && new Date(l.created_at) >= monthStart,
-      );
-      const wonLeads = currentLeads.filter(
-        (l) => l.status != null && ["won", "concluded"].includes(l.status),
-      ).length;
+      const currentLeads = leads.filter((l) => l.created_at != null && new Date(l.created_at) >= monthStart);
+      const wonLeads = currentLeads.filter((l) => l.status != null && ["won", "concluded"].includes(l.status)).length;
 
       setStats({
         revenue: monthRevenue,
@@ -361,6 +377,49 @@ function ReportsPage() {
         leadsTrend: { value: "—", isUp: true },
         conversionTrend: { value: "—", isUp: true },
         avgTicketTrend: { value: "—", isUp: true },
+      });
+
+      // === FINANCEIRO sync ===
+      const today = new Date().toISOString().split("T")[0];
+      const sumPending = (rows: PayRow[]) =>
+        rows.filter((r) => r.status !== "paid").reduce((a, r) => a + (Number(r.amount) || 0), 0);
+      const sumPaid = (rows: PayRow[]) =>
+        rows.reduce((a, r) => a + (Number(r.paid_amount) || (r.status === "paid" ? Number(r.amount) || 0 : 0)), 0);
+      const overdue = pays.filter((r) => r.status !== "paid" && r.due_date && r.due_date < today)
+        .reduce((a, r) => a + (Number(r.amount) || 0), 0);
+
+      const caixaIncome = txs.filter((t) => t.type === "income").reduce((a, t) => a + (Number(t.amount) || 0), 0);
+      const caixaExpense = txs.filter((t) => t.type === "expense").reduce((a, t) => a + (Number(t.amount) || 0), 0);
+
+      // === ESTOQUE sync ===
+      const active = prods.filter((p) => p.active !== false);
+      const lowStock = active.filter((p) => {
+        const q = Number(p.stock_quantity) || 0;
+        const m = Number(p.min_stock) || 0;
+        return m > 0 && q <= m && q > 0;
+      }).length;
+      const outOfStock = active.filter((p) => (Number(p.stock_quantity) || 0) <= 0).length;
+      const stockValue = active.reduce(
+        (a, p) => a + (Number(p.stock_quantity) || 0) * (Number(p.cost_price) || Number(p.price) || 0),
+        0,
+      );
+
+      setExtra({
+        despesasOpen: sumPending(pays),
+        despesasOverdue: overdue,
+        despesasTotal: pays.reduce((a, r) => a + (Number(r.amount) || 0), 0),
+        despesasPaid: sumPaid(pays),
+        receitasOpen: sumPending(recs),
+        receitasTotal: recs.reduce((a, r) => a + (Number(r.amount) || 0), 0),
+        receitasPaid: sumPaid(recs),
+        caixaSaldo: caixaIncome - caixaExpense,
+        caixaIncome,
+        caixaExpense,
+        productsCount: prods.length,
+        productsActive: active.length,
+        lowStock,
+        outOfStock,
+        stockValue,
       });
 
       setFunnelData(
@@ -405,6 +464,32 @@ function ReportsPage() {
   useEffect(() => {
     fetchReportsData();
   }, [fetchReportsData]);
+
+  // Realtime sync: re-fetch when any source table changes
+  useEffect(() => {
+    if (!user?.id) return;
+    const tables = [
+      "sales_orders",
+      "accounts_payable",
+      "accounts_receivable",
+      "finance_transactions",
+      "products",
+    ];
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const debounced = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => fetchReportsData(), 600);
+    };
+    const channel = supabase.channel("reports-sync");
+    tables.forEach((t) => {
+      channel.on("postgres_changes", { event: "*", schema: "public", table: t }, debounced);
+    });
+    channel.subscribe();
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, fetchReportsData]);
 
   const allowedRoles = ["admin", "owner", "super_admin", "manager"];
   if (profile && !allowedRoles.includes(profile.role ?? "")) {
@@ -499,6 +584,7 @@ function ReportsPage() {
             <DashboardContent
               activeCategory={activeCategory}
               stats={stats}
+              extra={extra}
               funnelData={funnelData}
               originData={originData}
               topAgents={topAgents}
