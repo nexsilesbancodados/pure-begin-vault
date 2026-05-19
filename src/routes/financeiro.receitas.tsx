@@ -615,6 +615,50 @@ function ReceitasPage() {
             })}
           </div>
 
+          {/* Recebido por forma de pagamento */}
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">Recebido por forma de pagamento</h3>
+                <p className="text-[11px] text-slate-500">Considera apenas receitas recebidas dentro do período filtrado</p>
+              </div>
+              {fMethod && (
+                <button
+                  onClick={() => setFMethod("")}
+                  className="text-[11px] font-semibold text-slate-500 hover:text-slate-900 inline-flex items-center gap-1"
+                >
+                  <Eraser className="h-3 w-3" /> Limpar forma
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {(["pix","cash","credit","debit","crediario","transfer","other"] as PayKey[]).map((k) => {
+                const meta = PAY_META[k];
+                const data = methodBreakdown[k];
+                const active = fMethod === k;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setFMethod(active ? "" : k)}
+                    className={cn(
+                      "group relative overflow-hidden text-left rounded-xl ring-1 ring-inset p-3 transition hover:-translate-y-0.5 hover:shadow-md",
+                      meta.chip, meta.ring,
+                      active && "ring-2 ring-offset-2 ring-emerald-500 shadow-md -translate-y-0.5",
+                    )}
+                  >
+                    <div className={cn("absolute inset-x-0 top-0 h-1 bg-gradient-to-r", meta.grad)} />
+                    <div className="flex items-center justify-between">
+                      <span className={cn("text-[10px] font-bold uppercase tracking-wider", meta.text)}>{meta.label}</span>
+                      <span className={cn("text-[10px] font-semibold rounded-full px-1.5 py-0.5 bg-white/70", meta.text)}>{data.count}</span>
+                    </div>
+                    <p className="mt-2 text-lg font-bold tabular-nums text-slate-900">R$ {fmt(data.total)}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
             <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 flex-wrap">
