@@ -41,20 +41,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Busca a sessão local + força um getUser() para garantir que `user_metadata`
+    // (incluindo `allowed_menu`) seja a versão mais recente do servidor,
+    // mesmo se o JWT em cache estiver desatualizado após o admin editar o usuário.
+    const hydrate = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
+      if (session?.user) {
+        const { data: fresh } = await supabase.auth.getUser();
+        setUser(fresh?.user ?? session.user);
+        fetchProfile(session.user.id);
+      } else {
+        setUser(null);
+      }
       setLoading(false);
-    });
+    };
+    hydrate();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setProfile(null);
+      if (session?.user) {
+        // Refresh metadata do servidor após qualquer mudança de auth.
+        supabase.auth.getUser().then(({ data: fresh }) => {
+          if (fresh?.user) setUser(fresh.user);
+        });
+        fetchProfile(session.user.id);
+      } else setProfile(null);
       setLoading(false);
     });
 
