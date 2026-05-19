@@ -54,6 +54,7 @@ function mapRow(r: any): ImportJob {
     status: r.status,
     step: r.step,
     result: r.result ?? undefined,
+    payload: r.payload ?? undefined,
     error: r.error ?? undefined,
   };
 }
