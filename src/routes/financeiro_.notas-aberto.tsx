@@ -411,42 +411,12 @@ function NotasAbertoPage() {
 
         if (error) throw error;
 
-        let mapped = ((data ?? []) as PurchaseNoteRow[]).map(mapPurchaseNote);
+        const mapped = ((data ?? []) as PurchaseNoteRow[]).map(mapPurchaseNote);
         const migratedKey = `purchase_notes_migrated_${orgId}`;
-
-        if (mapped.length === 0 && !options?.skipMigration && !localStorage.getItem(migratedKey)) {
-          const legacyNotes = readLegacyNotas(orgId);
-
-          if (legacyNotes.length > 0) {
-            const rows = legacyNotes.map((note) => ({
-              id: note.id,
-              organization_id: orgId,
-              note_number: note.noteNumber,
-              fornecedor: note.fornecedor,
-              data_compra: note.dataCompra,
-              prazo_pagamento: note.prazoPagamento || null,
-              paga: note.paga,
-              total: getNoteTotal(note.items),
-              items: serializeItems(note.items),
-              created_by: userId,
-              updated_by: userId,
-              created_at: note.createdAt.toISOString(),
-            }));
-
-            const migration = await purchaseNotesTable()
-              .insert(rows)
-              .select("*")
-              .order("note_number", { ascending: true });
-
-            if (migration.error) throw migration.error;
-
-            mapped = ((migration.data ?? []) as PurchaseNoteRow[]).map(mapPurchaseNote);
-            localStorage.setItem(migratedKey, "true");
-            toast.success("Notas antigas sincronizadas no banco de dados.");
-          }
-        }
-
-        if (mapped.length > 0) localStorage.setItem(migratedKey, "true");
+        // Legacy localStorage -> DB migration disabled. It caused duplicate notes
+        // across organizations when the same browser cache was scanned per org.
+        // Always mark as migrated so the fallback below also stays inert.
+        localStorage.setItem(migratedKey, "true");
         setNotesDbUnavailable(false);
         replaceNotas(mapped);
       } catch (error) {
