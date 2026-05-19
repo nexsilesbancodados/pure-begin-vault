@@ -721,6 +721,7 @@ export function PDVInterface() {
         pa.capacity,
         pa.imei,
         pa.imei2,
+        ...(Array.isArray(pa.imeis) ? pa.imeis : []),
         pa.serial,
         pa.sku,
       ]
