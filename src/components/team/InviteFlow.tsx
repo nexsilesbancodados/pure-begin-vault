@@ -306,48 +306,48 @@ export function InviteFlow() {
 
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-6 md:p-8">
-        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl" aria-hidden />
-        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      {/* Hero premium */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 p-6 md:p-8 text-white shadow-xl">
+        <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" aria-hidden />
+        <div className="absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-indigo-400/20 blur-3xl" aria-hidden />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-8">
           <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3">
+            <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-100/80 mb-2">
               <Sparkles className="h-3 w-3" /> Gestão de equipe
             </div>
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">
               Construa um time produtivo
             </h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              Cadastre usuários, envie convites e controle permissões de cada membro da loja.
+            <p className="text-blue-100/90 text-sm md:text-base leading-relaxed mt-3">
+              Cadastre usuários, envie convites e controle permissões de cada membro da loja com precisão e segurança.
             </p>
+            <button
+              onClick={() => setUserModalOpen(true)}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-blue-600 transition-all hover:bg-blue-50 hover:shadow-lg active:scale-95"
+            >
+              <UserCog className="h-5 w-5" />
+              Cadastrar Usuário
+            </button>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <div className="rounded-2xl border border-border bg-card/70 backdrop-blur px-4 py-3 min-w-[110px]">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-md border border-white/20 text-center min-w-[100px]">
+              <div className="flex items-center justify-center gap-1 text-[10px] font-medium uppercase tracking-wider text-blue-100/70">
                 <Users className="h-3 w-3" /> Equipe
               </div>
-              <p className="text-2xl font-black mt-1">{members.length}</p>
+              <p className="text-2xl font-bold mt-1">{members.length}</p>
             </div>
-            <div className="rounded-2xl border border-border bg-card/70 backdrop-blur px-4 py-3 min-w-[110px]">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-warning">
+            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-md border border-white/20 text-center min-w-[100px]">
+              <div className="flex items-center justify-center gap-1 text-[10px] font-medium uppercase tracking-wider text-blue-100/70">
                 <Clock className="h-3 w-3" /> Pendentes
               </div>
-              <p className="text-2xl font-black mt-1">{pendingCount}</p>
+              <p className="text-2xl font-bold mt-1">{pendingCount}</p>
             </div>
-            <div className="rounded-2xl border border-border bg-card/70 backdrop-blur px-4 py-3 min-w-[110px]">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-success">
+            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-md border border-white/20 text-center min-w-[100px]">
+              <div className="flex items-center justify-center gap-1 text-[10px] font-medium uppercase tracking-wider text-blue-100/70">
                 <ShieldCheck className="h-3 w-3" /> Aceitos
               </div>
-              <p className="text-2xl font-black mt-1">{acceptedCount}</p>
+              <p className="text-2xl font-bold mt-1">{acceptedCount}</p>
             </div>
-            <Button
-              onClick={() => setUserModalOpen(true)}
-              size="lg"
-              className="gap-2 shadow-lg shadow-primary/20 h-auto px-5"
-            >
-              <UserCog className="h-4 w-4" />
-              Cadastrar Usuário
-            </Button>
           </div>
         </div>
       </div>
@@ -554,13 +554,13 @@ export function InviteFlow() {
           <Badge variant="outline" className="font-bold">{members.length}</Badge>
         </div>
         {members.length === 0 ? (
-          <div className="py-10 text-center">
-            <div className="h-12 w-12 mx-auto rounded-2xl bg-muted grid place-items-center mb-3">
-              <Users className="h-5 w-5 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center py-12 rounded-2xl border-2 border-dashed border-border bg-card/50">
+            <div className="rounded-full bg-muted p-4 text-muted-foreground mb-4">
+              <Users className="h-8 w-8" />
             </div>
-            <p className="text-sm text-muted-foreground">Nenhum membro ativo ainda.</p>
+            <p className="text-sm font-semibold text-foreground">Nenhum membro ativo ainda.</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Convide alguém pelo link acima para começar.
+              Comece convidando pessoas para ver o status em tempo real.
             </p>
           </div>
         ) : (
