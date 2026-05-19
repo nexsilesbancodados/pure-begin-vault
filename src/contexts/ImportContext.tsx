@@ -141,6 +141,39 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
     [user?.id, orgId],
   );
 
+  // Apaga TODAS as linhas que foram criadas por estes jobs (vendas, itens,
+  // financeiro, receitas e despesas), e só então remove o registro do job.
+  const cascadeDelete = useCallback(async (jobIds: string[]) => {
+    if (jobIds.length === 0) return { sales: 0, items: 0, finance: 0, receivable: 0, payable: 0 };
+    const tables = [
+      "sale_items",
+      "sales_orders",
+      "accounts_receivable",
+      "accounts_payable",
+      "finance_transactions",
+    ] as const;
+    const counts: Record<string, number> = {};
+    await Promise.all(
+      tables.map(async (t) => {
+        const { error, count } = await supabase
+          .from(t)
+          .delete({ count: "exact" })
+          .in("import_job_id", jobIds);
+        if (error && !/import_job_id/i.test(error.message)) {
+          console.warn(`cleanup ${t}:`, error.message);
+        }
+        counts[t] = count ?? 0;
+      }),
+    );
+    return {
+      sales: counts.sales_orders || 0,
+      items: counts.sale_items || 0,
+      finance: counts.finance_transactions || 0,
+      receivable: counts.accounts_receivable || 0,
+      payable: counts.accounts_payable || 0,
+    };
+  }, []);
+
   const clearFinished = useCallback(async () => {
     if (!orgId) return;
     const targets = jobs.filter((j) => j.status === "done" || j.status === "error");
@@ -149,8 +182,8 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const ids = targets.map((j) => j.id);
-    // remoção otimista
     setJobs((prev) => prev.filter((j) => !ids.includes(j.id)));
+    const removed = await cascadeDelete(ids);
     const { error, count } = await supabase
       .from("import_jobs")
       .delete({ count: "exact" })
@@ -160,23 +193,32 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const n = count ?? ids.length;
-    toast.success(`${n} ${n === 1 ? "importação removida" : "importações removidas"}`);
-  }, [orgId, jobs]);
+    const extras = removed.sales + removed.finance + removed.receivable + removed.payable;
+    toast.success(
+      `${n} ${n === 1 ? "importação removida" : "importações removidas"}${
+        extras > 0 ? ` · ${extras} lançamentos correlatos limpos` : ""
+      }`,
+    );
+  }, [orgId, jobs, cascadeDelete]);
 
   const deleteJob = useCallback(async (jobId: string) => {
-    // remoção otimista
     setJobs((prev) => prev.filter((j) => j.id !== jobId));
-    const { error, count } = await supabase
-      .from("import_jobs")
-      .delete({ count: "exact" })
-      .eq("id", jobId);
+    const removed = await cascadeDelete([jobId]);
+    const { error } = await supabase.from("import_jobs").delete().eq("id", jobId);
     if (error) {
       toast.error("Falha ao remover: " + error.message);
       return;
     }
-    const n = count ?? 1;
-    toast.success(`${n} ${n === 1 ? "importação removida" : "importações removidas"}`);
-  }, []);
+    const summary = [
+      removed.sales && `${removed.sales} vendas`,
+      removed.receivable && `${removed.receivable} receitas`,
+      removed.payable && `${removed.payable} despesas`,
+      removed.finance && `${removed.finance} mov. financeiras`,
+    ].filter(Boolean).join(" · ");
+    toast.success(
+      summary ? `Importação removida · ${summary} excluídos` : "Importação removida",
+    );
+  }, [cascadeDelete]);
 
   const activeCount = useMemo(
     () => jobs.filter((j) => j.status === "running" || j.status === "queued").length,
