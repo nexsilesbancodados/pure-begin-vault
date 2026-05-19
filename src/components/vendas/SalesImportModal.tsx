@@ -204,17 +204,21 @@ function buildHeaderMap(sample: Record<string, any>, kind: ImportKind): Record<s
     }
     return best;
   };
+
   // Ordena campos por prioridade: campos mais específicos primeiro
   const fieldOrder = [
     "customer_document", "customer_email", "customer_phone", "customer",
     "amount", "discount", "date", "payment", "status",
-    "unit_price", "quantity", "product_sku", "product",
+    "unit_price", "cost_price", "quantity", "product_sku", "product",
     "fin_type", "category", "description", "notes",
   ];
+
+  const aliasesForKind = FIELD_ALIASES[kind] || {};
+
   for (const field of fieldOrder) {
     if (map[field]) continue; // Pula se já veio do localStorage
 
-    const aliases = FIELD_ALIASES[field];
+    const aliases = aliasesForKind[field];
     if (!aliases) continue;
     let bestHeader: string | undefined;
     let bestScore = 0;
