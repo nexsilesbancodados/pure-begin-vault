@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     }
     const callerId = callerData.user.id;
 
-    const { email, password, nome, organization_id, organization_ids, role, invite_id } =
+    const { email, password, nome, organization_id, organization_ids, role, invite_id, allowed_menu } =
       await req.json();
     const normalizedEmail = String(email || "").trim().toLowerCase();
 
@@ -147,19 +147,18 @@ Deno.serve(async (req) => {
       .not("organization_id", "in", `(${orgIds.join(",")})`);
     if (removeOldMembershipsError) throw removeOldMembershipsError;
 
-    // Atualiza profile (já define organization_id ativa + role)
-    await admin
-      .from("profiles")
-      .upsert(
-        {
-          id: userId!,
-          email: normalizedEmail,
-          nome: nome || normalizedEmail,
-          organization_id: orgIds[0],
-          role: role || "employee",
-        },
-        { onConflict: "id" }
-      );
+    // Atualiza profile (já define organization_id ativa + role + menu permitido)
+    const profilePayload: Record<string, unknown> = {
+      id: userId!,
+      email: normalizedEmail,
+      nome: nome || normalizedEmail,
+      organization_id: orgIds[0],
+      role: role || "employee",
+    };
+    if (Array.isArray(allowed_menu)) {
+      profilePayload.allowed_menu = allowed_menu.length ? allowed_menu : null;
+    }
+    await admin.from("profiles").upsert(profilePayload, { onConflict: "id" });
 
     // Marca convite como aceito (se houver)
     if (invite_id) {
