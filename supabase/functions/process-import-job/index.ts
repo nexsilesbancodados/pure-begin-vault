@@ -25,6 +25,8 @@ type Row = {
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
+  product_sku?: string;
+  discount?: number;
   description?: string;
   fin_type?: "income" | "expense";
   category?: string;
@@ -297,15 +299,21 @@ async function processJob(supabase: any, jobId: string) {
       for (let i = 0; i < rows.length; i += CHUNK) saleChunks.push({ offset: i, slice: rows.slice(i, i + CHUNK) });
 
       await pool(saleChunks.map(({ offset, slice }) => async () => {
-        const payload = slice.map((r) => ({
-          user_id: userId, organization_id: orgId,
-          total_amount: r.total_amount, subtotal: r.total_amount,
-          payment_method: r.payment_method, status: r.status,
-          notes: r.notes, channel: "import",
-          customer_id: resolveCust(r),
-          created_at: r.created_at,
-          import_job_id: jobId,
-        }));
+        const payload = slice.map((r) => {
+          const disc = Number(r.discount) || 0;
+          const total = Number(r.total_amount) || 0;
+          return {
+            user_id: userId, organization_id: orgId,
+            total_amount: total,
+            subtotal: total + disc,
+            discount: disc,
+            payment_method: r.payment_method, status: r.status,
+            notes: r.notes, channel: "import",
+            customer_id: resolveCust(r),
+            created_at: r.created_at,
+            import_job_id: jobId,
+          };
+        });
         let { data, error } = await supabase.from("sales_orders").insert(payload).select("id");
         if (error && /import_job_id/i.test(error.message)) {
           const fallback = payload.map(({ import_job_id, ...rest }) => rest);
@@ -330,8 +338,10 @@ async function processJob(supabase: any, jobId: string) {
           organization_id: orgId, sale_id: id,
           product_id: productIdByName.get(row.product_name!.toLowerCase())!,
           product_name: row.product_name!,
+          sku: row.product_sku || null,
           quantity: row.product_quantity || 1,
           unit_price: row.product_price ?? row.total_amount,
+          discount: Number(row.discount) || 0,
           total: row.total_amount,
         }));
       const PAID_STATUSES = ["concluded", "completed", "paid", "concluido", "concluído", "pago", "quitado", "recebido"];

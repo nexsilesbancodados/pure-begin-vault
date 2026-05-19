@@ -60,6 +60,8 @@ type ParsedRow = {
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
+  product_sku?: string;
+  discount?: number;
   // Financeiro
   description?: string;
   fin_type?: "income" | "expense";
@@ -99,9 +101,11 @@ const FIELD_ALIASES: Record<string, string[]> = {
   customer_phone: ["telefone", "celular", "whatsapp", "fone", "phone", "tel"],
   customer_email: ["email", "e-mail", "mail"],
   customer_document: ["cpf", "cnpj", "documento", "doc", "cpf/cnpj", "cpf cnpj", "rg"],
-  product: ["produto", "item", "product", "mercadoria", "descricao produto"],
+  product: ["produto", "item", "product", "mercadoria", "descricao produto", "modelo", "aparelho"],
+  product_sku: ["sku", "codigo", "código", "cod", "ref", "referencia", "referência"],
   quantity: ["qtd", "quantidade", "qty", "quantity"],
   unit_price: ["preco", "preço", "preco unit", "valor unitario", "unit price"],
+  discount: ["desconto", "discount", "abatimento", "descontos"],
   description: ["descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título"],
   fin_type: ["tipo", "natureza", "type", "operacao", "operação", "movimento", "credito/debito", "c/d"],
   category: ["categoria", "category", "classe", "classificacao", "classificação", "centro de custo", "grupo", "plano"],
@@ -141,8 +145,8 @@ function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
   // Ordena campos por prioridade: campos mais específicos primeiro
   const fieldOrder = [
     "customer_document", "customer_email", "customer_phone", "customer",
-    "amount", "date", "payment", "status",
-    "unit_price", "quantity", "product",
+    "amount", "discount", "date", "payment", "status",
+    "unit_price", "quantity", "product_sku", "product",
     "fin_type", "category", "description", "notes",
   ];
   for (const field of fieldOrder) {
@@ -218,11 +222,13 @@ function normalizePayment(raw: any): string {
   const n = norm(raw);
   if (!n) return "Pix";
   if (n.includes("pix")) return "Pix";
-  if (n.includes("dinh") || n.includes("cash") || n === "esp") return "Dinheiro";
+  if (n.includes("dinh") || n.includes("cash") || n === "esp" || n.includes("especie")) return "Dinheiro";
   if (n.includes("debit")) return "Débito";
-  if (n.includes("cred") || n.includes("card")) return "Crédito";
+  if (n.includes("parcel") || n.includes("crediar")) return "Crediário";
+  if (n.includes("fiado") || n.includes("prazo")) return "Prazo";
+  if (n.includes("cred") || n.includes("card") || n.includes("cart")) return "Crédito";
   if (n.includes("boleto")) return "Boleto";
-  if (n.includes("transf")) return "Transferência";
+  if (n.includes("transf") || n.includes("ted") || n.includes("doc")) return "Transferência";
   return String(raw).slice(0, 30);
 }
 
@@ -261,11 +267,16 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     ? String(customerDocRaw).replace(/\D/g, "").trim() || undefined
     : undefined;
   const productName = get("product") ? String(get("product")).trim() : undefined;
+  const productSku = get("product_sku") ? String(get("product_sku")).trim() : undefined;
   const qtyRaw = get("quantity");
   const productQty = qtyRaw != null && qtyRaw !== "" ? Number(parseCurrency(qtyRaw)) || 1 : 1;
   const unitPriceRaw = get("unit_price");
   const productPrice = unitPriceRaw != null && unitPriceRaw !== ""
     ? parseCurrency(unitPriceRaw)
+    : undefined;
+  const discountRaw = get("discount");
+  const discount = discountRaw != null && discountRaw !== ""
+    ? Math.abs(parseCurrency(discountRaw))
     : undefined;
 
   const description = get("description") ? String(get("description")).trim() : undefined;
@@ -305,6 +316,8 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     product_name: productName || undefined,
     product_quantity: productQty,
     product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
+    product_sku: productSku || undefined,
+    discount: discount && !isNaN(discount) ? discount : undefined,
     description: description,
     fin_type: finType,
     category: categoryRaw,
@@ -459,6 +472,8 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
         product_name: r.product_name,
         product_quantity: r.product_quantity,
         product_price: r.product_price,
+        product_sku: r.product_sku,
+        discount: r.discount,
         description: r.description,
         // Vendas SEMPRE entram pelo fluxo de vendas (cria sales_orders + sale_items +
         // accounts_receivable + finance_transactions). Só envia fin_type quando o
