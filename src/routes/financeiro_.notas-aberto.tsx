@@ -260,8 +260,8 @@ const isPurchaseNotesUnavailable = (error: unknown) => {
 const getNoteTotal = (items: Product[]) =>
   items.reduce((sum, p) => sum + Number(p.cost_price ?? p.price ?? 0), 0);
 
-const serializeItems = (items: Product[]): Json =>
-  items.map((p) => ({
+const serializeItems = (items: Product[], comprovanteUrl?: string | null): Json => {
+  const base = items.map((p) => ({
     id: p.id,
     name: p.name,
     organization_id: p.organization_id ?? null,
@@ -272,6 +272,21 @@ const serializeItems = (items: Product[]): Json =>
     stock_quantity: p.stock_quantity ?? null,
     metadata: toJson(p.metadata ?? null),
   }));
+  if (comprovanteUrl) {
+    base.push({
+      id: COMPROVANTE_SENTINEL_ID,
+      name: COMPROVANTE_SENTINEL_ID,
+      organization_id: null,
+      sku: null,
+      imei: null,
+      price: null,
+      cost_price: null,
+      stock_quantity: null,
+      metadata: { kind: "comprovante", url: comprovanteUrl } as unknown as Json,
+    });
+  }
+  return base as unknown as Json;
+};
 
 const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
   const raw = Array.isArray(row.items) ? row.items : [];
