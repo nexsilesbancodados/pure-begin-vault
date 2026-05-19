@@ -133,24 +133,33 @@ function ReceitasPage() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const receivableBase = supabase
-        .from("accounts_receivable")
-        .select("*");
+      const receivableBase = supabase.from("accounts_receivable").select("*");
       const transactionBase = supabase
         .from("finance_transactions")
         .select("*")
         .eq("type", "income");
+      const cashBase = supabase
+        .from("cash_register_movements")
+        .select("*")
+        .in("type", ["deposit", "transfer_in", "sale", "deposito", "transferencia"]);
+      const salesBase = supabase
+        .from("sales_orders")
+        .select("id,total_amount,status,created_at,customer_id,sale_number,payment_method,notes")
+        .in("status", ["completed", "concluded", "paid", "concluído", "pago"]);
 
-      const [receivableRes, txRes] = await Promise.all([
-        (orgId ? receivableBase.eq("organization_id", orgId) : receivableBase.eq("user_id", user.id))
-          .order("due_date", { ascending: false, nullsFirst: false }),
-        (orgId ? transactionBase.eq("organization_id", orgId) : transactionBase.eq("user_id", user.id))
-          .order("transaction_date", { ascending: false, nullsFirst: false }),
+      const scoped = (q: any) =>
+        orgId ? q.eq("organization_id", orgId) : q.eq("user_id", user.id);
+
+      const [receivableRes, txRes, cashRes, salesRes] = await Promise.all([
+        scoped(receivableBase).order("due_date", { ascending: false, nullsFirst: false }),
+        scoped(transactionBase).order("transaction_date", { ascending: false, nullsFirst: false }),
+        scoped(cashBase).order("created_at", { ascending: false, nullsFirst: false }),
+        scoped(salesBase).order("created_at", { ascending: false, nullsFirst: false }),
       ]);
       if (receivableRes.error) throw receivableRes.error;
       if (txRes.error) throw txRes.error;
 
-      const receivables = ((receivableRes.data as any[]) || []).map((r) => ({
+      const receivables: Income[] = ((receivableRes.data as any[]) || []).map((r) => ({
         id: r.id,
         description: r.description,
         category: r.sale_id ? "sales" : "income",
@@ -163,21 +172,97 @@ function ReceitasPage() {
         reference_type: r.sale_id ? "sale" : "manual",
         reference_id: r.sale_id || null,
         customer_id: r.customer_id || null,
-        source_table: "receivable" as const,
+        source_table: "receivable",
+        origin: r.sale_id ? "sale" : "manual",
         notes: r.notes,
         type: "income",
       }));
-      const receivableSaleIds = new Set(receivables.map((r) => r.reference_id).filter(Boolean));
-      const transactions = ((txRes.data as any[]) || [])
-        .filter((t) => !(t.reference_type === "sale" && t.reference_id && receivableSaleIds.has(t.reference_id)))
+      const receivableSaleIds = new Set(
+        receivables.map((r) => r.reference_id).filter(Boolean) as string[],
+      );
+
+      const transactions: Income[] = ((txRes.data as any[]) || [])
+        .filter(
+          (t) =>
+            !(t.reference_type === "sale" && t.reference_id && receivableSaleIds.has(t.reference_id)),
+        )
         .map((t) => ({
-          ...t,
+          id: t.id,
+          description: t.description,
+          category: t.category,
+          amount: Number(t.amount) || 0,
+          status: "paid",
           due_date: t.transaction_date,
           payment_date: t.transaction_date,
+          transaction_date: t.transaction_date,
           supplier: customerFromDescription(t.description),
-          source_table: "transaction" as const,
+          reference_type: t.reference_type,
+          reference_id: t.reference_id,
+          source_table: "transaction",
+          origin: inferOrigin({
+            reference_type: t.reference_type,
+            category: t.category,
+            payment_method: t.payment_method,
+            description: t.description,
+          }),
+          type: "income",
         }));
-      setItems([...receivables, ...transactions]);
+      if (t_or_skip_cash(cashRes)) {
+        // no-op
+      }
+      const cashMovements: Income[] = !cashRes.error
+        ? ((cashRes.data as any[]) || [])
+            .filter((m) => !(m.reference_type === "sale" && m.reference_id && receivableSaleIds.has(m.reference_id)))
+            .map((m) => {
+              const t = String(m.type || "").toLowerCase();
+              const origin: IncomeOrigin =
+                t === "transfer_in" || t === "transferencia"
+                  ? "transfer"
+                  : t === "sale"
+                  ? "sale"
+                  : "deposit";
+              return {
+                id: m.id,
+                description: m.description || ORIGIN_LABEL[origin],
+                category: "caixa",
+                amount: Number(m.amount) || 0,
+                status: "paid",
+                due_date: m.created_at,
+                payment_date: m.created_at,
+                transaction_date: m.created_at,
+                supplier: null,
+                reference_type: m.reference_type || origin,
+                reference_id: m.reference_id || null,
+                source_table: "cash_movement",
+                origin,
+                type: "income",
+              };
+            })
+        : [];
+
+      const sales: Income[] = !salesRes.error
+        ? ((salesRes.data as any[]) || [])
+            .filter((s) => !receivableSaleIds.has(s.id))
+            .map((s) => ({
+              id: `sale:${s.id}`,
+              description: `Venda #${s.sale_number ?? String(s.id).slice(0, 6).toUpperCase()}`,
+              category: "sales",
+              amount: Number(s.total_amount) || 0,
+              status: "paid",
+              due_date: s.created_at,
+              payment_date: s.created_at,
+              transaction_date: s.created_at,
+              supplier: null,
+              reference_type: "sale",
+              reference_id: s.id,
+              customer_id: s.customer_id || null,
+              source_table: "sale",
+              origin: "sale",
+              type: "income",
+            }))
+        : [];
+
+      setItems([...receivables, ...transactions, ...cashMovements, ...sales]);
     } catch (e) {
       console.error(e);
       toast.error("Erro ao carregar receitas");
