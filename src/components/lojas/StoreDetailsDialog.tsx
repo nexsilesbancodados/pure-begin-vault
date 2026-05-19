@@ -101,7 +101,28 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
         // ignore
       }
 
-      setMembers(mems || []);
+      // Enriquece membros com nome/email do profile
+      const baseMembers = (mems || []) as Member[];
+      const ids = baseMembers.map((m) => m.user_id);
+      if (ids.length > 0) {
+        const { data: profs } = await (supabase as any)
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", ids);
+        const map = new Map<string, { name?: string; email?: string }>();
+        for (const p of (profs as any[]) || []) {
+          map.set(p.id, { name: p.full_name, email: p.email });
+        }
+        setMembers(
+          baseMembers.map((m) => ({
+            ...m,
+            name: map.get(m.user_id)?.name ?? null,
+            email: map.get(m.user_id)?.email ?? null,
+          })),
+        );
+      } else {
+        setMembers(baseMembers);
+      }
     } finally {
       setLoading(false);
     }
