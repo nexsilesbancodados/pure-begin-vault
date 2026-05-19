@@ -44,6 +44,8 @@ export const Route = createFileRoute("/financeiro/receitas")({
   component: ReceitasPage,
 });
 
+type IncomeOrigin = "sale" | "deposit" | "transfer" | "manual";
+
 type Income = {
   id: string;
   description: string;
@@ -58,9 +60,40 @@ type Income = {
   reference_type?: string | null;
   reference_id?: string | null;
   customer_id?: string | null;
-  source_table: "receivable" | "transaction";
+  source_table: "receivable" | "transaction" | "cash_movement" | "sale";
+  origin: IncomeOrigin;
   notes?: string | null;
   type: string;
+};
+
+const ORIGIN_LABEL: Record<IncomeOrigin, string> = {
+  sale: "Venda",
+  deposit: "Depósito",
+  transfer: "Transferência",
+  manual: "Manual",
+};
+
+const ORIGIN_STYLE: Record<IncomeOrigin, string> = {
+  sale: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  deposit: "bg-blue-50 text-blue-700 ring-blue-200",
+  transfer: "bg-violet-50 text-violet-700 ring-violet-200",
+  manual: "bg-slate-100 text-slate-600 ring-slate-200",
+};
+
+const inferOrigin = (params: {
+  reference_type?: string | null;
+  category?: string | null;
+  payment_method?: string | null;
+  description?: string | null;
+}): IncomeOrigin => {
+  const ref = (params.reference_type || "").toLowerCase();
+  if (ref === "sale" || ref === "sales_order") return "sale";
+  const blob = `${params.category || ""} ${params.payment_method || ""} ${params.description || ""}`.toLowerCase();
+  if (/transfer|transferência|transferencia|ted|doc|pix.*transfer/.test(blob)) return "transfer";
+  if (/dep[óo]sito|deposit/.test(blob)) return "deposit";
+  if (ref === "deposit") return "deposit";
+  if (ref === "transfer") return "transfer";
+  return "manual";
 };
 
 const fmt = (v: number) =>
