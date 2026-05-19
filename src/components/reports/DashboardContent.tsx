@@ -40,9 +40,17 @@ import {
 } from "recharts";
 import { SalesChart } from "@/components/dashboard/SalesChart";
 
+interface ExtraStats {
+  despesasOpen: number; despesasOverdue: number; despesasTotal: number; despesasPaid: number;
+  receitasOpen: number; receitasTotal: number; receitasPaid: number;
+  caixaSaldo: number; caixaIncome: number; caixaExpense: number;
+  productsCount: number; productsActive: number; lowStock: number; outOfStock: number; stockValue: number;
+}
+
 interface DashboardContentProps {
   activeCategory: string;
   stats: any;
+  extra?: ExtraStats;
   funnelData: any[];
   originData: any[];
   topAgents: any[];
@@ -50,9 +58,13 @@ interface DashboardContentProps {
   loading: boolean;
 }
 
+const fmtBRL = (n: number) =>
+  (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
 export const DashboardContent: React.FC<DashboardContentProps> = ({
   activeCategory,
   stats,
+  extra,
   funnelData,
   originData,
   topAgents,
