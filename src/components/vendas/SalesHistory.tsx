@@ -614,13 +614,16 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
 
 <table>
   <tr>
-    <td class="store-info" style="width:60%;">
-      ${logo ? `<img src="${logo}" alt="${orgName}"/>` : ""}
+    <td class="store-info" style="width:22%;">
+      ${logo ? `<img src="${logo}" alt="${orgName}"/>` : `<b>${orgName}</b>`}
+    </td>
+    <td class="store-info">
       <b>${orgName}</b><br/>
       ${cnpj ? `CNPJ: ${cnpj}<br/>` : ""}
-      ${phone ? `Telefone: ${phone}` : ""}
+      ${phone ? `Telefone: ${phone}<br/>` : ""}
+      ${address ? `<span style="font-size:11px;">${address}</span>` : ""}
     </td>
-    <td>
+    <td style="width:28%;">
       <b>${fmt(start)}</b><br/>
       <b>VENDEDOR:</b> ${sellerName}<br/>
       <b>RECIBO DA VENDA:</b> ${receiptId}
