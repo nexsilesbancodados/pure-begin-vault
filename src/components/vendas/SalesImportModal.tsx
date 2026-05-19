@@ -84,40 +84,83 @@ const norm = (s: any) =>
 // Aliases por campo — qualquer coluna que contenha um destes termos é considerada match
 const FIELD_ALIASES: Record<string, string[]> = {
   amount: [
-    "valor",
-    "total",
-    "vlr",
-    "amount",
-    "value",
-    "venda",
-    "faturamento",
-    "subtotal",
+    "valor", "total", "vlr", "amount", "value", "venda", "faturamento", "subtotal", "vlr total", "valor total", "recebido", "bruto", "liquido", "líquido", "total venda"
   ],
-  date: ["data", "date", "dt", "emissao", "vencimento", "created", "criado"],
-  payment: ["pagamento", "pagto", "metodo", "method", "forma", "payment"],
-  status: ["status", "situacao", "estado"],
-  notes: ["obs", "observacao", "observacoes", "notes", "descricao", "description"],
-  customer: ["cliente", "customer", "comprador", "nome cliente", "nome do cliente", "razao social"],
-  customer_phone: ["telefone", "celular", "whatsapp", "fone", "phone", "tel"],
-  customer_email: ["email", "e-mail", "mail"],
-  customer_document: ["cpf", "cnpj", "documento", "doc", "cpf/cnpj", "cpf cnpj", "rg"],
-  product: ["produto", "item", "product", "mercadoria", "descricao produto", "modelo", "aparelho"],
-  product_sku: ["sku", "codigo", "código", "cod", "ref", "referencia", "referência"],
-  quantity: ["qtd", "quantidade", "qty", "quantity"],
-  unit_price: ["preco", "preço", "preco unit", "valor unitario", "unit price"],
-  discount: ["desconto", "discount", "abatimento", "descontos"],
-  description: ["descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título"],
-  fin_type: ["tipo", "natureza", "type", "operacao", "operação", "movimento", "credito/debito", "c/d"],
-  category: ["categoria", "category", "classe", "classificacao", "classificação", "centro de custo", "grupo", "plano"],
+  date: [
+    "data", "date", "dt", "emissao", "vencimento", "created", "criado", "data pedido", "data venda", "competencia", "dia", "momento"
+  ],
+  payment: [
+    "pagamento", "pagto", "metodo", "method", "forma", "payment", "meio", "condicao", "condição", "forma pgto", "meio pagamento"
+  ],
+  status: [
+    "status", "situacao", "estado", "etapa", "fase", "posicao", "posição"
+  ],
+  notes: [
+    "obs", "observacao", "observacoes", "notes", "descricao", "description", "comentario", "comentário", "memo", "detalhes"
+  ],
+  customer: [
+    "cliente", "customer", "comprador", "nome cliente", "nome do cliente", "razao social", "razao", "razão", "destinatario", "contato"
+  ],
+  customer_phone: [
+    "telefone", "celular", "whatsapp", "fone", "phone", "tel", "whats", "cel", "contato fone"
+  ],
+  customer_email: [
+    "email", "e-mail", "mail", "correio", "endereço eletronico"
+  ],
+  customer_document: [
+    "cpf", "cnpj", "documento", "doc", "cpf/cnpj", "cpf cnpj", "rg", "inscricao", "inscrição", "identidade"
+  ],
+  product: [
+    "produto", "item", "product", "mercadoria", "descricao produto", "modelo", "aparelho", "nome produto", "servico", "serviço"
+  ],
+  product_sku: [
+    "sku", "codigo", "código", "cod", "ref", "referencia", "referência", "part number", "ean", "barras", "ncm", "id produto"
+  ],
+  quantity: [
+    "qtd", "quantidade", "qty", "quantity", "volume", "itens", "unidades", "num itens"
+  ],
+  unit_price: [
+    "preco", "preço", "preco unit", "valor unitario", "unit price", "vlr unit", "vlr unitario", "valor cada"
+  ],
+  discount: [
+    "desconto", "discount", "abatimento", "descontos", "promo", "cupom", "off"
+  ],
+  description: [
+    "descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título", "identificador"
+  ],
+  fin_type: [
+    "tipo", "natureza", "type", "operacao", "operação", "movimento", "credito/debito", "c/d", "fluxo", "e/s"
+  ],
+  category: [
+    "categoria", "category", "classe", "classificacao", "classificação", "centro de custo", "grupo", "plano", "tag", "etiqueta"
+  ],
 };
 
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
 // Estratégia: prioridade exato > startsWith > inclui, e cada header só pode
 // ser atribuído a um único campo (evita "Data Venda" virar VALOR).
-function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
+function buildHeaderMap(sample: Record<string, any>, kind: ImportKind): Record<string, string> {
   const map: Record<string, string> = {};
   const headers = Object.keys(sample);
   const used = new Set<string>();
+
+  // Tenta recuperar mapeamento salvo no localStorage para este "tipo"
+  const savedKey = `import_map_${kind}`;
+  const savedMap = localStorage.getItem(savedKey);
+  if (savedMap) {
+    try {
+      const parsed = JSON.parse(savedMap);
+      // Só usa se a coluna ainda existir no arquivo atual
+      for (const [field, header] of Object.entries(parsed)) {
+        if (headers.includes(header as string)) {
+          map[field] = header as string;
+          used.add(header as string);
+        }
+      }
+    } catch (e) {
+      console.warn("Falha ao ler mapeamento salvo", e);
+    }
+  }
 
   // Cabeçalhos que NUNCA devem virar "data da venda" (datas pessoais/cadastrais)
   const DATE_BLACKLIST = [
@@ -150,6 +193,8 @@ function buildHeaderMap(sample: Record<string, any>): Record<string, string> {
     "fin_type", "category", "description", "notes",
   ];
   for (const field of fieldOrder) {
+    if (map[field]) continue; // Pula se já veio do localStorage
+
     const aliases = FIELD_ALIASES[field];
     if (!aliases) continue;
     let bestHeader: string | undefined;
@@ -358,6 +403,10 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     if (!header) delete newMap[field];
     else newMap[field] = header;
     setHmap(newMap);
+
+    // Salva mapeamento no localStorage para uso futuro
+    localStorage.setItem(`import_map_${kind}`, JSON.stringify(newMap));
+
     if (rawData.length) {
       setRows(rawData.map((r, i) => parseRow(r, newMap, i)));
     }
@@ -382,6 +431,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
 
   const processFile = async (
     file: File,
+    targetKind: ImportKind,
   ): Promise<{
     rows: ParsedRow[];
     hmap: Record<string, string>;
@@ -400,7 +450,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
             resolve({ rows: [], hmap: {}, headers: [], raw: [] });
             return;
           }
-          const hmap = buildHeaderMap(json[0]);
+          const hmap = buildHeaderMap(json[0], targetKind);
           const headers = Object.keys(json[0]);
           const rows = json.map((r, i) => parseRow(r, hmap, i));
           resolve({ rows, hmap, headers, raw: json });
@@ -425,7 +475,7 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
     }
     setFile(f);
     try {
-      const parsed = await processFile(f);
+      const parsed = await processFile(f, kind);
       if (parsed.rows.length === 0) {
         toast.error("Arquivo vazio ou sem registros válidos.");
         return;
@@ -808,13 +858,27 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
               </div>
 
               {/* Mapeamento de colunas */}
-              <div className="rounded-2xl border border-border overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2.5 bg-muted/40 border-b border-border">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
-                    Mapeamento de colunas
-                  </span>
+              <div className="rounded-2xl border border-border overflow-hidden bg-card">
+                <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                      Mapeamento de colunas
+                    </span>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem(`import_map_${kind}`);
+                        const freshMap = buildHeaderMap(rawData[0], kind);
+                        setHmap(freshMap);
+                        setRows(rawData.map((r, i) => parseRow(r, freshMap, i)));
+                        toast.info("Mapeamento resetado para o padrão inteligente");
+                      }}
+                      className="text-[10px] font-bold text-primary hover:underline ml-2"
+                    >
+                      Resetar
+                    </button>
+                  </div>
                   {!hmap.amount && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30 animate-pulse">
                       Valor obrigatório
                     </span>
                   )}
@@ -880,24 +944,31 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                       <div className="grid grid-cols-2 gap-2">
                         {group.fields.map(({ field, label, required }) => (
                           <div key={field} className="space-y-1">
-                            <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                              {label}
-                              {hmap[field] && (
-                                <CheckCircle2 className="h-2.5 w-2.5 text-success" />
+                            <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center justify-between">
+                              <span className="flex items-center gap-1">
+                                {label}
+                                {hmap[field] && (
+                                  <CheckCircle2 className="h-2.5 w-2.5 text-success" />
+                                )}
+                              </span>
+                              {hmap[field] && rawData.length > 0 && (
+                                <span className="text-[9px] font-normal lowercase opacity-70 truncate max-w-[80px]">
+                                  {String(rawData[0][hmap[field]]).slice(0, 20) || "vazio"}
+                                </span>
                               )}
                             </label>
                             <select
                               value={hmap[field] || ""}
                               onChange={(e) => remap(field, e.target.value)}
-                              className={`w-full text-xs px-2.5 py-1.5 rounded-lg bg-background border ${
+                              className={`w-full text-[11px] px-2 py-1.5 rounded-lg bg-background border ${
                                 required && !hmap[field]
-                                  ? "border-destructive/50"
+                                  ? "border-destructive/50 shadow-[0_0_8px_rgba(239,68,68,0.1)]"
                                   : hmap[field]
-                                  ? "border-success/40"
+                                  ? "border-success/40 bg-success/5"
                                   : "border-border"
-                              } focus:outline-none focus:ring-2 focus:ring-primary/30`}
+                              } focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all`}
                             >
-                              <option value="">— não usar —</option>
+                              <option value="">— ignorar coluna —</option>
                               {headers.map((h) => (
                                 <option key={h} value={h}>
                                   {h}
@@ -909,6 +980,46 @@ export function SalesImportModal({ isOpen, onClose, onImportSuccess }: SalesImpo
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Pré-visualização final */}
+              <div className="rounded-2xl border border-border overflow-hidden bg-muted/20">
+                <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center gap-2">
+                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                    Pré-visualização (primeiras 3 linhas)
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[10px] border-collapse">
+                    <thead className="bg-muted/30">
+                      <tr className="border-b border-border">
+                        <th className="p-2 text-left font-black">Data</th>
+                        <th className="p-2 text-left font-black">Cliente</th>
+                        <th className="p-2 text-left font-black">Produto</th>
+                        <th className="p-2 text-right font-black">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {rows.slice(0, 3).map((r, i) => (
+                        <tr key={i} className={r._valid ? "" : "bg-destructive/5"}>
+                          <td className="p-2 whitespace-nowrap">
+                            {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                          </td>
+                          <td className="p-2 truncate max-w-[120px]">
+                            {r.customer_name || "-"}
+                          </td>
+                          <td className="p-2 truncate max-w-[150px]">
+                            {r.product_name || r.description || "-"}
+                          </td>
+                          <td className="p-2 text-right font-bold">
+                            {brl(r.total_amount)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
