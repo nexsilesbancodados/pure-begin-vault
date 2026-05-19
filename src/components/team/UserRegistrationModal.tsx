@@ -51,10 +51,22 @@ const DEFAULT_PROFILES = [
 ];
 
 const QUICK_PROFILES: Record<string, string[]> = {
-  Administrador: DEFAULT_PROFILES,
+  "Gerente Comercial": [
+    "Tela inicial",
+    "Venda",
+    "Cadastros Básicos",
+    "Relatórios",
+    "Informações Gerenciais",
+    "Estoque",
+  ],
+  "Administrativo-Financeiro": [
+    "Tela inicial",
+    "Financeiro",
+    "Fiscal",
+    "Relatórios",
+    "Cadastros Básicos",
+  ],
   Vendedor: ["Tela inicial", "Venda", "Cadastros Básicos"],
-  Financeiro: ["Tela inicial", "Financeiro", "Relatórios"],
-  Estoquista: ["Tela inicial", "Estoque", "Cadastros Básicos"],
   Técnico: ["Tela inicial", "Ordem de Serviço"],
 };
 
