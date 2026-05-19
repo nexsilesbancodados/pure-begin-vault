@@ -239,6 +239,10 @@ function ReceitasPage() {
       if (fId && !String(it.id).toLowerCase().includes(fId.toLowerCase())) return false;
       if (fCategoria && !(it.category || "").toLowerCase().includes(fCategoria.toLowerCase()))
         return false;
+      if (fOrigem) {
+        const origem = (it.reference_type || "manual").toLowerCase();
+        if (origem !== fOrigem.toLowerCase()) return false;
+      }
       if (fTitulo && !(it.description || "").toLowerCase().includes(fTitulo.toLowerCase()))
         return false;
       if (fSituacao) {
@@ -263,7 +267,7 @@ function ReceitasPage() {
       }
       return true;
     });
-  }, [items, from, to, fId, fCategoria, fTitulo, fSituacao, fPessoa, quickFilter]);
+  }, [items, from, to, fId, fOrigem, fCategoria, fTitulo, fSituacao, fPessoa, quickFilter]);
 
   const visible = filtered.slice(0, pageSize);
 
