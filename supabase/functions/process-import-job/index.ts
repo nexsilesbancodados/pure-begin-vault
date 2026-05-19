@@ -261,16 +261,29 @@ async function processJob(supabase: any, jobId: string) {
         return null;
       };
 
-      // 2) PRODUCTS
+      // 2) PRODUCTS  (+ sincronização com estoque atual)
       await supabase.from("import_jobs").update({ step: "products" }).eq("id", jobId);
-      const productMap = new Map<string, { name: string; price?: number }>();
+      // Agrega quantidade total importada por produto (alimenta o estoque)
+      const productMap = new Map<string, { name: string; price?: number; sku?: string; totalQty: number }>();
       for (const r of rows) {
-        if (r.product_name) {
-          const key = r.product_name.toLowerCase();
-          if (!productMap.has(key)) productMap.set(key, { name: r.product_name, price: r.product_price ?? r.total_amount });
+        if (!r.product_name) continue;
+        const key = r.product_name.toLowerCase();
+        const qty = Number(r.product_quantity) || 1;
+        const cur = productMap.get(key);
+        if (cur) {
+          cur.totalQty += qty;
+          if (!cur.sku && r.product_sku) cur.sku = r.product_sku;
+        } else {
+          productMap.set(key, {
+            name: r.product_name,
+            price: r.product_price ?? r.total_amount,
+            sku: r.product_sku,
+            totalQty: qty,
+          });
         }
       }
       const productIdByName = new Map<string, string>();
+      const newProductIds: { id: string; key: string; qty: number }[] = [];
       if (productMap.size > 0) {
         const all = Array.from(productMap.values());
         const { data: existing } = await supabase.from("products").select("id,name").eq("organization_id", orgId).in("name", all.map((p) => p.name));
@@ -280,15 +293,52 @@ async function processJob(supabase: any, jobId: string) {
           const chunks: typeof toCreate[] = [];
           for (let i = 0; i < toCreate.length; i += CHUNK) chunks.push(toCreate.slice(i, i + CHUNK));
           await pool(chunks.map((c) => async () => {
-            const { data } = await supabase.from("products").insert(c.map((p) => ({
+            const payload = c.map((p) => ({
               organization_id: orgId, user_id: userId, name: p.name,
+              sku: p.sku || null,
               price: p.price ?? 0, category: "Importado", active: true,
-            }))).select("id,name");
+              stock_quantity: p.totalQty,
+              min_stock: 1,
+              status: "in_stock",
+            }));
+            let { data, error } = await supabase.from("products").insert(payload).select("id,name");
+            // Fallback se alguma coluna não existir no schema (sku/status/min_stock)
+            if (error) {
+              const simple = c.map((p) => ({
+                organization_id: orgId, user_id: userId, name: p.name,
+                price: p.price ?? 0, category: "Importado", active: true,
+                stock_quantity: p.totalQty,
+              }));
+              const r2 = await supabase.from("products").insert(simple).select("id,name");
+              data = r2.data; error = r2.error;
+            }
             (data || []).forEach((rec: any) => {
-              productIdByName.set(rec.name.toLowerCase(), rec.id);
+              const key = rec.name.toLowerCase();
+              productIdByName.set(key, rec.id);
+              const meta = productMap.get(key);
+              newProductIds.push({ id: rec.id, key, qty: meta?.totalQty ?? 0 });
               counters.products++;
             });
           }), PARALLEL);
+        }
+      }
+
+      // Registra movimentação de ENTRADA por produto novo (referência: import),
+      // garantindo que o estoque atual reflita a quantidade trazida pela importação.
+      if (newProductIds.length > 0) {
+        const moves = newProductIds
+          .filter((p) => p.qty > 0)
+          .map((p) => ({
+            organization_id: orgId, user_id: userId,
+            product_id: p.id,
+            movement_type: "in",
+            quantity: p.qty,
+            reason: "Importação de vendas",
+            reference_type: "import",
+            reference_id: jobId,
+          }));
+        for (let i = 0; i < moves.length; i += CHUNK) {
+          await supabase.from("stock_movements").insert(moves.slice(i, i + CHUNK));
         }
       }
 
