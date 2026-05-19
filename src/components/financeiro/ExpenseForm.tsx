@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,8 +29,15 @@ import {
   Paperclip,
   FileText,
   Info,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SupplierPicker } from "@/components/estoque/SupplierPicker";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/lib/useOrg";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Package, User as UserIcon } from "lucide-react";
 
 interface ExpenseFormProps {
   open: boolean;
@@ -99,6 +108,11 @@ export function ExpenseForm({
 
   const [tab, setTab] = useState<"dados" | "arquivos" | "detalhes">("dados");
   const [saving, setSaving] = useState(false);
+  const { orgId } = useOrg();
+  const [people, setPeople] = useState<any[]>([]);
+  const [searchPerson, setSearchPerson] = useState("");
+  const [loadingPeople, setLoadingPeople] = useState(false);
+  const [personPopoverOpen, setPersonPopoverOpen] = useState(false);
 
   const todayISO = () => new Date().toISOString().split("T")[0];
   const cashboxDefault = `Caixa do dia ${new Date().toLocaleDateString("pt-BR")} - Sistema`;
@@ -125,6 +139,28 @@ export function ExpenseForm({
 
   const [form, setForm] = useState(blankForm());
   const [payments, setPayments] = useState<Payment[]>([]);
+
+  useEffect(() => {
+    async function loadPeople() {
+      if (!orgId || !open) return;
+      setLoadingPeople(true);
+      
+      // Load both customers and suppliers to have a broad "Person" list
+      const [customersRes, suppliersRes] = await Promise.all([
+        supabase.from("customers").select("id, name, email").eq("organization_id", orgId).limit(50),
+        supabase.from("suppliers").select("id, name, email").eq("organization_id", orgId).limit(50)
+      ]);
+
+      const combined = [
+        ...(customersRes.data || []).map(c => ({ ...c, type: 'cliente' })),
+        ...(suppliersRes.data || []).map(s => ({ ...s, type: 'fornecedor' }))
+      ].sort((a, b) => a.name.localeCompare(b.name));
+
+      setPeople(combined);
+      setLoadingPeople(false);
+    }
+    loadPeople();
+  }, [orgId, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -310,17 +346,86 @@ export function ExpenseForm({
 
               {/* Row 2: Pessoa + Datas */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Field label="Pessoa">
+                <Field label="Pessoa (Fornecedor / Cliente)">
                   <div className="flex gap-2">
-                    <Input
-                      value={form.person}
-                      onChange={(e) => setForm({ ...form, person: e.target.value })}
-                      placeholder="Buscar..."
-                      className="h-10"
-                    />
-                    <Button type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0 text-emerald-600 border-emerald-500/40">
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                    <div className="flex-1 relative">
+                      <Popover open={personPopoverOpen} onOpenChange={setPersonPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            className="w-full h-10 justify-between font-normal bg-card hover:bg-accent/50"
+                          >
+                            <span className="truncate">
+                              {form.person || "Selecionar pessoa..."}
+                            </span>
+                            <Users className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 w-[400px]" align="start">
+                          <div className="p-2 border-b">
+                            <Input 
+                              placeholder="Pesquisar por nome ou e-mail..."
+                              value={searchPerson}
+                              onChange={(e) => setSearchPerson(e.target.value)}
+                              className="h-9"
+                              autoFocus
+                            />
+                          </div>
+                          <ScrollArea className="h-64">
+                            <div className="p-1">
+                              {loadingPeople ? (
+                                <div className="p-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
+                                </div>
+                              ) : people.filter(p => 
+                                p.name.toLowerCase().includes(searchPerson.toLowerCase()) || 
+                                p.email?.toLowerCase().includes(searchPerson.toLowerCase())
+                              ).length === 0 ? (
+                                <div className="p-4 text-center text-xs text-muted-foreground">
+                                  Nenhuma pessoa encontrada
+                                </div>
+                              ) : (
+                                people.filter(p => 
+                                  p.name.toLowerCase().includes(searchPerson.toLowerCase()) || 
+                                  p.email?.toLowerCase().includes(searchPerson.toLowerCase())
+                                ).map((p) => (
+                                  <button
+                                    key={`${p.type}-${p.id}`}
+                                    type="button"
+                                    onClick={() => {
+                                      setForm({ ...form, person: p.name });
+                                      setPersonPopoverOpen(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-accent rounded-md flex items-center justify-between gap-2 group"
+                                  >
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-semibold truncate group-hover:text-primary transition-colors">{p.name}</p>
+                                      <p className="text-[10px] text-muted-foreground truncate uppercase font-bold tracking-tight">{p.type} {p.email ? `• ${p.email}` : ''}</p>
+                                    </div>
+                                    <Plus className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          </ScrollArea>
+                          <div className="p-2 border-t bg-muted/30">
+                            <div className="grid grid-cols-1 gap-1">
+                              <p className="text-[10px] text-muted-foreground px-2 mb-1 font-bold uppercase">Cadastrar Novo</p>
+                              <div className="flex gap-2">
+                                <SupplierPicker 
+                                  value="" 
+                                  onChange={(name) => {
+                                    setForm({ ...form, person: name });
+                                    setPersonPopoverOpen(false);
+                                  }}
+                                  placeholder="Novo Fornecedor"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
                 </Field>
                 <Field required label="Data de vencimento">
