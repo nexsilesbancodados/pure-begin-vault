@@ -84,31 +84,56 @@ const norm = (s: any) =>
 // Aliases por campo — qualquer coluna que contenha um destes termos é considerada match
 const FIELD_ALIASES: Record<string, string[]> = {
   amount: [
-    "valor",
-    "total",
-    "vlr",
-    "amount",
-    "value",
-    "venda",
-    "faturamento",
-    "subtotal",
+    "valor", "total", "vlr", "amount", "value", "venda", "faturamento", "subtotal", "vlr total", "valor total", "recebido", "bruto", "liquido", "líquido", "total venda"
   ],
-  date: ["data", "date", "dt", "emissao", "vencimento", "created", "criado"],
-  payment: ["pagamento", "pagto", "metodo", "method", "forma", "payment"],
-  status: ["status", "situacao", "estado"],
-  notes: ["obs", "observacao", "observacoes", "notes", "descricao", "description"],
-  customer: ["cliente", "customer", "comprador", "nome cliente", "nome do cliente", "razao social"],
-  customer_phone: ["telefone", "celular", "whatsapp", "fone", "phone", "tel"],
-  customer_email: ["email", "e-mail", "mail"],
-  customer_document: ["cpf", "cnpj", "documento", "doc", "cpf/cnpj", "cpf cnpj", "rg"],
-  product: ["produto", "item", "product", "mercadoria", "descricao produto", "modelo", "aparelho"],
-  product_sku: ["sku", "codigo", "código", "cod", "ref", "referencia", "referência"],
-  quantity: ["qtd", "quantidade", "qty", "quantity"],
-  unit_price: ["preco", "preço", "preco unit", "valor unitario", "unit price"],
-  discount: ["desconto", "discount", "abatimento", "descontos"],
-  description: ["descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título"],
-  fin_type: ["tipo", "natureza", "type", "operacao", "operação", "movimento", "credito/debito", "c/d"],
-  category: ["categoria", "category", "classe", "classificacao", "classificação", "centro de custo", "grupo", "plano"],
+  date: [
+    "data", "date", "dt", "emissao", "vencimento", "created", "criado", "data pedido", "data venda", "competencia", "dia", "momento"
+  ],
+  payment: [
+    "pagamento", "pagto", "metodo", "method", "forma", "payment", "meio", "condicao", "condição", "forma pgto", "meio pagamento"
+  ],
+  status: [
+    "status", "situacao", "estado", "etapa", "fase", "posicao", "posição"
+  ],
+  notes: [
+    "obs", "observacao", "observacoes", "notes", "descricao", "description", "comentario", "comentário", "memo", "detalhes"
+  ],
+  customer: [
+    "cliente", "customer", "comprador", "nome cliente", "nome do cliente", "razao social", "razao", "razão", "destinatario", "contato"
+  ],
+  customer_phone: [
+    "telefone", "celular", "whatsapp", "fone", "phone", "tel", "whats", "cel", "contato fone"
+  ],
+  customer_email: [
+    "email", "e-mail", "mail", "correio", "endereço eletronico"
+  ],
+  customer_document: [
+    "cpf", "cnpj", "documento", "doc", "cpf/cnpj", "cpf cnpj", "rg", "inscricao", "inscrição", "identidade"
+  ],
+  product: [
+    "produto", "item", "product", "mercadoria", "descricao produto", "modelo", "aparelho", "nome produto", "servico", "serviço"
+  ],
+  product_sku: [
+    "sku", "codigo", "código", "cod", "ref", "referencia", "referência", "part number", "ean", "barras", "ncm", "id produto"
+  ],
+  quantity: [
+    "qtd", "quantidade", "qty", "quantity", "volume", "itens", "unidades", "num itens"
+  ],
+  unit_price: [
+    "preco", "preço", "preco unit", "valor unitario", "unit price", "vlr unit", "vlr unitario", "valor cada"
+  ],
+  discount: [
+    "desconto", "discount", "abatimento", "descontos", "promo", "cupom", "off"
+  ],
+  description: [
+    "descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título", "identificador"
+  ],
+  fin_type: [
+    "tipo", "natureza", "type", "operacao", "operação", "movimento", "credito/debito", "c/d", "fluxo", "e/s"
+  ],
+  category: [
+    "categoria", "category", "classe", "classificacao", "classificação", "centro de custo", "grupo", "plano", "tag", "etiqueta"
+  ],
 };
 
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
