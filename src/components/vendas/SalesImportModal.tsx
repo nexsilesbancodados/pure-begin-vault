@@ -267,11 +267,16 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number): ParsedRo
     ? String(customerDocRaw).replace(/\D/g, "").trim() || undefined
     : undefined;
   const productName = get("product") ? String(get("product")).trim() : undefined;
+  const productSku = get("product_sku") ? String(get("product_sku")).trim() : undefined;
   const qtyRaw = get("quantity");
   const productQty = qtyRaw != null && qtyRaw !== "" ? Number(parseCurrency(qtyRaw)) || 1 : 1;
   const unitPriceRaw = get("unit_price");
   const productPrice = unitPriceRaw != null && unitPriceRaw !== ""
     ? parseCurrency(unitPriceRaw)
+    : undefined;
+  const discountRaw = get("discount");
+  const discount = discountRaw != null && discountRaw !== ""
+    ? Math.abs(parseCurrency(discountRaw))
     : undefined;
 
   const description = get("description") ? String(get("description")).trim() : undefined;
