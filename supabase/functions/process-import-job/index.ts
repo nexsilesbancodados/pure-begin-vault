@@ -335,6 +335,10 @@ async function processJob(supabase: any, jobId: string) {
                 cost_price: p.cost || null,
                 category: p.category || "Importado", active: true,
                 stock_quantity: p.totalQty,
+                brand: p.brand || null,
+                model: p.model || null,
+                ean: p.ean || null,
+                imei: p.imei || null,
               }));
               const r2 = await supabase.from("products").insert(simple).select("id,name");
               data = r2.data; error = r2.error;
