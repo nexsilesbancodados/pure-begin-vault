@@ -66,6 +66,17 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
+
+  const filteredMembers: Member[] = (() => {
+    const q = memberSearch.trim().toLowerCase();
+    if (!q) return members;
+    return members.filter((m) =>
+      [m.name, m.email, m.role, m.user_id].filter(Boolean).some((v) =>
+        String(v).toLowerCase().includes(q),
+      ),
+    );
+  })();
 
   useEffect(() => {
     if (!open) return;
