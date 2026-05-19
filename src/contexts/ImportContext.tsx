@@ -29,6 +29,7 @@ export type ImportJob = {
   status: "queued" | "running" | "done" | "error";
   step: "preparing" | "customers" | "products" | "sales" | "items" | "finance" | "done";
   result?: { sales: number; customers: number; products: number; finance: number; totalAmount: number };
+  payload?: any[];
   error?: string;
 };
 
@@ -53,6 +54,7 @@ function mapRow(r: any): ImportJob {
     status: r.status,
     step: r.step,
     result: r.result ?? undefined,
+    payload: r.payload ?? undefined,
     error: r.error ?? undefined,
   };
 }
@@ -70,7 +72,7 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const { data } = await supabase
         .from("import_jobs")
-        .select("id,file_name,status,step,total,processed,result,error,started_at,finished_at,created_at")
+        .select("id,file_name,status,step,total,processed,result,payload,error,started_at,finished_at,created_at")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(50);

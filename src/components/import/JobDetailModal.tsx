@@ -18,7 +18,16 @@ import {
   DollarSign,
   Calendar,
   Zap,
+  Eye,
 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { ImportJob } from "@/contexts/ImportContext";
 
 interface JobDetailModalProps {
@@ -137,6 +146,52 @@ export function JobDetailModal({ job, isOpen, onClose }: JobDetailModalProps) {
                 icon={<DollarSign className="h-4 w-4" />}
                 color="warning"
               />
+            </div>
+          )}
+
+          {/* Preview Table */}
+          {job.payload && job.payload.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-muted-foreground">
+                <Eye className="h-3.5 w-3.5" /> Prévia dos dados ({job.payload.length} linhas)
+              </div>
+              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow className="hover:bg-transparent border-border">
+                        <TableHead className="text-[10px] font-black uppercase">Data</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase">Cliente/Descrição</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase">Produto/Cat</TableHead>
+                        <TableHead className="text-[10px] font-black uppercase text-right">Valor</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {job.payload.slice(0, 5).map((row, i) => (
+                        <TableRow key={i} className="border-border hover:bg-muted/30">
+                          <TableCell className="text-[11px] font-medium py-2.5">
+                            {row.created_at ? new Date(row.created_at).toLocaleDateString("pt-BR") : "-"}
+                          </TableCell>
+                          <TableCell className="text-[11px] py-2.5 max-w-[150px] truncate">
+                            <span className="font-bold">{row.customer_name || row.description || "-"}</span>
+                          </TableCell>
+                          <TableCell className="text-[11px] py-2.5 max-w-[150px] truncate text-muted-foreground">
+                            {row.product_name || row.category || "-"}
+                          </TableCell>
+                          <TableCell className="text-[11px] font-black py-2.5 text-right tabular-nums">
+                            {brl(row.total_amount || 0)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {job.payload.length > 5 && (
+                  <div className="bg-muted/20 px-4 py-2 text-[10px] text-center text-muted-foreground font-bold border-t border-border">
+                    + {job.payload.length - 5} linhas processadas no total
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
