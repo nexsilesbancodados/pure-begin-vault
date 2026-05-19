@@ -1687,4 +1687,3 @@ function FullscreenPreview({
     </Dialog>
   );
 }
-}
