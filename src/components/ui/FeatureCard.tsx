@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ArrowRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -146,29 +146,11 @@ export function FeatureCard({
     className,
   );
 
-  const navigate = useNavigate();
   if (to) {
-    const LinkAny = Link as any;
     return (
-      <LinkAny
-        to={to}
-        className={baseClass}
-        onClick={(e: React.MouseEvent) => {
-          onClick?.();
-          // Fallback: if router didn't intercept, force navigation
-          setTimeout(() => {
-            if (typeof window !== "undefined" && window.location.pathname !== to) {
-              try {
-                navigate({ to: to as any });
-              } catch {
-                window.location.href = to;
-              }
-            }
-          }, 50);
-        }}
-      >
+      <Link to={to as any} className={baseClass} onClick={onClick}>
         {content}
-      </LinkAny>
+      </Link>
     );
   }
   if (href) {
