@@ -642,7 +642,8 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
     n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[680px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card max-h-[90vh] flex flex-col">
         {/* Hero header */}
         <div className="relative p-6 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground overflow-hidden">
