@@ -584,6 +584,7 @@ function ReportsPage() {
             <DashboardContent
               activeCategory={activeCategory}
               stats={stats}
+              extra={extra}
               funnelData={funnelData}
               originData={originData}
               topAgents={topAgents}
