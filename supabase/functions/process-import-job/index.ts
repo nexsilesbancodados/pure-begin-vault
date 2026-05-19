@@ -325,9 +325,10 @@ async function processJob(supabase: any, jobId: string) {
               model: p.model || null,
               ean: p.ean || null,
               imei: p.imei || null,
+              import_job_id: jobId,
             }));
             let { data, error } = await supabase.from("products").insert(payload).select("id,name");
-            // Fallback se alguma coluna não existir no schema (sku/status/min_stock)
+            // Fallback se alguma coluna não existir no schema (sku/status/min_stock/import_job_id)
             if (error) {
               const simple = c.map((p) => ({
                 organization_id: orgId, user_id: userId, name: p.name,
@@ -339,6 +340,7 @@ async function processJob(supabase: any, jobId: string) {
                 model: p.model || null,
                 ean: p.ean || null,
                 imei: p.imei || null,
+                import_job_id: /import_job_id/i.test(error.message) ? undefined : jobId,
               }));
               const r2 = await supabase.from("products").insert(simple).select("id,name");
               data = r2.data; error = r2.error;
