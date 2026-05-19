@@ -247,6 +247,7 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
               organization_ids: lojas,
               role: assignedRole,
               invite_id: inviteId,
+              allowed_menu: perfis,
             },
           },
         );
