@@ -96,6 +96,23 @@ const inferOrigin = (params: {
   return "manual";
 };
 
+// Categorias que NUNCA são receita — vieram como income por erro de importação
+// (relatório de despesas misturado). Filtramos no front e também via SQL.
+const EXPENSE_CATEGORY_RE =
+  /^(marketing|public[ií]?dade|log[ií]?stica|insumo|insumos|uniforme|aluguel|sal[áa]rio|fornecedor|fornecedores|compra|despesa|imposto|taxa|combust[ií]vel|energia|[áa]gua|internet|telefone)/i;
+
+const isExpenseLikeIncome = (t: {
+  category?: string | null;
+  description?: string | null;
+  reference_type?: string | null;
+}) => {
+  // Vendas e referências de venda são sempre receita legítima
+  if ((t.reference_type || "").toLowerCase().includes("sale")) return false;
+  const cat = (t.category || "").trim();
+  if (cat && EXPENSE_CATEGORY_RE.test(cat)) return true;
+  return false;
+};
+
 const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
