@@ -358,40 +358,171 @@ export function StoreDetailsDialog({ open, onOpenChange, orgId, orgName, role, o
 
           {/* Usuários ativos */}
           <section>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 gap-3">
               <h4 className="text-xs uppercase tracking-widest font-black text-muted-foreground flex items-center gap-2">
                 <Users className="h-3.5 w-3.5" /> Usuários ativos
+                <Badge variant="outline" className="ml-1">{members.length}</Badge>
               </h4>
-              <Badge variant="outline">{members.length}</Badge>
+              <div className="flex items-center gap-2">
+                <div className="relative hidden sm:block">
+                  <Search className="h-3.5 w-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar..."
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                    className="h-8 pl-7 text-xs w-44"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8"
+                  onClick={() => {
+                    onOpenChange(false);
+                    window.location.assign("/equipe-loja");
+                  }}
+                >
+                  <UserPlus className="h-3.5 w-3.5 mr-1" /> Gerenciar
+                </Button>
+              </div>
             </div>
+
+            {/* Resumo por papel */}
+            {!loading && members.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                {(["owner", "admin", "member"] as const).map((r) => {
+                  const count = members.filter((m) =>
+                    r === "member" ? !["owner", "admin"].includes(m.role) : m.role === r,
+                  ).length;
+                  return (
+                    <div
+                      key={r}
+                      className="rounded-lg border bg-muted/30 px-3 py-2 flex items-center gap-2"
+                    >
+                      <div className="h-7 w-7 rounded-md bg-background grid place-items-center">
+                        {roleIcon(r)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                          {r === "member" ? "Membros" : r === "owner" ? "Owners" : "Admins"}
+                        </p>
+                        <p className="text-sm font-black leading-none">{count}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {loading ? (
               <div className="space-y-2">
-                {[0, 1].map((i) => (
-                  <div key={i} className="h-12 rounded-lg bg-muted/40 animate-pulse" />
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="h-14 rounded-xl bg-muted/40 animate-pulse" />
                 ))}
               </div>
-            ) : members.length === 0 ? (
-              <div className="py-6 text-center text-xs text-muted-foreground border rounded-lg border-dashed">
-                Nenhum usuário vinculado.
+            ) : filteredMembers.length === 0 ? (
+              <div className="py-8 text-center text-xs text-muted-foreground border rounded-xl border-dashed">
+                {members.length === 0
+                  ? "Nenhum usuário vinculado a esta loja."
+                  : "Nenhum usuário corresponde à busca."}
               </div>
             ) : (
               <div className="space-y-2">
-                {members.map((m) => (
-                  <div
-                    key={m.user_id}
-                    className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/30 transition"
-                  >
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 grid place-items-center text-primary">
-                      {roleIcon(m.role)}
+                {filteredMembers.map((m) => {
+                  const display = m.name || m.email || `Usuário ${m.user_id.slice(0, 6)}`;
+                  const initials = display
+                    .split(/\s+/)
+                    .map((p) => p[0])
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase();
+                  const roleClass =
+                    m.role === "owner"
+                      ? "bg-warning/15 text-warning border-warning/30"
+                      : m.role === "admin"
+                        ? "bg-primary/15 text-primary border-primary/30"
+                        : "bg-muted text-muted-foreground border-border";
+                  return (
+                    <div
+                      key={m.user_id}
+                      className="group flex items-center gap-3 p-3 rounded-xl border bg-card hover:bg-muted/40 hover:border-primary/30 transition-all"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/30 to-primary/5 grid place-items-center text-primary font-black text-sm shrink-0 border border-primary/20">
+                        {initials || <UserIcon className="h-4 w-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-bold truncate">{display}</p>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 h-4 ${roleClass} flex items-center gap-1`}
+                          >
+                            {roleIcon(m.role)}
+                            <span className="capitalize">{m.role}</span>
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {m.email || `ID: ${m.user_id.slice(0, 8)}…`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {m.email && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            title="Copiar e-mail"
+                            onClick={async () => {
+                              try {
+                                await navigator.clipboard.writeText(m.email!);
+                                toast.success("E-mail copiado");
+                              } catch {
+                                toast.error("Não foi possível copiar");
+                              }
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {m.email && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            title="Enviar e-mail"
+                            asChild
+                          >
+                            <a href={`mailto:${m.email}`}>
+                              <Mail className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
+                        )}
+                        {phone && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            title="Abrir WhatsApp da loja"
+                            asChild
+                          >
+                            <a
+                              href={`https://wa.me/${phone.replace(/\D/g, "")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" />
+                            </a>
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate">
-                        {m.name || m.email || m.user_id.slice(0, 8)}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground capitalize">{m.role}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
