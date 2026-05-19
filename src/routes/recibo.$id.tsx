@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { toProductCode } from "@/lib/product-code";
 import { useEffect, useState } from "react";
 import { Printer, AlertCircle } from "lucide-react";
 

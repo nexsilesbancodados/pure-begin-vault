@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { toProductCode } from "@/lib/product-code";
 import {
   Package,
   Search,
