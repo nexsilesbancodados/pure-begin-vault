@@ -1034,7 +1034,7 @@ export function StockList() {
       <SalesImportModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
-        onImportSuccess={() => fetchProducts()}
+        onImportSuccess={() => fetchProducts(0, true)}
         initialKind="estoque"
       />
     </div>
