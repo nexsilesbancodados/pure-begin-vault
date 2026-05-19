@@ -378,6 +378,8 @@ function NotasAbertoPage() {
   const [listSearch, setListSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "overdue" | "paid">("all");
   const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
+  const comprovanteInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingComprovante, setUploadingComprovante] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [notas, setNotas] = useState<Nota[]>([]);
