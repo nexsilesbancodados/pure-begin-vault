@@ -35,7 +35,12 @@ import {
   Package,
   Building2,
   Calendar,
+  Filter,
+  Check,
+  X,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useOrg } from "@/lib/useOrg";
@@ -330,6 +335,8 @@ function NotasAbertoPage() {
   const [search, setSearch] = useState("");
   const [listSearch, setListSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "overdue" | "paid">("all");
+  const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [notas, setNotas] = useState<Nota[]>([]);
   const [notesLoading, setNotesLoading] = useState(false);
