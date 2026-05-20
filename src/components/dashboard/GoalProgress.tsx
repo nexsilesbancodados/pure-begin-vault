@@ -483,6 +483,29 @@ export function GoalProgress({
             <div>
               <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
                 <span>Aparelhos vendidos</span>
+                {canEdit && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const raw = window.prompt(
+                        "Quantos aparelhos foram vendidos até agora?",
+                        String(baseline.value),
+                      );
+                      if (raw === null) return;
+                      const n = Math.max(0, Number(raw) || 0);
+                      const next = { value: n, at: new Date().toISOString() };
+                      if (baselineKey) {
+                        window.localStorage.setItem(baselineKey, JSON.stringify(next));
+                      }
+                      setBaseline(next);
+                      toast.success(`Base atualizada: ${n} aparelhos`);
+                    }}
+                    className="text-[10px] font-bold text-primary hover:underline"
+                  >
+                    Editar
+                  </button>
+                )}
               </div>
               <div className="text-lg font-bold font-display truncate">
                 {effectiveUnits}{" "}
