@@ -225,10 +225,12 @@ export function GoalProgress({
   };
 
 
-  const currentDisplay = stats.units;
+  const effectiveUnits = isMay && manualUnits !== null ? manualUnits : stats.units;
+  const currentDisplay = effectiveUnits;
   const pct = Math.min(100, Math.round((currentDisplay / (goals.monthly || 1)) * 100)) || 0;
-  const projection = Math.round((stats.units / (new Date().getDate() || 1)) * 30);
-  const remaining = Math.max(0, goals.monthly - stats.units);
+  const projection = Math.round((effectiveUnits / (new Date().getDate() || 1)) * 30);
+  const remaining = Math.max(0, goals.monthly - effectiveUnits);
+
 
   const dayOfMonth = new Date().getDate();
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
