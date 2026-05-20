@@ -440,6 +440,14 @@ function ReportsPage() {
         lowStock,
         outOfStock,
         stockValue,
+        salesCount: concludedSales.length,
+        salesToday: salesToday.length,
+        salesWeek: salesWeek.length,
+        salesMonth: currentMonthSales.length,
+        revenueToday,
+        revenueWeek,
+        financeMargin: (recs.reduce((a, r) => a + (Number(r.paid_amount) || (r.status === "paid" ? Number(r.amount) || 0 : 0)), 0)) - sumPaid(pays),
+        financeOverdueCount: pays.filter((r) => r.status !== "paid" && r.due_date && r.due_date < today).length,
       });
 
       setFunnelData(
