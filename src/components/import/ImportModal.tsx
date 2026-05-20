@@ -1658,3 +1658,169 @@ function FullscreenPreview({
     </Dialog>
   );
 }
+
+function SyncPreview({ rows, brl }: { rows: ParsedRow[]; brl: (n: number) => string }) {
+  const { customers, products } = useMemo(() => {
+    const cmap = new Map<string, { name: string; document?: string; phone?: string; email?: string; orders: number; total: number }>();
+    const pmap = new Map<string, { name: string; sku?: string; imei?: string; brand?: string; model?: string; qty: number; total: number; avgPrice: number }>();
+
+    for (const r of rows) {
+      if (!r._valid) continue;
+      if (r.customer_name) {
+        const key = (r.customer_document || r.customer_phone || r.customer_email || r.customer_name).toLowerCase();
+        const cur = cmap.get(key);
+        if (cur) {
+          cur.orders += 1;
+          cur.total += r.total_amount;
+        } else {
+          cmap.set(key, {
+            name: r.customer_name,
+            document: r.customer_document,
+            phone: r.customer_phone,
+            email: r.customer_email,
+            orders: 1,
+            total: r.total_amount,
+          });
+        }
+      }
+      if (r.product_name) {
+        const key = (r.product_sku || r.imei || r.product_name).toLowerCase();
+        const qty = r.product_quantity || 1;
+        const unit = r.product_price || r.total_amount / Math.max(qty, 1);
+        const cur = pmap.get(key);
+        if (cur) {
+          cur.qty += qty;
+          cur.total += unit * qty;
+          cur.avgPrice = cur.total / Math.max(cur.qty, 1);
+        } else {
+          pmap.set(key, {
+            name: r.product_name,
+            sku: r.product_sku,
+            imei: r.imei,
+            brand: r.brand,
+            model: r.model,
+            qty,
+            total: unit * qty,
+            avgPrice: unit,
+          });
+        }
+      }
+    }
+    return {
+      customers: Array.from(cmap.values()).sort((a, b) => b.total - a.total),
+      products: Array.from(pmap.values()).sort((a, b) => b.qty - a.qty),
+    };
+  }, [rows]);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      {/* Clientes */}
+      <div className="rounded-2xl border border-info/20 bg-info/5 overflow-hidden">
+        <div className="px-4 py-2.5 bg-info/10 border-b border-info/20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-3.5 w-3.5 text-info" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-info">
+              Cadastro de Clientes (Prévia)
+            </span>
+          </div>
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white border border-info/20 text-info">
+            {customers.length} únicos
+          </span>
+        </div>
+        <div className="max-h-[220px] overflow-y-auto">
+          {customers.length === 0 ? (
+            <p className="p-4 text-center text-[11px] text-muted-foreground">
+              Nenhum cliente identificado. Mapeie a coluna "Cliente" acima.
+            </p>
+          ) : (
+            <table className="w-full text-[11px]">
+              <thead className="bg-white/60 sticky top-0">
+                <tr className="border-b border-info/10">
+                  <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">Nome</th>
+                  <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">Documento</th>
+                  <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Compras</th>
+                  <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {customers.slice(0, 50).map((c, i) => (
+                  <tr key={i} className="border-b border-info/5 hover:bg-info/10">
+                    <td className="p-2 max-w-[180px] truncate font-bold" title={c.name}>{c.name}</td>
+                    <td className="p-2 font-mono text-[10px] text-muted-foreground">
+                      {c.document || c.phone || c.email || <span className="italic">novo</span>}
+                    </td>
+                    <td className="p-2 text-right font-bold tabular-nums">{c.orders}</td>
+                    <td className="p-2 text-right font-black text-info tabular-nums">{brl(c.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {customers.length > 50 && (
+            <p className="p-2 text-center text-[10px] text-muted-foreground border-t border-info/10">
+              + {customers.length - 50} clientes adicionais
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Produtos */}
+      <div className="rounded-2xl border border-success/20 bg-success/5 overflow-hidden">
+        <div className="px-4 py-2.5 bg-success/10 border-b border-success/20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Package className="h-3.5 w-3.5 text-success" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-success">
+              Cadastro de Produtos (Prévia)
+            </span>
+          </div>
+          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white border border-success/20 text-success">
+            {products.length} únicos
+          </span>
+        </div>
+        <div className="max-h-[220px] overflow-y-auto">
+          {products.length === 0 ? (
+            <p className="p-4 text-center text-[11px] text-muted-foreground">
+              Nenhum produto identificado. Mapeie a coluna "Produto" acima.
+            </p>
+          ) : (
+            <table className="w-full text-[11px]">
+              <thead className="bg-white/60 sticky top-0">
+                <tr className="border-b border-success/10">
+                  <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">Produto</th>
+                  <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">SKU / IMEI</th>
+                  <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Qtd</th>
+                  <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Preço méd.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.slice(0, 50).map((p, i) => (
+                  <tr key={i} className="border-b border-success/5 hover:bg-success/10">
+                    <td className="p-2 max-w-[180px] truncate font-bold" title={p.name}>
+                      {p.name}
+                      {(p.brand || p.model) && (
+                        <span className="block text-[9px] font-normal text-muted-foreground truncate">
+                          {[p.brand, p.model].filter(Boolean).join(" · ")}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-2 font-mono text-[10px] text-muted-foreground">
+                      {p.sku || p.imei || <span className="italic">novo</span>}
+                    </td>
+                    <td className="p-2 text-right font-bold tabular-nums">{p.qty}</td>
+                    <td className="p-2 text-right font-black text-success tabular-nums">{brl(p.avgPrice)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {products.length > 50 && (
+            <p className="p-2 text-center text-[10px] text-muted-foreground border-t border-success/10">
+              + {products.length - 50} produtos adicionais
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
