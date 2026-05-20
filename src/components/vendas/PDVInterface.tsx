@@ -99,6 +99,7 @@ const ALL_PAYMENT_METHODS: PaymentMethodConfig[] = [
   { id: "brasilcard", icon: Landmark, label: "BrasilCard", color: "text-cyan-600", bg: "bg-cyan-500/10" },
   { id: "crediario", icon: Wallet, label: "Crediário", color: "text-rose-600", bg: "bg-rose-500/10" },
   { id: "prazo", icon: CalendarClock, label: "Prazo 7d", color: "text-amber-600", bg: "bg-amber-500/10" },
+  { id: "aparelho", icon: Smartphone, label: "Aparelho", color: "text-indigo-600", bg: "bg-indigo-500/10" },
 ];
 
 
