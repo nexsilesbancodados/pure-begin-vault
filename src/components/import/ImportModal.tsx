@@ -907,54 +907,109 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                 </Button>
               </div>
 
+              {/* Smart status banner */}
+              {(() => {
+                const requiredOk = kind === "estoque" ? !!hmap.product : !!hmap.amount;
+                const validPct = rows.length ? Math.round((stats.valid / rows.length) * 100) : 0;
+                const ready = requiredOk && stats.valid > 0;
+                return (
+                  <div className={`rounded-2xl p-4 border-2 flex items-center gap-3 ${
+                    ready
+                      ? "border-success/30 bg-gradient-to-br from-success/10 to-success/5"
+                      : "border-warning/40 bg-gradient-to-br from-warning/10 to-warning/5"
+                  }`}>
+                    <div className={`h-11 w-11 rounded-2xl flex items-center justify-center ${ready ? "bg-success/20 text-success" : "bg-warning/20 text-warning"}`}>
+                      {ready ? <Zap className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-sm">
+                        {ready
+                          ? `Tudo pronto — ${stats.valid} linhas detectadas (${validPct}% válidas)`
+                          : !requiredOk
+                          ? `Falta mapear o campo obrigatório "${kind === "estoque" ? "Produto" : "Valor"}"`
+                          : "Nenhuma linha válida — confira o mapeamento"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {ready
+                          ? "Revise abaixo e clique em Importar quando estiver pronto"
+                          : "Ajuste o mapeamento de colunas para continuar"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Mini KPIs */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-2xl p-3 bg-success/5 border border-success/20">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-success">
-                    Válidas
-                  </p>
+                <div className="rounded-2xl p-3 bg-gradient-to-br from-success/10 to-success/5 border border-success/20">
+                  <div className="flex items-center gap-1.5 text-success">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <p className="text-[10px] font-black uppercase tracking-wider">Válidas</p>
+                  </div>
                   <p className="text-2xl font-black mt-1">{stats.valid}</p>
+                  <p className="text-[10px] text-muted-foreground">de {rows.length} linhas</p>
                 </div>
-                <div className="rounded-2xl p-3 bg-destructive/5 border border-destructive/20">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-destructive">
-                    Inválidas
-                  </p>
+                <div className="rounded-2xl p-3 bg-gradient-to-br from-destructive/10 to-destructive/5 border border-destructive/20">
+                  <div className="flex items-center gap-1.5 text-destructive">
+                    <AlertCircle className="h-3 w-3" />
+                    <p className="text-[10px] font-black uppercase tracking-wider">Com erros</p>
+                  </div>
                   <p className="text-2xl font-black mt-1">{stats.invalid}</p>
-                </div>
-                <div className="rounded-2xl p-3 bg-primary/5 border border-primary/20">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-primary">
-                    Total
+                  <p className="text-[10px] text-muted-foreground">
+                    {stats.invalid > 0 ? "precisam revisão" : "tudo certo"}
                   </p>
+                </div>
+                <div className="rounded-2xl p-3 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                  <div className="flex items-center gap-1.5 text-primary">
+                    <TrendingUp className="h-3 w-3" />
+                    <p className="text-[10px] font-black uppercase tracking-wider">Total</p>
+                  </div>
                   <p className="text-lg font-black mt-1 truncate">{brl(stats.total)}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {stats.valid > 0 ? `~ ${brl(stats.total / stats.valid)}/venda` : "—"}
+                  </p>
                 </div>
               </div>
 
-              {/* Mapeamento de colunas */}
+              {/* Mapeamento de colunas — colapsável */}
               <div className="rounded-2xl border border-border overflow-hidden bg-card">
-                <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
+                <button
+                  type="button"
+                  onClick={() => setMappingOpen((v) => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border hover:bg-muted/60 transition-colors"
+                >
                   <div className="flex items-center gap-2">
+                    <Filter className="h-3.5 w-3.5 text-primary" />
                     <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
                       Mapeamento de colunas
                     </span>
-                    <button
-                      onClick={() => {
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      {Object.keys(hmap).length} mapeados
+                    </span>
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
                         localStorage.removeItem(`import_map_${kind}`);
                         const freshMap = buildHeaderMap(rawData[0], kind);
                         setHmap(freshMap);
                         setRows(rawData.map((r, i) => parseRow(r, freshMap, i, kind)));
                         toast.info("Mapeamento resetado para o padrão inteligente");
                       }}
-                      className="text-[10px] font-bold text-primary hover:underline ml-2"
+                      className="text-[10px] font-bold text-primary hover:underline ml-2 cursor-pointer"
                     >
                       Resetar
-                    </button>
-                  </div>
-                  {!hmap.amount && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30 animate-pulse">
-                      Valor obrigatório
                     </span>
-                  )}
-                </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!hmap.amount && kind !== "estoque" && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30 animate-pulse">
+                        Valor obrigatório
+                      </span>
+                    )}
+                    {mappingOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  </div>
+                </button>
+                {mappingOpen && (
                 <div className="p-3 space-y-4">
                   {(kind === "financeiro"
                     ? [
