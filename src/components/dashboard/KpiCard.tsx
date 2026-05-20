@@ -63,7 +63,7 @@ const toneStyles: Record<Tone, { icon: string; gradient: string; ring: string }>
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
-import { startOfDay, endOfDay, format as formatDate } from "date-fns";
+import { startOfDay, endOfDay, startOfMonth, endOfMonth, format as formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Package, User as UserIcon, Coins } from "lucide-react";
