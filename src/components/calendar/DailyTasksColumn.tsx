@@ -58,7 +58,7 @@ export function DailyTasksColumn({
 
   useEffect(() => {
     if (!orgId) { setMembers([]); return; }
-    fetchMembers({ data: { orgId } } as any).then((r: any) => setMembers(r ?? [])).catch(() => setMembers([]));
+    fetchMembers({ data: { orgId } } as any).then((r: any) => setMembers(r?.members ?? [])).catch(() => setMembers([]));
   }, [orgId, fetchMembers]);
 
   const memberName = (uid: string | null | undefined) => {
