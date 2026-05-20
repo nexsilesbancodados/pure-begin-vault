@@ -302,7 +302,11 @@ export function KpiCard({
         </div>
       </button>
 
+      {useSalesModal ? (
+        <TodaySalesModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+      ) : (
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
