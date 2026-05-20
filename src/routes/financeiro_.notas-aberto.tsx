@@ -481,6 +481,36 @@ function NotasAbertoPage() {
     replaceNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
   };
 
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+
+  const removeItemFromNota = async (notaId: string, item: Product) => {
+    const nota = notas.find((n) => n.id === notaId);
+    if (!nota) return;
+    if (!window.confirm(`Remover "${item.name}" desta nota? O estoque será estornado.`))
+      return;
+    setRemovingItemId(item.id);
+    try {
+      // Estorna estoque desse item específico (se for produto real)
+      if (orgId && item.id && !item.id.startsWith("__")) {
+        await syncStockForNotaItems([item], { orgId, userId, notaId, delta: -1 });
+      }
+      const nextItems = nota.items.filter((i) => i.id !== item.id);
+      const nextNota: Nota = {
+        ...nota,
+        items: nextItems,
+        total: getNoteTotal(nextItems),
+        updatedAt: new Date(),
+      };
+      replaceNotas((prev) => prev.map((n) => (n.id === notaId ? nextNota : n)));
+      const ok = await persistNota(nextNota);
+      if (ok) toast.success("Produto removido da nota.");
+    } catch (e) {
+      toast.error("Erro ao remover produto: " + (e as Error).message);
+    } finally {
+      setRemovingItemId(null);
+    }
+  };
+
   const persistNota = useCallback(
     async (nota: Nota) => {
       if (!orgId) return false;
@@ -1393,7 +1423,7 @@ function NotasAbertoPage() {
       </Dialog>
 
       <Dialog open={detailId != null} onOpenChange={(o) => !o && setDetailId(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden p-0 gap-0">
           {detailNota && (
             <div className="flex flex-col max-h-[90vh]">
               {/* Header */}
@@ -1643,18 +1673,62 @@ function NotasAbertoPage() {
                     </button>
                   </div>
 
+                  {/* KPI strip */}
+                  {(() => {
+                    const totalCusto = detailNota.items.reduce(
+                      (s, p) => s + Number(p.cost_price ?? 0),
+                      0,
+                    );
+                    const totalVenda = detailNota.items.reduce(
+                      (s, p) => s + Number(p.price ?? 0),
+                      0,
+                    );
+                    const lucro = totalVenda - totalCusto;
+                    const margem = totalVenda > 0 ? (lucro / totalVenda) * 100 : 0;
+                    return (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                        <div className="rounded-lg border bg-muted/30 px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Itens</div>
+                          <div className="text-sm font-semibold">{detailNota.items.length}</div>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Custo total</div>
+                          <div className="text-sm font-semibold">R$ {totalCusto.toFixed(2)}</div>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Venda total</div>
+                          <div className="text-sm font-semibold">R$ {totalVenda.toFixed(2)}</div>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Lucro estimado</div>
+                          <div className={"text-sm font-semibold " + (lucro >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                            R$ {lucro.toFixed(2)} <span className="text-[10px] font-medium text-muted-foreground">({margem.toFixed(0)}%)</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="border rounded-xl overflow-hidden">
-                    <div className="max-h-64 overflow-auto">
+                    <div className="max-h-72 overflow-auto">
                       <Table>
-                        <TableHeader className="bg-muted/50">
+                        <TableHeader className="bg-muted/50 sticky top-0 z-10">
                           <TableRow>
                             <TableHead className="font-semibold">Produto</TableHead>
                             <TableHead className="font-semibold">IMEI</TableHead>
                             <TableHead className="font-semibold text-right">Custo</TableHead>
                             <TableHead className="font-semibold text-right">Venda</TableHead>
+                            <TableHead className="font-semibold text-right w-[60px]">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
+                          {detailNota.items.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
+                                Nenhum produto nesta nota. Clique em "Adicionar produto" para incluir.
+                              </TableCell>
+                            </TableRow>
+                          )}
                           {detailNota.items.map((p) => (
                             <TableRow key={p.id} className="hover:bg-muted/30">
                               <TableCell
@@ -1673,6 +1747,23 @@ function NotasAbertoPage() {
                               </TableCell>
                               <TableCell className="text-right font-medium">
                                 {p.price != null ? `R$ ${Number(p.price).toFixed(2)}` : "—"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950"
+                                  disabled={removingItemId === p.id}
+                                  onClick={() => removeItemFromNota(detailNota.id, p)}
+                                  title="Remover produto da nota"
+                                >
+                                  {removingItemId === p.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  )}
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
