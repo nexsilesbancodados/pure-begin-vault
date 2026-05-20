@@ -39,6 +39,7 @@ import {
   YAxis,
 } from "recharts";
 import { SalesChart } from "@/components/dashboard/SalesChart";
+import { SalesReportTable } from "@/components/reports/SalesReportTable";
 
 interface ExtraStats {
   despesasOpen: number; despesasOverdue: number; despesasTotal: number; despesasPaid: number;
