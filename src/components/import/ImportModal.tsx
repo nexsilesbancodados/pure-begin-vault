@@ -825,6 +825,12 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
         // usuário escolheu importação financeira pura.
         fin_type: kind === "financeiro" ? r.fin_type : undefined,
         category: r.category,
+        due_date: kind === "financeiro" ? r.due_date : undefined,
+        payment_date: kind === "financeiro" ? r.payment_date : undefined,
+        paid_amount: kind === "financeiro" ? r.paid_amount : undefined,
+        document_number: kind === "financeiro" ? r.document_number : undefined,
+        installments: kind === "financeiro" ? r.installments : undefined,
+        supplier_name: kind === "financeiro" ? r.supplier_name : undefined,
       })),
     );
     if (!jobId) return;
