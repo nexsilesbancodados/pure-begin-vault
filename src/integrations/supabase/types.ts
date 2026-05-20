@@ -940,6 +940,80 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_task_completions: {
+        Row: {
+          completed_at: string
+          date: string
+          id: string
+          organization_id: string
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          date: string
+          id?: string
+          organization_id: string
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          date?: string
+          id?: string
+          organization_id?: string
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_task_completions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "daily_task_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_task_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          organization_id: string
+          position: number
+          priority: string
+          time_label: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          organization_id: string
+          position?: number
+          priority?: string
+          time_label?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          organization_id?: string
+          position?: number
+          priority?: string
+          time_label?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deliveries: {
         Row: {
           address: string

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Trash2, Check, CheckCheck, Flag, Clock, Lock, Loader2, X } from "lucide-react";
+import { Plus, Trash2, Check, CheckCheck, Flag, Clock, Lock, Loader2, X, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { listOrgMembers, type OrgMember } from "@/lib/org-members.functions";
 
 type Template = {
   id: string;
@@ -45,12 +47,26 @@ export function DailyTasksColumn({
   ownerOnlyForUserId?: string;
 }) {
   const { user } = useAuth();
+  const fetchMembers = useServerFn(listOrgMembers);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [completions, setCompletions] = useState<Completion[]>([]);
+  const [members, setMembers] = useState<OrgMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ title: "", time: "", priority: "medium" });
   const dateKey = ymd(date);
+
+  useEffect(() => {
+    if (!orgId) { setMembers([]); return; }
+    fetchMembers({ data: { orgId } } as any).then((r: any) => setMembers(r?.members ?? [])).catch(() => setMembers([]));
+  }, [orgId, fetchMembers]);
+
+  const memberName = (uid: string | null | undefined) => {
+    if (!uid) return "—";
+    if (uid === user?.id) return "Você";
+    const m = members.find((x) => x.user_id === uid);
+    return m?.name || m?.email || "Membro";
+  };
 
   const load = async () => {
     if (!orgId) {
@@ -207,8 +223,13 @@ export function DailyTasksColumn({
           </div>
         ) : (
           templates.map((t) => {
-            const confirmed = completedSet.has(t.id);
+            const completion = completions.find((c) => c.template_id === t.id);
+            const confirmed = !!completion;
             const prio = PRIORITY_META[t.priority] ?? PRIORITY_META.medium;
+            const doneAt = completion ? new Date(completion.completed_at) : null;
+            const doneAtLabel = doneAt
+              ? doneAt.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+              : "";
             return (
               <div
                 key={t.id}
@@ -255,7 +276,7 @@ export function DailyTasksColumn({
                 >
                   {confirmed ? (
                     <>
-                      <CheckCheck className="h-3.5 w-3.5" /> Concluída hoje
+                      <CheckCheck className="h-3.5 w-3.5" /> Concluída
                     </>
                   ) : (
                     <>
@@ -263,6 +284,18 @@ export function DailyTasksColumn({
                     </>
                   )}
                 </button>
+                {confirmed && completion && (
+                  <div className="mt-2 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-1.5 text-[10px] text-emerald-800 space-y-0.5">
+                    <div className="flex items-center gap-1">
+                      <UserIcon className="h-3 w-3" />
+                      <span className="font-bold truncate">{memberName(completion.user_id)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-emerald-700">
+                      <Clock className="h-3 w-3" />
+                      <span className="tabular-nums">{doneAtLabel}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })
