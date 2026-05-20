@@ -164,7 +164,7 @@ export function GoalProgress({
     setManualUnits(stored !== null ? Number(stored) : null);
   }, [overrideKey]);
 
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
     if (!user?.id || !orgId) return;
     const { data } = await supabase
       .from("business_goals")
@@ -190,9 +190,9 @@ export function GoalProgress({
       setGoals(fetchedGoals);
       setEditGoals(fetchedGoals);
     }
-  };
+  }, [user?.id, orgId]);
 
-  const getPeriodRange = () => {
+  const getPeriodRange = useCallback(() => {
     const now = new Date();
     const start = new Date();
     const end = new Date();
@@ -218,7 +218,7 @@ export function GoalProgress({
         break;
     }
     return { start, end };
-  };
+  }, [period]);
 
   const fetchStats = useCallback(async () => {
     if (!user?.id || !orgId) return;
@@ -281,11 +281,11 @@ export function GoalProgress({
       }
     });
     setStats({ units });
-  }, [user?.id, orgId, period]);
+  }, [user?.id, orgId, getPeriodRange]);
 
   useEffect(() => {
     if (user?.id) fetchGoals();
-  }, [user?.id, orgId]);
+  }, [user?.id, fetchGoals]);
 
   useEffect(() => {
     fetchStats();
