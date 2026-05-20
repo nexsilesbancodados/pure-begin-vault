@@ -85,6 +85,12 @@ type ParsedRow = {
   description?: string;
   fin_type?: "income" | "expense";
   category?: string;
+  due_date?: string;        // vencimento (ISO)
+  payment_date?: string;    // data de pagamento/baixa (ISO)
+  paid_amount?: number;     // valor efetivamente pago
+  document_number?: string; // NF / nº documento / boleto
+  installments?: string;    // "2/12" ou "12x"
+  supplier_name?: string;   // fornecedor (despesa)
   _raw: Record<string, any>;
   _valid: boolean;
   _error?: string;
