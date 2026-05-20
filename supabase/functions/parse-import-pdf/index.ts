@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
+import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
