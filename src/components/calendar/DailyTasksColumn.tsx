@@ -134,6 +134,7 @@ export function DailyTasksColumn({
   };
 
   const removeTemplate = async (id: string) => {
+    if (readOnly) return toast.error("Somente o dia de hoje pode ser editado");
     if (!confirm("Remover esta tarefa diária? Ela deixará de aparecer em todos os dias.")) return;
     const { error } = await supabase
       .from("daily_task_templates")
@@ -145,6 +146,7 @@ export function DailyTasksColumn({
   };
 
   const toggleCompletion = async (t: Template) => {
+    if (readOnly) return toast.error("Somente o dia de hoje pode ser editado");
     if (!user?.id || !orgId) return;
     const existing = completions.find((c) => c.template_id === t.id);
     if (existing) {
