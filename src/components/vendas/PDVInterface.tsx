@@ -3002,6 +3002,29 @@ export function PDVInterface() {
           </div>
         </div>
       )}
+
+      {/* FAB carrinho — mobile/tablet (oculto em xl+) */}
+      {cart.length > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            document.getElementById("pdv-cart")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          className="xl:hidden fixed bottom-4 right-4 z-40 flex items-center gap-2.5 pl-4 pr-5 h-14 rounded-full bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-2xl shadow-primary/40 hover:scale-105 active:scale-95 transition-transform"
+          aria-label={`Ver carrinho com ${cart.length} itens`}
+        >
+          <div className="relative">
+            <ShoppingCart className="h-5 w-5" />
+            <span className="absolute -top-2 -right-2 min-w-[20px] h-5 px-1 rounded-full bg-destructive text-white text-[11px] font-black grid place-items-center border-2 border-primary">
+              {cart.length}
+            </span>
+          </div>
+          <span className="font-black tabular-nums text-sm">
+            {subtotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </span>
+        </button>
+      )}
     </div>
   );
 }
+
