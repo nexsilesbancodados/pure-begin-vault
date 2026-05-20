@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImport } from "@/contexts/ImportContext";
 import * as XLSX from "xlsx";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ImportModalProps {
   isOpen: boolean;
