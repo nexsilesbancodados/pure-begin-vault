@@ -1117,6 +1117,11 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                 </div>
               </div>
 
+              {/* Prévia de Clientes e Produtos que serão sincronizados (somente Vendas) */}
+              {kind === "vendas" && <SyncPreview rows={rows} brl={brl} />}
+
+
+
               {/* Erros agregados */}
               {stats.invalid > 0 && (
                 <details className="rounded-2xl border border-destructive/20 bg-destructive/5 overflow-hidden">
