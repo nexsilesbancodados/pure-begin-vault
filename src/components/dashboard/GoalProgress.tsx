@@ -612,66 +612,107 @@ export function GoalProgress({
 
         {weekly.length > 0 && (() => {
           const weeklyGoal = Math.max(1, Math.round((goals.monthly || 0) / weekly.length));
-          const maxVal = Math.max(weeklyGoal, ...weekly.map((w) => w.units));
-          const currentWeek = weekly.find((w) => w.isCurrent);
-          const currentPct = currentWeek
-            ? Math.min(100, Math.round((currentWeek.units / weeklyGoal) * 100))
-            : 0;
+          const currentIdx = weekly.findIndex((w) => w.isCurrent);
+          const autoUnits = currentIdx >= 0 ? weekly[currentIdx].units : 0;
+          const baseUnits =
+            weeklyBaseline.weekIdx === currentIdx ? weeklyBaseline.value : 0;
+          const currentUnits = autoUnits + baseUnits;
+          const currentPct = Math.min(100, Math.round((currentUnits / weeklyGoal) * 100));
+          // smaller ring
+          const wRadius = 32;
+          const wCirc = 2 * Math.PI * wRadius;
+          const wOffset = wCirc - (currentPct / 100) * wCirc;
+          const remainingW = Math.max(0, weeklyGoal - currentUnits);
           return (
             <div className="mt-5 pt-4 border-t border-border relative">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <div className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
                   <Activity className="h-3 w-3 text-primary" />
                   Meta semanal
                 </div>
-                <div className="text-[10px] font-bold text-muted-foreground">
-                  <span className="text-primary">{currentWeek?.units ?? 0}</span>
-                  <span className="text-muted-foreground/70"> / {weeklyGoal} un.</span>
-                  <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
-                    {currentPct}%
-                  </span>
-                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  Semana {currentIdx + 1}/{weekly.length}
+                </span>
               </div>
-              <div className="relative h-[56px] flex items-end gap-1.5">
-                <div
-                  className="absolute left-0 right-0 border-t border-dashed border-primary/40 pointer-events-none"
-                  style={{ bottom: `${(weeklyGoal / maxVal) * 100}%` }}
-                />
-                {weekly.map((w, i) => {
-                  const h = Math.max(4, (w.units / maxVal) * 100);
-                  const hit = w.units >= weeklyGoal;
-                  return (
-                    <TooltipProvider key={i} delayDuration={100}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex-1 h-full flex flex-col items-center justify-end gap-1 group/bar cursor-default">
-                            <div
-                              className={`w-full rounded-md transition-all duration-500 ${
-                                w.isCurrent
-                                  ? "bg-gradient-to-t from-primary to-primary/60 ring-2 ring-primary/30"
-                                  : hit
-                                    ? "bg-success/70 group-hover/bar:bg-success"
-                                    : "bg-muted-foreground/30 group-hover/bar:bg-muted-foreground/50"
-                              }`}
-                              style={{ height: `${h}%` }}
-                            />
-                            <span
-                              className={`text-[9px] font-bold ${w.isCurrent ? "text-primary" : "text-muted-foreground"}`}
-                            >
-                              {w.label}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="text-[11px]">
-                          <p className="font-bold">
-                            {w.label} · {w.units} un.
-                          </p>
-                          <p className="text-muted-foreground">Meta: {weeklyGoal} un.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  );
-                })}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative h-[76px] w-[76px] shrink-0">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r={wRadius}
+                      stroke="var(--color-muted)"
+                      strokeWidth="7"
+                      fill="none"
+                    />
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r={wRadius}
+                      stroke="var(--color-primary)"
+                      strokeWidth="7"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray={wCirc}
+                      strokeDashoffset={wOffset}
+                      style={{ transition: "stroke-dashoffset 1s ease-out" }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 grid place-items-center">
+                    <div className="text-[16px] font-black font-display tracking-tight text-primary leading-none">
+                      {currentPct}%
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div>
+                    <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
+                      <span>Aparelhos da semana</span>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const raw = window.prompt(
+                              "Quantos aparelhos foram vendidos nesta semana?",
+                              String(currentUnits),
+                            );
+                            if (raw === null) return;
+                            const n = Math.max(0, Number(raw) || 0);
+                            // Salva como offset relativo às vendas automáticas já contabilizadas
+                            const offset = Math.max(0, n - autoUnits);
+                            const next = { value: offset, weekIdx: currentIdx };
+                            if (weeklyBaselineKey) {
+                              window.localStorage.setItem(
+                                weeklyBaselineKey,
+                                JSON.stringify(next),
+                              );
+                            }
+                            setWeeklyBaseline(next);
+                            toast.success(`Semana atualizada: ${n} aparelhos`);
+                          }}
+                          className="text-[10px] font-bold text-primary hover:underline"
+                        >
+                          Editar
+                        </button>
+                      )}
+                    </div>
+                    <div className="text-base font-bold font-display truncate">
+                      {currentUnits}{" "}
+                      <span className="text-muted-foreground text-xs font-medium">
+                        / {weeklyGoal} un.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="pt-1.5 border-t border-border/70">
+                    <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <Package className="h-3 w-3" /> Faltam na semana
+                    </div>
+                    <div className="text-[12px] font-semibold text-primary truncate">
+                      {remainingW} un.
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           );
