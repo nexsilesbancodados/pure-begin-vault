@@ -1056,6 +1056,13 @@ export function PDVInterface() {
           label: "Crediário",
         });
       }
+      if (aparelhoN > 0) {
+        payments.push({
+          method: "other",
+          amount: aparelhoN,
+          label: "Aparelho (troca)",
+        });
+      }
       if (payments.length === 0) {
         const fallback =
           paymentMethod === "money"
