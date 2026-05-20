@@ -569,6 +569,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false);
   const [mappingOpen, setMappingOpen] = useState(false);
+  const [pdfParsing, setPdfParsing] = useState<{ elapsed: number; phase: string } | null>(null);
 
   const stats = useMemo(() => {
     const valid = rows.filter((r) => r._valid);
@@ -659,19 +660,32 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
     try {
       let parsed: { rows: ParsedRow[]; hmap: Record<string, string>; headers: string[]; raw: any[] };
       if (ext === "pdf") {
-        toast.info("Lendo PDF com IA, isso pode levar alguns segundos...");
-        const b64 = await new Promise<string>((resolve, reject) => {
-          const r = new FileReader();
-          r.onload = () => {
-            const s = (r.result as string) || "";
-            resolve(s.split(",")[1] || "");
-          };
-          r.onerror = reject;
-          r.readAsDataURL(f);
-        });
-        const { data, error } = await (supabase as any).functions.invoke("parse-import-pdf", {
-          body: { fileBase64: b64, fileName: f.name, kind },
-        });
+        const t0 = Date.now();
+        setPdfParsing({ elapsed: 0, phase: "Lendo arquivo..." });
+        const timer = setInterval(() => {
+          setPdfParsing((p) => p ? { ...p, elapsed: Math.floor((Date.now() - t0) / 1000) } : null);
+        }, 250);
+        let data: any, error: any;
+        try {
+          const b64 = await new Promise<string>((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => {
+              const s = (r.result as string) || "";
+              resolve(s.split(",")[1] || "");
+            };
+            r.onerror = reject;
+            r.readAsDataURL(f);
+          });
+          setPdfParsing({ elapsed: Math.floor((Date.now() - t0) / 1000), phase: "Extraindo dados com IA..." });
+          const res = await (supabase as any).functions.invoke("parse-import-pdf", {
+            body: { fileBase64: b64, fileName: f.name, kind, fast: true },
+          });
+          data = res.data; error = res.error;
+          if (!error) toast.success(`PDF lido em ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+        } finally {
+          clearInterval(timer);
+          setPdfParsing(null);
+        }
         if (error) throw new Error(error.message || "Falha ao processar PDF");
         const json: any[] = data?.rows || [];
         if (json.length === 0) {
@@ -814,7 +828,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                     Importar {KIND_META[kind].label}
                   </DialogTitle>
                   <DialogDescription className="text-white/80 text-xs mt-0.5">
-                    Migre seu histórico em minutos · CSV ou Excel
+                    Migre seu histórico em minutos · CSV, Excel ou PDF (IA)
                   </DialogDescription>
                 </div>
               </div>
@@ -908,6 +922,28 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                   })}
                 </div>
               </div>
+
+              {pdfParsing && (
+                <div className="rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 to-primary/5 p-6 flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center ring-2 ring-primary/30">
+                    <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-sm text-primary">Processando PDF com IA</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{pdfParsing.phase}</p>
+                    <div className="mt-2 h-1.5 bg-primary/15 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${Math.min(95, pdfParsing.elapsed * 8)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-black text-primary tabular-nums">{pdfParsing.elapsed}s</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">decorridos</p>
+                  </div>
+                </div>
+              )}
 
               <div
                 onClick={() => fileInputRef.current?.click()}
