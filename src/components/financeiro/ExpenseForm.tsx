@@ -49,7 +49,7 @@ interface ExpenseFormProps {
   variant?: "expense" | "income";
 }
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   "Despesa",
   "Compras",
   "Folha de pagamento",
