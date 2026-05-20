@@ -316,6 +316,9 @@ function ReportsPage() {
     receitasOpen: number; receitasTotal: number; receitasPaid: number;
     caixaSaldo: number; caixaIncome: number; caixaExpense: number;
     productsCount: number; productsActive: number; lowStock: number; outOfStock: number; stockValue: number;
+    salesCount: number; salesToday: number; salesWeek: number; salesMonth: number;
+    revenueToday: number; revenueWeek: number;
+    financeMargin: number; financeOverdueCount: number;
   };
   const [funnelData, setFunnelData] = useState<FunnelDatum[]>([]);
   const [originData, setOriginData] = useState<OriginDatum[]>([]);
@@ -325,6 +328,9 @@ function ReportsPage() {
     receitasOpen: 0, receitasTotal: 0, receitasPaid: 0,
     caixaSaldo: 0, caixaIncome: 0, caixaExpense: 0,
     productsCount: 0, productsActive: 0, lowStock: 0, outOfStock: 0, stockValue: 0,
+    salesCount: 0, salesToday: 0, salesWeek: 0, salesMonth: 0,
+    revenueToday: 0, revenueWeek: 0,
+    financeMargin: 0, financeOverdueCount: 0,
   });
 
   const fetchReportsData = useCallback(async () => {
