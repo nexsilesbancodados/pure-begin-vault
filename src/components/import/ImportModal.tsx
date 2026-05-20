@@ -113,8 +113,32 @@ const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
     customer: [
       "cliente", "customer", "comprador", "nome cliente", "nome do cliente", "razao social", "destinatario"
     ],
+    customer_document: [
+      "cpf", "cnpj", "documento", "doc", "cpf/cnpj", "cpf cnpj", "rg", "identidade"
+    ],
+    customer_phone: [
+      "telefone", "celular", "phone", "fone", "whatsapp", "wpp", "contato", "tel"
+    ],
+    customer_email: [
+      "email", "e-mail", "mail", "correio"
+    ],
     product: [
-      "produto", "item", "product", "mercadoria", "modelo", "aparelho", "nome produto"
+      "produto", "item", "product", "mercadoria", "aparelho", "nome produto"
+    ],
+    product_sku: [
+      "sku", "codigo", "código", "cod", "ref", "referencia", "referência", "part number", "id produto"
+    ],
+    imei: [
+      "imei", "serial", "s/n", "sn", "n de serie", "numero de serie", "número de série"
+    ],
+    brand: [
+      "marca", "brand", "fabricante"
+    ],
+    model: [
+      "modelo", "model", "versao", "versão"
+    ],
+    ean: [
+      "ean", "barras", "barcode", "codigo de barras"
     ],
     quantity: [
       "qtd", "quantidade", "qty", "quantity", "volume", "itens", "unidades"
@@ -122,8 +146,14 @@ const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
     unit_price: [
       "preco", "preço", "preco unit", "valor unitario", "unit price", "vlr unit"
     ],
+    cost_price: [
+      "custo", "preco custo", "valor custo", "p.custo", "vlr custo", "vlr compra"
+    ],
     discount: [
       "desconto", "discount", "abatimento", "descontos", "promo", "cupom"
+    ],
+    notes: [
+      "obs", "observacao", "observação", "nota", "notas", "comentario", "comentário", "remark"
     ],
   },
   estoque: {
