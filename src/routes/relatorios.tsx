@@ -670,7 +670,7 @@ function ReportsPage() {
             </div>
           )}
           <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#F8FAFC]">
-            {activeCategory !== "visao-geral" && (() => {
+            {(() => {
               const findLabel = (id: string): string => {
                 for (const c of categories) {
                   if (c.id === id) return c.label;
@@ -681,29 +681,109 @@ function ReportsPage() {
               const parent = categories.find(
                 (c) => c.id === activeCategory || c.children?.some((ch) => ch.id === activeCategory),
               );
+
+              const buildExportRows = (): { label: string; value: string }[] => {
+                const cat = activeCategory;
+                if (cat.startsWith("fin")) {
+                  return [
+                    { label: "Despesas em aberto", value: String(extra.despesasOpen) },
+                    { label: "Despesas vencidas", value: String(extra.despesasOverdue) },
+                    { label: "Despesas pagas", value: String(extra.despesasPaid) },
+                    { label: "Total a pagar", value: String(extra.despesasTotal) },
+                    { label: "Receitas em aberto", value: String(extra.receitasOpen) },
+                    { label: "Receitas recebidas", value: String(extra.receitasPaid) },
+                    { label: "Total a receber", value: String(extra.receitasTotal) },
+                    { label: "Saldo de caixa", value: String(extra.caixaSaldo) },
+                    { label: "Margem (Receitas pagas - Despesas pagas)", value: String(extra.financeMargin) },
+                    { label: "Contas vencidas (qtd)", value: String(extra.financeOverdueCount) },
+                  ];
+                }
+                if (cat.startsWith("vendas") || cat === "vendas") {
+                  return [
+                    { label: "Faturamento (mês)", value: String(stats.revenue) },
+                    { label: "Ticket médio", value: String(stats.avgTicket) },
+                    { label: "Conversão (%)", value: String(stats.conversion.toFixed(2)) },
+                    { label: "Leads no mês", value: String(stats.leads) },
+                    { label: "Vendas (mês)", value: String(extra.salesMonth) },
+                    { label: "Vendas (7d)", value: String(extra.salesWeek) },
+                    { label: "Vendas (hoje)", value: String(extra.salesToday) },
+                    { label: "Faturamento (hoje)", value: String(extra.revenueToday) },
+                    { label: "Faturamento (7d)", value: String(extra.revenueWeek) },
+                    { label: "Total de vendas concluídas", value: String(extra.salesCount) },
+                  ];
+                }
+                if (cat.startsWith("prod")) {
+                  return [
+                    { label: "Produtos ativos", value: String(extra.productsActive) },
+                    { label: "Total cadastrado", value: String(extra.productsCount) },
+                    { label: "Estoque baixo", value: String(extra.lowStock) },
+                    { label: "Sem estoque", value: String(extra.outOfStock) },
+                    { label: "Valor de estoque", value: String(extra.stockValue) },
+                  ];
+                }
+                return [
+                  { label: "Faturamento (mês)", value: String(stats.revenue) },
+                  { label: "Leads", value: String(stats.leads) },
+                  { label: "Conversão (%)", value: String(stats.conversion.toFixed(2)) },
+                  { label: "Ticket médio", value: String(stats.avgTicket) },
+                ];
+              };
+
+              const handleExport = () => {
+                const rows = buildExportRows();
+                const header = "Indicador,Valor";
+                const csv = [header, ...rows.map((r) => `"${r.label}","${r.value}"`)].join("\n");
+                const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                const ts = new Date().toISOString().slice(0, 10);
+                a.download = `relatorio-${activeCategory}-${ts}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              };
+
               return (
-                <div className="mb-6 flex items-center gap-2 flex-wrap">
+                <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {activeCategory !== "visao-geral" && (
+                      <>
+                        <button
+                          onClick={() => setActiveCategory("visao-geral")}
+                          className="text-sm font-bold text-primary hover:underline flex items-center gap-1"
+                        >
+                          <ChevronRight className="h-4 w-4 rotate-180" /> Visão Geral
+                        </button>
+                        {parent && parent.id !== activeCategory && (
+                          <>
+                            <span className="text-slate-300">/</span>
+                            <button
+                              onClick={() => setActiveCategory(parent.id)}
+                              className="text-sm font-bold text-slate-600 hover:text-primary hover:underline"
+                            >
+                              {parent.label}
+                            </button>
+                          </>
+                        )}
+                        <span className="text-slate-300">/</span>
+                        <span className="text-sm font-black text-slate-900">
+                          {findLabel(activeCategory)}
+                        </span>
+                      </>
+                    )}
+                    {activeCategory === "visao-geral" && (
+                      <span className="text-sm font-black text-slate-900">Visão Geral</span>
+                    )}
+                  </div>
                   <button
-                    onClick={() => setActiveCategory("visao-geral")}
-                    className="text-sm font-bold text-primary hover:underline flex items-center gap-1"
+                    onClick={handleExport}
+                    className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-xs font-black shadow-sm hover:bg-primary/90 transition"
+                    title="Exportar CSV"
                   >
-                    <ChevronRight className="h-4 w-4 rotate-180" /> Visão Geral
+                    <Download className="h-3.5 w-3.5" /> Exportar CSV
                   </button>
-                  {parent && parent.id !== activeCategory && (
-                    <>
-                      <span className="text-slate-300">/</span>
-                      <button
-                        onClick={() => setActiveCategory(parent.id)}
-                        className="text-sm font-bold text-slate-600 hover:text-primary hover:underline"
-                      >
-                        {parent.label}
-                      </button>
-                    </>
-                  )}
-                  <span className="text-slate-300">/</span>
-                  <span className="text-sm font-black text-slate-900">
-                    {findLabel(activeCategory)}
-                  </span>
                 </div>
               );
             })()}
