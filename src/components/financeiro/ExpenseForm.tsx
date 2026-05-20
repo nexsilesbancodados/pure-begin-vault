@@ -234,9 +234,34 @@ export function ExpenseForm({
     setPayments([]);
   };
 
+  // When status flips to "paid", auto-fill payment amount and a default method
+  useEffect(() => {
+    if (form.status === "paid" && !form.payment_amount && form.amount) {
+      setForm((f) => ({
+        ...f,
+        payment_amount: f.amount,
+        payment_method: f.payment_method || "pix",
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.status]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.amount) return;
+    if (!form.title.trim()) {
+      toast.error("Informe o título");
+      setTab("dados");
+      return;
+    }
+    if (!form.amount || parseNum(form.amount) <= 0) {
+      toast.error("Informe um valor maior que zero");
+      setTab("dados");
+      return;
+    }
+    if (form.status === "paid" && !form.payment_method) {
+      toast.error("Selecione a forma de pagamento");
+      return;
+    }
     setSaving(true);
     try {
       await onSave({
@@ -260,6 +285,7 @@ export function ExpenseForm({
         fees: parseNum(form.fees),
         discount: parseNum(form.discount),
         payments,
+        files: files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
         transaction_date: form.due_date || new Date().toISOString(),
       });
     } finally {
