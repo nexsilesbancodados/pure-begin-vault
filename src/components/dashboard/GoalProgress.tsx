@@ -125,13 +125,20 @@ const isDeviceItem = (item: SaleItemRow, product?: ProductRow) => {
   );
 };
 
+const ADMIN_EMAILS = ["alfatech791@gmail.com", "contato@focussdev.art"];
+
 export function GoalProgress({
   current: parentCurrent,
   goal: initialGoal = 50000,
   onGoalUpdate,
 }: GoalProgressProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { orgId } = useOrg();
+  const role = String(profile?.role ?? "").toLowerCase();
+  const canEdit =
+    ADMIN_EMAILS.includes(String(user?.email ?? "").toLowerCase()) ||
+    ["super_admin", "owner", "admin"].includes(role);
+  const baselineKey = orgId ? `goal-baseline:${orgId}` : "";
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "settings">("overview");
   const [isLoading, setIsLoading] = useState(false);
@@ -145,10 +152,27 @@ export function GoalProgress({
     start_date: new Date().toISOString().split("T")[0],
     end_date: "",
     notes: "",
+    baseline: 0,
   };
   const [goals, setGoals] = useState(initialGoalState);
   const [editGoals, setEditGoals] = useState(initialGoalState);
   const [stats, setStats] = useState({ units: 0 });
+  const [baseline, setBaseline] = useState<{ value: number; at: string }>({ value: 0, at: "" });
+
+  useEffect(() => {
+    if (!baselineKey || typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(baselineKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setBaseline({ value: Number(parsed?.value) || 0, at: String(parsed?.at ?? "") });
+      } else {
+        setBaseline({ value: 0, at: "" });
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [baselineKey]);
 
   const fetchGoals = useCallback(async () => {
     if (!user?.id || !orgId) return;
@@ -172,6 +196,7 @@ export function GoalProgress({
         start_date: data.created_at || new Date().toISOString().split("T")[0],
         end_date: data.deadline || "",
         notes: "",
+        baseline: 0,
       };
       setGoals(fetchedGoals);
       setEditGoals(fetchedGoals);
@@ -209,10 +234,13 @@ export function GoalProgress({
   const fetchStats = useCallback(async () => {
     if (!user?.id || !orgId) return;
     const { start, end } = getPeriodRange();
+    // Quando admin define um baseline, conta apenas vendas após esse momento
+    const effectiveStart =
+      baseline.at && new Date(baseline.at) > start ? new Date(baseline.at) : start;
     const { data: sales, error: salesError } = await supabase
       .from("sales_orders")
       .select("id")
-      .gte("created_at", start.toISOString())
+      .gte("created_at", effectiveStart.toISOString())
       .lte("created_at", end.toISOString())
       .in("status", COMPLETED_STATUSES)
       .in("channel", ["pdv", "import"])
@@ -267,7 +295,7 @@ export function GoalProgress({
       }
     });
     setStats({ units });
-  }, [user?.id, orgId, getPeriodRange]);
+  }, [user?.id, orgId, getPeriodRange, baseline.at]);
 
   useEffect(() => {
     if (user?.id) fetchGoals();
@@ -313,9 +341,12 @@ export function GoalProgress({
       toast.error("Usuário ou organização não identificados");
       return;
     }
+    if (!canEdit) {
+      toast.error("Apenas administradores podem editar a meta");
+      return;
+    }
     setIsLoading(true);
     try {
-      // Find existing goal for this org to update it, or it will create a new one
       const { data: existingGoal } = await supabase
         .from("business_goals")
         .select("id")
@@ -345,6 +376,17 @@ export function GoalProgress({
 
       if (error) throw error;
 
+      // Persiste baseline (quantidade inicial estipulada pelo admin) no localStorage da loja
+      const prevBaseline = baseline.value;
+      const newBaseline = Number(editGoals.baseline) || 0;
+      if (newBaseline !== prevBaseline) {
+        const next = { value: newBaseline, at: new Date().toISOString() };
+        if (typeof window !== "undefined" && baselineKey) {
+          window.localStorage.setItem(baselineKey, JSON.stringify(next));
+        }
+        setBaseline(next);
+      }
+
       setGoals({ ...editGoals });
       setIsModalOpen(false);
       toast.success("Metas atualizadas com sucesso!");
@@ -358,7 +400,7 @@ export function GoalProgress({
     }
   };
 
-  const effectiveUnits = stats.units;
+  const effectiveUnits = baseline.value + stats.units;
   const currentDisplay = effectiveUnits;
   const pct = Math.min(100, Math.round((currentDisplay / (goals.monthly || 1)) * 100)) || 0;
   const projection = Math.round((effectiveUnits / (new Date().getDate() || 1)) * 30);
@@ -377,7 +419,10 @@ export function GoalProgress({
   return (
     <>
       <div
-        onClick={() => setIsModalOpen(true)}
+        onClick={() => {
+          setEditGoals({ ...goals, baseline: baseline.value });
+          setIsModalOpen(true);
+        }}
         className="rounded-2xl bg-card border border-border p-5 shadow-card relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group"
       >
         <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-10 blur-2xl bg-gradient-primary" />
@@ -641,7 +686,13 @@ export function GoalProgress({
             </TabsContent>
 
             <TabsContent value="settings" className="p-6 pt-2 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {!canEdit && (
+                <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-[12px] font-medium text-warning">
+                  Apenas administradores podem alterar a meta e a quantidade inicial de aparelhos
+                  vendidos.
+                </div>
+              )}
+              <fieldset disabled={!canEdit} className="grid grid-cols-1 md:grid-cols-2 gap-6 disabled:opacity-60">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-[13px] font-bold">Nome da Meta</Label>
@@ -673,6 +724,25 @@ export function GoalProgress({
                     />
                     <p className="text-[11px] text-muted-foreground">
                       Quantidade de aparelhos a vender no período.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" /> Aparelhos já vendidos (base inicial)
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={editGoals.baseline}
+                      onChange={(e) =>
+                        setEditGoals({ ...editGoals, baseline: Number(e.target.value) || 0 })
+                      }
+                      className="h-10 rounded-xl"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Informe quantos aparelhos já foram vendidos até agora. As próximas vendas serão
+                      somadas a partir desse número.
                     </p>
                   </div>
 
@@ -745,7 +815,7 @@ export function GoalProgress({
                     </Button>
                   </div>
                 </div>
-              </div>
+              </fieldset>
             </TabsContent>
           </Tabs>
         </DialogContent>
