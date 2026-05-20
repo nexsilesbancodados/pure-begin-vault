@@ -65,8 +65,8 @@ function Login() {
     setLoading(false);
   };
 
-  const readableAuthError = (message: string) => {
-    const msg = message.toLowerCase();
+  const readableAuthError = (message?: string) => {
+    const msg = (message ?? "").toLowerCase();
     if (msg.includes("invalid") || msg.includes("credentials")) {
       return "E-mail ou senha incorretos. Verifique seus dados e tente novamente.";
     }
@@ -74,7 +74,7 @@ function Login() {
     if (msg.includes("too many") || msg.includes("rate")) {
       return "Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.";
     }
-    return message || "Não foi possível entrar agora. Tente novamente.";
+    return message ?? "Não foi possível entrar agora. Tente novamente.";
   };
 
   // Auto-focus + remember email.
@@ -126,7 +126,7 @@ function Login() {
             });
             const retry = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
             if (retry.error) throw retry.error;
-          } catch (provErr: any) {
+          } catch (provErr: unknown) {
             console.error("Provisionamento dev falhou:", provErr);
             showLoginError("Falha no acesso automático da conta dev.");
             return;
@@ -139,7 +139,9 @@ function Login() {
 
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !sessionData.session) {
-        showLoginError("Login aceito, mas a sessão não foi salva. Atualize a página e tente novamente.");
+        showLoginError(
+          "Login aceito, mas a sessão não foi salva. Atualize a página e tente novamente.",
+        );
         return;
       }
 
@@ -152,25 +154,30 @@ function Login() {
 
       if (profileError) {
         console.warn("Perfil não carregou após login:", profileError);
-        showLoginError("Login aceito, mas não consegui carregar seu perfil. Peça ao administrador para revisar seu acesso.");
+        showLoginError(
+          "Login aceito, mas não consegui carregar seu perfil. Peça ao administrador para revisar seu acesso.",
+        );
         return;
       }
 
       if (!profile) {
-        showLoginError("Login aceito, mas sua conta ainda não tem perfil vinculado. Peça ao administrador para recriar seu acesso.");
+        showLoginError(
+          "Login aceito, mas sua conta ainda não tem perfil vinculado. Peça ao administrador para recriar seu acesso.",
+        );
         return;
       }
 
       if (!profile.organization_id) {
-        const { data: memberships } = await (supabase as any)
+        const { data: memberships } = await supabase
           .from("user_organizations")
           .select("organization_id, is_default")
           .eq("user_id", currentUserId)
           .order("is_default", { ascending: false })
           .limit(1);
-        const firstOrgId = (memberships as any[])?.[0]?.organization_id;
+        const firstOrgId = (memberships as { organization_id?: string | null }[] | null)?.[0]
+          ?.organization_id;
         if (firstOrgId) {
-          const { error: switchError } = await (supabase as any).rpc("switch_organization", {
+          const { error: switchError } = await supabase.rpc("switch_organization", {
             _org_id: firstOrgId,
           });
           if (switchError) console.warn("Não foi possível ativar loja no login:", switchError);
@@ -180,7 +187,7 @@ function Login() {
       // Conta dev: garante a organização teste (não bloqueia login se RPC falhar)
       if (isDevAccount) {
         try {
-          await (supabase as any).rpc("switch_organization", {
+          await supabase.rpc("switch_organization", {
             _org_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd",
           });
         } catch (e) {
@@ -192,8 +199,8 @@ function Login() {
       else localStorage.removeItem("conecta:lastEmail");
 
       window.location.replace("/painel");
-    } catch (err: any) {
-      showLoginError(readableAuthError(err?.message));
+    } catch (err: unknown) {
+      showLoginError(readableAuthError(err instanceof Error ? err.message : undefined));
     }
   };
 
