@@ -83,7 +83,7 @@ export const Route = createFileRoute("/relatorios")({
 });
 
 function ReportsPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, permissions } = useAuth();
   const { orgId } = useOrg();
   const [loading, setLoading] = useState(true);
   type Trend = { value: string; isUp: boolean };
