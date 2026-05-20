@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Trash2, Check, CheckCheck, Flag, Clock, Lock, Loader2, X } from "lucide-react";
+import { Plus, Trash2, Check, CheckCheck, Flag, Clock, Lock, Loader2, X, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { listOrgMembers, type OrgMember } from "@/lib/org-members.functions";
 
 type Template = {
   id: string;
