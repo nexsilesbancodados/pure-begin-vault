@@ -132,7 +132,7 @@ export function GoalProgress({
   goal: initialGoal = 50000,
   onGoalUpdate,
 }: GoalProgressProps) {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const { orgId } = useOrg();
   const canEdit = ADMIN_EMAILS.includes(String(user?.email ?? "").toLowerCase());
   const baselineKey = orgId ? `goal-baseline:${orgId}` : "";
