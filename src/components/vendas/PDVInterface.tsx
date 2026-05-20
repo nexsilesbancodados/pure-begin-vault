@@ -1033,6 +1033,7 @@ export function PDVInterface() {
       const prazoN = parseFloat(prazoAmount) || 0;
       const brasilcardN = parseFloat(brasilcardAmount) || 0;
       const crediarioN = parseFloat(crediarioAmount) || 0;
+      const aparelhoN = parseFloat(aparelhoAmount) || 0;
       if (moneyN > 0) payments.push({ method: "cash", amount: moneyN });
       if (cardN > 0) payments.push({ method: "card", amount: cardN });
       if (pixN > 0) payments.push({ method: "pix", amount: pixN });
