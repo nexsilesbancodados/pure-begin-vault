@@ -54,7 +54,9 @@ function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Date>(new Date());
   const [modalOpen, setModalOpen] = useState(false);
+  const [kanbanOpen, setKanbanOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", priority: "medium" });
+
 
   const load = async () => {
     if (!user?.id) return;
