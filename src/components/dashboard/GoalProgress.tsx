@@ -337,6 +337,74 @@ export function GoalProgress({
     };
   }, [user?.id, orgId, fetchStats]);
 
+  // Weekly breakdown for the current month (devices only)
+  useEffect(() => {
+    if (!user?.id || !orgId) return;
+    let cancelled = false;
+    (async () => {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const { data: sales } = await supabase
+        .from("sales_orders")
+        .select("id, created_at")
+        .gte("created_at", monthStart.toISOString())
+        .lte("created_at", monthEnd.toISOString())
+        .in("status", COMPLETED_STATUSES)
+        .in("channel", ["pdv", "import"])
+        .eq("organization_id", orgId);
+      const saleMap = new Map<string, Date>();
+      ((sales || []) as { id: string; created_at: string }[]).forEach((s) =>
+        saleMap.set(s.id, new Date(s.created_at)),
+      );
+      const ids = Array.from(saleMap.keys());
+      const weeksInMonth = Math.ceil(monthEnd.getDate() / 7);
+      const buckets = Array.from({ length: weeksInMonth }, () => 0);
+      const currentWeekIdx = Math.min(weeksInMonth - 1, Math.floor((now.getDate() - 1) / 7));
+
+      if (ids.length) {
+        const { data: items } = await supabase
+          .from("sale_items")
+          .select("sale_id, product_id, product_name, quantity, imei, metadata")
+          .eq("organization_id", orgId)
+          .in("sale_id", ids);
+        const list = (items || []) as SaleItemRow[];
+        const productIds = Array.from(
+          new Set(list.map((i) => i.product_id).filter((id): id is string => Boolean(id))),
+        );
+        const productsById = new Map<string, ProductRow>();
+        if (productIds.length) {
+          const { data: products } = await supabase
+            .from("products")
+            .select("id, name, category, model, metadata")
+            .eq("organization_id", orgId)
+            .in("id", productIds);
+          ((products || []) as ProductRow[]).forEach((p) => productsById.set(p.id, p));
+        }
+        list.forEach((it) => {
+          if (!isDeviceItem(it, it.product_id ? productsById.get(it.product_id) : undefined))
+            return;
+          const d = it.sale_id ? saleMap.get(it.sale_id) : null;
+          if (!d) return;
+          const wk = Math.min(weeksInMonth - 1, Math.floor((d.getDate() - 1) / 7));
+          buckets[wk] += Math.max(1, Number(it.quantity) || 1);
+        });
+      }
+      if (!cancelled) {
+        setWeekly(
+          buckets.map((u, i) => ({
+            label: `S${i + 1}`,
+            units: u,
+            isCurrent: i === currentWeekIdx,
+          })),
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, orgId, stats.units]);
+
   const handleSave = async () => {
     if (!user?.id || !orgId) {
       toast.error("Usuário ou organização não identificados");
