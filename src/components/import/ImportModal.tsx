@@ -659,7 +659,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[680px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[760px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card max-h-[92vh] flex flex-col">
         {/* Hero header */}
         <div className="relative p-6 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground overflow-hidden">
           <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
