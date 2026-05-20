@@ -738,16 +738,89 @@ export function ExpenseForm({
           )}
 
           {tab === "arquivos" && (
-            <div className="p-10 text-center text-muted-foreground">
-              <Paperclip className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Anexos serão habilitados em breve.</p>
+            <div className="p-5 space-y-4">
+              <label
+                htmlFor="expense-files"
+                className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-2xl p-10 cursor-pointer hover:border-blue-500/60 hover:bg-blue-500/5 transition"
+              >
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm font-semibold">Clique para anexar arquivos</p>
+                <p className="text-xs text-muted-foreground">Comprovantes, NFs, boletos (PDF, PNG, JPG)</p>
+                <input
+                  id="expense-files"
+                  type="file"
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const list = Array.from(e.target.files || []);
+                    if (!list.length) return;
+                    setFiles((arr) => [
+                      ...arr,
+                      ...list.map((f) => ({
+                        id: crypto.randomUUID(),
+                        name: f.name,
+                        size: f.size,
+                        type: f.type,
+                      })),
+                    ]);
+                    toast.success(`${list.length} arquivo(s) anexado(s)`);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              {files.length > 0 && (
+                <div className="border border-border rounded-xl divide-y divide-border overflow-hidden">
+                  {files.map((f) => (
+                    <div key={f.id} className="flex items-center gap-3 px-4 py-2.5">
+                      <div className="h-9 w-9 rounded-lg bg-blue-500/15 text-blue-600 grid place-items-center">
+                        <FileIcon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{f.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{(f.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFiles((arr) => arr.filter((x) => x.id !== f.id))}
+                        className="text-red-600 hover:bg-red-500/10 p-2 rounded-md"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {tab === "detalhes" && (
-            <div className="p-10 text-center text-muted-foreground">
-              <Info className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Detalhes adicionais serão exibidos aqui.</p>
+            <div className="p-5 space-y-3">
+              <SectionTitle>Resumo do lançamento</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <DetailRow icon={<FileText className="h-4 w-4" />} label="Título" value={form.title || "—"} />
+                <DetailRow icon={<UserIcon className="h-4 w-4" />} label="Pessoa" value={form.person || "—"} />
+                <DetailRow icon={<Calendar className="h-4 w-4" />} label="Vencimento" value={form.due_date ? new Date(form.due_date + "T00:00").toLocaleDateString("pt-BR") : "—"} />
+                <DetailRow icon={<Calendar className="h-4 w-4" />} label="Competência" value={form.competence_date ? new Date(form.competence_date + "T00:00").toLocaleDateString("pt-BR") : "—"} />
+                <DetailRow icon={<Tag className="h-4 w-4" />} label="Categoria" value={form.category || "—"} />
+                <DetailRow icon={<Tag className="h-4 w-4" />} label="Tags" value={form.tags || "—"} />
+                <DetailRow icon={<CreditCard className="h-4 w-4" />} label="Forma de cobrança" value={BILLING_METHODS.find((b) => b.value === form.billing_method)?.label || "—"} />
+                <DetailRow icon={<Hash className="h-4 w-4" />} label="Parcela" value={form.installment_number || "—"} />
+                <DetailRow icon={<DollarSign className="h-4 w-4" />} label="Valor base" value={`R$ ${brl(parseNum(form.amount))}`} />
+                <DetailRow icon={<DollarSign className="h-4 w-4" />} label="Multa/Juros" value={`R$ ${brl(parseNum(form.fees))}`} />
+                <DetailRow icon={<DollarSign className="h-4 w-4" />} label="Desconto" value={`R$ ${brl(parseNum(form.discount))}`} />
+                <DetailRow icon={<DollarSign className="h-4 w-4" />} label="Valor total" value={`R$ ${brl(totals.total)}`} highlight />
+                <DetailRow icon={<CheckCircle2 className="h-4 w-4" />} label="Total pago" value={`R$ ${brl(totals.paid)}`} />
+                <DetailRow icon={<ArrowLeftRight className="h-4 w-4" />} label="Saldo" value={`R$ ${brl(totals.balance)}`} highlight />
+                <DetailRow icon={<Paperclip className="h-4 w-4" />} label="Anexos" value={files.length ? `${files.length} arquivo(s)` : "—"} />
+                <DetailRow icon={<Info className="h-4 w-4" />} label="Pagamentos" value={payments.length ? `${payments.length} lançado(s)` : "—"} />
+              </div>
+              {form.notes && (
+                <>
+                  <SectionTitle>Observações</SectionTitle>
+                  <p className="text-sm whitespace-pre-wrap text-muted-foreground bg-muted/40 rounded-lg p-3">{form.notes}</p>
+                </>
+              )}
             </div>
           )}
 
