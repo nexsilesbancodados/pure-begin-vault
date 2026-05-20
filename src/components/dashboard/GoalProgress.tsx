@@ -624,7 +624,8 @@ export function GoalProgress({
         </div>
 
         {weekly.length > 0 && (() => {
-          const weeklyGoal = Math.max(1, Math.round((goals.monthly || 0) / weekly.length));
+          const fallbackWeekly = Math.max(1, Math.round((goals.monthly || 0) / weekly.length));
+          const weeklyGoal = goals.weekly && goals.weekly > 0 ? goals.weekly : fallbackWeekly;
           const currentIdx = weekly.findIndex((w) => w.isCurrent);
           const autoUnits = currentIdx >= 0 ? weekly[currentIdx].units : 0;
           const baseUnits =
