@@ -276,7 +276,7 @@ export function DailyTasksColumn({
                 >
                   {confirmed ? (
                     <>
-                      <CheckCheck className="h-3.5 w-3.5" /> Concluída hoje
+                      <CheckCheck className="h-3.5 w-3.5" /> Concluída
                     </>
                   ) : (
                     <>
@@ -284,6 +284,18 @@ export function DailyTasksColumn({
                     </>
                   )}
                 </button>
+                {confirmed && completion && (
+                  <div className="mt-2 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-1.5 text-[10px] text-emerald-800 space-y-0.5">
+                    <div className="flex items-center gap-1">
+                      <UserIcon className="h-3 w-3" />
+                      <span className="font-bold truncate">{memberName(completion.user_id)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-emerald-700">
+                      <Clock className="h-3 w-3" />
+                      <span className="tabular-nums">{doneAtLabel}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })
