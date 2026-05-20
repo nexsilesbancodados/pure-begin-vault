@@ -1192,6 +1192,10 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                             { field: "customer_document", label: "CPF / CNPJ" },
                             { field: "customer_phone", label: "Telefone" },
                             { field: "customer_email", label: "E-mail" },
+                            { field: "customer_birthdate", label: "Data de Nascimento" },
+                            { field: "customer_address", label: "Rua / Endereço" },
+                            { field: "customer_neighborhood", label: "Bairro" },
+                            { field: "customer_city", label: "Cidade" },
                           ],
                         },
                         {
