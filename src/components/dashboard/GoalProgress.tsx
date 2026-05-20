@@ -323,7 +323,7 @@ export function GoalProgress({
         target_value: editGoals.monthly,
         type: editGoals.type,
         deadline: editGoals.end_date || null,
-        current_value: manualUnits ?? stats.units,
+        current_value: stats.units,
       };
 
       let error;
@@ -353,7 +353,7 @@ export function GoalProgress({
     }
   };
 
-  const effectiveUnits = isMay && manualUnits !== null ? manualUnits : stats.units;
+  const effectiveUnits = stats.units;
   const currentDisplay = effectiveUnits;
   const pct = Math.min(100, Math.round((currentDisplay / (goals.monthly || 1)) * 100)) || 0;
   const projection = Math.round((effectiveUnits / (new Date().getDate() || 1)) * 30);
@@ -433,52 +433,13 @@ export function GoalProgress({
             <div>
               <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
                 <span>Aparelhos vendidos</span>
-                {isMay && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setManualInput(String(effectiveUnits));
-                      setEditingManual(true);
-                    }}
-                    className="text-[10px] font-semibold text-primary hover:underline"
-                  >
-                    {manualUnits !== null ? "Editar" : "Informar"}
-                  </button>
-                )}
               </div>
-              {isMay && editingManual ? (
-                <div className="flex items-center gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
-                  <Input
-                    type="number"
-                    min={0}
-                    autoFocus
-                    value={manualInput}
-                    onChange={(e) => setManualInput(e.target.value)}
-                    className="h-8 text-sm w-20"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-8 px-2"
-                    onClick={() => {
-                      const n = Math.max(0, Number(manualInput) || 0);
-                      setManualUnits(n);
-                      if (overrideKey) localStorage.setItem(overrideKey, String(n));
-                      setEditingManual(false);
-                      toast.success("Quantidade atualizada");
-                    }}
-                  >
-                    <Save className="h-3 w-3" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-lg font-bold font-display truncate">
-                  {effectiveUnits}{" "}
-                  <span className="text-muted-foreground text-sm font-medium">
-                    / {goals.monthly} un.
-                  </span>
-                </div>
-              )}
+              <div className="text-lg font-bold font-display truncate">
+                {effectiveUnits}{" "}
+                <span className="text-muted-foreground text-sm font-medium">
+                  / {goals.monthly} un.
+                </span>
+              </div>
             </div>
             <div className="pt-2 border-t border-border">
               <div className="text-[11px] text-muted-foreground flex items-center gap-1">
