@@ -47,12 +47,26 @@ export function DailyTasksColumn({
   ownerOnlyForUserId?: string;
 }) {
   const { user } = useAuth();
+  const fetchMembers = useServerFn(listOrgMembers);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [completions, setCompletions] = useState<Completion[]>([]);
+  const [members, setMembers] = useState<OrgMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ title: "", time: "", priority: "medium" });
   const dateKey = ymd(date);
+
+  useEffect(() => {
+    if (!orgId) { setMembers([]); return; }
+    fetchMembers({ data: { orgId } } as any).then((r: any) => setMembers(r ?? [])).catch(() => setMembers([]));
+  }, [orgId, fetchMembers]);
+
+  const memberName = (uid: string | null | undefined) => {
+    if (!uid) return "—";
+    if (uid === user?.id) return "Você";
+    const m = members.find((x) => x.user_id === uid);
+    return m?.name || m?.email || "Membro";
+  };
 
   const load = async () => {
     if (!orgId) {
