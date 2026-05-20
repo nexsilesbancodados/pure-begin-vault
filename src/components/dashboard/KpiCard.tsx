@@ -228,6 +228,12 @@ export function KpiCard({
     }
   };
 
+  const labelLower = label.toLowerCase();
+  const useSalesModal =
+    labelLower.includes("vendas") ||
+    labelLower.includes("faturamento") ||
+    labelLower.includes("ticket");
+
   return (
     <>
       <button
