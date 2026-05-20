@@ -635,32 +635,97 @@ export function StockList() {
         )}
       </div>
 
-      {/* KPIs (compact) */}
+      {/* KPIs (compact, clicáveis) */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: "Itens", value: totalStats.totalItems, color: "text-primary", bg: "bg-primary/10" },
           {
+            key: "all",
+            label: "Itens",
+            value: totalStats.totalItems,
+            color: "text-primary",
+            bg: "bg-primary/10",
+            apply: () => {
+              setViewTab("all");
+              setColFilters((f) => ({ ...f, availability: "all" }));
+              setOnlyCurrent(false);
+              setOnlyNfe(false);
+            },
+          },
+          {
+            key: "value",
             label: "Venda estimada",
             value: totalStats.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
             color: "text-emerald-600",
             bg: "bg-emerald-500/10",
+            apply: () => {
+              setViewTab("all");
+              setColFilters((f) => ({ ...f, availability: "available" }));
+              setOnlyCurrent(true);
+            },
           },
           {
+            key: "cost",
             label: "Custo total",
             value: totalStats.totalCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
             color: "text-info",
             bg: "bg-info/10",
+            apply: () => {
+              setViewTab("all");
+              setColFilters((f) => ({ ...f, availability: "available" }));
+              setOnlyCurrent(true);
+            },
           },
-          { label: "Estoque baixo", value: totalStats.lowStock, color: "text-amber-600", bg: "bg-amber-500/10" },
-          { label: "Esgotados", value: totalStats.outOfStock, color: "text-destructive", bg: "bg-destructive/10" },
-        ].map((k, i) => (
-          <div key={i} className={`rounded-xl ${k.bg} border border-border px-4 py-3`}>
-            <div className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-              {k.label}
-            </div>
-            <div className={`text-lg font-black mt-1 ${k.color} truncate`}>{k.value || 0}</div>
-          </div>
-        ))}
+          {
+            key: "low",
+            label: "Estoque baixo",
+            value: totalStats.lowStock,
+            color: "text-amber-600",
+            bg: "bg-amber-500/10",
+            apply: () => {
+              setViewTab("low");
+              setColFilters((f) => ({ ...f, availability: "available" }));
+              setOnlyCurrent(true);
+            },
+          },
+          {
+            key: "out",
+            label: "Esgotados",
+            value: totalStats.outOfStock,
+            color: "text-destructive",
+            bg: "bg-destructive/10",
+            apply: () => {
+              setViewTab("out");
+              setOnlyCurrent(false);
+              setOnlyNfe(false);
+              setColFilters((f) => ({ ...f, availability: "out" }));
+            },
+          },
+        ].map((k) => {
+          const active =
+            (k.key === "out" && (viewTab === "out" || colFilters.availability === "out")) ||
+            (k.key === "low" && viewTab === "low") ||
+            (k.key === "all" &&
+              viewTab === "all" &&
+              colFilters.availability === "all" &&
+              !onlyCurrent);
+          return (
+            <button
+              key={k.key}
+              type="button"
+              onClick={k.apply}
+              className={`text-left rounded-xl ${k.bg} border px-4 py-3 transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                active ? "border-primary/60 ring-1 ring-primary/30" : "border-border"
+              }`}
+              aria-pressed={active}
+              title={`Filtrar por ${k.label}`}
+            >
+              <div className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                {k.label}
+              </div>
+              <div className={`text-lg font-black mt-1 ${k.color} truncate`}>{k.value || 0}</div>
+            </button>
+          );
+        })}
       </div>
 
       {/* Table */}
