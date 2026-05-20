@@ -3033,6 +3033,8 @@ export type Database = {
       }
       tasks: {
         Row: {
+          assigned_to: string | null
+          board_order: number
           created_at: string
           description: string | null
           due_date: string | null
@@ -3046,6 +3048,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_to?: string | null
+          board_order?: number
           created_at?: string
           description?: string | null
           due_date?: string | null
@@ -3059,6 +3063,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_to?: string | null
+          board_order?: number
           created_at?: string
           description?: string | null
           due_date?: string | null
