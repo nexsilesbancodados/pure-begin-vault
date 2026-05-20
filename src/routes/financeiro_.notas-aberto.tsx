@@ -1072,12 +1072,40 @@ function NotasAbertoPage() {
             </div>
           </div>
 
+          {/* Kind tabs: Compra | Venda */}
+          <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border w-fit">
+            {(
+              [
+                { v: "compra" as const, l: "Notas de Compra", c: notas.filter((n) => (n.kind ?? "compra") === "compra").length },
+                { v: "venda" as const, l: "Notas de Venda", c: notas.filter((n) => n.kind === "venda").length },
+              ]
+            ).map((t) => {
+              const active = kindTab === t.v;
+              return (
+                <button
+                  key={t.v}
+                  onClick={() => setKindTab(t.v)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                    active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t.v === "venda" ? <ShoppingCart className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                  {t.l}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    {t.c}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* KPIs */}
-          {notas.length > 0 &&
+          {notas.filter((n) => (n.kind ?? "compra") === kindTab).length > 0 &&
             (() => {
-              const totalNotas = notas.length;
-              const emAberto = notas.filter((n) => !n.paga);
-              const pagas = notas.filter((n) => n.paga);
+              const scoped = notas.filter((n) => (n.kind ?? "compra") === kindTab);
+              const totalNotas = scoped.length;
+              const emAberto = scoped.filter((n) => !n.paga);
+              const pagas = scoped.filter((n) => n.paga);
               const valorAberto = emAberto.reduce((s, n) => s + n.total, 0);
               const today = new Date();
               today.setHours(0, 0, 0, 0);
