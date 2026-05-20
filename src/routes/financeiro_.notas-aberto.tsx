@@ -1322,9 +1322,15 @@ function NotasAbertoPage() {
                           {/* Metadata */}
                           <div className="space-y-1.5 text-xs">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <Building2 className="h-3.5 w-3.5 shrink-0" />
+                              {n.kind === "venda" ? (
+                                <User className="h-3.5 w-3.5 shrink-0" />
+                              ) : (
+                                <Building2 className="h-3.5 w-3.5 shrink-0" />
+                              )}
                               <span className="truncate">
-                                {n.fornecedor || "Fornecedor não informado"}
+                                {n.kind === "venda"
+                                  ? n.customerName || "Cliente não informado"
+                                  : n.fornecedor || "Fornecedor não informado"}
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5 text-muted-foreground">
