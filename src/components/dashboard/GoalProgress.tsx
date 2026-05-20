@@ -157,6 +157,7 @@ export function GoalProgress({
   const [goals, setGoals] = useState(initialGoalState);
   const [editGoals, setEditGoals] = useState(initialGoalState);
   const [stats, setStats] = useState({ units: 0 });
+  const [weekly, setWeekly] = useState<{ label: string; units: number; isCurrent: boolean }[]>([]);
   const [baseline, setBaseline] = useState<{ value: number; at: string }>({ value: 0, at: "" });
 
   useEffect(() => {
