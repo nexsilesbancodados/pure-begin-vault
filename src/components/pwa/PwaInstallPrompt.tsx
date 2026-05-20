@@ -14,7 +14,12 @@ export function PwaInstallPrompt() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const isPreviewHost = window.location.hostname.includes("lovableproject.com");
+    const host = window.location.hostname;
+    const isPreviewHost =
+      host.includes("lovableproject.com") ||
+      host.includes("lovable.app") ||
+      host === "localhost" ||
+      host === "127.0.0.1";
 
     if (isPreviewHost) {
       navigator.serviceWorker
@@ -23,8 +28,13 @@ export function PwaInstallPrompt() {
           registrations.forEach((registration) => registration.unregister());
         })
         .catch(() => {});
+      // Limpa caches antigos do SW para evitar bundles obsoletos no preview
+      if (typeof caches !== "undefined") {
+        caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+      }
       return;
     }
+
 
     if ("serviceWorker" in navigator && import.meta.env.PROD) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
