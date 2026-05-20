@@ -506,7 +506,10 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
     else if (amount <= 0) errors.push("valor deve ser maior que zero");
   }
 
-  const customerName = get("customer") ? String(get("customer")).trim() : undefined;
+  const supplierRaw = get("supplier");
+  const customerName = (get("customer") ? String(get("customer")).trim() : undefined)
+    || (supplierRaw ? String(supplierRaw).trim() : undefined);
+  const supplierName = supplierRaw ? String(supplierRaw).trim() : undefined;
   const customerPhone = get("customer_phone") ? String(get("customer_phone")).trim() : undefined;
   const customerEmail = get("customer_email") ? String(get("customer_email")).trim() : undefined;
   const customerDocRaw = get("customer_document");
@@ -517,6 +520,15 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
   const productSku = get("product_sku") ? String(get("product_sku")).trim() : undefined;
   const qtyRaw = get("quantity");
   const productQty = qtyRaw != null && qtyRaw !== "" ? Number(parseCurrency(qtyRaw)) || 1 : 1;
+
+  const paidAmountRaw = get("paid_amount");
+  const paidAmount = paidAmountRaw != null && paidAmountRaw !== ""
+    ? Math.abs(parseCurrency(paidAmountRaw))
+    : undefined;
+  const documentNumber = get("document_number") ? String(get("document_number")).trim() : undefined;
+  const installments = get("installments") ? String(get("installments")).trim() : undefined;
+  // Se forneceu data de pagamento, força status "pago" (a menos que status explícito diga o contrário)
+  const explicitStatus = get("status");
 
   if (kind === "estoque" && !productName) {
     errors.push("nome do produto obrigatório");
