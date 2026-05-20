@@ -1942,6 +1942,17 @@ function NotasAbertoPage() {
         product={editingProduct}
         onSave={handleSaveProduct}
       />
+      <SalesNoteModal
+        open={salesOpen}
+        onOpenChange={setSalesOpen}
+        orgId={orgId ?? null}
+        userId={userId ?? null}
+        nextNoteNumber={(notas.reduce((m, n) => Math.max(m, n.noteNumber), 0) || 0) + 1}
+        onCreated={() => {
+          setSalesOpen(false);
+          void loadNotes({ silent: true });
+        }}
+      />
     </div>
   );
 }
