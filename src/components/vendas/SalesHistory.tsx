@@ -1872,13 +1872,28 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
               </DialogTitle>
               <DialogDescription>Confira o recibo antes de imprimir.</DialogDescription>
             </div>
-            <Button
-              disabled={!receiptData || receiptLoading}
-              onClick={() => void printReceiptArea(receiptMode)}
-              className="rounded-xl font-bold gap-2"
-            >
-              <Printer className="h-4 w-4" /> Imprimir
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                disabled={!receiptData || receiptLoading}
+                onClick={() => {
+                  const label = receiptData?.sale?.sale_number
+                    ? String(receiptData.sale.sale_number)
+                    : String(receiptData?.sale?.id || "venda").slice(0, 8);
+                  void downloadReceiptAsPdf(receiptMode, label);
+                }}
+                className="rounded-xl font-bold gap-2"
+              >
+                <Download className="h-4 w-4" /> Baixar PDF
+              </Button>
+              <Button
+                disabled={!receiptData || receiptLoading}
+                onClick={() => void printReceiptArea(receiptMode)}
+                className="rounded-xl font-bold gap-2"
+              >
+                <Printer className="h-4 w-4" /> Imprimir
+              </Button>
+            </div>
           </div>
           <div className="max-h-[calc(92vh-73px)] overflow-auto bg-muted/40 p-4 print:max-h-none print:overflow-visible print:bg-white print:p-0">
             {receiptLoading ? (
