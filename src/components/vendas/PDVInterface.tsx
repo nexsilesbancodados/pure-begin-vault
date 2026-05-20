@@ -43,6 +43,7 @@ import {
   Check,
   Wallet,
   Landmark,
+  Smartphone,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Product } from "@/lib/mock";
