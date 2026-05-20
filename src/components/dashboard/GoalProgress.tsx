@@ -505,6 +505,7 @@ export function GoalProgress({
                 </div>
               </div>
             </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </>
