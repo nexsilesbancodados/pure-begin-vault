@@ -41,10 +41,12 @@ export function DailyTasksColumn({
   date,
   orgId,
   ownerOnlyForUserId,
+  readOnly = false,
 }: {
   date: Date;
   orgId: string | null;
   ownerOnlyForUserId?: string;
+  readOnly?: boolean;
 }) {
   const { user } = useAuth();
   const fetchMembers = useServerFn(listOrgMembers);
