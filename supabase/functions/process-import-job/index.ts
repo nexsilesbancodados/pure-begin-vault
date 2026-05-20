@@ -262,6 +262,8 @@ async function processJob(supabase: any, jobId: string) {
             const { data } = await supabase.from("customers").insert(c.map((x) => ({
               organization_id: orgId, user_id: userId,
               name: x.name, phone: x.phone || null, email: x.email || null, document: x.document || null,
+              address: x.address || null, city: x.city || null,
+              notes: [x.neighborhood ? `Bairro: ${x.neighborhood}` : null, x.birthdate ? `Nascimento: ${x.birthdate}` : null].filter(Boolean).join(" · ") || null,
             }))).select("id,name,document");
             (data || []).forEach((rec: any, i: number) => {
               c[i].keys.forEach((k) => customerIdByAlias.set(k, rec.id));
