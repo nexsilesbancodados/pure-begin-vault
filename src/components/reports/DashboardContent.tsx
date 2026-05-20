@@ -438,8 +438,9 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             { label: "Saídas (caixa)", value: fmtBRL(e.caixaExpense), tone: "warning" },
           ],
         );
-      case "vendas":
       case "vendas-relatorio":
+        return <SalesReportTable />;
+      case "vendas":
       case "vendas-historico":
       case "vendas-projecoes":
       case "vendas-produtos":
