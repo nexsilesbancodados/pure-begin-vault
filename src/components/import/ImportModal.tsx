@@ -646,8 +646,8 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
 
   const handleFile = async (f: File) => {
     const ext = f.name.split(".").pop()?.toLowerCase();
-    if (!["csv", "xlsx", "xls"].includes(ext || "")) {
-      toast.error("Formato inválido. Use CSV ou Excel.");
+    if (!["csv", "xlsx", "xls", "pdf"].includes(ext || "")) {
+      toast.error("Formato inválido. Use CSV, Excel ou PDF.");
       return;
     }
     if (f.size > 10 * 1024 * 1024) {
@@ -656,7 +656,34 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
     }
     setFile(f);
     try {
-      const parsed = await processFile(f, kind);
+      let parsed: { rows: ParsedRow[]; hmap: Record<string, string>; headers: string[]; raw: any[] };
+      if (ext === "pdf") {
+        toast.info("Lendo PDF com IA, isso pode levar alguns segundos...");
+        const b64 = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => {
+            const s = (r.result as string) || "";
+            resolve(s.split(",")[1] || "");
+          };
+          r.onerror = reject;
+          r.readAsDataURL(f);
+        });
+        const { data, error } = await (supabase as any).functions.invoke("parse-import-pdf", {
+          body: { fileBase64: b64, fileName: f.name, kind },
+        });
+        if (error) throw new Error(error.message || "Falha ao processar PDF");
+        const json: any[] = data?.rows || [];
+        if (json.length === 0) {
+          toast.error("Nenhum registro encontrado no PDF.");
+          return;
+        }
+        const hmap = buildHeaderMap(json[0], kind);
+        const headers = Object.keys(json[0]);
+        const rowsP = json.map((r, i) => parseRow(r, hmap, i, kind));
+        parsed = { rows: rowsP, hmap, headers, raw: json };
+      } else {
+        parsed = await processFile(f, kind);
+      }
       if (parsed.rows.length === 0) {
         toast.error("Arquivo vazio ou sem registros válidos.");
         return;
