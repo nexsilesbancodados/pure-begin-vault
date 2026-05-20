@@ -47,31 +47,82 @@ interface GoalProgressProps {
 
 const COMPLETED_STATUSES = ["completed", "concluded", "paid"];
 const DEVICE_CATEGORY_TERMS = ["smartphone", "celular", "celulares", "aparelho", "aparelhos"];
-const DEVICE_NAME_TERMS = ["iphone", "galaxy", "samsung", "xiaomi", "redmi", "motorola", "moto g", "poco", "realme"];
-const ACCESSORY_TERMS = ["capa", "película", "pelicula", "carregador", "cabo", "fone", "airpod", "airpods", "serviço", "servico", "mão de obra", "mao de obra"];
+const DEVICE_NAME_TERMS = [
+  "iphone",
+  "galaxy",
+  "samsung",
+  "xiaomi",
+  "redmi",
+  "motorola",
+  "moto g",
+  "poco",
+  "realme",
+];
+const ACCESSORY_TERMS = [
+  "capa",
+  "película",
+  "pelicula",
+  "carregador",
+  "cabo",
+  "fone",
+  "airpod",
+  "airpods",
+  "serviço",
+  "servico",
+  "mão de obra",
+  "mao de obra",
+];
 
-const normalizeText = (value: unknown) => String(value || "").trim().toLowerCase();
+type Metadata = Record<string, unknown>;
+type SaleRow = { id: string };
+type SaleItemRow = {
+  sale_id: string | null;
+  product_id: string | null;
+  product_name: string | null;
+  quantity: number | string | null;
+  imei: string | null;
+  metadata: Metadata | null;
+};
+type ProductRow = {
+  id: string;
+  name: string | null;
+  category: string | null;
+  model: string | null;
+  metadata: Metadata | null;
+};
 
-const isDeviceItem = (item: any, product?: any) => {
+const normalizeText = (value: unknown) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const isDeviceItem = (item: SaleItemRow, product?: ProductRow) => {
   const category = normalizeText(product?.category || item?.category);
   if (category) return DEVICE_CATEGORY_TERMS.some((term) => category.includes(term));
 
   const metadata = item?.metadata && typeof item.metadata === "object" ? item.metadata : {};
-  const searchable = normalizeText([
-    item?.product_name,
-    product?.name,
-    product?.model,
-    metadata.model,
-    metadata.imei,
-    metadata.IMEI,
-    metadata.imei1,
-    metadata.capacity,
-    metadata.battery_health,
-  ].filter(Boolean).join(" "));
+  const searchable = normalizeText(
+    [
+      item?.product_name,
+      product?.name,
+      product?.model,
+      metadata.model,
+      metadata.imei,
+      metadata.IMEI,
+      metadata.imei1,
+      metadata.capacity,
+      metadata.battery_health,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
 
   if (!searchable) return false;
   if (ACCESSORY_TERMS.some((term) => searchable.includes(term))) return false;
-  return DEVICE_NAME_TERMS.some((term) => searchable.includes(term)) || Boolean(metadata.imei || metadata.IMEI || metadata.imei1);
+  return (
+    DEVICE_NAME_TERMS.some((term) => searchable.includes(term)) ||
+    Boolean(metadata.imei || metadata.IMEI || metadata.imei1)
+  );
 };
 
 export function GoalProgress({
