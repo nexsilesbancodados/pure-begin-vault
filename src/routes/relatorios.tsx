@@ -519,7 +519,7 @@ function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.id, orgId, profile?.display_name]);
+  }, [user?.id, orgId, profile?.display_name, computeRange]);
 
   useEffect(() => {
     fetchReportsData();
