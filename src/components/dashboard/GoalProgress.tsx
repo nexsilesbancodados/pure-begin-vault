@@ -341,9 +341,12 @@ export function GoalProgress({
       toast.error("Usuário ou organização não identificados");
       return;
     }
+    if (!canEdit) {
+      toast.error("Apenas administradores podem editar a meta");
+      return;
+    }
     setIsLoading(true);
     try {
-      // Find existing goal for this org to update it, or it will create a new one
       const { data: existingGoal } = await supabase
         .from("business_goals")
         .select("id")
@@ -373,6 +376,17 @@ export function GoalProgress({
 
       if (error) throw error;
 
+      // Persiste baseline (quantidade inicial estipulada pelo admin) no localStorage da loja
+      const prevBaseline = baseline.value;
+      const newBaseline = Number(editGoals.baseline) || 0;
+      if (newBaseline !== prevBaseline) {
+        const next = { value: newBaseline, at: new Date().toISOString() };
+        if (typeof window !== "undefined" && baselineKey) {
+          window.localStorage.setItem(baselineKey, JSON.stringify(next));
+        }
+        setBaseline(next);
+      }
+
       setGoals({ ...editGoals });
       setIsModalOpen(false);
       toast.success("Metas atualizadas com sucesso!");
@@ -386,7 +400,7 @@ export function GoalProgress({
     }
   };
 
-  const effectiveUnits = stats.units;
+  const effectiveUnits = baseline.value + stats.units;
   const currentDisplay = effectiveUnits;
   const pct = Math.min(100, Math.round((currentDisplay / (goals.monthly || 1)) * 100)) || 0;
   const projection = Math.round((effectiveUnits / (new Date().getDate() || 1)) * 30);
