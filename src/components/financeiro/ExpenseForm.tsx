@@ -892,6 +892,8 @@ function DetailRow({
       </div>
     </div>
   );
+}
+
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
