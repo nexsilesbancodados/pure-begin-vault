@@ -53,12 +53,14 @@ export function GoalProgress({
   const { user } = useAuth();
   const { orgId } = useOrg();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"overview" | "settings">("overview");
   const [isLoading, setIsLoading] = useState(false);
+  const [period, setPeriod] = useState<"month" | "last_month" | "last30" | "year">("month");
   const initialGoalState = {
     daily: 0,
     weekly: 0,
-    monthly: initialGoal,
-    type: "revenue" as "revenue" | "units" | "profit",
+    monthly: 100,
+    type: "units" as const,
     goal_name: "",
     start_date: new Date().toISOString().split("T")[0],
     end_date: "",
@@ -66,7 +68,7 @@ export function GoalProgress({
   };
   const [goals, setGoals] = useState(initialGoalState);
   const [editGoals, setEditGoals] = useState(initialGoalState);
-  const [stats, setStats] = useState({ revenue: 0, units: 0, profit: 0, avgTicket: 0 });
+  const [stats, setStats] = useState({ units: 0 });
 
   useEffect(() => {
     if (user?.id) fetchGoals();
@@ -74,7 +76,7 @@ export function GoalProgress({
 
   useEffect(() => {
     if (user?.id && orgId) fetchStats();
-  }, [user?.id, orgId]);
+  }, [user?.id, orgId, period]);
 
   const fetchGoals = async () => {
     if (!user?.id || !orgId) return;
