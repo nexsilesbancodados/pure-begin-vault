@@ -145,6 +145,9 @@ interface PurchaseNoteRow {
   data_compra: string | null;
   paga: boolean | null;
   prazo_pagamento: string | null;
+  kind?: string | null;
+  customer_name?: string | null;
+  sale_ids?: string[] | null;
 }
 
 interface ProductFormValues {
