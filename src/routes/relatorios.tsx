@@ -50,6 +50,10 @@ import {
   UserCircle,
   Briefcase,
   Facebook,
+  Search,
+  X,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
