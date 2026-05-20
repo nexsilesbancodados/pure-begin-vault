@@ -273,17 +273,17 @@ export function GoalProgress({
 
           <div className="flex-1 min-w-0 space-y-3">
             <div>
-              <div className="text-[11px] text-muted-foreground">Realizado</div>
+              <div className="text-[11px] text-muted-foreground">Aparelhos vendidos</div>
               <div className="text-lg font-bold font-display truncate">
-                {goals.type === "units" ? `${stats.units} un.` : stats.revenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                {stats.units} <span className="text-muted-foreground text-sm font-medium">/ {goals.monthly} un.</span>
               </div>
             </div>
             <div className="pt-2 border-t border-border">
               <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <PieChart className="h-3 w-3" /> Lucro Est.
+                <Package className="h-3 w-3" /> Faltam para meta
               </div>
-              <div className="text-[13px] font-semibold text-emerald-600 truncate">
-                {stats.profit.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+              <div className="text-[13px] font-semibold text-primary truncate">
+                {remaining} un.
               </div>
             </div>
           </div>
@@ -291,17 +291,45 @@ export function GoalProgress({
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[650px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
-          <Tabs defaultValue="overview" className="w-full">
+        <DialogContent className="sm:max-w-[680px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
             <div className="bg-gradient-to-br from-primary/10 via-background to-background p-6 pb-0">
               <DialogHeader className="mb-4">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                    <Trophy className="h-6 w-6 text-primary-foreground" />
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                      <Trophy className="h-6 w-6 text-primary-foreground" />
+                    </div>
+                    <div>
+                      <DialogTitle className="text-2xl font-black tracking-tight">Análise de Metas</DialogTitle>
+                      <DialogDescription className="font-medium">Meta de aparelhos vendidos por período.</DialogDescription>
+                    </div>
                   </div>
-                  <div>
-                    <DialogTitle className="text-2xl font-black tracking-tight">Análise de Metas</DialogTitle>
-                    <DialogDescription className="font-medium">Gestão integrada de vendas, faturamento e lucratividade.</DialogDescription>
+                  <div className="flex items-center gap-2">
+                    <div className="hidden sm:flex items-center gap-1.5 text-muted-foreground">
+                      <Filter className="h-4 w-4" />
+                    </div>
+                    <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+                      <SelectTrigger className="h-9 w-[150px] rounded-xl text-xs font-bold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="month">Este mês</SelectItem>
+                        <SelectItem value="last_month">Mês passado</SelectItem>
+                        <SelectItem value="last30">Últimos 30 dias</SelectItem>
+                        <SelectItem value="year">Este ano</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setEditGoals(initialGoalState);
+                        setActiveTab("settings");
+                      }}
+                      className="h-9 rounded-xl font-bold gap-1.5"
+                    >
+                      <Plus className="h-4 w-4" /> Adicionar Meta
+                    </Button>
                   </div>
                 </div>
               </DialogHeader>
@@ -313,54 +341,55 @@ export function GoalProgress({
 
             <TabsContent value="overview" className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Main Progress Cards */}
                 <div className="space-y-4">
-                  {[
-                    { label: "Vendas Concluídas", value: stats.units, goal: goals.type === "units" ? goals.monthly : null, unit: "un.", icon: Package, color: "bg-blue-500", progress: goals.type === "units" ? pct : Math.min(100, (stats.units / 100) * 100) },
-                    { label: "Faturamento Total", value: stats.revenue, goal: goals.type === "revenue" ? goals.monthly : null, icon: DollarSign, color: "bg-emerald-500", progress: goals.type === "revenue" ? pct : Math.min(100, (stats.revenue / 50000) * 100) },
-                    { label: "Lucro Estimado (30%)", value: stats.profit, goal: goals.type === "profit" ? goals.monthly : null, icon: PieChart, color: "bg-amber-500", progress: goals.type === "profit" ? pct : Math.min(100, (stats.profit / 15000) * 100) },
-                  ].map((m) => (
-                    <div key={m.label} className="p-4 rounded-2xl bg-card border border-border shadow-sm group hover:border-primary/50 transition-colors">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className={`p-2 rounded-xl ${m.color}/10 ${m.color.replace('bg-', 'text-')}`}>
-                            <m.icon className="h-4 w-4" />
-                          </div>
-                          <span className="text-[12px] font-bold text-muted-foreground">{m.label}</span>
+                  <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
+                          <Package className="h-4 w-4" />
                         </div>
-                        <div className="text-right">
-                          <div className="text-lg font-black">{m.unit ? `${m.value} ${m.unit}` : m.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
-                        </div>
+                        <span className="text-[12px] font-bold text-muted-foreground">Aparelhos Vendidos</span>
                       </div>
-                      <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                        <div className={`h-full ${m.color} transition-all duration-1000`} style={{ width: `${m.progress}%` }} />
+                      <div className="text-right">
+                        <div className="text-lg font-black">{stats.units} un.</div>
                       </div>
-                      {m.goal && (
-                        <div className="flex justify-between mt-2 text-[10px] font-bold uppercase tracking-wider">
-                          <span className="text-muted-foreground">Progresso</span>
-                          <span className="text-primary">{m.progress}% da meta</span>
-                        </div>
-                      )}
                     </div>
-                  ))}
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="flex justify-between mt-2 text-[10px] font-bold uppercase tracking-wider">
+                      <span className="text-muted-foreground">Progresso</span>
+                      <span className="text-primary">{pct}% de {goals.monthly} un.</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target className="h-4 w-4 text-primary" />
+                      <span className="text-[12px] font-bold text-muted-foreground">Faltam para bater a meta</span>
+                    </div>
+                    <div className="text-2xl font-black">{remaining} un.</div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Ritmo necessário: {Math.ceil(remaining / Math.max(1, daysInMonth - dayOfMonth))} un./dia
+                    </p>
+                  </div>
                 </div>
 
-                {/* Insights and Calculations */}
                 <div className="space-y-4">
                   <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center gap-2 text-primary mb-3">
                         <Calculator className="h-5 w-5" />
-                        <h4 className="font-bold text-sm">Insights do Mês</h4>
+                        <h4 className="font-bold text-sm">Insights do Período</h4>
                       </div>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground font-medium">Ticket Médio</span>
-                          <span className="font-bold">{stats.avgTicket.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                          <span className="text-xs text-muted-foreground font-medium">Média diária</span>
+                          <span className="font-bold">{(stats.units / (dayOfMonth || 1)).toFixed(1)} un.</span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground font-medium">Projeção Final</span>
-                          <span className="font-bold">{(stats.revenue / (dayOfMonth || 1) * daysInMonth).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                          <span className="text-xs text-muted-foreground font-medium">Projeção final</span>
+                          <span className="font-bold">{projection} un.</span>
                         </div>
                       </div>
                     </div>
@@ -370,9 +399,9 @@ export function GoalProgress({
                         {onTrack ? <CheckCircle2 className="h-5 w-5" /> : <Rocket className="h-5 w-5" />}
                       </div>
                       <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
-                        {onTrack 
-                          ? "Excelente! Você está acima do ritmo esperado para este dia do mês."
-                          : "Atenção: Para bater sua meta, você precisa acelerar o ritmo de vendas diárias."}
+                        {onTrack
+                          ? "Excelente! Você está acima do ritmo esperado para bater a meta."
+                          : "Atenção: acelere o ritmo de vendas para alcançar a meta no prazo."}
                       </p>
                     </div>
                   </div>
@@ -383,10 +412,10 @@ export function GoalProgress({
                     </h4>
                     <ul className="space-y-2">
                       <li className="text-[11px] text-muted-foreground flex items-center gap-2">
-                        <div className="h-1 w-1 rounded-full bg-primary" /> Aumentar ticket médio em 10%
+                        <div className="h-1 w-1 rounded-full bg-primary" /> Reforçar abordagem em loja
                       </li>
                       <li className="text-[11px] text-muted-foreground flex items-center gap-2">
-                        <div className="h-1 w-1 rounded-full bg-primary" /> Focar em produtos de maior margem
+                        <div className="h-1 w-1 rounded-full bg-primary" /> Aumentar conversão de orçamentos
                       </li>
                     </ul>
                   </div>
@@ -398,51 +427,60 @@ export function GoalProgress({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="text-[13px] font-bold">Métrica de Foco</Label>
-                    <ToggleGroup 
-                      type="single" 
-                      value={editGoals.type} 
-                      onValueChange={(v) => v && setEditGoals({...editGoals, type: v as any})}
-                      className="grid grid-cols-3 gap-2"
-                    >
-                      <ToggleGroupItem value="revenue" className="h-10 rounded-xl border data-[state=on]:bg-primary/10">Vendas R$</ToggleGroupItem>
-                      <ToggleGroupItem value="units" className="h-10 rounded-xl border data-[state=on]:bg-primary/10">Qtd. un</ToggleGroupItem>
-                      <ToggleGroupItem value="profit" className="h-10 rounded-xl border data-[state=on]:bg-primary/10">Lucro R$</ToggleGroupItem>
-                    </ToggleGroup>
+                    <Label className="text-[13px] font-bold">Nome da Meta</Label>
+                    <Input
+                      value={editGoals.goal_name}
+                      onChange={(e) => setEditGoals({ ...editGoals, goal_name: e.target.value })}
+                      placeholder="Ex.: Meta de aparelhos — Novembro"
+                      className="h-10 rounded-xl"
+                    />
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[13px] font-bold">Meta Mensal (Alvo)</Label>
-                    <div className="relative">
-                      {editGoals.type !== "units" && <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">R$</span>}
-                      <Input 
-                        type="number" 
-                        value={editGoals.monthly} 
-                        onChange={(e) => setEditGoals({...editGoals, monthly: Number(e.target.value)})}
-                        className={`h-12 rounded-xl text-lg font-black ${editGoals.type !== "units" ? "pl-11" : "pl-4"}`}
-                      />
-                    </div>
+                    <Label className="text-[13px] font-bold flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" /> Aparelhos vendidos (meta mensal)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={editGoals.monthly}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        setEditGoals({ ...editGoals, monthly: v, daily: Math.round(v / 30), weekly: Math.round(v / 4) });
+                      }}
+                      className="h-12 rounded-xl text-lg font-black"
+                    />
+                    <p className="text-[11px] text-muted-foreground">Quantidade de aparelhos a vender no período.</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-[13px] font-bold">Meta Diária</Label>
-                      <Input 
-                        type="number" 
-                        value={editGoals.daily} 
-                        onChange={(e) => setEditGoals({...editGoals, daily: Number(e.target.value)})}
+                      <Input
+                        type="number"
+                        value={editGoals.daily}
+                        onChange={(e) => setEditGoals({ ...editGoals, daily: Number(e.target.value) })}
                         className="h-10 rounded-xl"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[13px] font-bold">Meta Semanal</Label>
-                      <Input 
-                        type="number" 
-                        value={editGoals.weekly} 
-                        onChange={(e) => setEditGoals({...editGoals, weekly: Number(e.target.value)})}
+                      <Input
+                        type="number"
+                        value={editGoals.weekly}
+                        onChange={(e) => setEditGoals({ ...editGoals, weekly: Number(e.target.value) })}
                         className="h-10 rounded-xl"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold">Prazo (opcional)</Label>
+                    <Input
+                      type="date"
+                      value={editGoals.end_date}
+                      onChange={(e) => setEditGoals({ ...editGoals, end_date: e.target.value })}
+                      className="h-10 rounded-xl"
+                    />
                   </div>
                 </div>
 
@@ -452,11 +490,11 @@ export function GoalProgress({
                     <textarea
                       value={editGoals.notes}
                       onChange={(e) => setEditGoals({ ...editGoals, notes: e.target.value })}
-                      className="w-full min-h-[120px] rounded-2xl border border-border bg-card p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none transition-all"
-                      placeholder="Descreva as estratégias para alcançar estes objetivos..."
+                      className="w-full min-h-[180px] rounded-2xl border border-border bg-card p-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none resize-none transition-all"
+                      placeholder="Descreva as estratégias para alcançar esta meta de aparelhos..."
                     />
                   </div>
-                  
+
                   <div className="flex gap-3 pt-4">
                     <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="flex-1 h-12 rounded-xl font-bold">Cancelar</Button>
                     <Button onClick={handleSave} disabled={isLoading} className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25">
@@ -467,7 +505,6 @@ export function GoalProgress({
                 </div>
               </div>
             </TabsContent>
-          </Tabs>
         </DialogContent>
       </Dialog>
     </>
