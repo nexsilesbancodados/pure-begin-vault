@@ -481,6 +481,36 @@ function NotasAbertoPage() {
     replaceNotas((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch } : n)));
   };
 
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+
+  const removeItemFromNota = async (notaId: string, item: Product) => {
+    const nota = notas.find((n) => n.id === notaId);
+    if (!nota) return;
+    if (!window.confirm(`Remover "${item.name}" desta nota? O estoque será estornado.`))
+      return;
+    setRemovingItemId(item.id);
+    try {
+      // Estorna estoque desse item específico (se for produto real)
+      if (orgId && item.id && !item.id.startsWith("__")) {
+        await syncStockForNotaItems([item], { orgId, userId, notaId, delta: -1 });
+      }
+      const nextItems = nota.items.filter((i) => i.id !== item.id);
+      const nextNota: Nota = {
+        ...nota,
+        items: nextItems,
+        total: getNoteTotal(nextItems),
+        updatedAt: new Date(),
+      };
+      replaceNotas((prev) => prev.map((n) => (n.id === notaId ? nextNota : n)));
+      const ok = await persistNota(nextNota);
+      if (ok) toast.success("Produto removido da nota.");
+    } catch (e) {
+      toast.error("Erro ao remover produto: " + (e as Error).message);
+    } finally {
+      setRemovingItemId(null);
+    }
+  };
+
   const persistNota = useCallback(
     async (nota: Nota) => {
       if (!orgId) return false;
