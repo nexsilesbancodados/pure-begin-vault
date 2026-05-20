@@ -259,12 +259,17 @@ async function processJob(supabase: any, jobId: string) {
           const chunks: CustAcc[][] = [];
           for (let i = 0; i < toCreate.length; i += CHUNK) chunks.push(toCreate.slice(i, i + CHUNK));
           await pool(chunks.map((c) => async () => {
-            const { data } = await supabase.from("customers").insert(c.map((x) => ({
+            const baseRows = c.map((x) => ({
               organization_id: orgId, user_id: userId,
               name: x.name, phone: x.phone || null, email: x.email || null, document: x.document || null,
               address: x.address || null, city: x.city || null,
               notes: [x.neighborhood ? `Bairro: ${x.neighborhood}` : null, x.birthdate ? `Nascimento: ${x.birthdate}` : null].filter(Boolean).join(" · ") || null,
-            }))).select("id,name,document");
+            }));
+            const tagged = baseRows.map((r) => ({ ...r, import_job_id: jobId }));
+            let { data, error } = await supabase.from("customers").insert(tagged).select("id,name,document");
+            if (error && /import_job_id/i.test(error.message)) {
+              ({ data } = await supabase.from("customers").insert(baseRows).select("id,name,document"));
+            }
             (data || []).forEach((rec: any, i: number) => {
               c[i].keys.forEach((k) => customerIdByAlias.set(k, rec.id));
               counters.customers++;
