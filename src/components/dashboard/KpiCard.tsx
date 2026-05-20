@@ -114,30 +114,29 @@ export function KpiCard({
           const { data } = await filterFor(
             supabase
               .from("sales_orders")
-              .select("total_amount, created_at, id, payment_method, channel, customers(name), sale_items(product_name, quantity, unit_price, imei, metadata)")
-              .in("status", ["completed", "concluded"])
-              .in("channel", ["pdv", "import"])
+              .select("total_amount, created_at, id, payment_method, channel, status, customers(name), sale_items(product_name, quantity, unit_price, imei, metadata)")
+              .not("status", "in", "(canceled,cancelled,refunded,voided)")
               .gte("created_at", start.toISOString())
               .lte("created_at", end.toISOString())
               .order("created_at", { ascending: false }),
           );
 
           setSalesData(data || []);
-          const total = (data || []).reduce(
-            (acc: number, curr: any) => acc + (Number(curr.total_amount) || 0),
-            0,
+
+          // KPI value uses strict rules (PDV + Import, concluded only)
+          const strict = (data || []).filter(
+            (s: any) => ["completed", "concluded"].includes(s.status) && ["pdv", "import"].includes(s.channel),
           );
-
-          const pdvTotal = (data || [])
-            .filter((s: any) => s.channel !== 'import')
+          const total = strict.reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
+          const pdvTotal = strict
+            .filter((s: any) => s.channel !== "import")
             .reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
-
-          const importTotal = (data || [])
-            .filter((s: any) => s.channel === 'import')
+          const importTotal = strict
+            .filter((s: any) => s.channel === "import")
             .reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
 
           if (l.includes("ticket")) {
-            const avg = (data || []).length ? total / (data || []).length : 0;
+            const avg = strict.length ? total / strict.length : 0;
             setDisplayValue(avg.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
           } else if (l.includes("vendas") && importTotal > 0) {
             setDisplayValue(`${pdvTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (+${importTotal.toLocaleString("pt-BR")})`);
