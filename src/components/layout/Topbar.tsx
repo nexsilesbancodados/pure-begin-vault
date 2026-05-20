@@ -87,9 +87,12 @@ export function Topbar({
         </div>
       </button>
 
-      <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
+      <div className="flex items-center gap-0.5 sm:gap-2 ml-auto shrink-0">
         <button
           aria-label="Buscar"
+          onClick={() => {
+            window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+          }}
           className="md:hidden h-10 w-10 grid place-items-center rounded-xl hover:bg-muted text-foreground/70"
         >
           <Search className="h-[18px] w-[18px]" />
@@ -107,6 +110,7 @@ export function Topbar({
         >
           <Plus className="h-[18px] w-[18px]" />
         </button>
+
         <button
           onClick={toggle}
           aria-label="Alternar tema"
