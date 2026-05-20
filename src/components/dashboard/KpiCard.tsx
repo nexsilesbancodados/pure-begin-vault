@@ -90,6 +90,7 @@ export function KpiCard({
   const [displayValue, setDisplayValue] = useState(initialValue);
   const [isLoading, setIsLoading] = useState(false);
   const [salesData, setSalesData] = useState<any[]>([]);
+  const [fallbackSales, setFallbackSales] = useState<any[]>([]);
   const [osData, setOsData] = useState<any[]>([]);
   const [stockData, setStockData] = useState<any[]>([]);
   const [leadsData, setLeadsData] = useState<any[]>([]);
