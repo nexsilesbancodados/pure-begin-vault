@@ -341,6 +341,7 @@ export function DayKanbanModal({
     const t = tasks.find((x) => x.id === dragId);
     setDragId(null);
     if (!t || t.status === listId) return;
+    if (guard()) return;
     setTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: listId } : x)));
     const { error } = await supabase.from("tasks").update({ status: listId }).eq("id", t.id);
     if (error) {
@@ -351,6 +352,7 @@ export function DayKanbanModal({
 
   // Create one or more cards (split by newline) for a list
   const createCards = async (listId: string, raw: string) => {
+    if (guard()) return;
     const lines = raw.split("\n").map((s) => s.trim()).filter(Boolean);
     if (lines.length === 0 || !user?.id) return;
     const due = new Date(date);
@@ -371,18 +373,21 @@ export function DayKanbanModal({
   };
 
   const deleteTask = async (id: string) => {
+    if (guard()) return;
     setTasks((p) => p.filter((t) => t.id !== id));
     if (openCard?.id === id) setOpenCard(null);
     await supabase.from("tasks").delete().eq("id", id);
   };
 
   const updateTask = async (id: string, patch: Partial<KanbanTask>) => {
+    if (guard()) return;
     setTasks((p) => p.map((t) => (t.id === id ? { ...t, ...patch } : t)));
     if (openCard?.id === id) setOpenCard((c) => (c ? { ...c, ...patch } : c));
     await supabase.from("tasks").update(patch).eq("id", id);
   };
 
   const togglePriority = (id: string) => {
+    if (guard()) return;
     const current = tasks.find((t) => t.id === id);
     if (!current) return;
     const next = current.priority === "high" ? "low" : current.priority === "low" ? "medium" : "high";
@@ -390,6 +395,7 @@ export function DayKanbanModal({
   };
 
   const addList = () => {
+    if (guard()) return;
     const name = newListName.trim();
     if (!name) return;
     const id = `list_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -402,14 +408,17 @@ export function DayKanbanModal({
   };
 
   const renameList = (id: string, name: string) => {
+    if (guard()) return;
     setLists((p) => p.map((l) => (l.id === id ? { ...l, name: name.trim() || l.name } : l)));
   };
 
   const setListColor = (id: string, color: string) => {
+    if (guard()) return;
     setLists((p) => p.map((l) => (l.id === id ? { ...l, color } : l)));
   };
 
   const deleteList = async (id: string) => {
+    if (guard()) return;
     const items = grouped[id] || [];
     if (items.length > 0) {
       const ok = window.confirm(`Esta lista tem ${items.length} cartão(ões). Excluir tudo?`);
@@ -422,6 +431,7 @@ export function DayKanbanModal({
   };
 
   const clearListCards = async (id: string) => {
+    if (guard()) return;
     const items = grouped[id] || [];
     if (items.length === 0) return;
     if (!window.confirm(`Remover ${items.length} cartão(ões) desta lista?`)) return;
@@ -431,6 +441,7 @@ export function DayKanbanModal({
   };
 
   const clearCompleted = async () => {
+    if (guard()) return;
     const doneIds = lists.filter((l) => isDoneList(l.name)).map((l) => l.id);
     const ids = tasks.filter((t) => doneIds.includes(t.status)).map((t) => t.id);
     if (ids.length === 0) return toast.info("Nenhum cartão concluído");
