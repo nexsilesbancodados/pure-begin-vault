@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImport } from "@/contexts/ImportContext";
 import * as XLSX from "xlsx";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -646,8 +647,8 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
 
   const handleFile = async (f: File) => {
     const ext = f.name.split(".").pop()?.toLowerCase();
-    if (!["csv", "xlsx", "xls"].includes(ext || "")) {
-      toast.error("Formato inválido. Use CSV ou Excel.");
+    if (!["csv", "xlsx", "xls", "pdf"].includes(ext || "")) {
+      toast.error("Formato inválido. Use CSV, Excel ou PDF.");
       return;
     }
     if (f.size > 10 * 1024 * 1024) {
@@ -656,7 +657,34 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
     }
     setFile(f);
     try {
-      const parsed = await processFile(f, kind);
+      let parsed: { rows: ParsedRow[]; hmap: Record<string, string>; headers: string[]; raw: any[] };
+      if (ext === "pdf") {
+        toast.info("Lendo PDF com IA, isso pode levar alguns segundos...");
+        const b64 = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => {
+            const s = (r.result as string) || "";
+            resolve(s.split(",")[1] || "");
+          };
+          r.onerror = reject;
+          r.readAsDataURL(f);
+        });
+        const { data, error } = await (supabase as any).functions.invoke("parse-import-pdf", {
+          body: { fileBase64: b64, fileName: f.name, kind },
+        });
+        if (error) throw new Error(error.message || "Falha ao processar PDF");
+        const json: any[] = data?.rows || [];
+        if (json.length === 0) {
+          toast.error("Nenhum registro encontrado no PDF.");
+          return;
+        }
+        const hmap = buildHeaderMap(json[0], kind);
+        const headers = Object.keys(json[0]);
+        const rowsP = json.map((r, i) => parseRow(r, hmap, i, kind));
+        parsed = { rows: rowsP, hmap, headers, raw: json };
+      } else {
+        parsed = await processFile(f, kind);
+      }
       if (parsed.rows.length === 0) {
         toast.error("Arquivo vazio ou sem registros válidos.");
         return;
@@ -904,7 +932,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                   ref={fileInputRef}
                   type="file"
                   className="hidden"
-                  accept=".csv,.xlsx,.xls"
+                  accept=".csv,.xlsx,.xls,.pdf"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) handleFile(f);
@@ -919,10 +947,10 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                       {isDragging ? "Solte para enviar" : "Arraste ou clique para escolher"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      CSV · XLSX · XLS · até 10MB
+                      CSV · XLSX · XLS · PDF · até 10MB
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
                     <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">
                       .CSV
                     </span>
@@ -931,6 +959,9 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                     </span>
                     <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-warning/10 text-warning border border-warning/20">
                       .XLS
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+                      .PDF
                     </span>
                   </div>
                 </div>
