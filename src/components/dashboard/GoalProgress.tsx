@@ -125,7 +125,7 @@ const isDeviceItem = (item: SaleItemRow, product?: ProductRow) => {
   );
 };
 
-const ADMIN_EMAILS = ["alfatech791@gmail.com", "contato@focussdev.art"];
+const ADMIN_EMAILS = ["alfatech791@gmail.com"];
 
 export function GoalProgress({
   current: parentCurrent,
@@ -134,10 +134,7 @@ export function GoalProgress({
 }: GoalProgressProps) {
   const { user, profile } = useAuth();
   const { orgId } = useOrg();
-  const role = String(profile?.role ?? "").toLowerCase();
-  const canEdit =
-    ADMIN_EMAILS.includes(String(user?.email ?? "").toLowerCase()) ||
-    ["super_admin", "owner", "admin"].includes(role);
+  const canEdit = ADMIN_EMAILS.includes(String(user?.email ?? "").toLowerCase());
   const baselineKey = orgId ? `goal-baseline:${orgId}` : "";
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "settings">("overview");
