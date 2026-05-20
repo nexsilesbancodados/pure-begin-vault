@@ -371,9 +371,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
               {loading ? (
                 <div className="h-7 w-24 bg-muted animate-pulse rounded-md mt-3" />
               ) : (
-                <h3 className="mt-3 text-2xl font-black font-display tracking-tight text-foreground">
+                <h3 className="mt-3 text-xl md:text-2xl font-black font-display tracking-tight text-foreground tabular-nums break-all leading-tight" title={String(it.value)}>
                   {it.value}
                 </h3>
+
               )}
             </div>
           ))}
