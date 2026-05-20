@@ -443,7 +443,7 @@ export function DayKanbanModal({
       onClick={onClose}
     >
       <div
-        className={`bg-gradient-to-br from-sky-50 via-white to-indigo-50 shadow-2xl flex flex-col w-full overflow-hidden ${
+        className={`relative bg-gradient-to-br from-sky-50 via-white to-indigo-50 shadow-2xl flex flex-col w-full overflow-hidden ${
           fullscreen ? "h-full" : "max-w-[1500px] m-3 sm:m-6 rounded-3xl border border-white/60"
         }`}
         onClick={(e) => e.stopPropagation()}
