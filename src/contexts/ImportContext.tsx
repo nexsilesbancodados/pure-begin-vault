@@ -148,15 +148,17 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
   );
 
   // Apaga TODAS as linhas que foram criadas por estes jobs (vendas, itens,
-  // financeiro, receitas e despesas), e só então remove o registro do job.
+  // financeiro, receitas, despesas, estoque, produtos e clientes) e limpa
+  // qualquer cache local relacionado, antes de remover o registro do job.
   const cascadeDelete = useCallback(async (jobIds: string[]) => {
-    if (jobIds.length === 0) return { sales: 0, items: 0, finance: 0, receivable: 0, payable: 0, stock: 0, products: 0 };
+    if (jobIds.length === 0) return { sales: 0, items: 0, finance: 0, receivable: 0, payable: 0, stock: 0, products: 0, customers: 0 };
     const tables = [
       "sale_items",
       "sales_orders",
       "accounts_receivable",
       "accounts_payable",
       "finance_transactions",
+      "customers",
     ] as const;
     const counts: Record<string, number> = {};
     
@@ -195,6 +197,27 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
       })()
     ]);
 
+    // Limpa caches locais (mapeamentos, prévias, arquivos temporários) relacionados a esses jobs
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!k) continue;
+          if (jobIds.some((id) => k.includes(id))) keysToRemove.push(k);
+          if (/^import_(preview|file|payload|tmp)_/.test(k)) keysToRemove.push(k);
+        }
+        keysToRemove.forEach((k) => localStorage.removeItem(k));
+        sessionStorage && Object.keys(sessionStorage).forEach((k) => {
+          if (jobIds.some((id) => k.includes(id)) || /^import_/.test(k)) sessionStorage.removeItem(k);
+        });
+      }
+      // Notifica outras telas (dashboard, financeiro, estoque) para revalidarem
+      window.dispatchEvent(new CustomEvent("import:deleted", { detail: { jobIds } }));
+    } catch (e) {
+      console.warn("cache cleanup:", e);
+    }
+
     return {
       sales: counts.sales_orders || 0,
       items: counts.sale_items || 0,
@@ -203,6 +226,7 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
       payable: counts.accounts_payable || 0,
       stock: counts.stock || 0,
       products: counts.products || 0,
+      customers: counts.customers || 0,
     };
   }, []);
 
