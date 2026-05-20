@@ -22,6 +22,10 @@ type Row = {
   customer_phone?: string;
   customer_email?: string;
   customer_document?: string;
+  customer_birthdate?: string;
+  customer_address?: string;
+  customer_neighborhood?: string;
+  customer_city?: string;
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
@@ -201,7 +205,7 @@ async function processJob(supabase: any, jobId: string) {
 
       // 1) CUSTOMERS
       await supabase.from("import_jobs").update({ step: "customers" }).eq("id", jobId);
-      type CustAcc = { name: string; phone?: string; email?: string; document?: string; keys: Set<string> };
+      type CustAcc = { name: string; phone?: string; email?: string; document?: string; address?: string; city?: string; neighborhood?: string; birthdate?: string; keys: Set<string> };
       const customerMap = new Map<string, CustAcc>();
       const aliasToKey = new Map<string, string>();
       for (const r of rows) {
@@ -216,12 +220,16 @@ async function processJob(supabase: any, jobId: string) {
           if (k && customerMap.has(k)) { existing = customerMap.get(k); break; }
         }
         if (!existing) {
-          existing = { name: name || doc || "Cliente", phone: r.customer_phone, email: r.customer_email, document: doc, keys: new Set() };
+          existing = { name: name || doc || "Cliente", phone: r.customer_phone, email: r.customer_email, document: doc, address: r.customer_address, city: r.customer_city, neighborhood: r.customer_neighborhood, birthdate: r.customer_birthdate, keys: new Set() };
           customerMap.set(primary, existing);
         }
         if (!existing.phone && r.customer_phone) existing.phone = r.customer_phone;
         if (!existing.email && r.customer_email) existing.email = r.customer_email;
         if (!existing.document && doc) existing.document = doc;
+        if (!existing.address && r.customer_address) existing.address = r.customer_address;
+        if (!existing.city && r.customer_city) existing.city = r.customer_city;
+        if (!existing.neighborhood && r.customer_neighborhood) existing.neighborhood = r.customer_neighborhood;
+        if (!existing.birthdate && r.customer_birthdate) existing.birthdate = r.customer_birthdate;
         if (name && existing.name === doc) existing.name = name;
         aliases.forEach((a) => { aliasToKey.set(a, primary); existing!.keys.add(a); });
       }
@@ -254,6 +262,8 @@ async function processJob(supabase: any, jobId: string) {
             const { data } = await supabase.from("customers").insert(c.map((x) => ({
               organization_id: orgId, user_id: userId,
               name: x.name, phone: x.phone || null, email: x.email || null, document: x.document || null,
+              address: x.address || null, city: x.city || null,
+              notes: [x.neighborhood ? `Bairro: ${x.neighborhood}` : null, x.birthdate ? `Nascimento: ${x.birthdate}` : null].filter(Boolean).join(" · ") || null,
             }))).select("id,name,document");
             (data || []).forEach((rec: any, i: number) => {
               c[i].keys.forEach((k) => customerIdByAlias.set(k, rec.id));

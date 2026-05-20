@@ -66,6 +66,10 @@ type ParsedRow = {
   customer_phone?: string;
   customer_email?: string;
   customer_document?: string;
+  customer_birthdate?: string;
+  customer_address?: string;
+  customer_neighborhood?: string;
+  customer_city?: string;
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
@@ -121,6 +125,18 @@ const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
     ],
     customer_email: [
       "email", "e-mail", "mail", "correio"
+    ],
+    customer_birthdate: [
+      "nascimento", "data nascimento", "data de nascimento", "aniversario", "aniversário", "birth", "birthdate", "dt nasc", "nasc"
+    ],
+    customer_address: [
+      "rua", "endereco", "endereço", "logradouro", "address", "av", "avenida", "rua/numero", "rua numero"
+    ],
+    customer_neighborhood: [
+      "bairro", "neighborhood", "distrito", "setor", "quadra"
+    ],
+    customer_city: [
+      "cidade", "city", "municipio", "município", "localidade"
     ],
     product: [
       "produto", "item", "product", "mercadoria", "aparelho", "nome produto"
@@ -512,6 +528,10 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
     customer_phone: customerPhone || undefined,
     customer_email: customerEmail || undefined,
     customer_document: customerDocument,
+    customer_birthdate: get("customer_birthdate") ? String(get("customer_birthdate")).trim() : undefined,
+    customer_address: get("customer_address") ? String(get("customer_address")).trim() : undefined,
+    customer_neighborhood: get("customer_neighborhood") ? String(get("customer_neighborhood")).trim() : undefined,
+    customer_city: get("customer_city") ? String(get("customer_city")).trim() : undefined,
     product_name: productName || undefined,
     product_quantity: productQty,
     product_price: productPrice && !isNaN(productPrice) ? productPrice : undefined,
@@ -1172,6 +1192,10 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                             { field: "customer_document", label: "CPF / CNPJ" },
                             { field: "customer_phone", label: "Telefone" },
                             { field: "customer_email", label: "E-mail" },
+                            { field: "customer_birthdate", label: "Data de Nascimento" },
+                            { field: "customer_address", label: "Rua / Endereço" },
+                            { field: "customer_neighborhood", label: "Bairro" },
+                            { field: "customer_city", label: "Cidade" },
                           ],
                         },
                         {
