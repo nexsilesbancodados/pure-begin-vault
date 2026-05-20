@@ -161,6 +161,7 @@ export function GoalProgress({
     weekIdx: -1,
   });
   const weeklyBaselineKey = orgId ? `goal-weekly-baseline:${orgId}` : "";
+  const weeklyOverrideKey = orgId ? `goal-weekly-override:${orgId}` : "";
 
   useEffect(() => {
     if (!baselineKey || typeof window === "undefined") return;
@@ -206,9 +207,14 @@ export function GoalProgress({
 
     if (data) {
       const target = Number(data.target_value) || 100;
+      let weeklyOverride = 0;
+      if (typeof window !== "undefined" && weeklyOverrideKey) {
+        const raw = window.localStorage.getItem(weeklyOverrideKey);
+        if (raw) weeklyOverride = Number(raw) || 0;
+      }
       const fetchedGoals = {
-        daily: target / 30,
-        weekly: target / 4,
+        daily: Math.round(target / 30),
+        weekly: weeklyOverride > 0 ? weeklyOverride : Math.round(target / 4),
         monthly: target,
         type: "units" as const,
         goal_name: data.title || "",
@@ -474,6 +480,13 @@ export function GoalProgress({
         setBaseline(next);
       }
 
+      // Persiste meta semanal manual (sobrescreve o cálculo mensal/4)
+      if (typeof window !== "undefined" && weeklyOverrideKey) {
+        const w = Math.max(0, Number(editGoals.weekly) || 0);
+        if (w > 0) window.localStorage.setItem(weeklyOverrideKey, String(w));
+        else window.localStorage.removeItem(weeklyOverrideKey);
+      }
+
       setGoals({ ...editGoals });
       setIsModalOpen(false);
       toast.success("Metas atualizadas com sucesso!");
@@ -611,7 +624,8 @@ export function GoalProgress({
         </div>
 
         {weekly.length > 0 && (() => {
-          const weeklyGoal = Math.max(1, Math.round((goals.monthly || 0) / weekly.length));
+          const fallbackWeekly = Math.max(1, Math.round((goals.monthly || 0) / weekly.length));
+          const weeklyGoal = goals.weekly && goals.weekly > 0 ? goals.weekly : fallbackWeekly;
           const currentIdx = weekly.findIndex((w) => w.isCurrent);
           const autoUnits = currentIdx >= 0 ? weekly[currentIdx].units : 0;
           const baseUnits =
@@ -980,12 +994,16 @@ export function GoalProgress({
                       <Label className="text-[13px] font-bold">Meta Semanal</Label>
                       <Input
                         type="number"
+                        min={0}
                         value={editGoals.weekly}
                         onChange={(e) =>
                           setEditGoals({ ...editGoals, weekly: Number(e.target.value) })
                         }
                         className="h-10 rounded-xl"
                       />
+                      <p className="text-[10px] text-muted-foreground">
+                        Sobrescreve o cálculo automático (mensal ÷ semanas).
+                      </p>
                     </div>
                   </div>
 
