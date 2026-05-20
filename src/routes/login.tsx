@@ -58,6 +58,25 @@ function Login() {
   const [shake, setShake] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
 
+  const showLoginError = (message: string) => {
+    setError(message);
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
+    setLoading(false);
+  };
+
+  const readableAuthError = (message?: string) => {
+    const msg = (message ?? "").toLowerCase();
+    if (msg.includes("invalid") || msg.includes("credentials")) {
+      return "E-mail ou senha incorretos. Verifique seus dados e tente novamente.";
+    }
+    if (msg.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
+    if (msg.includes("too many") || msg.includes("rate")) {
+      return "Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.";
+    }
+    return message ?? "Não foi possível entrar agora. Tente novamente.";
+  };
+
   // Auto-focus + remember email.
   // Não redireciona automaticamente: quando o usuário acessa /login ou faz Ctrl+Shift+R,
   // a tela de login deve permanecer visível mesmo que exista uma sessão salva no navegador.
@@ -87,7 +106,7 @@ function Login() {
     try {
       const isDevAccount = cleanEmail === "contato@focussdev.art" && password === "senha123";
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password,
       });
@@ -107,50 +126,70 @@ function Login() {
             });
             const retry = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
             if (retry.error) throw retry.error;
-          } catch (provErr: any) {
+          } catch (provErr: unknown) {
             console.error("Provisionamento dev falhou:", provErr);
-            setError("Falha no acesso automático da conta dev.");
-            setShake(true);
-            setTimeout(() => setShake(false), 500);
-            setLoading(false);
+            showLoginError("Falha no acesso automático da conta dev.");
             return;
           }
         } else {
-          const msg = signInError.message.toLowerCase();
-          setError(
-            msg.includes("invalid") || msg.includes("credentials")
-              ? "E-mail ou senha incorretos. Verifique seus dados e tente novamente."
-              : msg.includes("email not confirmed")
-                ? "Confirme seu e-mail antes de entrar."
-                : signInError.message,
-          );
-          setShake(true);
-          setTimeout(() => setShake(false), 500);
-          setLoading(false);
+          showLoginError(readableAuthError(signInError.message));
           return;
         }
       }
 
-      // Conta dev: garante a organização teste (não bloqueia login se RPC falhar)
-      if (isDevAccount) {
-        try {
-          await (supabase as any).rpc("switch_organization", {
-            _org_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd",
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        showLoginError(
+          "Login aceito, mas a sessão não foi salva. Atualize a página e tente novamente.",
+        );
+        return;
+      }
+
+      const currentUserId = signInData?.user?.id ?? sessionData.session.user.id;
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, organization_id")
+        .eq("id", currentUserId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.warn("Perfil não carregou após login:", profileError);
+        showLoginError(
+          "Login aceito, mas não consegui carregar seu perfil. Peça ao administrador para revisar seu acesso.",
+        );
+        return;
+      }
+
+      if (!profile) {
+        showLoginError(
+          "Login aceito, mas sua conta ainda não tem perfil vinculado. Peça ao administrador para recriar seu acesso.",
+        );
+        return;
+      }
+
+      if (!profile.organization_id) {
+        const { data: memberships } = await supabase
+          .from("user_organizations")
+          .select("organization_id, is_default")
+          .eq("user_id", currentUserId)
+          .order("is_default", { ascending: false })
+          .limit(1);
+        const firstOrgId = (memberships as { organization_id?: string | null }[] | null)?.[0]
+          ?.organization_id;
+        if (firstOrgId) {
+          const { error: switchError } = await supabase.rpc("switch_organization", {
+            _org_id: firstOrgId,
           });
-        } catch (e) {
-          console.warn("switch_organization falhou (dev):", e);
+          if (switchError) console.warn("Não foi possível ativar loja no login:", switchError);
         }
       }
 
       if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
       else localStorage.removeItem("conecta:lastEmail");
 
-      window.location.assign("/painel");
-    } catch (err: any) {
-      setError(err?.message || "Não foi possível entrar agora. Tente novamente.");
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-      setLoading(false);
+      window.location.replace("/painel");
+    } catch (err: unknown) {
+      showLoginError(readableAuthError(err instanceof Error ? err.message : undefined));
     }
   };
 
@@ -329,7 +368,6 @@ function Login() {
           </p>
         </div>
       </div>
-
 
       {/* ============ Right — Marketing ============ */}
       <div className="hidden lg:flex relative overflow-hidden bg-gradient-hero p-12 flex-col justify-between text-primary-foreground">
