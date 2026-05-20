@@ -686,7 +686,13 @@ export function GoalProgress({
             </TabsContent>
 
             <TabsContent value="settings" className="p-6 pt-2 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {!canEdit && (
+                <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-[12px] font-medium text-warning">
+                  Apenas administradores podem alterar a meta e a quantidade inicial de aparelhos
+                  vendidos.
+                </div>
+              )}
+              <fieldset disabled={!canEdit} className="grid grid-cols-1 md:grid-cols-2 gap-6 disabled:opacity-60">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-[13px] font-bold">Nome da Meta</Label>
