@@ -268,7 +268,9 @@ export function GoalProgress({
       if (productsError) {
         console.error("Erro ao buscar produtos da meta:", productsError);
       } else {
-        ((products || []) as ProductRow[]).forEach((product) => productsById.set(product.id, product));
+        ((products || []) as ProductRow[]).forEach((product) =>
+          productsById.set(product.id, product),
+        );
       }
     }
 
@@ -338,7 +340,6 @@ export function GoalProgress({
         current_value: manualUnits ?? stats.units,
       };
 
-
       let error;
       if (existingGoal?.id) {
         const { error: updateError } = await supabase
@@ -347,14 +348,12 @@ export function GoalProgress({
           .eq("id", existingGoal.id);
         error = updateError;
       } else {
-        const { error: insertError } = await supabase
-          .from("business_goals")
-          .insert([goalData]);
+        const { error: insertError } = await supabase.from("business_goals").insert([goalData]);
         error = insertError;
       }
 
       if (error) throw error;
-      
+
       setGoals({ ...editGoals });
       setIsModalOpen(false);
       toast.success("Metas atualizadas com sucesso!");
@@ -367,13 +366,11 @@ export function GoalProgress({
     }
   };
 
-
   const effectiveUnits = isMay && manualUnits !== null ? manualUnits : stats.units;
   const currentDisplay = effectiveUnits;
   const pct = Math.min(100, Math.round((currentDisplay / (goals.monthly || 1)) * 100)) || 0;
   const projection = Math.round((effectiveUnits / (new Date().getDate() || 1)) * 30);
   const remaining = Math.max(0, goals.monthly - effectiveUnits);
-
 
   const dayOfMonth = new Date().getDate();
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
@@ -415,11 +412,24 @@ export function GoalProgress({
         <div className="flex items-center gap-4 relative min-w-0">
           <div className="relative h-[110px] w-[110px] shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 140 140">
-              <circle cx="70" cy="70" r={radius} stroke="var(--color-muted)" strokeWidth="10" fill="none" />
               <circle
-                cx="70" cy="70" r={radius}
-                stroke="var(--color-primary)" strokeWidth="10" fill="none" strokeLinecap="round"
-                strokeDasharray={circumference} strokeDashoffset={offset}
+                cx="70"
+                cy="70"
+                r={radius}
+                stroke="var(--color-muted)"
+                strokeWidth="10"
+                fill="none"
+              />
+              <circle
+                cx="70"
+                cy="70"
+                r={radius}
+                stroke="var(--color-primary)"
+                strokeWidth="10"
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={offset}
                 style={{ transition: "stroke-dashoffset 1s ease-out" }}
               />
             </svg>
@@ -476,7 +486,10 @@ export function GoalProgress({
                 </div>
               ) : (
                 <div className="text-lg font-bold font-display truncate">
-                  {effectiveUnits} <span className="text-muted-foreground text-sm font-medium">/ {goals.monthly} un.</span>
+                  {effectiveUnits}{" "}
+                  <span className="text-muted-foreground text-sm font-medium">
+                    / {goals.monthly} un.
+                  </span>
                 </div>
               )}
             </div>
@@ -484,12 +497,9 @@ export function GoalProgress({
               <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                 <Package className="h-3 w-3" /> Faltam para meta
               </div>
-              <div className="text-[13px] font-semibold text-primary truncate">
-                {remaining} un.
-              </div>
+              <div className="text-[13px] font-semibold text-primary truncate">{remaining} un.</div>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -504,8 +514,12 @@ export function GoalProgress({
                       <Trophy className="h-6 w-6 text-primary-foreground" />
                     </div>
                     <div>
-                      <DialogTitle className="text-2xl font-black tracking-tight">Análise de Metas</DialogTitle>
-                      <DialogDescription className="font-medium">Meta de aparelhos vendidos por período.</DialogDescription>
+                      <DialogTitle className="text-2xl font-black tracking-tight">
+                        Análise de Metas
+                      </DialogTitle>
+                      <DialogDescription className="font-medium">
+                        Meta de aparelhos vendidos por período.
+                      </DialogDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -537,8 +551,18 @@ export function GoalProgress({
                 </div>
               </DialogHeader>
               <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 h-12 rounded-2xl">
-                <TabsTrigger value="overview" className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm">Visão Geral de Performance</TabsTrigger>
-                <TabsTrigger value="settings" className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm">Ajustar Objetivos</TabsTrigger>
+                <TabsTrigger
+                  value="overview"
+                  className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Visão Geral de Performance
+                </TabsTrigger>
+                <TabsTrigger
+                  value="settings"
+                  className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Ajustar Objetivos
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -551,29 +575,39 @@ export function GoalProgress({
                         <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
                           <Package className="h-4 w-4" />
                         </div>
-                        <span className="text-[12px] font-bold text-muted-foreground">Aparelhos Vendidos</span>
+                        <span className="text-[12px] font-bold text-muted-foreground">
+                          Aparelhos Vendidos
+                        </span>
                       </div>
                       <div className="text-right">
                         <div className="text-lg font-black">{stats.units} un.</div>
                       </div>
                     </div>
                     <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${pct}%` }} />
+                      <div
+                        className="h-full bg-blue-500 transition-all duration-1000"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                     <div className="flex justify-between mt-2 text-[10px] font-bold uppercase tracking-wider">
                       <span className="text-muted-foreground">Progresso</span>
-                      <span className="text-primary">{pct}% de {goals.monthly} un.</span>
+                      <span className="text-primary">
+                        {pct}% de {goals.monthly} un.
+                      </span>
                     </div>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
                     <div className="flex items-center gap-2 mb-3">
                       <Target className="h-4 w-4 text-primary" />
-                      <span className="text-[12px] font-bold text-muted-foreground">Faltam para bater a meta</span>
+                      <span className="text-[12px] font-bold text-muted-foreground">
+                        Faltam para bater a meta
+                      </span>
                     </div>
                     <div className="text-2xl font-black">{remaining} un.</div>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      Ritmo necessário: {Math.ceil(remaining / Math.max(1, daysInMonth - dayOfMonth))} un./dia
+                      Ritmo necessário:{" "}
+                      {Math.ceil(remaining / Math.max(1, daysInMonth - dayOfMonth))} un./dia
                     </p>
                   </div>
                 </div>
@@ -587,19 +621,31 @@ export function GoalProgress({
                       </div>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground font-medium">Média diária</span>
-                          <span className="font-bold">{(stats.units / (dayOfMonth || 1)).toFixed(1)} un.</span>
+                          <span className="text-xs text-muted-foreground font-medium">
+                            Média diária
+                          </span>
+                          <span className="font-bold">
+                            {(stats.units / (dayOfMonth || 1)).toFixed(1)} un.
+                          </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground font-medium">Projeção final</span>
+                          <span className="text-xs text-muted-foreground font-medium">
+                            Projeção final
+                          </span>
                           <span className="font-bold">{projection} un.</span>
                         </div>
                       </div>
                     </div>
                     <Separator className="my-4 bg-primary/10" />
                     <div className="flex gap-3">
-                      <div className={`h-10 w-10 shrink-0 rounded-xl flex items-center justify-center ${onTrack ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'}`}>
-                        {onTrack ? <CheckCircle2 className="h-5 w-5" /> : <Rocket className="h-5 w-5" />}
+                      <div
+                        className={`h-10 w-10 shrink-0 rounded-xl flex items-center justify-center ${onTrack ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}
+                      >
+                        {onTrack ? (
+                          <CheckCircle2 className="h-5 w-5" />
+                        ) : (
+                          <Rocket className="h-5 w-5" />
+                        )}
                       </div>
                       <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
                         {onTrack
@@ -615,10 +661,12 @@ export function GoalProgress({
                     </h4>
                     <ul className="space-y-2">
                       <li className="text-[11px] text-muted-foreground flex items-center gap-2">
-                        <div className="h-1 w-1 rounded-full bg-primary" /> Reforçar abordagem em loja
+                        <div className="h-1 w-1 rounded-full bg-primary" /> Reforçar abordagem em
+                        loja
                       </li>
                       <li className="text-[11px] text-muted-foreground flex items-center gap-2">
-                        <div className="h-1 w-1 rounded-full bg-primary" /> Aumentar conversão de orçamentos
+                        <div className="h-1 w-1 rounded-full bg-primary" /> Aumentar conversão de
+                        orçamentos
                       </li>
                     </ul>
                   </div>
@@ -648,11 +696,18 @@ export function GoalProgress({
                       value={editGoals.monthly}
                       onChange={(e) => {
                         const v = Number(e.target.value);
-                        setEditGoals({ ...editGoals, monthly: v, daily: Math.round(v / 30), weekly: Math.round(v / 4) });
+                        setEditGoals({
+                          ...editGoals,
+                          monthly: v,
+                          daily: Math.round(v / 30),
+                          weekly: Math.round(v / 4),
+                        });
                       }}
                       className="h-12 rounded-xl text-lg font-black"
                     />
-                    <p className="text-[11px] text-muted-foreground">Quantidade de aparelhos a vender no período.</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Quantidade de aparelhos a vender no período.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -661,7 +716,9 @@ export function GoalProgress({
                       <Input
                         type="number"
                         value={editGoals.daily}
-                        onChange={(e) => setEditGoals({ ...editGoals, daily: Number(e.target.value) })}
+                        onChange={(e) =>
+                          setEditGoals({ ...editGoals, daily: Number(e.target.value) })
+                        }
                         className="h-10 rounded-xl"
                       />
                     </div>
@@ -670,7 +727,9 @@ export function GoalProgress({
                       <Input
                         type="number"
                         value={editGoals.weekly}
-                        onChange={(e) => setEditGoals({ ...editGoals, weekly: Number(e.target.value) })}
+                        onChange={(e) =>
+                          setEditGoals({ ...editGoals, weekly: Number(e.target.value) })
+                        }
                         className="h-10 rounded-xl"
                       />
                     </div>
@@ -699,9 +758,23 @@ export function GoalProgress({
                   </div>
 
                   <div className="flex gap-3 pt-4">
-                    <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="flex-1 h-12 rounded-xl font-bold">Cancelar</Button>
-                    <Button onClick={handleSave} disabled={isLoading} className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25">
-                      {isLoading ? <Activity className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    <Button
+                      variant="ghost"
+                      onClick={() => setIsModalOpen(false)}
+                      className="flex-1 h-12 rounded-xl font-bold"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      disabled={isLoading}
+                      className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+                    >
+                      {isLoading ? (
+                        <Activity className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
                       Salvar Meta
                     </Button>
                   </div>
