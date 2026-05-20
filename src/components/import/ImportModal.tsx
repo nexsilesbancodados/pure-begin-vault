@@ -569,6 +569,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false);
   const [mappingOpen, setMappingOpen] = useState(false);
+  const [pdfParsing, setPdfParsing] = useState<{ elapsed: number; phase: string } | null>(null);
 
   const stats = useMemo(() => {
     const valid = rows.filter((r) => r._valid);
