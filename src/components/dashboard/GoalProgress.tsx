@@ -169,28 +169,97 @@ export function GoalProgress({
     return { start, end };
   };
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
+    if (!user?.id || !orgId) return;
     const { start, end } = getPeriodRange();
-    const { data: sales } = await supabase
+    const { data: sales, error: salesError } = await supabase
       .from("sales_orders")
-      .select("id, total_amount, sale_items:sale_items(quantity)")
+      .select("id")
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())
-      .in("status", ["completed", "concluded"])
+      .in("status", COMPLETED_STATUSES)
       .in("channel", ["pdv", "import"])
       .eq("organization_id", orgId);
 
-    let units = 0;
-    (sales || []).forEach((s: any) => {
-      const items = s.sale_items || [];
-      if (items.length) {
-        units += items.reduce((a: number, i: any) => a + (Number(i.quantity) || 0), 0);
+    if (salesError) {
+      console.error("Erro ao buscar vendas da meta:", salesError);
+      return;
+    }
+
+    const saleIds = (sales || []).map((s: any) => s.id).filter(Boolean);
+    if (!saleIds.length) {
+      setStats({ units: 0 });
+      return;
+    }
+
+    const { data: items, error: itemsError } = await supabase
+      .from("sale_items")
+      .select("sale_id, product_id, product_name, quantity, imei, metadata")
+      .eq("organization_id", orgId)
+      .in("sale_id", saleIds);
+
+    if (itemsError) {
+      console.error("Erro ao buscar itens vendidos da meta:", itemsError);
+      return;
+    }
+
+    const productIds = Array.from(new Set((items || []).map((i: any) => i.product_id).filter(Boolean)));
+    const productsById = new Map<string, any>();
+    if (productIds.length) {
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id, name, category, model, metadata")
+        .eq("organization_id", orgId)
+        .in("id", productIds);
+      if (productsError) {
+        console.error("Erro ao buscar produtos da meta:", productsError);
       } else {
-        units += 1;
+        (products || []).forEach((product: any) => productsById.set(product.id, product));
+      }
+    }
+
+    let units = 0;
+    (items || []).forEach((item: any) => {
+      if (isDeviceItem(item, productsById.get(item.product_id))) {
+        units += Math.max(1, Number(item.quantity) || 1);
       }
     });
     setStats({ units });
-  };
+  }, [user?.id, orgId, period]);
+
+  useEffect(() => {
+    if (user?.id) fetchGoals();
+  }, [user?.id, orgId]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // Realtime: atualiza automaticamente o contador quando uma venda/itens/produto mudam na loja atual.
+  useEffect(() => {
+    if (!user?.id || !orgId) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        fetchStats();
+      }, 700);
+    };
+    const channel = supabase.channel(`goal-progress-${orgId}`);
+    (["sales_orders", "sale_items", "products"] as const).forEach((table) => {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table, filter: `organization_id=eq.${orgId}` },
+        schedule,
+      );
+    });
+    channel.subscribe();
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, orgId, fetchStats]);
 
   const handleSave = async () => {
     if (!user?.id || !orgId) {
