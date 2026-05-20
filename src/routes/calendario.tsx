@@ -358,6 +358,16 @@ function CalendarPage() {
           </div>
         </div>
       )}
+
+      <DayKanbanModal
+        open={kanbanOpen}
+        onClose={() => {
+          setKanbanOpen(false);
+          load();
+        }}
+        date={selected}
+      />
     </div>
   );
+
 }
