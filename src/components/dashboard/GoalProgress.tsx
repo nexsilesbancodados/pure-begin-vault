@@ -92,6 +92,38 @@ export function GoalProgress({
     if (user?.id && orgId) fetchStats();
   }, [user?.id, orgId, period]);
 
+  // Realtime: atualiza automaticamente o contador de aparelhos vendidos
+  // sempre que houver inserção/atualização em sales_orders ou sale_items da loja
+  useEffect(() => {
+    if (!user?.id || !orgId) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        fetchStats();
+      }, 800);
+    };
+    const channel = supabase
+      .channel(`goal-progress-${orgId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sales_orders", filter: `organization_id=eq.${orgId}` },
+        schedule,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sale_items" },
+        schedule,
+      )
+      .subscribe();
+    return () => {
+      if (timer) clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, orgId, period]);
+
 
   const fetchGoals = async () => {
     if (!user?.id || !orgId) return;
