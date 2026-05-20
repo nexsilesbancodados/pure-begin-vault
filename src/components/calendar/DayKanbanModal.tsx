@@ -124,6 +124,19 @@ export function DayKanbanModal({
   const [openCard, setOpenCard] = useState<KanbanTask | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const [orgOwnerId, setOrgOwnerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orgId) { setOrgOwnerId(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("organizations")
+        .select("owner_id")
+        .eq("id", orgId)
+        .maybeSingle();
+      setOrgOwnerId((data as any)?.owner_id ?? null);
+    })();
+  }, [orgId]);
 
   const storageKey = useMemo(
     () => `kanban:lists:${orgId || user?.id || "anon"}:${ymd(date)}`,
