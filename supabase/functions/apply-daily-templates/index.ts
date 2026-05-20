@@ -28,7 +28,8 @@ const STATEMENTS = [
   `CREATE POLICY "members can read daily templates"
     ON public.daily_task_templates FOR SELECT TO authenticated
     USING (
-      organization_id IN (SELECT organization_id FROM public.user_roles WHERE user_id = auth.uid())
+      organization_id IN (SELECT organization_id FROM public.user_organizations WHERE user_id = auth.uid())
+      OR organization_id IN (SELECT organization_id FROM public.user_roles WHERE user_id = auth.uid())
       OR created_by = auth.uid()
     )`,
   `DROP POLICY IF EXISTS "creator manages daily templates" ON public.daily_task_templates`,
@@ -53,7 +54,8 @@ const STATEMENTS = [
   `CREATE POLICY "members read completions"
     ON public.daily_task_completions FOR SELECT TO authenticated
     USING (
-      organization_id IN (SELECT organization_id FROM public.user_roles WHERE user_id = auth.uid())
+      organization_id IN (SELECT organization_id FROM public.user_organizations WHERE user_id = auth.uid())
+      OR organization_id IN (SELECT organization_id FROM public.user_roles WHERE user_id = auth.uid())
       OR user_id = auth.uid()
     )`,
   `DROP POLICY IF EXISTS "members insert completions" ON public.daily_task_completions`,
@@ -61,10 +63,12 @@ const STATEMENTS = [
     ON public.daily_task_completions FOR INSERT TO authenticated
     WITH CHECK (
       user_id = auth.uid() AND (
-        organization_id IN (SELECT organization_id FROM public.user_roles WHERE user_id = auth.uid())
+        organization_id IN (SELECT organization_id FROM public.user_organizations WHERE user_id = auth.uid())
+        OR organization_id IN (SELECT organization_id FROM public.user_roles WHERE user_id = auth.uid())
         OR organization_id IN (SELECT organization_id FROM public.daily_task_templates WHERE created_by = auth.uid())
       )
     )`,
+
   `DROP POLICY IF EXISTS "members delete own completions" ON public.daily_task_completions`,
   `CREATE POLICY "members delete own completions"
     ON public.daily_task_completions FOR DELETE TO authenticated
