@@ -207,9 +207,14 @@ export function GoalProgress({
 
     if (data) {
       const target = Number(data.target_value) || 100;
+      let weeklyOverride = 0;
+      if (typeof window !== "undefined" && weeklyOverrideKey) {
+        const raw = window.localStorage.getItem(weeklyOverrideKey);
+        if (raw) weeklyOverride = Number(raw) || 0;
+      }
       const fetchedGoals = {
-        daily: target / 30,
-        weekly: target / 4,
+        daily: Math.round(target / 30),
+        weekly: weeklyOverride > 0 ? weeklyOverride : Math.round(target / 4),
         monthly: target,
         type: "units" as const,
         goal_name: data.title || "",
