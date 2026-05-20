@@ -1691,10 +1691,34 @@ function FullscreenPreview({
   );
 }
 
+type CustomerPreview = {
+  name: string;
+  document?: string;
+  phone?: string;
+  email?: string;
+  orders: number;
+  total: number;
+};
+type ProductPreview = {
+  name: string;
+  sku?: string;
+  imei?: string;
+  brand?: string;
+  model?: string;
+  qty: number;
+  total: number;
+  avgPrice: number;
+};
+
 function SyncPreview({ rows, brl }: { rows: ParsedRow[]; brl: (n: number) => string }) {
+  const [maxView, setMaxView] = useState<null | "customers" | "products">(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerPreview | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductPreview | null>(null);
+  const [query, setQuery] = useState("");
+
   const { customers, products } = useMemo(() => {
-    const cmap = new Map<string, { name: string; document?: string; phone?: string; email?: string; orders: number; total: number }>();
-    const pmap = new Map<string, { name: string; sku?: string; imei?: string; brand?: string; model?: string; qty: number; total: number; avgPrice: number }>();
+    const cmap = new Map<string, CustomerPreview>();
+    const pmap = new Map<string, ProductPreview>();
 
     for (const r of rows) {
       if (!r._valid) continue;
@@ -1744,114 +1768,385 @@ function SyncPreview({ rows, brl }: { rows: ParsedRow[]; brl: (n: number) => str
     };
   }, [rows]);
 
+  const filteredCustomers = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return customers;
+    return customers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.document?.toLowerCase().includes(q) ||
+        c.phone?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q),
+    );
+  }, [customers, query]);
+
+  const filteredProducts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.sku?.toLowerCase().includes(q) ||
+        p.imei?.toLowerCase().includes(q) ||
+        p.brand?.toLowerCase().includes(q) ||
+        p.model?.toLowerCase().includes(q),
+    );
+  }, [products, query]);
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-      {/* Clientes */}
-      <div className="rounded-2xl border border-info/20 bg-info/5 overflow-hidden">
-        <div className="px-4 py-2.5 bg-info/10 border-b border-info/20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-3.5 w-3.5 text-info" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-info">
-              Cadastro de Clientes (Prévia)
-            </span>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* Clientes */}
+        <div className="rounded-2xl border border-info/20 bg-info/5 overflow-hidden">
+          <div className="px-4 py-2.5 bg-info/10 border-b border-info/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-3.5 w-3.5 text-info" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-info">
+                Cadastro de Clientes (Prévia)
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white border border-info/20 text-info">
+                {customers.length} únicos
+              </span>
+              <button
+                type="button"
+                onClick={() => { setQuery(""); setMaxView("customers"); }}
+                className="h-6 w-6 inline-flex items-center justify-center rounded-md bg-white border border-info/20 text-info hover:bg-info hover:text-white transition-colors"
+                title="Maximizar prévia"
+              >
+                <Maximize2 className="h-3 w-3" />
+              </button>
+            </div>
           </div>
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white border border-info/20 text-info">
-            {customers.length} únicos
-          </span>
-        </div>
-        <div className="max-h-[220px] overflow-y-auto">
-          {customers.length === 0 ? (
-            <p className="p-4 text-center text-[11px] text-muted-foreground">
-              Nenhum cliente identificado. Mapeie a coluna "Cliente" acima.
-            </p>
-          ) : (
-            <table className="w-full text-[11px]">
-              <thead className="bg-white/60 sticky top-0">
-                <tr className="border-b border-info/10">
-                  <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">Nome</th>
-                  <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">Documento</th>
-                  <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Compras</th>
-                  <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {customers.slice(0, 50).map((c, i) => (
-                  <tr key={i} className="border-b border-info/5 hover:bg-info/10">
-                    <td className="p-2 max-w-[180px] truncate font-bold" title={c.name}>{c.name}</td>
-                    <td className="p-2 font-mono text-[10px] text-muted-foreground">
-                      {c.document || c.phone || c.email || <span className="italic">novo</span>}
-                    </td>
-                    <td className="p-2 text-right font-bold tabular-nums">{c.orders}</td>
-                    <td className="p-2 text-right font-black text-info tabular-nums">{brl(c.total)}</td>
+          <div className="max-h-[220px] overflow-y-auto">
+            {customers.length === 0 ? (
+              <p className="p-4 text-center text-[11px] text-muted-foreground">
+                Nenhum cliente identificado. Mapeie a coluna "Cliente" acima.
+              </p>
+            ) : (
+              <table className="w-full text-[11px]">
+                <thead className="bg-white/60 sticky top-0">
+                  <tr className="border-b border-info/10">
+                    <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">Nome</th>
+                    <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">Documento</th>
+                    <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Compras</th>
+                    <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {customers.length > 50 && (
-            <p className="p-2 text-center text-[10px] text-muted-foreground border-t border-info/10">
-              + {customers.length - 50} clientes adicionais
-            </p>
-          )}
+                </thead>
+                <tbody>
+                  {customers.slice(0, 50).map((c, i) => (
+                    <tr
+                      key={i}
+                      className="border-b border-info/5 hover:bg-info/10 cursor-pointer"
+                      onClick={() => setSelectedCustomer(c)}
+                    >
+                      <td className="p-2 max-w-[180px] truncate font-bold" title={c.name}>{c.name}</td>
+                      <td className="p-2 font-mono text-[10px] text-muted-foreground">
+                        {c.document || c.phone || c.email || <span className="italic">novo</span>}
+                      </td>
+                      <td className="p-2 text-right font-bold tabular-nums">{c.orders}</td>
+                      <td className="p-2 text-right font-black text-info tabular-nums">{brl(c.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {customers.length > 50 && (
+              <p className="p-2 text-center text-[10px] text-muted-foreground border-t border-info/10">
+                + {customers.length - 50} clientes adicionais —{" "}
+                <button onClick={() => { setQuery(""); setMaxView("customers"); }} className="font-black text-info hover:underline">
+                  ver todos
+                </button>
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Produtos */}
+        <div className="rounded-2xl border border-success/20 bg-success/5 overflow-hidden">
+          <div className="px-4 py-2.5 bg-success/10 border-b border-success/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="h-3.5 w-3.5 text-success" />
+              <span className="text-[10px] font-black uppercase tracking-wider text-success">
+                Cadastro de Produtos (Prévia)
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white border border-success/20 text-success">
+                {products.length} únicos
+              </span>
+              <button
+                type="button"
+                onClick={() => { setQuery(""); setMaxView("products"); }}
+                className="h-6 w-6 inline-flex items-center justify-center rounded-md bg-white border border-success/20 text-success hover:bg-success hover:text-white transition-colors"
+                title="Maximizar prévia"
+              >
+                <Maximize2 className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+          <div className="max-h-[220px] overflow-y-auto">
+            {products.length === 0 ? (
+              <p className="p-4 text-center text-[11px] text-muted-foreground">
+                Nenhum produto identificado. Mapeie a coluna "Produto" acima.
+              </p>
+            ) : (
+              <table className="w-full text-[11px]">
+                <thead className="bg-white/60 sticky top-0">
+                  <tr className="border-b border-success/10">
+                    <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">Produto</th>
+                    <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">SKU / IMEI</th>
+                    <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Qtd</th>
+                    <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Preço méd.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.slice(0, 50).map((p, i) => (
+                    <tr
+                      key={i}
+                      className="border-b border-success/5 hover:bg-success/10 cursor-pointer"
+                      onClick={() => setSelectedProduct(p)}
+                    >
+                      <td className="p-2 max-w-[180px] truncate font-bold" title={p.name}>
+                        {p.name}
+                        {(p.brand || p.model) && (
+                          <span className="block text-[9px] font-normal text-muted-foreground truncate">
+                            {[p.brand, p.model].filter(Boolean).join(" · ")}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-2 font-mono text-[10px] text-muted-foreground">
+                        {p.sku || p.imei || <span className="italic">novo</span>}
+                      </td>
+                      <td className="p-2 text-right font-bold tabular-nums">{p.qty}</td>
+                      <td className="p-2 text-right font-black text-success tabular-nums">{brl(p.avgPrice)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {products.length > 50 && (
+              <p className="p-2 text-center text-[10px] text-muted-foreground border-t border-success/10">
+                + {products.length - 50} produtos adicionais —{" "}
+                <button onClick={() => { setQuery(""); setMaxView("products"); }} className="font-black text-success hover:underline">
+                  ver todos
+                </button>
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Produtos */}
-      <div className="rounded-2xl border border-success/20 bg-success/5 overflow-hidden">
-        <div className="px-4 py-2.5 bg-success/10 border-b border-success/20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Package className="h-3.5 w-3.5 text-success" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-success">
-              Cadastro de Produtos (Prévia)
-            </span>
-          </div>
-          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-white border border-success/20 text-success">
-            {products.length} únicos
-          </span>
-        </div>
-        <div className="max-h-[220px] overflow-y-auto">
-          {products.length === 0 ? (
-            <p className="p-4 text-center text-[11px] text-muted-foreground">
-              Nenhum produto identificado. Mapeie a coluna "Produto" acima.
-            </p>
-          ) : (
-            <table className="w-full text-[11px]">
-              <thead className="bg-white/60 sticky top-0">
-                <tr className="border-b border-success/10">
-                  <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">Produto</th>
-                  <th className="text-left p-2 font-black text-[9px] uppercase text-muted-foreground">SKU / IMEI</th>
-                  <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Qtd</th>
-                  <th className="text-right p-2 font-black text-[9px] uppercase text-muted-foreground">Preço méd.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.slice(0, 50).map((p, i) => (
-                  <tr key={i} className="border-b border-success/5 hover:bg-success/10">
-                    <td className="p-2 max-w-[180px] truncate font-bold" title={p.name}>
-                      {p.name}
-                      {(p.brand || p.model) && (
-                        <span className="block text-[9px] font-normal text-muted-foreground truncate">
-                          {[p.brand, p.model].filter(Boolean).join(" · ")}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-2 font-mono text-[10px] text-muted-foreground">
-                      {p.sku || p.imei || <span className="italic">novo</span>}
-                    </td>
-                    <td className="p-2 text-right font-bold tabular-nums">{p.qty}</td>
-                    <td className="p-2 text-right font-black text-success tabular-nums">{brl(p.avgPrice)}</td>
+      {/* Maximized fullscreen preview */}
+      <Dialog open={maxView !== null} onOpenChange={(o) => !o && setMaxView(null)}>
+        <DialogContent
+          className="!max-w-[95vw] w-[95vw] !h-[92vh] flex flex-col p-0 gap-0 overflow-hidden"
+        >
+          <DialogHeader className="p-5 border-b border-border bg-muted/30">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              {maxView === "customers" ? (
+                <>
+                  <ShieldCheck className="h-5 w-5 text-info" />
+                  Cadastro de Clientes — Análise completa
+                  <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full bg-info/10 text-info border border-info/20">
+                    {filteredCustomers.length} de {customers.length}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Package className="h-5 w-5 text-success" />
+                  Cadastro de Produtos — Análise completa
+                  <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20">
+                    {filteredProducts.length} de {products.length}
+                  </span>
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Clique em uma linha para abrir o cadastro completo e revisar antes da importação.
+            </DialogDescription>
+            <div className="mt-3 relative">
+              <Filter className="h-3.5 w-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={maxView === "customers" ? "Buscar por nome, documento, telefone ou email..." : "Buscar por nome, SKU, IMEI, marca ou modelo..."}
+                className="w-full pl-9 pr-3 py-2 text-xs rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-auto p-5">
+            {maxView === "customers" ? (
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-background z-10">
+                  <tr className="border-b-2 border-info/20">
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">#</th>
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">Nome</th>
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">Documento</th>
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">Telefone</th>
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">Email</th>
+                    <th className="text-right p-2.5 font-black text-[10px] uppercase text-muted-foreground">Compras</th>
+                    <th className="text-right p-2.5 font-black text-[10px] uppercase text-muted-foreground">Total</th>
+                    <th className="text-right p-2.5 font-black text-[10px] uppercase text-muted-foreground">Ticket méd.</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {products.length > 50 && (
-            <p className="p-2 text-center text-[10px] text-muted-foreground border-t border-success/10">
-              + {products.length - 50} produtos adicionais
+                </thead>
+                <tbody>
+                  {filteredCustomers.map((c, i) => (
+                    <tr
+                      key={i}
+                      className="border-b border-border hover:bg-info/5 cursor-pointer transition-colors"
+                      onClick={() => setSelectedCustomer(c)}
+                    >
+                      <td className="p-2.5 font-mono text-[10px] text-muted-foreground">{i + 1}</td>
+                      <td className="p-2.5 font-bold">{c.name}</td>
+                      <td className="p-2.5 font-mono text-[10px]">{c.document || <span className="italic text-muted-foreground">—</span>}</td>
+                      <td className="p-2.5 font-mono text-[10px]">{c.phone || <span className="italic text-muted-foreground">—</span>}</td>
+                      <td className="p-2.5 font-mono text-[10px] max-w-[200px] truncate" title={c.email}>{c.email || <span className="italic text-muted-foreground">—</span>}</td>
+                      <td className="p-2.5 text-right font-bold tabular-nums">{c.orders}</td>
+                      <td className="p-2.5 text-right font-black text-info tabular-nums">{brl(c.total)}</td>
+                      <td className="p-2.5 text-right font-bold tabular-nums text-muted-foreground">{brl(c.total / Math.max(c.orders, 1))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-background z-10">
+                  <tr className="border-b-2 border-success/20">
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">#</th>
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">Produto</th>
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">Marca</th>
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">Modelo</th>
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">SKU</th>
+                    <th className="text-left p-2.5 font-black text-[10px] uppercase text-muted-foreground">IMEI</th>
+                    <th className="text-right p-2.5 font-black text-[10px] uppercase text-muted-foreground">Qtd</th>
+                    <th className="text-right p-2.5 font-black text-[10px] uppercase text-muted-foreground">Preço méd.</th>
+                    <th className="text-right p-2.5 font-black text-[10px] uppercase text-muted-foreground">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.map((p, i) => (
+                    <tr
+                      key={i}
+                      className="border-b border-border hover:bg-success/5 cursor-pointer transition-colors"
+                      onClick={() => setSelectedProduct(p)}
+                    >
+                      <td className="p-2.5 font-mono text-[10px] text-muted-foreground">{i + 1}</td>
+                      <td className="p-2.5 font-bold">{p.name}</td>
+                      <td className="p-2.5">{p.brand || <span className="italic text-muted-foreground">—</span>}</td>
+                      <td className="p-2.5">{p.model || <span className="italic text-muted-foreground">—</span>}</td>
+                      <td className="p-2.5 font-mono text-[10px]">{p.sku || <span className="italic text-muted-foreground">—</span>}</td>
+                      <td className="p-2.5 font-mono text-[10px]">{p.imei || <span className="italic text-muted-foreground">—</span>}</td>
+                      <td className="p-2.5 text-right font-bold tabular-nums">{p.qty}</td>
+                      <td className="p-2.5 text-right font-bold tabular-nums">{brl(p.avgPrice)}</td>
+                      <td className="p-2.5 text-right font-black text-success tabular-nums">{brl(p.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="p-4 border-t border-border bg-muted/20 flex items-center justify-between">
+            <p className="text-[11px] text-muted-foreground">
+              Dica: clique em qualquer linha para abrir o cadastro completo do registro.
             </p>
+            <Button onClick={() => setMaxView(null)} className="rounded-xl font-black min-w-[120px]">
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Customer detail */}
+      <Dialog open={selectedCustomer !== null} onOpenChange={(o) => !o && setSelectedCustomer(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-info" />
+              Cadastro do Cliente
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Prévia dos dados que serão criados/atualizados na importação.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedCustomer && (
+            <div className="space-y-3">
+              <DetailRow label="Nome" value={selectedCustomer.name} />
+              <DetailRow label="Documento (CPF/CNPJ)" value={selectedCustomer.document} mono />
+              <DetailRow label="Telefone" value={selectedCustomer.phone} mono />
+              <DetailRow label="Email" value={selectedCustomer.email} mono />
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+                <Stat label="Compras" value={String(selectedCustomer.orders)} />
+                <Stat label="Total" value={brl(selectedCustomer.total)} accent="info" />
+                <Stat label="Ticket méd." value={brl(selectedCustomer.total / Math.max(selectedCustomer.orders, 1))} />
+              </div>
+            </div>
           )}
-        </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedCustomer(null)} className="rounded-xl">Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product detail */}
+      <Dialog open={selectedProduct !== null} onOpenChange={(o) => !o && setSelectedProduct(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-success" />
+              Cadastro do Produto
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Prévia dos dados que serão criados/atualizados na importação.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedProduct && (
+            <div className="space-y-3">
+              <DetailRow label="Nome" value={selectedProduct.name} />
+              <div className="grid grid-cols-2 gap-2">
+                <DetailRow label="Marca" value={selectedProduct.brand} />
+                <DetailRow label="Modelo" value={selectedProduct.model} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <DetailRow label="SKU" value={selectedProduct.sku} mono />
+                <DetailRow label="IMEI" value={selectedProduct.imei} mono />
+              </div>
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+                <Stat label="Qtd" value={String(selectedProduct.qty)} />
+                <Stat label="Preço méd." value={brl(selectedProduct.avgPrice)} />
+                <Stat label="Total" value={brl(selectedProduct.total)} accent="success" />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedProduct(null)} className="rounded-xl">Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function DetailRow({ label, value, mono }: { label: string; value?: string; mono?: boolean }) {
+  return (
+    <div>
+      <div className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
+      <div className={`text-sm font-bold ${mono ? "font-mono" : ""} ${!value ? "italic text-muted-foreground font-normal" : ""}`}>
+        {value || "Não informado"}
       </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, accent }: { label: string; value: string; accent?: "info" | "success" }) {
+  const color = accent === "info" ? "text-info" : accent === "success" ? "text-success" : "text-foreground";
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 p-2 text-center">
+      <div className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className={`text-sm font-black tabular-nums ${color}`}>{value}</div>
     </div>
   );
 }
