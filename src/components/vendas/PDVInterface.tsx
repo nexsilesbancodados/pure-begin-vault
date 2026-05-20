@@ -84,6 +84,24 @@ interface CartItem extends Product {
   serial?: string;
 }
 
+type PaymentMethodConfig = {
+  id: string;
+  icon: typeof Banknote;
+  label: string;
+  color: string;
+  bg: string;
+};
+
+const ALL_PAYMENT_METHODS: PaymentMethodConfig[] = [
+  { id: "money", icon: Banknote, label: "Dinheiro", color: "text-green-600", bg: "bg-green-500/10" },
+  { id: "card", icon: CreditCard, label: "Cartão", color: "text-blue-600", bg: "bg-blue-500/10" },
+  { id: "pix", icon: QrCode, label: "PIX", color: "text-purple-600", bg: "bg-purple-500/10" },
+  { id: "brasilcard", icon: Landmark, label: "BrasilCard", color: "text-cyan-600", bg: "bg-cyan-500/10" },
+  { id: "crediario", icon: Wallet, label: "Crediário", color: "text-rose-600", bg: "bg-rose-500/10" },
+  { id: "prazo", icon: CalendarClock, label: "Prazo 7d", color: "text-amber-600", bg: "bg-amber-500/10" },
+];
+
+
 export function PDVInterface() {
   const { user } = useAuth();
   const { orgId } = useOrg();
