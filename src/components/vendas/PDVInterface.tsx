@@ -218,6 +218,7 @@ export function PDVInterface() {
   const [prazoAmount, setPrazoAmount] = useState<string>("");
   const [brasilcardAmount, setBrasilcardAmount] = useState<string>("");
   const [crediarioAmount, setCrediarioAmount] = useState<string>("");
+  const [aparelhoAmount, setAparelhoAmount] = useState<string>("");
   const [visiblePaymentMethods, setVisiblePaymentMethods] = useState<string[]>(() => {
     if (typeof window === "undefined") return ["money", "card", "pix", "prazo"];
     try {
