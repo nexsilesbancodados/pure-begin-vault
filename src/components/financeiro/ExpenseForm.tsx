@@ -484,14 +484,53 @@ export function ExpenseForm({
                         <SelectValue placeholder="Selecionar" />
                       </SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((c) => (
+                        {categories.map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0 text-emerald-600 border-emerald-500/40">
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                    <Popover open={newCategoryOpen} onOpenChange={setNewCategoryOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0 text-emerald-600 border-emerald-500/40" title="Adicionar categoria">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3" align="end">
+                        <Label className="text-xs font-semibold mb-1.5 block">Nova categoria</Label>
+                        <Input
+                          value={newCategory}
+                          onChange={(e) => setNewCategory(e.target.value)}
+                          placeholder="Ex: Manutenção"
+                          className="h-9 mb-2"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const name = newCategory.trim();
+                              if (!name) return;
+                              if (!categories.includes(name)) setCategories((arr) => [...arr, name]);
+                              setForm((f) => ({ ...f, category: name }));
+                              setNewCategory("");
+                              setNewCategoryOpen(false);
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            const name = newCategory.trim();
+                            if (!name) return;
+                            if (!categories.includes(name)) setCategories((arr) => [...arr, name]);
+                            setForm((f) => ({ ...f, category: name }));
+                            setNewCategory("");
+                            setNewCategoryOpen(false);
+                          }}
+                        >
+                          Adicionar
+                        </Button>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </Field>
                 <Field label="Forma de cobrança">
