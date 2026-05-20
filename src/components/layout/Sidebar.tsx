@@ -120,47 +120,66 @@ export function AppSidebar({
     return result;
   }, [profile, user, activeCount]);
 
-  const isSmall = isCollapsed || !!flyout || isForcedCollapsed;
+  // No drawer mobile o menu sempre aparece expandido (open prop só é setado no mobile).
+  const isDrawerOpen = !!open;
+  const isSmall = !isDrawerOpen && (isCollapsed || !!flyout || isForcedCollapsed);
+
+  // Auto-fecha o drawer mobile ao navegar.
+  useEffect(() => {
+    if (isDrawerOpen) setOpen?.(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   return (
     <TooltipProvider delayDuration={0}>
       {open && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
           onClick={() => setOpen?.(false)}
         />
       )}
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 bg-sidebar text-sidebar-foreground flex flex-col transition-[transform,width] duration-300 ease-in-out lg:relative lg:translate-x-0 border-r border-sidebar-border/40",
-          isSmall ? "w-[72px]" : "w-[260px]",
+          "fixed inset-y-0 left-0 z-50 bg-sidebar text-sidebar-foreground flex flex-col transition-[transform,width] duration-300 ease-in-out lg:relative lg:translate-x-0 border-r border-sidebar-border/40 shadow-2xl lg:shadow-none",
+          isSmall ? "w-[72px]" : "w-[min(86vw,300px)] lg:w-[260px]",
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
         <div
           className={cn(
-            "flex items-center h-[68px] border-b border-sidebar-border shrink-0 transition-all",
-            isSmall ? "px-3 justify-center" : "px-5 justify-between",
+            "flex items-center h-[60px] lg:h-[68px] border-b border-sidebar-border shrink-0 transition-all",
+            isSmall ? "px-3 justify-center" : "px-4 lg:px-5 justify-between",
           )}
         >
-          <div className="flex items-center gap-2.5 overflow-hidden">
+          <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
             <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow shrink-0">
               <Sparkles className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />
             </div>
             {!isSmall && (
-              <div className="leading-tight animate-in fade-in slide-in-from-left-2 duration-300">
-                <div className="font-display font-bold text-[17px] text-foreground tracking-tight">
+              <div className="leading-tight animate-in fade-in slide-in-from-left-2 duration-300 min-w-0">
+                <div className="font-display font-bold text-[16px] lg:text-[17px] text-foreground tracking-tight truncate">
                   ConectaCRM
                 </div>
               </div>
             )}
           </div>
-          {!isSmall && (
+          {/* Botão fechar (mobile) */}
+          {isDrawerOpen && (
+            <button
+              onClick={() => setOpen?.(false)}
+              aria-label="Fechar menu"
+              className="lg:hidden p-2 -mr-2 rounded-lg text-sidebar-foreground/60 hover:text-foreground hover:bg-sidebar-accent transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+          {/* Botão recolher (desktop) */}
+          {!isSmall && !isDrawerOpen && (
             <button
               onClick={() => setIsCollapsed(true)}
               aria-label="Recolher menu lateral"
-              className="p-1.5 rounded-lg text-sidebar-foreground/40 hover:text-foreground hover:bg-sidebar-accent transition-colors"
+              className="hidden lg:block p-1.5 rounded-lg text-sidebar-foreground/40 hover:text-foreground hover:bg-sidebar-accent transition-colors"
             >
               <PanelLeftClose className="h-4 w-4" />
             </button>
@@ -175,6 +194,7 @@ export function AppSidebar({
             </button>
           )}
         </div>
+
 
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
           {filteredItems.map((item: any) => (
