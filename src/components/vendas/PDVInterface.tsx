@@ -193,6 +193,10 @@ export function PDVInterface() {
   const [prazoAmount, setPrazoAmount] = useState<string>("");
   const [barcode, setBarcode] = useState("");
   const [vendedorId, setVendedorId] = useState<string>("");
+  const [sellers, setSellers] = useState<Array<{ id: string; name: string; email?: string | null; position?: string | null }>>([]);
+  const [sellerModalOpen, setSellerModalOpen] = useState(false);
+  const [newSeller, setNewSeller] = useState({ name: "", email: "", position: "Vendedor" });
+  const [savingSeller, setSavingSeller] = useState(false);
   const [obs, setObs] = useState("");
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [isFinishing, setIsFinishing] = useState(false);
@@ -204,6 +208,49 @@ export function PDVInterface() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchSellers = useCallback(async () => {
+    if (!orgId) return;
+    const { data } = await supabase
+      .from("employees")
+      .select("id, name, email, position")
+      .eq("organization_id", orgId)
+      .order("name", { ascending: true });
+    setSellers((data as any) || []);
+  }, [orgId]);
+
+  useEffect(() => {
+    fetchSellers();
+  }, [fetchSellers]);
+
+  const saveSeller = async () => {
+    if (!orgId) return toast.error("Selecione uma loja");
+    const name = newSeller.name.trim();
+    if (!name) return toast.error("Informe o nome do vendedor");
+    setSavingSeller(true);
+    try {
+      const { data, error } = await supabase
+        .from("employees")
+        .insert({
+          organization_id: orgId,
+          name,
+          email: newSeller.email.trim() || null,
+          position: newSeller.position.trim() || "Vendedor",
+        })
+        .select("id, name, email, position")
+        .single();
+      if (error) throw error;
+      setSellers((prev) => [...prev, data as any].sort((a, b) => a.name.localeCompare(b.name)));
+      setVendedorId((data as any).id);
+      toast.success(`Vendedor "${name}" cadastrado`);
+      setNewSeller({ name: "", email: "", position: "Vendedor" });
+      setSellerModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao cadastrar vendedor");
+    } finally {
+      setSavingSeller(false);
+    }
+  };
 
   const fetchProducts = useCallback(async () => {
     if (!user?.id || !orgId) return;
@@ -2238,22 +2285,39 @@ export function PDVInterface() {
 
           {/* Observações da Venda */}
           <div className="bg-card border border-border rounded-2xl p-4 shadow-sm flex flex-col gap-1.5 shrink-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <Label className="text-[10px] font-bold uppercase text-muted-foreground">
                 Vendedor (F4)
               </Label>
-              <div className="relative min-w-[200px]">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/60" />
-                <select
-                  className="w-full h-9 pl-9 pr-3 rounded-md bg-muted/30 border-none text-[13px] font-bold focus:outline-none focus:ring-1 focus:ring-primary/20 appearance-none"
-                  value={vendedorId}
-                  onChange={(e) => setVendedorId(e.target.value)}
+              <div className="flex items-center gap-1.5 min-w-[260px]">
+                <div className="relative flex-1">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/60" />
+                  <select
+                    className="w-full h-9 pl-9 pr-7 rounded-md bg-muted/30 border-none text-[13px] font-bold focus:outline-none focus:ring-1 focus:ring-primary/20 appearance-none"
+                    value={vendedorId}
+                    onChange={(e) => setVendedorId(e.target.value)}
+                  >
+                    <option value="">Selecione um vendedor</option>
+                    {user?.id && (
+                      <option value={user.id}>Eu ({user?.email?.split("@")[0]})</option>
+                    )}
+                    {sellers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}{s.position ? ` — ${s.position}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSellerModalOpen(true)}
+                  title="Cadastrar novo vendedor"
+                  className="h-9 px-2.5 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold inline-flex items-center gap-1 transition"
                 >
-                  <option value="">Selecione um vendedor</option>
-                  <option value="1">Vendedor Padrão</option>
-                  <option value={user?.id}>Eu ({user?.email?.split("@")[0]})</option>
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <UserPlus className="h-4 w-4" />
+                  <span className="hidden md:inline">Novo</span>
+                </button>
               </div>
             </div>
             <div className="pt-2 border-t border-border/50">
@@ -2860,6 +2924,83 @@ export function PDVInterface() {
           </div>
         </div>
       </div>
+
+      {sellerModalOpen && (
+        <div
+          className="fixed inset-0 z-[80] bg-black/50 grid place-items-center p-4"
+          onClick={() => !savingSeller && setSellerModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/15 grid place-items-center">
+                <UserPlus className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg leading-tight">Novo vendedor</h3>
+                <p className="text-xs text-muted-foreground">Cadastro rápido na loja atual</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <Label className="text-[11px] font-bold uppercase text-muted-foreground">Nome *</Label>
+                <input
+                  autoFocus
+                  value={newSeller.name}
+                  onChange={(e) => setNewSeller({ ...newSeller, name: e.target.value })}
+                  placeholder="Ex.: João Silva"
+                  className="w-full h-10 mt-1 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  onKeyDown={(e) => e.key === "Enter" && saveSeller()}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-[11px] font-bold uppercase text-muted-foreground">Cargo</Label>
+                  <input
+                    value={newSeller.position}
+                    onChange={(e) => setNewSeller({ ...newSeller, position: e.target.value })}
+                    placeholder="Vendedor"
+                    className="w-full h-10 mt-1 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] font-bold uppercase text-muted-foreground">E-mail</Label>
+                  <input
+                    type="email"
+                    value={newSeller.email}
+                    onChange={(e) => setNewSeller({ ...newSeller, email: e.target.value })}
+                    placeholder="opcional"
+                    className="w-full h-10 mt-1 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSellerModalOpen(false)}
+                disabled={savingSeller}
+                className="h-10 px-4 rounded-lg border border-border text-sm font-bold hover:bg-muted disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={saveSeller}
+                disabled={savingSeller || !newSeller.name.trim()}
+                className="h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-bold inline-flex items-center gap-2 hover:opacity-90 disabled:opacity-50"
+              >
+                {savingSeller ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Cadastrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
