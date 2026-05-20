@@ -1017,33 +1017,330 @@ function CardDrawer({
 }) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
+  const [editingDesc, setEditingDesc] = useState(false);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const descRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setTitle(task.title);
     setDescription(task.description ?? "");
+    setEditingDesc(false);
   }, [task.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-grow title
+  useEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, [title]);
+
+  const completed = isDoneList(lists.find((l) => l.id === task.status)?.name || "");
+  const doneList = lists.find((l) => isDoneList(l.name));
+  const todoList = lists.find((l) => !isDoneList(l.name)) ?? lists[0];
+
+  const toggleComplete = () => {
+    if (completed) {
+      if (todoList) onChange({ status: todoList.id });
+    } else {
+      if (doneList) onChange({ status: doneList.id });
+    }
+  };
 
   const timeValue = task.due_date
     ? new Date(task.due_date).toTimeString().slice(0, 5)
     : "";
 
   const updateTime = (v: string) => {
-    if (!task.due_date) return;
-    const d = new Date(task.due_date);
+    const d = task.due_date ? new Date(task.due_date) : new Date();
     const [hh, mm] = v.split(":").map((x) => parseInt(x, 10));
     d.setHours(hh || 0, mm || 0, 0, 0);
     onChange({ due_date: d.toISOString() });
   };
 
+  const assignee = members.find((m) => m.user_id === task.assigned_to);
+  const priorityMeta = PRIORITY_META[task.priority] ?? PRIORITY_META.medium;
+  const listMeta = lists.find((l) => l.id === task.status);
+  const listColor = colorOf(listMeta?.color || "slate");
+
+  // Save with Cmd/Ctrl+Enter
+  const onTitleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      titleRef.current?.blur();
+    }
+  };
+
   return (
     <div
-      className="absolute inset-0 z-30 bg-slate-900/30 backdrop-blur-sm flex justify-end"
+      className="absolute inset-0 z-30 bg-slate-900/60 backdrop-blur-sm flex items-start justify-center overflow-y-auto p-4 sm:p-8 animate-in fade-in duration-150"
       onClick={onClose}
     >
       <aside
-        className="w-full max-w-md bg-white shadow-2xl h-full flex flex-col animate-in slide-in-from-right duration-200"
+        className="w-full max-w-3xl bg-slate-50 rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Colored top bar based on list */}
+        <div className={`h-2 ${listColor.bar}`} />
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 px-5 sm:px-7 pt-5">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <button
+              onClick={toggleComplete}
+              title={completed ? "Marcar como não concluído" : "Marcar como concluído"}
+              className={`mt-1.5 h-6 w-6 shrink-0 rounded-full border-2 grid place-items-center transition-all ${
+                completed
+                  ? "bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600"
+                  : "border-slate-300 hover:border-emerald-400 hover:bg-emerald-50 text-transparent"
+              }`}
+            >
+              <Check className="h-3.5 w-3.5" strokeWidth={3} />
+            </button>
+            <div className="flex-1 min-w-0">
+              <span
+                className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${listColor.header} text-slate-700`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${listColor.dot}`} />
+                {listMeta?.name || "Lista"}
+              </span>
+              <textarea
+                ref={titleRef}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={() =>
+                  title.trim() && title !== task.title && onChange({ title: title.trim() })
+                }
+                onKeyDown={onTitleKey}
+                rows={1}
+                className={`w-full mt-1 bg-transparent border-0 outline-none resize-none text-xl sm:text-2xl font-bold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-sky-200 rounded-md px-2 -mx-2 py-1 ${
+                  completed ? "line-through text-slate-400" : ""
+                }`}
+                placeholder="Título do cartão"
+              />
+              <div className="mt-1 text-xs text-slate-500">
+                em <span className="font-semibold text-slate-700">{listMeta?.name}</span>
+                {task.due_date && (
+                  <>
+                    {" "}·{" "}
+                    {new Date(task.due_date).toLocaleDateString("pt-BR", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                    })}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="h-9 w-9 grid place-items-center rounded-lg hover:bg-slate-200 text-slate-600 shrink-0"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Body: 2-column layout */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-6 px-5 sm:px-7 py-5">
+          {/* Main column */}
+          <div className="space-y-6 min-w-0">
+            {/* Chips row */}
+            <div className="flex flex-wrap items-center gap-2">
+              {assignee && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase font-bold text-slate-500">Responsável</span>
+                  <div
+                    className="h-7 w-7 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 text-white grid place-items-center text-[11px] font-bold"
+                    title={assignee.name || assignee.email}
+                  >
+                    {initials(assignee.name, assignee.email)}
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] uppercase font-bold text-slate-500">Prioridade</span>
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border text-[11px] font-bold ${priorityMeta.cls}`}
+                >
+                  <Flag className="h-3 w-3" />
+                  {priorityMeta.label}
+                </span>
+              </div>
+              {task.due_date && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase font-bold text-slate-500">Horário</span>
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-100 text-slate-700 text-[11px] font-bold">
+                    <Clock className="h-3 w-3" />
+                    {timeOf(task.due_date) || "—"}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
+            <div>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <AlignLeft className="h-4 w-4 text-slate-600" />
+                  <h3 className="text-sm font-bold text-slate-800">Descrição</h3>
+                </div>
+                {!editingDesc && description && (
+                  <button
+                    onClick={() => {
+                      setEditingDesc(true);
+                      requestAnimationFrame(() => descRef.current?.focus());
+                    }}
+                    className="text-[11px] font-bold text-slate-600 hover:bg-slate-200 px-2.5 py-1 rounded-md"
+                  >
+                    Editar
+                  </button>
+                )}
+              </div>
+
+              {editingDesc || !description ? (
+                <div className="space-y-2">
+                  <textarea
+                    ref={descRef}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    onFocus={() => setEditingDesc(true)}
+                    rows={editingDesc ? 8 : 3}
+                    placeholder="Adicione mais detalhes sobre esta tarefa…"
+                    className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none text-sm resize-y leading-relaxed"
+                  />
+                  {editingDesc && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          if (description !== (task.description ?? "")) onChange({ description });
+                          setEditingDesc(false);
+                        }}
+                        className="h-8 px-3 rounded-md bg-sky-600 text-white text-xs font-bold hover:bg-sky-700"
+                      >
+                        Salvar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDescription(task.description ?? "");
+                          setEditingDesc(false);
+                        }}
+                        className="h-8 px-3 rounded-md text-slate-600 hover:bg-slate-200 text-xs font-bold"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setEditingDesc(true);
+                    requestAnimationFrame(() => descRef.current?.focus());
+                  }}
+                  className="w-full text-left px-3 py-3 rounded-lg bg-white border border-slate-200 hover:border-slate-300 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed"
+                >
+                  {description}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-4">
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-500 mb-1.5">Lista</div>
+              <select
+                value={task.status}
+                onChange={(e) => onChange({ status: e.target.value })}
+                className="w-full px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-800 hover:border-slate-300 cursor-pointer"
+              >
+                {lists.map((l) => (
+                  <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-500 mb-1.5">Prioridade</div>
+              <select
+                value={task.priority}
+                onChange={(e) => onChange({ priority: e.target.value })}
+                className="w-full px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-800 hover:border-slate-300 cursor-pointer"
+              >
+                <option value="low">🟢 Baixa</option>
+                <option value="medium">🟡 Média</option>
+                <option value="high">🔴 Alta</option>
+              </select>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-500 mb-1.5">Responsável</div>
+              <select
+                value={task.assigned_to ?? ""}
+                onChange={(e) => onChange({ assigned_to: e.target.value || null })}
+                className="w-full px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-800 hover:border-slate-300 cursor-pointer"
+              >
+                <option value="">Sem responsável</option>
+                {members.map((m) => (
+                  <option key={m.user_id} value={m.user_id}>{m.name || m.email}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-500 mb-1.5">Horário</div>
+              <input
+                type="time"
+                value={timeValue}
+                onChange={(e) => updateTime(e.target.value)}
+                className="w-full px-2.5 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-800 hover:border-slate-300 cursor-pointer"
+              />
+            </div>
+
+            <div className="pt-3 border-t border-slate-200 space-y-1.5">
+              <div className="text-[10px] uppercase font-bold text-slate-500 mb-1">Ações</div>
+              <button
+                onClick={toggleComplete}
+                className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold transition-colors ${
+                  completed
+                    ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                    : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <CheckCheck className="h-3.5 w-3.5" />
+                {completed ? "Concluído" : "Marcar como concluído"}
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm("Excluir este cartão? Esta ação não pode ser desfeita.")) onDelete();
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir cartão
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-slate-200 bg-white px-5 sm:px-7 py-3 flex items-center justify-between">
+          <div className="text-[11px] text-slate-500">
+            <kbd className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 font-mono text-[10px]">Esc</kbd> para fechar
+          </div>
+          <button
+            onClick={onClose}
+            className="h-9 px-5 rounded-lg bg-sky-600 text-white text-xs font-bold hover:bg-sky-700 shadow-sm"
+          >
+            Fechar
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+}
         <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-200">
           <div className="flex items-center gap-2 min-w-0">
             <div className="text-[10px] uppercase tracking-widest font-bold text-slate-500">
