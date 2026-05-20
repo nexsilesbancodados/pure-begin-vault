@@ -90,6 +90,7 @@ export function KpiCard({
   const [displayValue, setDisplayValue] = useState(initialValue);
   const [isLoading, setIsLoading] = useState(false);
   const [salesData, setSalesData] = useState<any[]>([]);
+  const [fallbackSales, setFallbackSales] = useState<any[]>([]);
   const [osData, setOsData] = useState<any[]>([]);
   const [stockData, setStockData] = useState<any[]>([]);
   const [leadsData, setLeadsData] = useState<any[]>([]);
@@ -142,6 +143,26 @@ export function KpiCard({
             setDisplayValue(`${pdvTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (+${importTotal.toLocaleString("pt-BR")})`);
           } else {
             setDisplayValue(total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+          }
+
+          // Fallback: if no sales today, fetch last 7 days so the modal can
+          // still show recent product activity instead of an empty state.
+          if (!(data || []).length && !isMonthly) {
+            const past = new Date(start);
+            past.setDate(past.getDate() - 7);
+            const { data: prev } = await filterFor(
+              supabase
+                .from("sales_orders")
+                .select("total_amount, created_at, id, payment_method, channel, status, customers(name), sale_items(product_name, quantity, unit_price, imei, metadata)")
+                .not("status", "in", "(canceled,cancelled,refunded,voided)")
+                .gte("created_at", past.toISOString())
+                .lt("created_at", start.toISOString())
+                .order("created_at", { ascending: false })
+                .limit(50),
+            );
+            setFallbackSales(prev || []);
+          } else {
+            setFallbackSales([]);
           }
         } else if (l.includes("leads")) {
           const { data, count } = await filterFor(
@@ -664,18 +685,61 @@ export function KpiCard({
             )}
 
             {!salesData.length && !osData.length && !stockData.length && !leadsData.length && (
-              <div className="p-4 rounded-xl border border-border bg-orange-50/50 dark:bg-orange-900/10 flex items-start gap-3">
-                <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-900/20 grid place-items-center shrink-0">
-                  <Info className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+              <div className="space-y-3 mt-2">
+                <div className="p-4 rounded-2xl border border-dashed border-border bg-muted/30 flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 grid place-items-center shrink-0">
+                    <ShoppingBag className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-bold">Nenhuma venda registrada nesta data</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Esta loja ainda não tem vendas no período selecionado. Registre uma venda no PDV ou troque a loja ativa para visualizar os produtos vendidos.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-orange-900 dark:text-orange-100">
-                    Dica Estratégica
-                  </h4>
-                  <p className="text-xs text-orange-800/80 dark:text-orange-200/60 mt-0.5">
-                    Mantenha este indicador sempre monitorado para garantir a saúde do seu negócio.
-                  </p>
-                </div>
+
+                {fallbackSales.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between px-1">
+                      <h5 className="text-[11px] uppercase font-black text-muted-foreground tracking-widest">
+                        Produtos vendidos nos últimos 7 dias
+                      </h5>
+                      <Badge variant="secondary" className="text-[10px] font-bold bg-primary/10 text-primary border-none">
+                        {fallbackSales.length} {fallbackSales.length === 1 ? "venda" : "vendas"}
+                      </Badge>
+                    </div>
+                    <ScrollArea className="h-[260px] w-full rounded-2xl border border-border bg-muted/20 p-3">
+                      <div className="space-y-2">
+                        {(() => {
+                          const agg = fallbackSales.reduce((acc: any, s: any) => {
+                            (s.sale_items || []).forEach((it: any) => {
+                              const k = it.product_name || "Item";
+                              if (!acc[k]) acc[k] = { name: k, qty: 0, total: 0 };
+                              acc[k].qty += Number(it.quantity) || 0;
+                              acc[k].total += (Number(it.unit_price) || 0) * (Number(it.quantity) || 1);
+                            });
+                            return acc;
+                          }, {});
+                          const items = Object.values(agg).sort((a: any, b: any) => b.total - a.total);
+                          if (!items.length) {
+                            return <p className="text-xs text-muted-foreground italic px-1">Sem itens detalhados.</p>;
+                          }
+                          return items.map((p: any) => (
+                            <div key={p.name} className="p-3 rounded-xl bg-card border border-border/60 shadow-sm flex justify-between items-center gap-3">
+                              <div className="min-w-0">
+                                <p className="text-[12px] font-bold truncate">{p.name}</p>
+                                <p className="text-[10px] text-muted-foreground">{p.qty} un. vendidas</p>
+                              </div>
+                              <span className="text-[12px] font-black text-primary shrink-0">
+                                {p.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                              </span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
               </div>
             )}
           </div>
