@@ -44,10 +44,10 @@ export function Topbar({
   const isHome = location.pathname === "/";
 
   return (
-    <header className="h-[68px] sticky top-0 z-30 shrink-0 bg-card border-b border-border flex items-center gap-2 sm:gap-3 lg:gap-4 px-3 sm:px-4 lg:px-6">
-      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+    <header className="h-[60px] sm:h-[68px] sticky top-0 z-30 shrink-0 bg-card border-b border-border flex items-center gap-1.5 sm:gap-3 lg:gap-4 px-2.5 sm:px-4 lg:px-6">
+      <div className="flex items-center gap-1 shrink-0">
         <button
-          className="lg:hidden p-2 rounded-md hover:bg-muted"
+          className="lg:hidden p-2 -ml-1 rounded-md hover:bg-muted active:bg-muted/80"
           onClick={toggleSidebar}
           aria-label="Abrir menu lateral"
         >
@@ -56,16 +56,17 @@ export function Topbar({
           <span className="block w-5 h-0.5 bg-foreground" />
         </button>
       </div>
-      <div className="min-w-0 flex-shrink">
-        <h1 className="text-[15px] sm:text-[17px] lg:text-[20px] font-semibold tracking-tight leading-tight truncate">
+      <div className="min-w-0 flex-1 lg:flex-initial lg:flex-shrink">
+        <h1 className="text-[14px] sm:text-[16px] lg:text-[20px] font-semibold tracking-tight leading-tight truncate">
           {title}
         </h1>
         {subtitle && (
-          <p className="hidden sm:block text-[12.5px] text-muted-foreground mt-1 truncate">
+          <p className="hidden md:block text-[12.5px] text-muted-foreground mt-0.5 truncate">
             {subtitle}
           </p>
         )}
       </div>
+
 
       <button
         type="button"
@@ -86,9 +87,12 @@ export function Topbar({
         </div>
       </button>
 
-      <div className="flex items-center gap-1 sm:gap-2 ml-auto shrink-0">
+      <div className="flex items-center gap-0.5 sm:gap-2 ml-auto shrink-0">
         <button
           aria-label="Buscar"
+          onClick={() => {
+            window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+          }}
           className="md:hidden h-10 w-10 grid place-items-center rounded-xl hover:bg-muted text-foreground/70"
         >
           <Search className="h-[18px] w-[18px]" />
@@ -106,6 +110,7 @@ export function Topbar({
         >
           <Plus className="h-[18px] w-[18px]" />
         </button>
+
         <button
           onClick={toggle}
           aria-label="Alternar tema"
