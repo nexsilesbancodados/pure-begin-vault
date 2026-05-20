@@ -2498,15 +2498,78 @@ export function PDVInterface() {
                 {cart.length} itens
               </span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-              onClick={clearCart}
-              title="Limpar Carrinho"
-            >
-              <Eraser className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Popover open={methodsPickerOpen} onOpenChange={setMethodsPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    title="Configurar formas de pagamento"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-72 p-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-bold uppercase tracking-wider text-foreground">
+                        Formas de pagamento
+                      </p>
+                      <span className="text-[10px] font-bold text-muted-foreground">
+                        {visiblePaymentMethods.length}/4
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Escolha quais 4 opções aparecem no carrinho.
+                    </p>
+                    <div className="space-y-1 pt-1">
+                      {ALL_PAYMENT_METHODS.map((m) => {
+                        const checked = visiblePaymentMethods.includes(m.id);
+                        const Icon = m.icon;
+                        const disabled = !checked && visiblePaymentMethods.length >= 4;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => {
+                              setVisiblePaymentMethods((prev) =>
+                                prev.includes(m.id)
+                                  ? prev.filter((x) => x !== m.id)
+                                  : prev.length < 4
+                                    ? [...prev, m.id]
+                                    : prev,
+                              );
+                            }}
+                            className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg border text-left transition ${
+                              checked
+                                ? `${m.bg} border-primary/40`
+                                : "border-transparent hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+                            }`}
+                          >
+                            <Icon className={`h-4 w-4 ${checked ? m.color : "text-muted-foreground"}`} />
+                            <span className={`flex-1 text-xs font-bold ${checked ? "text-foreground" : "text-muted-foreground"}`}>
+                              {m.label}
+                            </span>
+                            {checked && <Check className="h-4 w-4 text-primary" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                onClick={clearCart}
+                title="Limpar Carrinho"
+              >
+                <Eraser className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <ScrollArea className="flex-1 px-4">
