@@ -23,6 +23,7 @@ import {
   AlignLeft,
   Clock,
   Filter,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DailyTasksColumn } from "./DailyTasksColumn";
@@ -126,6 +127,28 @@ export function DayKanbanModal({
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const [orgOwnerId, setOrgOwnerId] = useState<string | null>(null);
+
+  // Regra de edição: somente alfatech791@gmail.com pode editar qualquer dia;
+  // os demais usuários só podem editar o DIA ATUAL.
+  const SUPER_EDITOR_EMAIL = "alfatech791@gmail.com";
+  const isSuperEditor =
+    (user?.email || "").trim().toLowerCase() === SUPER_EDITOR_EMAIL;
+  const isToday = useMemo(() => {
+    const t = new Date();
+    return (
+      t.getFullYear() === date.getFullYear() &&
+      t.getMonth() === date.getMonth() &&
+      t.getDate() === date.getDate()
+    );
+  }, [date]);
+  const readOnly = !isSuperEditor && !isToday;
+  const guard = () => {
+    if (readOnly) {
+      toast.error("Somente o dia de hoje pode ser editado");
+      return true;
+    }
+    return false;
+  };
 
   useEffect(() => {
     if (!orgId) { setOrgOwnerId(null); return; }
@@ -319,6 +342,7 @@ export function DayKanbanModal({
     const t = tasks.find((x) => x.id === dragId);
     setDragId(null);
     if (!t || t.status === listId) return;
+    if (guard()) return;
     setTasks((prev) => prev.map((x) => (x.id === t.id ? { ...x, status: listId } : x)));
     const { error } = await supabase.from("tasks").update({ status: listId }).eq("id", t.id);
     if (error) {
@@ -329,6 +353,7 @@ export function DayKanbanModal({
 
   // Create one or more cards (split by newline) for a list
   const createCards = async (listId: string, raw: string) => {
+    if (guard()) return;
     const lines = raw.split("\n").map((s) => s.trim()).filter(Boolean);
     if (lines.length === 0 || !user?.id) return;
     const due = new Date(date);
@@ -349,18 +374,21 @@ export function DayKanbanModal({
   };
 
   const deleteTask = async (id: string) => {
+    if (guard()) return;
     setTasks((p) => p.filter((t) => t.id !== id));
     if (openCard?.id === id) setOpenCard(null);
     await supabase.from("tasks").delete().eq("id", id);
   };
 
   const updateTask = async (id: string, patch: Partial<KanbanTask>) => {
+    if (guard()) return;
     setTasks((p) => p.map((t) => (t.id === id ? { ...t, ...patch } : t)));
     if (openCard?.id === id) setOpenCard((c) => (c ? { ...c, ...patch } : c));
     await supabase.from("tasks").update(patch).eq("id", id);
   };
 
   const togglePriority = (id: string) => {
+    if (guard()) return;
     const current = tasks.find((t) => t.id === id);
     if (!current) return;
     const next = current.priority === "high" ? "low" : current.priority === "low" ? "medium" : "high";
@@ -368,6 +396,7 @@ export function DayKanbanModal({
   };
 
   const addList = () => {
+    if (guard()) return;
     const name = newListName.trim();
     if (!name) return;
     const id = `list_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -380,14 +409,17 @@ export function DayKanbanModal({
   };
 
   const renameList = (id: string, name: string) => {
+    if (guard()) return;
     setLists((p) => p.map((l) => (l.id === id ? { ...l, name: name.trim() || l.name } : l)));
   };
 
   const setListColor = (id: string, color: string) => {
+    if (guard()) return;
     setLists((p) => p.map((l) => (l.id === id ? { ...l, color } : l)));
   };
 
   const deleteList = async (id: string) => {
+    if (guard()) return;
     const items = grouped[id] || [];
     if (items.length > 0) {
       const ok = window.confirm(`Esta lista tem ${items.length} cartão(ões). Excluir tudo?`);
@@ -400,6 +432,7 @@ export function DayKanbanModal({
   };
 
   const clearListCards = async (id: string) => {
+    if (guard()) return;
     const items = grouped[id] || [];
     if (items.length === 0) return;
     if (!window.confirm(`Remover ${items.length} cartão(ões) desta lista?`)) return;
@@ -409,6 +442,7 @@ export function DayKanbanModal({
   };
 
   const clearCompleted = async () => {
+    if (guard()) return;
     const doneIds = lists.filter((l) => isDoneList(l.name)).map((l) => l.id);
     const ids = tasks.filter((t) => doneIds.includes(t.status)).map((t) => t.id);
     if (ids.length === 0) return toast.info("Nenhum cartão concluído");
@@ -440,6 +474,7 @@ export function DayKanbanModal({
 
   // Copy yesterday's board if today is empty
   const copyFromYesterday = async () => {
+    if (guard()) return;
     if (!user?.id) return;
     const y = new Date(date);
     y.setDate(y.getDate() - 1);
@@ -598,6 +633,14 @@ export function DayKanbanModal({
           </div>
         </header>
 
+        {readOnly && (
+          <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 flex items-center gap-2 text-xs text-amber-800">
+            <Lock className="h-3.5 w-3.5" />
+            <span className="font-semibold">Somente leitura</span>
+            <span className="text-amber-700">— você só pode editar o dia de hoje.</span>
+          </div>
+        )}
+
         {/* Progress strip */}
         <div className="px-5 py-2 bg-white/50 border-b border-slate-200/60 flex items-center gap-4">
           <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-600">
@@ -630,7 +673,7 @@ export function DayKanbanModal({
             </div>
           ) : (
             <div className="flex items-start gap-3 p-4 sm:p-5 min-w-max h-full">
-              <DailyTasksColumn date={date} orgId={orgId} ownerOnlyForUserId={orgOwnerId ?? undefined} />
+              <DailyTasksColumn date={date} orgId={orgId} ownerOnlyForUserId={orgOwnerId ?? undefined} readOnly={readOnly} />
               {lists.filter((l) => l.name.trim().toLowerCase() !== "tarefas diárias").map((list) => {
                 const c = colorOf(list.color);
                 const items = grouped[list.id] || [];

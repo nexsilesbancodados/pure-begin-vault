@@ -41,10 +41,12 @@ export function DailyTasksColumn({
   date,
   orgId,
   ownerOnlyForUserId,
+  readOnly = false,
 }: {
   date: Date;
   orgId: string | null;
   ownerOnlyForUserId?: string;
+  readOnly?: boolean;
 }) {
   const { user } = useAuth();
   const fetchMembers = useServerFn(listOrgMembers);
@@ -108,11 +110,12 @@ export function DailyTasksColumn({
   // Owner = whoever the gestor is for this org (passed in) OR the template creator.
   // For the manage UI we require user to match ownerOnlyForUserId; if not provided,
   // any signed-in user that CREATED a template can edit their own.
-  const canManageAll = !!user?.id && !!ownerOnlyForUserId && user.id === ownerOnlyForUserId;
-  const isOwnerOf = (t: Template) => !!user?.id && t.created_by === user.id;
+  const canManageAll = !readOnly && !!user?.id && !!ownerOnlyForUserId && user.id === ownerOnlyForUserId;
+  const isOwnerOf = (t: Template) => !readOnly && !!user?.id && t.created_by === user.id;
   const canManage = (t: Template) => canManageAll || isOwnerOf(t);
 
   const addTemplate = async () => {
+    if (readOnly) return toast.error("Somente o dia de hoje pode ser editado");
     const title = draft.title.trim();
     if (!title || !user?.id || !orgId) return;
     const { error } = await supabase.from("daily_task_templates").insert({
@@ -131,6 +134,7 @@ export function DailyTasksColumn({
   };
 
   const removeTemplate = async (id: string) => {
+    if (readOnly) return toast.error("Somente o dia de hoje pode ser editado");
     if (!confirm("Remover esta tarefa diária? Ela deixará de aparecer em todos os dias.")) return;
     const { error } = await supabase
       .from("daily_task_templates")
@@ -142,6 +146,7 @@ export function DailyTasksColumn({
   };
 
   const toggleCompletion = async (t: Template) => {
+    if (readOnly) return toast.error("Somente o dia de hoje pode ser editado");
     if (!user?.id || !orgId) return;
     const existing = completions.find((c) => c.template_id === t.id);
     if (existing) {

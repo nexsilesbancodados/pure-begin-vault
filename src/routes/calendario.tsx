@@ -101,7 +101,22 @@ function CalendarPage() {
   const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
   const selectedTasks = tasksByDay.get(dayKey(selected)) || [];
 
+  const SUPER_EDITOR_EMAIL = "alfatech791@gmail.com";
+  const isSuperEditor = (user?.email || "").trim().toLowerCase() === SUPER_EDITOR_EMAIL;
+  const canEditDate = (d: Date) => {
+    if (isSuperEditor) return true;
+    const today = new Date();
+    return (
+      today.getFullYear() === d.getFullYear() &&
+      today.getMonth() === d.getMonth() &&
+      today.getDate() === d.getDate()
+    );
+  };
+
   const createTask = async () => {
+    if (!canEditDate(selected)) {
+      return toast.error("Somente o dia de hoje pode ser editado");
+    }
     if (!form.title.trim() || !user?.id) return;
     const due = new Date(selected);
     due.setHours(9, 0, 0, 0);
@@ -122,6 +137,9 @@ function CalendarPage() {
   };
 
   const toggleTask = async (t: Task) => {
+    if (t.due_date && !canEditDate(new Date(t.due_date))) {
+      return toast.error("Somente o dia de hoje pode ser editado");
+    }
     const next = t.status === "done" ? "pending" : "done";
     await supabase.from("tasks").update({ status: next }).eq("id", t.id);
     load();
