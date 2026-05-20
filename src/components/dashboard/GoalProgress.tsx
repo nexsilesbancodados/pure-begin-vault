@@ -419,7 +419,10 @@ export function GoalProgress({
   return (
     <>
       <div
-        onClick={() => setIsModalOpen(true)}
+        onClick={() => {
+          setEditGoals({ ...goals, baseline: baseline.value });
+          setIsModalOpen(true);
+        }}
         className="rounded-2xl bg-card border border-border p-5 shadow-card relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group"
       >
         <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-10 blur-2xl bg-gradient-primary" />
