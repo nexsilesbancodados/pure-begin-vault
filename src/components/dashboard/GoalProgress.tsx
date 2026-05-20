@@ -237,7 +237,7 @@ export function GoalProgress({
       return;
     }
 
-    const saleIds = (sales || []).map((s: any) => s.id).filter(Boolean);
+    const saleIds = ((sales || []) as SaleRow[]).map((s) => s.id).filter(Boolean);
     if (!saleIds.length) {
       setStats({ units: 0 });
       return;
@@ -254,8 +254,11 @@ export function GoalProgress({
       return;
     }
 
-    const productIds = Array.from(new Set((items || []).map((i: any) => i.product_id).filter(Boolean)));
-    const productsById = new Map<string, any>();
+    const saleItems = (items || []) as SaleItemRow[];
+    const productIds = Array.from(
+      new Set(saleItems.map((i) => i.product_id).filter((id): id is string => Boolean(id))),
+    );
+    const productsById = new Map<string, ProductRow>();
     if (productIds.length) {
       const { data: products, error: productsError } = await supabase
         .from("products")
@@ -265,13 +268,13 @@ export function GoalProgress({
       if (productsError) {
         console.error("Erro ao buscar produtos da meta:", productsError);
       } else {
-        (products || []).forEach((product: any) => productsById.set(product.id, product));
+        ((products || []) as ProductRow[]).forEach((product) => productsById.set(product.id, product));
       }
     }
 
     let units = 0;
-    (items || []).forEach((item: any) => {
-      if (isDeviceItem(item, productsById.get(item.product_id))) {
+    saleItems.forEach((item) => {
+      if (isDeviceItem(item, item.product_id ? productsById.get(item.product_id) : undefined)) {
         units += Math.max(1, Number(item.quantity) || 1);
       }
     });
