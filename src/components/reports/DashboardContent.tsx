@@ -45,6 +45,9 @@ interface ExtraStats {
   receitasOpen: number; receitasTotal: number; receitasPaid: number;
   caixaSaldo: number; caixaIncome: number; caixaExpense: number;
   productsCount: number; productsActive: number; lowStock: number; outOfStock: number; stockValue: number;
+  salesCount?: number; salesToday?: number; salesWeek?: number; salesMonth?: number;
+  revenueToday?: number; revenueWeek?: number;
+  financeMargin?: number; financeOverdueCount?: number;
 }
 
 interface DashboardContentProps {
