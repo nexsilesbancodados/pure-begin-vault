@@ -1,23 +1,24 @@
 import {
   Target,
-  TrendingUp,
   Edit2,
   Save,
-  X,
-  Calendar,
   Trophy,
-  Zap,
   Activity,
-  Info,
-  BarChart3,
   Rocket,
-  DollarSign,
   Package,
   CheckCircle2,
-  PieChart,
   ArrowRight,
   Calculator,
+  Plus,
+  Filter,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
