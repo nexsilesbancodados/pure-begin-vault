@@ -133,6 +133,37 @@ export function DayKanbanModal({
     () => `kanban:scroll:${orgId || user?.id || "anon"}:${ymd(date)}`,
     [orgId, user?.id, date],
   );
+  const dailyKey = useMemo(
+    () => `kanban:dailyDone:${orgId || user?.id || "anon"}:${ymd(date)}`,
+    [orgId, user?.id, date],
+  );
+  const [dailyDone, setDailyDone] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const raw = localStorage.getItem(dailyKey);
+      setDailyDone(new Set(raw ? (JSON.parse(raw) as string[]) : []));
+    } catch {
+      setDailyDone(new Set());
+    }
+  }, [open, dailyKey]);
+
+  const toggleDailyDone = (id: string) => {
+    setDailyDone((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        toast.success("Tarefa confirmada para hoje");
+      }
+      try {
+        localStorage.setItem(dailyKey, JSON.stringify(Array.from(next)));
+      } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   const dayStart = useMemo(() => {
     const d = new Date(date);
