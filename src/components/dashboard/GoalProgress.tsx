@@ -150,20 +150,6 @@ export function GoalProgress({
   const [editGoals, setEditGoals] = useState(initialGoalState);
   const [stats, setStats] = useState({ units: 0 });
 
-  // Override manual (apenas Maio): permite ao gestor informar quantos aparelhos foram vendidos até agora
-  const now = new Date();
-  const isMay = now.getMonth() === 4; // 0=Jan, 4=Maio
-  const overrideKey = orgId ? `goal-units-override:${orgId}:${now.getFullYear()}-05` : "";
-  const [manualUnits, setManualUnits] = useState<number | null>(null);
-  const [editingManual, setEditingManual] = useState(false);
-  const [manualInput, setManualInput] = useState("");
-
-  useEffect(() => {
-    if (!overrideKey) return;
-    const stored = localStorage.getItem(overrideKey);
-    setManualUnits(stored !== null ? Number(stored) : null);
-  }, [overrideKey]);
-
   const fetchGoals = useCallback(async () => {
     if (!user?.id || !orgId) return;
     const { data } = await supabase
