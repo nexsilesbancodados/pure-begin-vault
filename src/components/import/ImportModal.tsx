@@ -1201,7 +1201,13 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                         {group.title}
                       </p>
                       <div className="grid grid-cols-2 gap-2">
-                        {group.fields.map(({ field, label, required }) => (
+                        {group.fields.map(({ field, label, required }) => {
+                          // mapa reverso: header -> field que já o usa
+                          const usedBy: Record<string, string> = {};
+                          for (const [f, h] of Object.entries(hmap)) {
+                            if (h && f !== field) usedBy[h as string] = f;
+                          }
+                          return (
                           <div key={field} className="space-y-1">
                             <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                               <span className="flex items-center gap-1">
@@ -1219,6 +1225,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                             <select
                               value={hmap[field] || ""}
                               onChange={(e) => remap(field, e.target.value)}
+                              title={`${headers.length} colunas disponíveis no arquivo`}
                               className={`w-full text-[11px] px-2 py-1.5 rounded-lg bg-background border ${
                                 required && !hmap[field]
                                   ? "border-destructive/50 shadow-[0_0_8px_rgba(239,68,68,0.1)]"
@@ -1230,13 +1237,15 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                               <option value="">— ignorar coluna —</option>
                               {headers.map((h) => (
                                 <option key={h} value={h}>
-                                  {h}
+                                  {h}{usedBy[h] ? `  · em uso (${usedBy[h]})` : ""}
                                 </option>
                               ))}
                             </select>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
+
                     </div>
                   ))}
                 </div>
