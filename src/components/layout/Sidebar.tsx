@@ -228,7 +228,8 @@ export function AppSidebar({
       </aside>
 
       {flyout && (
-        <aside className="relative z-40 w-[280px] shrink-0 bg-sidebar border-l border-sidebar-border/40 text-sidebar-foreground flex flex-col shadow-2xl animate-in slide-in-from-left-4 duration-300">
+        <aside className="fixed inset-y-0 left-[72px] z-[60] w-[min(80vw,280px)] lg:relative lg:left-0 lg:w-[280px] shrink-0 bg-sidebar border-l border-sidebar-border/40 text-sidebar-foreground flex flex-col shadow-2xl animate-in slide-in-from-left-4 duration-300">
+
           <div className="flex items-center justify-between px-5 h-[68px] border-b border-sidebar-border shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="h-9 w-9 rounded-xl bg-gradient-primary grid place-items-center shadow-glow">
