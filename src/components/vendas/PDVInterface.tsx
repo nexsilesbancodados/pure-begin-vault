@@ -1008,9 +1008,12 @@ export function PDVInterface() {
       const cardN = parseFloat(cardAmount) || 0;
       const pixN = parseFloat(pixAmount) || 0;
       const prazoN = parseFloat(prazoAmount) || 0;
+      const brasilcardN = parseFloat(brasilcardAmount) || 0;
+      const crediarioN = parseFloat(crediarioAmount) || 0;
       if (moneyN > 0) payments.push({ method: "cash", amount: moneyN });
       if (cardN > 0) payments.push({ method: "card", amount: cardN });
       if (pixN > 0) payments.push({ method: "pix", amount: pixN });
+      if (brasilcardN > 0) payments.push({ method: "card", amount: brasilcardN, label: "BrasilCard" });
       if (prazoN > 0) {
         const dueDate = new Date();
         dueDate.setDate(dueDate.getDate() + 7);
@@ -1020,6 +1023,13 @@ export function PDVInterface() {
           due_date: dueDate.toISOString(),
           term_days: 7,
           label: "Prazo 7 dias",
+        });
+      }
+      if (crediarioN > 0) {
+        payments.push({
+          method: "credit",
+          amount: crediarioN,
+          label: "Crediário",
         });
       }
       if (payments.length === 0) {
