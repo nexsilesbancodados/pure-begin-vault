@@ -193,6 +193,10 @@ export function PDVInterface() {
   const [prazoAmount, setPrazoAmount] = useState<string>("");
   const [barcode, setBarcode] = useState("");
   const [vendedorId, setVendedorId] = useState<string>("");
+  const [sellers, setSellers] = useState<Array<{ id: string; name: string; email?: string | null; position?: string | null }>>([]);
+  const [sellerModalOpen, setSellerModalOpen] = useState(false);
+  const [newSeller, setNewSeller] = useState({ name: "", email: "", position: "Vendedor" });
+  const [savingSeller, setSavingSeller] = useState(false);
   const [obs, setObs] = useState("");
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [isFinishing, setIsFinishing] = useState(false);
