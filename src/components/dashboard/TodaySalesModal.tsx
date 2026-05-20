@@ -72,18 +72,37 @@ export function TodaySalesModal({ open, onOpenChange }: Props) {
       setLoading(true);
       const start = startOfDay(date);
       const end = endOfDay(date);
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("sales_orders")
         .select(
-          "id, sale_number, total_amount, discount, created_at, payment_method, channel, status, customers(name), sale_items(product_name, quantity, unit_price, unit_cost, imei, metadata), sale_payments(method, amount)",
+          "id, sale_number, total_amount, discount, created_at, payment_method, channel, status, customers(name), sale_items(product_name, quantity, unit_price, unit_cost, imei, metadata)",
         )
         .eq("organization_id", orgId)
         .not("status", "in", "(canceled,cancelled,refunded,voided)")
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString())
         .order("created_at", { ascending: false });
+      if (error) console.error("TodaySalesModal fetch error:", error);
       if (!alive) return;
-      setSales(data || []);
+      const list = data || [];
+      // Fetch payments separately to avoid PostgREST relationship issues
+      if (list.length) {
+        const ids = list.map((s: any) => s.id);
+        const { data: pays } = await supabase
+          .from("sale_payments")
+          .select("sale_id, method, amount")
+          .in("sale_id", ids);
+        const map = new Map<string, any[]>();
+        (pays || []).forEach((p: any) => {
+          const arr = map.get(p.sale_id) || [];
+          arr.push(p);
+          map.set(p.sale_id, arr);
+        });
+        list.forEach((s: any) => {
+          s.sale_payments = map.get(s.id) || [];
+        });
+      }
+      setSales(list);
       setLoading(false);
     })();
     return () => {
