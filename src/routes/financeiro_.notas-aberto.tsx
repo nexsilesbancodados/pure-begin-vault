@@ -91,7 +91,7 @@ interface Nota {
   prazoPagamento: string;
   comprovanteUrls?: string[];
   observacao?: string;
-  kind: "compra" | "venda";
+  kind?: "compra" | "venda";
   customerName?: string | null;
   saleIds?: string[];
 }
