@@ -210,9 +210,33 @@ const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
   }
 };
 
+// Tokeniza um cabeçalho normalizado: separa por espaço, underscore, hífen e pontuação
+const tokenize = (s: string): string[] =>
+  norm(s)
+    .replace(/[^a-z0-9\s_\-/]/g, " ")
+    .split(/[\s_\-/]+/)
+    .filter(Boolean);
+
+// Distância de Levenshtein curta (para fuzzy de tokens parecidos)
+function lev(a: string, b: string): number {
+  if (a === b) return 0;
+  const m = a.length, n = b.length;
+  if (!m) return n; if (!n) return m;
+  const dp = Array.from({ length: m + 1 }, (_, i) => i);
+  for (let j = 1; j <= n; j++) {
+    let prev = dp[0]; dp[0] = j;
+    for (let i = 1; i <= m; i++) {
+      const tmp = dp[i];
+      dp[i] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[i], dp[i - 1]);
+      prev = tmp;
+    }
+  }
+  return dp[m];
+}
+
 // Mapeia cabeçalhos reais do arquivo → nossos campos canônicos
-// Estratégia: prioridade exato > startsWith > inclui, e cada header só pode
-// ser atribuído a um único campo (evita "Data Venda" virar VALOR).
+// Estratégia: tokeniza header e aliases; pontua exato > prefixo > token > fuzzy.
+// Cada header só pode ser atribuído a um campo (evita "Data Venda" virar VALOR).
 function buildHeaderMap(sample: Record<string, any>, kind: ImportKind): Record<string, string> {
   const map: Record<string, string> = {};
   const headers = Object.keys(sample);
@@ -224,7 +248,6 @@ function buildHeaderMap(sample: Record<string, any>, kind: ImportKind): Record<s
   if (savedMap) {
     try {
       const parsed = JSON.parse(savedMap);
-      // Só usa se a coluna ainda existir no arquivo atual
       for (const [field, header] of Object.entries(parsed)) {
         if (headers.includes(header as string)) {
           map[field] = header as string;
@@ -236,58 +259,96 @@ function buildHeaderMap(sample: Record<string, any>, kind: ImportKind): Record<s
     }
   }
 
-  // Cabeçalhos que NUNCA devem virar "data da venda" (datas pessoais/cadastrais)
-  const DATE_BLACKLIST = [
-    "nasc", "aniversari", "birth", "cadastr",
-    "atualiz", "modific", "updated", "modified",
-  ];
-  // Boost para datas claramente de venda
-  const DATE_BOOST = ["data venda", "data da venda", "emissao", "emissão", "data emissao", "venda em"];
+  // Datas pessoais não viram "data da venda"
+  const DATE_BLACKLIST = ["nasc", "aniversari", "birth", "cadastr", "atualiz", "modific", "updated", "modified"];
+  const DATE_BOOST = ["data venda", "data da venda", "emissao", "data emissao", "venda em", "data pedido", "data nf"];
+
+  // Aliases que precisam de match de token completo (palavras curtas/ambíguas)
+  const STRICT_TOKEN = new Set([
+    "doc", "cpf", "cnpj", "rg", "sn", "dt", "ref", "cod", "id", "ean", "imei",
+    "qtd", "qty", "tel", "wpp", "obs", "vlr",
+  ]);
 
   const score = (h: string, aliases: string[], field?: string): number => {
     const n = norm(h);
+    const compact = n.replace(/[\s_\-]/g, "");
+    const tokens = tokenize(h);
+
     if (field === "date") {
       if (DATE_BLACKLIST.some((b) => n.includes(b))) return 0;
-      if (DATE_BOOST.some((b) => n.includes(b))) return 120;
+      if (DATE_BOOST.some((b) => n.includes(b))) return 130;
     }
+
     let best = 0;
-    for (const a of aliases) {
-      if (n === a) best = Math.max(best, 100);
-      else if (n.startsWith(a + " ") || n.startsWith(a + "_")) best = Math.max(best, 80);
-      else if (new RegExp(`(^|\\s|_)${a}(\\s|_|$)`).test(n)) best = Math.max(best, 60);
-      else if (n.includes(a)) best = Math.max(best, 30);
+    for (const aRaw of aliases) {
+      const a = norm(aRaw);
+      const aCompact = a.replace(/\s+/g, "");
+      const aTokens = a.split(/\s+/);
+      const strict = STRICT_TOKEN.has(a);
+
+      // 1) Igualdade total (com ou sem separadores)
+      if (n === a || compact === aCompact) { best = Math.max(best, 100); continue; }
+
+      // 2) Prefixo de header (ex: "valor total" começa com "valor")
+      if (n.startsWith(a + " ") || n.startsWith(a + "_") || n.startsWith(a + "-")) {
+        best = Math.max(best, 85);
+        continue;
+      }
+
+      // 3) Match de tokens (todos os tokens do alias estão presentes como tokens do header)
+      const allTokensIn = aTokens.every((t) => tokens.includes(t));
+      if (allTokensIn) { best = Math.max(best, 75); continue; }
+
+      // 4) Token único do header igual ao alias
+      if (!strict && tokens.includes(a)) { best = Math.max(best, 70); continue; }
+
+      // 5) Fuzzy curto (typo de 1 char) para aliases >= 4 letras, NÃO estritos
+      if (!strict && a.length >= 4) {
+        for (const t of tokens) {
+          if (Math.abs(t.length - a.length) <= 1 && lev(t, a) <= 1) {
+            best = Math.max(best, 55);
+            break;
+          }
+        }
+      }
+
+      // 6) Substring (fraco) somente para aliases longos e não estritos
+      if (!strict && a.length >= 5 && n.includes(a)) {
+        best = Math.max(best, 40);
+      }
     }
     return best;
   };
 
-  // Ordena campos por prioridade: campos mais específicos primeiro
+  // Ordem: campos mais específicos primeiro para não roubar headers
   const fieldOrder = [
     "customer_document", "customer_email", "customer_phone", "customer",
-    "amount", "discount", "date", "payment", "status",
-    "unit_price", "cost_price", "quantity", "product_sku", "product",
+    "imei", "ean", "product_sku",
+    "amount", "discount", "unit_price", "cost_price",
+    "date", "payment", "status",
+    "quantity", "brand", "model", "product",
     "fin_type", "category", "description", "notes",
   ];
 
   const aliasesForKind = FIELD_ALIASES[kind] || {};
 
-  for (const field of fieldOrder) {
-    if (map[field]) continue; // Pula se já veio do localStorage
-
-    const aliases = aliasesForKind[field];
-    if (!aliases) continue;
-    let bestHeader: string | undefined;
-    let bestScore = 0;
-    for (const h of headers) {
-      if (used.has(h)) continue;
-      const s = score(h, aliases, field);
-      if (s > bestScore) {
-        bestScore = s;
-        bestHeader = h;
+  // Duas passadas: alta confiança (>=70) primeiro, depois aceita >=40
+  for (const minScore of [70, 40]) {
+    for (const field of fieldOrder) {
+      if (map[field]) continue;
+      const aliases = aliasesForKind[field];
+      if (!aliases) continue;
+      let bestHeader: string | undefined;
+      let bestScore = 0;
+      for (const h of headers) {
+        if (used.has(h)) continue;
+        const s = score(h, aliases, field);
+        if (s > bestScore) { bestScore = s; bestHeader = h; }
       }
-    }
-    if (bestHeader && bestScore >= 30) {
-      map[field] = bestHeader;
-      used.add(bestHeader);
+      if (bestHeader && bestScore >= minScore) {
+        map[field] = bestHeader;
+        used.add(bestHeader);
+      }
     }
   }
   return map;
@@ -1140,7 +1201,13 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                         {group.title}
                       </p>
                       <div className="grid grid-cols-2 gap-2">
-                        {group.fields.map(({ field, label, required }) => (
+                        {group.fields.map(({ field, label, required }) => {
+                          // mapa reverso: header -> field que já o usa
+                          const usedBy: Record<string, string> = {};
+                          for (const [f, h] of Object.entries(hmap)) {
+                            if (h && f !== field) usedBy[h as string] = f;
+                          }
+                          return (
                           <div key={field} className="space-y-1">
                             <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center justify-between">
                               <span className="flex items-center gap-1">
@@ -1158,6 +1225,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                             <select
                               value={hmap[field] || ""}
                               onChange={(e) => remap(field, e.target.value)}
+                              title={`${headers.length} colunas disponíveis no arquivo`}
                               className={`w-full text-[11px] px-2 py-1.5 rounded-lg bg-background border ${
                                 required && !hmap[field]
                                   ? "border-destructive/50 shadow-[0_0_8px_rgba(239,68,68,0.1)]"
@@ -1169,13 +1237,15 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                               <option value="">— ignorar coluna —</option>
                               {headers.map((h) => (
                                 <option key={h} value={h}>
-                                  {h}
+                                  {h}{usedBy[h] ? `  · em uso (${usedBy[h]})` : ""}
                                 </option>
                               ))}
                             </select>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
+
                     </div>
                   ))}
                 </div>
