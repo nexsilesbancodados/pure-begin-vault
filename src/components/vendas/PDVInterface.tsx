@@ -1163,6 +1163,7 @@ export function PDVInterface() {
       setPrazoAmount("");
       setBrasilcardAmount("");
       setCrediarioAmount("");
+      setAparelhoAmount("");
       setDiscountValue(0);
       setEditingSaleId(null);
       setLastSaleId(saleId);
