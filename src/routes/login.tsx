@@ -131,7 +131,7 @@ function Login() {
             return;
           }
         } else {
-          showLoginError(readableAuthError(signInError.message));
+          showLoginError(readableAuthError(signInError instanceof Error ? signInError.message : undefined));
           return;
         }
       }
