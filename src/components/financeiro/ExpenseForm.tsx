@@ -37,7 +37,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Package, User as UserIcon } from "lucide-react";
+import { Package, User as UserIcon, Upload, File as FileIcon, Calendar, Tag, CreditCard, Hash } from "lucide-react";
+import { toast } from "sonner";
 
 interface ExpenseFormProps {
   open: boolean;
