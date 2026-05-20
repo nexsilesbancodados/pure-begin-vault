@@ -196,6 +196,7 @@ export function GoalProgress({
         start_date: data.created_at || new Date().toISOString().split("T")[0],
         end_date: data.deadline || "",
         notes: "",
+        baseline: 0,
       };
       setGoals(fetchedGoals);
       setEditGoals(fetchedGoals);
