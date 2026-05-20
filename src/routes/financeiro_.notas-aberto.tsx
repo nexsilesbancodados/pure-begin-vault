@@ -1047,15 +1047,27 @@ function NotasAbertoPage() {
                     </div>
                   </PopoverContent>
                 </Popover>
-                <Button
-                  onClick={() => setOpen(true)}
-                  size="lg"
-                  className="gap-2 shadow-lg shadow-primary/20"
-                  disabled={!orgId}
-                >
-                  <Plus className="h-4 w-4" />
-                  Cadastrar Nota
-                </Button>
+                {kindTab === "venda" ? (
+                  <Button
+                    onClick={() => setSalesOpen(true)}
+                    size="lg"
+                    className="gap-2 shadow-lg shadow-primary/20"
+                    disabled={!orgId}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Cadastrar Nota de Venda
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setOpen(true)}
+                    size="lg"
+                    className="gap-2 shadow-lg shadow-primary/20"
+                    disabled={!orgId}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Cadastrar Nota
+                  </Button>
+                )}
               </div>
             </div>
           </div>
