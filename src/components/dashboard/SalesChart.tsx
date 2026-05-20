@@ -264,12 +264,14 @@ function Stat({ label, value, big }: { label: string; value: string | null; big?
       ) : (
         <div
           className={cn(
-            "font-bold font-display tabular-nums tracking-tight",
-            big ? "text-2xl" : "text-base text-muted-foreground",
+            "font-bold font-display tabular-nums tracking-tight break-all leading-tight",
+            big ? "text-xl md:text-2xl" : "text-sm md:text-base text-muted-foreground",
           )}
+          title={value}
         >
           {value}
         </div>
+
       )}
     </div>
   );
