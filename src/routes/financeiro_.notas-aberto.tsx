@@ -391,6 +391,9 @@ const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
     prazoPagamento: row.prazo_pagamento ?? "",
     comprovanteUrls,
     observacao,
+    kind: row.kind === "venda" ? "venda" : "compra",
+    customerName: row.customer_name ?? null,
+    saleIds: row.sale_ids ?? [],
   };
 };
 
