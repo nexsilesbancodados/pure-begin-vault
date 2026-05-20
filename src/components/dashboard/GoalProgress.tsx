@@ -70,6 +70,20 @@ export function GoalProgress({
   const [editGoals, setEditGoals] = useState(initialGoalState);
   const [stats, setStats] = useState({ units: 0 });
 
+  // Override manual (apenas Maio): permite ao gestor informar quantos aparelhos foram vendidos até agora
+  const now = new Date();
+  const isMay = now.getMonth() === 4; // 0=Jan, 4=Maio
+  const overrideKey = orgId ? `goal-units-override:${orgId}:${now.getFullYear()}-05` : "";
+  const [manualUnits, setManualUnits] = useState<number | null>(null);
+  const [editingManual, setEditingManual] = useState(false);
+  const [manualInput, setManualInput] = useState("");
+
+  useEffect(() => {
+    if (!overrideKey) return;
+    const stored = localStorage.getItem(overrideKey);
+    setManualUnits(stored !== null ? Number(stored) : null);
+  }, [overrideKey]);
+
   useEffect(() => {
     if (user?.id) fetchGoals();
   }, [user?.id]);
@@ -77,6 +91,7 @@ export function GoalProgress({
   useEffect(() => {
     if (user?.id && orgId) fetchStats();
   }, [user?.id, orgId, period]);
+
 
   const fetchGoals = async () => {
     if (!user?.id || !orgId) return;
@@ -177,8 +192,9 @@ export function GoalProgress({
         target_value: editGoals.monthly,
         type: editGoals.type,
         deadline: editGoals.end_date || null,
-        current_value: currentDisplay,
+        current_value: manualUnits ?? stats.units,
       };
+
 
       let error;
       if (existingGoal?.id) {
@@ -209,10 +225,12 @@ export function GoalProgress({
   };
 
 
-  const currentDisplay = stats.units;
+  const effectiveUnits = isMay && manualUnits !== null ? manualUnits : stats.units;
+  const currentDisplay = effectiveUnits;
   const pct = Math.min(100, Math.round((currentDisplay / (goals.monthly || 1)) * 100)) || 0;
-  const projection = Math.round((stats.units / (new Date().getDate() || 1)) * 30);
-  const remaining = Math.max(0, goals.monthly - stats.units);
+  const projection = Math.round((effectiveUnits / (new Date().getDate() || 1)) * 30);
+  const remaining = Math.max(0, goals.monthly - effectiveUnits);
+
 
   const dayOfMonth = new Date().getDate();
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
@@ -273,10 +291,51 @@ export function GoalProgress({
 
           <div className="flex-1 min-w-0 space-y-3">
             <div>
-              <div className="text-[11px] text-muted-foreground">Aparelhos vendidos</div>
-              <div className="text-lg font-bold font-display truncate">
-                {stats.units} <span className="text-muted-foreground text-sm font-medium">/ {goals.monthly} un.</span>
+              <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
+                <span>Aparelhos vendidos</span>
+                {isMay && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setManualInput(String(effectiveUnits));
+                      setEditingManual(true);
+                    }}
+                    className="text-[10px] font-semibold text-primary hover:underline"
+                  >
+                    {manualUnits !== null ? "Editar" : "Informar"}
+                  </button>
+                )}
               </div>
+              {isMay && editingManual ? (
+                <div className="flex items-center gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
+                  <Input
+                    type="number"
+                    min={0}
+                    autoFocus
+                    value={manualInput}
+                    onChange={(e) => setManualInput(e.target.value)}
+                    className="h-8 text-sm w-20"
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => {
+                      const n = Math.max(0, Number(manualInput) || 0);
+                      setManualUnits(n);
+                      if (overrideKey) localStorage.setItem(overrideKey, String(n));
+                      setEditingManual(false);
+                      toast.success("Quantidade atualizada");
+                    }}
+                  >
+                    <Save className="h-3 w-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-lg font-bold font-display truncate">
+                  {effectiveUnits} <span className="text-muted-foreground text-sm font-medium">/ {goals.monthly} un.</span>
+                </div>
+              )}
             </div>
             <div className="pt-2 border-t border-border">
               <div className="text-[11px] text-muted-foreground flex items-center gap-1">
@@ -287,6 +346,7 @@ export function GoalProgress({
               </div>
             </div>
           </div>
+
         </div>
       </div>
 
