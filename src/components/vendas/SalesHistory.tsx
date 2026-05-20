@@ -247,6 +247,11 @@ const METHOD_LABEL: Record<string, string> = {
   debit: "Cartão débito",
   installment: "Parcelado",
   transfer: "Transferência",
+  crediario: "Crediário",
+  brasilcard: "BrasilCard",
+  prazo7d: "Prazo 7d",
+  other: "Aparelho",
+  aparelho: "Aparelho",
 };
 
 const formatCurrency = (value: number) =>
