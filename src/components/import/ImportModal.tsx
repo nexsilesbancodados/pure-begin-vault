@@ -29,6 +29,11 @@ import {
   Maximize2,
   Filter,
   Check,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  Zap,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -451,6 +456,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
   const [kind, setKind] = useState<ImportKind>(initialKind || "vendas");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false);
+  const [mappingOpen, setMappingOpen] = useState(false);
 
   const stats = useMemo(() => {
     const valid = rows.filter((r) => r._valid);
@@ -653,7 +659,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[680px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[760px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl bg-card max-h-[92vh] flex flex-col">
         {/* Hero header */}
         <div className="relative p-6 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground overflow-hidden">
           <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
@@ -901,54 +907,109 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                 </Button>
               </div>
 
+              {/* Smart status banner */}
+              {(() => {
+                const requiredOk = kind === "estoque" ? !!hmap.product : !!hmap.amount;
+                const validPct = rows.length ? Math.round((stats.valid / rows.length) * 100) : 0;
+                const ready = requiredOk && stats.valid > 0;
+                return (
+                  <div className={`rounded-2xl p-4 border-2 flex items-center gap-3 ${
+                    ready
+                      ? "border-success/30 bg-gradient-to-br from-success/10 to-success/5"
+                      : "border-warning/40 bg-gradient-to-br from-warning/10 to-warning/5"
+                  }`}>
+                    <div className={`h-11 w-11 rounded-2xl flex items-center justify-center ${ready ? "bg-success/20 text-success" : "bg-warning/20 text-warning"}`}>
+                      {ready ? <Zap className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-sm">
+                        {ready
+                          ? `Tudo pronto — ${stats.valid} linhas detectadas (${validPct}% válidas)`
+                          : !requiredOk
+                          ? `Falta mapear o campo obrigatório "${kind === "estoque" ? "Produto" : "Valor"}"`
+                          : "Nenhuma linha válida — confira o mapeamento"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {ready
+                          ? "Revise abaixo e clique em Importar quando estiver pronto"
+                          : "Ajuste o mapeamento de colunas para continuar"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Mini KPIs */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-2xl p-3 bg-success/5 border border-success/20">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-success">
-                    Válidas
-                  </p>
+                <div className="rounded-2xl p-3 bg-gradient-to-br from-success/10 to-success/5 border border-success/20">
+                  <div className="flex items-center gap-1.5 text-success">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <p className="text-[10px] font-black uppercase tracking-wider">Válidas</p>
+                  </div>
                   <p className="text-2xl font-black mt-1">{stats.valid}</p>
+                  <p className="text-[10px] text-muted-foreground">de {rows.length} linhas</p>
                 </div>
-                <div className="rounded-2xl p-3 bg-destructive/5 border border-destructive/20">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-destructive">
-                    Inválidas
-                  </p>
+                <div className="rounded-2xl p-3 bg-gradient-to-br from-destructive/10 to-destructive/5 border border-destructive/20">
+                  <div className="flex items-center gap-1.5 text-destructive">
+                    <AlertCircle className="h-3 w-3" />
+                    <p className="text-[10px] font-black uppercase tracking-wider">Com erros</p>
+                  </div>
                   <p className="text-2xl font-black mt-1">{stats.invalid}</p>
-                </div>
-                <div className="rounded-2xl p-3 bg-primary/5 border border-primary/20">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-primary">
-                    Total
+                  <p className="text-[10px] text-muted-foreground">
+                    {stats.invalid > 0 ? "precisam revisão" : "tudo certo"}
                   </p>
+                </div>
+                <div className="rounded-2xl p-3 bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                  <div className="flex items-center gap-1.5 text-primary">
+                    <TrendingUp className="h-3 w-3" />
+                    <p className="text-[10px] font-black uppercase tracking-wider">Total</p>
+                  </div>
                   <p className="text-lg font-black mt-1 truncate">{brl(stats.total)}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {stats.valid > 0 ? `~ ${brl(stats.total / stats.valid)}/venda` : "—"}
+                  </p>
                 </div>
               </div>
 
-              {/* Mapeamento de colunas */}
+              {/* Mapeamento de colunas — colapsável */}
               <div className="rounded-2xl border border-border overflow-hidden bg-card">
-                <div className="flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border">
+                <button
+                  type="button"
+                  onClick={() => setMappingOpen((v) => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 border-b border-border hover:bg-muted/60 transition-colors"
+                >
                   <div className="flex items-center gap-2">
+                    <Filter className="h-3.5 w-3.5 text-primary" />
                     <span className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
                       Mapeamento de colunas
                     </span>
-                    <button
-                      onClick={() => {
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                      {Object.keys(hmap).length} mapeados
+                    </span>
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
                         localStorage.removeItem(`import_map_${kind}`);
                         const freshMap = buildHeaderMap(rawData[0], kind);
                         setHmap(freshMap);
                         setRows(rawData.map((r, i) => parseRow(r, freshMap, i, kind)));
                         toast.info("Mapeamento resetado para o padrão inteligente");
                       }}
-                      className="text-[10px] font-bold text-primary hover:underline ml-2"
+                      className="text-[10px] font-bold text-primary hover:underline ml-2 cursor-pointer"
                     >
                       Resetar
-                    </button>
-                  </div>
-                  {!hmap.amount && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30 animate-pulse">
-                      Valor obrigatório
                     </span>
-                  )}
-                </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!hmap.amount && kind !== "estoque" && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/30 animate-pulse">
+                        Valor obrigatório
+                      </span>
+                    )}
+                    {mappingOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  </div>
+                </button>
+                {mappingOpen && (
                 <div className="p-3 space-y-4">
                   {(kind === "financeiro"
                     ? [
@@ -1075,47 +1136,10 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                     </div>
                   ))}
                 </div>
+                )}
               </div>
 
-              {/* Pré-visualização final */}
-              <div className="rounded-2xl border border-border overflow-hidden bg-muted/20">
-                <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center gap-2">
-                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-                    Pré-visualização (primeiras 3 linhas)
-                  </span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[10px] border-collapse">
-                    <thead className="bg-muted/30">
-                      <tr className="border-b border-border">
-                        <th className="p-2 text-left font-black">{kind === "estoque" ? "SKU" : "Data"}</th>
-                        <th className="p-2 text-left font-black">{kind === "estoque" ? "Categoria" : "Cliente"}</th>
-                        <th className="p-2 text-left font-black">Produto</th>
-                        <th className="p-2 text-right font-black">{kind === "estoque" ? "Estoque" : "Valor"}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {rows.slice(0, 3).map((r, i) => (
-                        <tr key={i} className={r._valid ? "" : "bg-destructive/5"}>
-                          <td className="p-2 whitespace-nowrap">
-                            {kind === "estoque" ? (r.product_sku || "-") : new Date(r.created_at).toLocaleDateString("pt-BR")}
-                          </td>
-                          <td className="p-2 truncate max-w-[120px]">
-                            {kind === "estoque" ? (r.category || "-") : (r.customer_name || "-")}
-                          </td>
-                          <td className="p-2 truncate max-w-[150px]">
-                            {r.product_name || r.description || "-"}
-                          </td>
-                          <td className="p-2 text-right font-bold">
-                            {kind === "estoque" ? r.product_quantity : brl(r.total_amount)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+
 
               {/* Prévia de Clientes e Produtos que serão sincronizados (somente Vendas) */}
               {kind === "vendas" && <SyncPreview rows={rows} brl={brl} />}
@@ -1379,18 +1403,26 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
               >
                 <ArrowLeft className="h-4 w-4" /> Voltar
               </Button>
+              {stats.valid > 0 && kind !== "estoque" && (
+                <div className="hidden sm:flex flex-col items-end justify-center mr-1">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+                    Valor total
+                  </span>
+                  <span className="text-sm font-black text-success leading-tight">{brl(stats.total)}</span>
+                </div>
+              )}
               <Button
                 onClick={handleImport}
                 disabled={isImporting || stats.valid === 0}
-                className="rounded-xl font-black bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20 min-w-[160px] gap-1.5"
+                className="rounded-xl font-black bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20 min-w-[180px] gap-1.5"
               >
                 {isImporting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Importando
+                    <Loader2 className="h-4 w-4 animate-spin" /> Importando…
                   </>
                 ) : (
                   <>
-                    Importar {stats.valid} <ArrowRight className="h-4 w-4" />
+                    Importar {stats.valid} {stats.valid === 1 ? "linha" : "linhas"} <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </Button>
