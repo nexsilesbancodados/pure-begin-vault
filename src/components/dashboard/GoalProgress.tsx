@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
@@ -44,6 +44,35 @@ interface GoalProgressProps {
   goal?: number;
   onGoalUpdate?: () => void;
 }
+
+const COMPLETED_STATUSES = ["completed", "concluded", "paid"];
+const DEVICE_CATEGORY_TERMS = ["smartphone", "celular", "celulares", "aparelho", "aparelhos"];
+const DEVICE_NAME_TERMS = ["iphone", "galaxy", "samsung", "xiaomi", "redmi", "motorola", "moto g", "poco", "realme"];
+const ACCESSORY_TERMS = ["capa", "película", "pelicula", "carregador", "cabo", "fone", "airpod", "airpods", "serviço", "servico", "mão de obra", "mao de obra"];
+
+const normalizeText = (value: unknown) => String(value || "").trim().toLowerCase();
+
+const isDeviceItem = (item: any, product?: any) => {
+  const category = normalizeText(product?.category || item?.category);
+  if (category) return DEVICE_CATEGORY_TERMS.some((term) => category.includes(term));
+
+  const metadata = item?.metadata && typeof item.metadata === "object" ? item.metadata : {};
+  const searchable = normalizeText([
+    item?.product_name,
+    product?.name,
+    product?.model,
+    metadata.model,
+    metadata.imei,
+    metadata.IMEI,
+    metadata.imei1,
+    metadata.capacity,
+    metadata.battery_health,
+  ].filter(Boolean).join(" "));
+
+  if (!searchable) return false;
+  if (ACCESSORY_TERMS.some((term) => searchable.includes(term))) return false;
+  return DEVICE_NAME_TERMS.some((term) => searchable.includes(term)) || Boolean(metadata.imei || metadata.IMEI || metadata.imei1);
+};
 
 export function GoalProgress({
   current: parentCurrent,
