@@ -2285,22 +2285,39 @@ export function PDVInterface() {
 
           {/* Observações da Venda */}
           <div className="bg-card border border-border rounded-2xl p-4 shadow-sm flex flex-col gap-1.5 shrink-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <Label className="text-[10px] font-bold uppercase text-muted-foreground">
                 Vendedor (F4)
               </Label>
-              <div className="relative min-w-[200px]">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/60" />
-                <select
-                  className="w-full h-9 pl-9 pr-3 rounded-md bg-muted/30 border-none text-[13px] font-bold focus:outline-none focus:ring-1 focus:ring-primary/20 appearance-none"
-                  value={vendedorId}
-                  onChange={(e) => setVendedorId(e.target.value)}
+              <div className="flex items-center gap-1.5 min-w-[260px]">
+                <div className="relative flex-1">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/60" />
+                  <select
+                    className="w-full h-9 pl-9 pr-7 rounded-md bg-muted/30 border-none text-[13px] font-bold focus:outline-none focus:ring-1 focus:ring-primary/20 appearance-none"
+                    value={vendedorId}
+                    onChange={(e) => setVendedorId(e.target.value)}
+                  >
+                    <option value="">Selecione um vendedor</option>
+                    {user?.id && (
+                      <option value={user.id}>Eu ({user?.email?.split("@")[0]})</option>
+                    )}
+                    {sellers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}{s.position ? ` — ${s.position}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSellerModalOpen(true)}
+                  title="Cadastrar novo vendedor"
+                  className="h-9 px-2.5 rounded-md bg-primary/10 hover:bg-primary/20 text-primary text-xs font-bold inline-flex items-center gap-1 transition"
                 >
-                  <option value="">Selecione um vendedor</option>
-                  <option value="1">Vendedor Padrão</option>
-                  <option value={user?.id}>Eu ({user?.email?.split("@")[0]})</option>
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <UserPlus className="h-4 w-4" />
+                  <span className="hidden md:inline">Novo</span>
+                </button>
               </div>
             </div>
             <div className="pt-2 border-t border-border/50">
