@@ -473,6 +473,7 @@ export function DayKanbanModal({
 
   // Copy yesterday's board if today is empty
   const copyFromYesterday = async () => {
+    if (guard()) return;
     if (!user?.id) return;
     const y = new Date(date);
     y.setDate(y.getDate() - 1);
