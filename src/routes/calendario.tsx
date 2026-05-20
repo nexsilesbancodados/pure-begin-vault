@@ -247,13 +247,24 @@ function CalendarPage() {
                     })}
                   </div>
                 </div>
-                <button
-                  onClick={() => setModalOpen(true)}
-                  className="h-9 w-9 grid place-items-center rounded-lg bg-primary text-primary-foreground hover:opacity-90"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setKanbanOpen(true)}
+                    className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-1.5 hover:opacity-90"
+                    title="Abrir quadro Kanban do dia"
+                  >
+                    <LayoutGrid className="h-4 w-4" /> Quadro
+                  </button>
+                  <button
+                    onClick={() => setModalOpen(true)}
+                    className="h-9 w-9 grid place-items-center rounded-lg border border-border hover:bg-muted"
+                    title="Nova tarefa rápida"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+
 
               <div className="space-y-2">
                 {selectedTasks.length === 0 && (
