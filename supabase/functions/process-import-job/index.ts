@@ -181,12 +181,12 @@ async function processJob(supabase: any, jobId: string) {
           finTx.push({
             organization_id: orgId, user_id: userId,
             type: r.fin_type,
-            amount,
+            amount: paidAmount ?? amount,
             description: desc,
             category: r.category || (r.fin_type === "expense" ? "expense" : "income"),
             payment_method: r.payment_method || null,
             reference_type: "import",
-            transaction_date: r.created_at || new Date().toISOString(),
+            transaction_date: r.payment_date || r.created_at || new Date().toISOString(),
           });
         }
 
