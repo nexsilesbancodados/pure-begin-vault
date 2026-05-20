@@ -124,11 +124,19 @@ async function processJob(supabase: any, jobId: string) {
       const finTx: any[] = [];
 
       for (const r of finRows) {
-        const isPaid = ["paid", "pago", "concluded", "concluido", "concluído", "quitado", "recebido"]
+        const explicitPaid = !!(r.payment_date || (r.paid_amount && r.paid_amount > 0));
+        const isPaid = explicitPaid || ["paid", "pago", "concluded", "concluido", "concluído", "quitado", "recebido"]
           .includes((r.status || "").toLowerCase());
         const amount = Number(r.total_amount) || 0;
-        const dueDate = (r.created_at || new Date().toISOString()).split("T")[0];
+        const paidAmount = explicitPaid
+          ? Number(r.paid_amount ?? amount) || amount
+          : (isPaid ? amount : null);
+        // due_date: vencimento > data emissão > hoje
+        const dueDate = (r.due_date || r.created_at || new Date().toISOString()).split("T")[0];
+        const paidAt = isPaid ? (r.payment_date || r.created_at || new Date().toISOString()) : null;
         const desc = (r.description || r.notes || `Importado · ${r.fin_type}`).slice(0, 500);
+        const docTag = r.document_number ? `Documento: ${r.document_number}` : null;
+        const instTag = r.installments ? `Parcela: ${r.installments}` : null;
 
         if (r.fin_type === "expense") {
           payable.push({
@@ -137,12 +145,14 @@ async function processJob(supabase: any, jobId: string) {
             amount,
             due_date: dueDate,
             status: isPaid ? "paid" : "pending",
-            paid_at: isPaid ? (r.created_at || new Date().toISOString()) : null,
-            paid_amount: isPaid ? amount : null,
+            paid_at: paidAt,
+            paid_amount: paidAmount,
             category: r.category || null,
             notes: [
+              docTag,
+              instTag,
               r.payment_method ? `Pagamento: ${r.payment_method}` : null,
-              r.customer_name ? `Fornecedor: ${r.customer_name}` : null,
+              (r.supplier_name || r.customer_name) ? `Fornecedor: ${r.supplier_name || r.customer_name}` : null,
               r.notes && r.notes !== desc ? r.notes : null,
             ].filter(Boolean).join("\n") || null,
           });
@@ -153,9 +163,11 @@ async function processJob(supabase: any, jobId: string) {
             amount,
             due_date: dueDate,
             status: isPaid ? "paid" : "pending",
-            paid_at: isPaid ? (r.created_at || new Date().toISOString()) : null,
-            paid_amount: isPaid ? amount : null,
+            paid_at: paidAt,
+            paid_amount: paidAmount,
             notes: [
+              docTag,
+              instTag,
               r.payment_method ? `Pagamento: ${r.payment_method}` : null,
               r.customer_name ? `Cliente: ${r.customer_name}` : null,
               r.category ? `Categoria: ${r.category}` : null,
