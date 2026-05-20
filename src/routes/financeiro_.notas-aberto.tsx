@@ -1232,6 +1232,7 @@ function NotasAbertoPage() {
               const today = new Date();
               today.setHours(0, 0, 0, 0);
               const visible = notas.filter((n) => {
+                if ((n.kind ?? "compra") !== kindTab) return false;
                 const isOverdue = !n.paga && n.prazoPagamento && new Date(n.prazoPagamento) < today;
                 if (statusFilter === "open" && n.paga) return false;
                 if (statusFilter === "paid" && !n.paga) return false;
@@ -1239,8 +1240,9 @@ function NotasAbertoPage() {
                 if (supplierFilter.length > 0 && !supplierFilter.includes(n.fornecedor)) return false;
                 if (listSearch) {
                   const s = listSearch.toLowerCase();
+                  const who = (n.kind === "venda" ? n.customerName : n.fornecedor) || "";
                   if (
-                    !n.fornecedor.toLowerCase().includes(s) &&
+                    !who.toLowerCase().includes(s) &&
                     !`nota ${n.noteNumber}`.includes(s)
                   )
                     return false;
