@@ -951,9 +951,10 @@ export function PDVInterface() {
       (parseFloat(pixAmount) || 0) +
       (parseFloat(prazoAmount) || 0) +
       (parseFloat(brasilcardAmount) || 0) +
-      (parseFloat(crediarioAmount) || 0)
+      (parseFloat(crediarioAmount) || 0) +
+      (parseFloat(aparelhoAmount) || 0)
     );
-  }, [moneyAmount, cardAmount, pixAmount, prazoAmount, brasilcardAmount, crediarioAmount]);
+  }, [moneyAmount, cardAmount, pixAmount, prazoAmount, brasilcardAmount, crediarioAmount, aparelhoAmount]);
 
   const change = useMemo(() => Math.max(0, totalReceived - total), [totalReceived, total]);
 
