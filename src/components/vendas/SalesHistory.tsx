@@ -175,6 +175,69 @@ const printReceiptArea = async (mode: "a4" | "80mm") => {
   }, 300);
 };
 
+const downloadNodeAsPdf = async (
+  node: HTMLElement,
+  filename: string,
+  opts: { format?: "a4" | "thermal" } = {},
+) => {
+  const { default: html2canvas } = await import("html2canvas");
+  const { default: jsPDF } = await import("jspdf");
+
+  const canvas = await html2canvas(node, {
+    backgroundColor: "#ffffff",
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  });
+  const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+  const isThermal = opts.format === "thermal";
+  const pdf = isThermal
+    ? new jsPDF({ orientation: "p", unit: "mm", format: [80, (canvas.height * 80) / canvas.width] })
+    : new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = isThermal ? 0 : 10;
+  const imgW = pageW - margin * 2;
+  const imgH = (canvas.height * imgW) / canvas.width;
+
+  if (isThermal || imgH <= pageH - margin * 2) {
+    pdf.addImage(imgData, "JPEG", margin, margin, imgW, imgH);
+  } else {
+    // multi-page split
+    let remaining = imgH;
+    let position = margin;
+    const pageInner = pageH - margin * 2;
+    while (remaining > 0) {
+      pdf.addImage(imgData, "JPEG", margin, position, imgW, imgH);
+      remaining -= pageInner;
+      if (remaining > 0) {
+        pdf.addPage();
+        position = margin - (imgH - remaining);
+      }
+    }
+  }
+  pdf.save(filename);
+};
+
+const downloadReceiptAsPdf = async (mode: "a4" | "80mm", saleLabel: string) => {
+  const node = document.querySelector(".receipt-print-area") as HTMLElement | null;
+  if (!node) return;
+  await downloadNodeAsPdf(node, `recibo-${saleLabel}.pdf`, {
+    format: mode === "80mm" ? "thermal" : "a4",
+  });
+};
+
+const downloadIframeAsPdf = async (iframe: HTMLIFrameElement, filename: string) => {
+  const doc = iframe.contentDocument;
+  const body = doc?.body;
+  if (!body) return;
+  await downloadNodeAsPdf(body, filename);
+};
+
+
+
 const METHOD_LABEL: Record<string, string> = {
   cash: "Dinheiro",
   money: "Dinheiro",
@@ -1809,13 +1872,28 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
               </DialogTitle>
               <DialogDescription>Confira o recibo antes de imprimir.</DialogDescription>
             </div>
-            <Button
-              disabled={!receiptData || receiptLoading}
-              onClick={() => void printReceiptArea(receiptMode)}
-              className="rounded-xl font-bold gap-2"
-            >
-              <Printer className="h-4 w-4" /> Imprimir
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                disabled={!receiptData || receiptLoading}
+                onClick={() => {
+                  const label = receiptData?.sale?.sale_number
+                    ? String(receiptData.sale.sale_number)
+                    : String(receiptData?.sale?.id || "venda").slice(0, 8);
+                  void downloadReceiptAsPdf(receiptMode, label);
+                }}
+                className="rounded-xl font-bold gap-2"
+              >
+                <Download className="h-4 w-4" /> Baixar PDF
+              </Button>
+              <Button
+                disabled={!receiptData || receiptLoading}
+                onClick={() => void printReceiptArea(receiptMode)}
+                className="rounded-xl font-bold gap-2"
+              >
+                <Printer className="h-4 w-4" /> Imprimir
+              </Button>
+            </div>
           </div>
           <div className="max-h-[calc(92vh-73px)] overflow-auto bg-muted/40 p-4 print:max-h-none print:overflow-visible print:bg-white print:p-0">
             {receiptLoading ? (
@@ -1860,13 +1938,31 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
               </DialogTitle>
               <DialogDescription>Revise o termo antes de imprimir.</DialogDescription>
             </div>
-            <Button
-              disabled={!warrantyDoc || warrantyLoading}
-              onClick={printWarranty}
-              className="rounded-xl font-bold gap-2"
-            >
-              <Printer className="h-4 w-4" /> Imprimir
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                disabled={!warrantyDoc || warrantyLoading}
+                onClick={() => {
+                  const iframe = warrantyIframeRef.current;
+                  if (!iframe) return;
+                  const safe = (warrantyDoc?.title || "termo-garantia")
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-|-$/g, "");
+                  void downloadIframeAsPdf(iframe, `${safe}.pdf`);
+                }}
+                className="rounded-xl font-bold gap-2"
+              >
+                <Download className="h-4 w-4" /> Baixar PDF
+              </Button>
+              <Button
+                disabled={!warrantyDoc || warrantyLoading}
+                onClick={printWarranty}
+                className="rounded-xl font-bold gap-2"
+              >
+                <Printer className="h-4 w-4" /> Imprimir
+              </Button>
+            </div>
           </div>
           <div className="bg-muted/40 p-4 h-[calc(92vh-73px)]">
             {warrantyLoading || !warrantyDoc ? (
