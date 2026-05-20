@@ -1139,45 +1139,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                 )}
               </div>
 
-              {/* Pré-visualização final */}
-              <div className="rounded-2xl border border-border overflow-hidden bg-muted/20">
-                <div className="px-4 py-2 bg-muted/40 border-b border-border flex items-center gap-2">
-                  <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
-                    Pré-visualização (primeiras 3 linhas)
-                  </span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[10px] border-collapse">
-                    <thead className="bg-muted/30">
-                      <tr className="border-b border-border">
-                        <th className="p-2 text-left font-black">{kind === "estoque" ? "SKU" : "Data"}</th>
-                        <th className="p-2 text-left font-black">{kind === "estoque" ? "Categoria" : "Cliente"}</th>
-                        <th className="p-2 text-left font-black">Produto</th>
-                        <th className="p-2 text-right font-black">{kind === "estoque" ? "Estoque" : "Valor"}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {rows.slice(0, 3).map((r, i) => (
-                        <tr key={i} className={r._valid ? "" : "bg-destructive/5"}>
-                          <td className="p-2 whitespace-nowrap">
-                            {kind === "estoque" ? (r.product_sku || "-") : new Date(r.created_at).toLocaleDateString("pt-BR")}
-                          </td>
-                          <td className="p-2 truncate max-w-[120px]">
-                            {kind === "estoque" ? (r.category || "-") : (r.customer_name || "-")}
-                          </td>
-                          <td className="p-2 truncate max-w-[150px]">
-                            {r.product_name || r.description || "-"}
-                          </td>
-                          <td className="p-2 text-right font-bold">
-                            {kind === "estoque" ? r.product_quantity : brl(r.total_amount)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+
 
               {/* Prévia de Clientes e Produtos que serão sincronizados (somente Vendas) */}
               {kind === "vendas" && <SyncPreview rows={rows} brl={brl} />}
