@@ -923,6 +923,28 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                 </div>
               </div>
 
+              {pdfParsing && (
+                <div className="rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 to-primary/5 p-6 flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center ring-2 ring-primary/30">
+                    <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-sm text-primary">Processando PDF com IA</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{pdfParsing.phase}</p>
+                    <div className="mt-2 h-1.5 bg-primary/15 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${Math.min(95, pdfParsing.elapsed * 8)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-black text-primary tabular-nums">{pdfParsing.elapsed}s</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">decorridos</p>
+                  </div>
+                </div>
+              )}
+
               <div
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => {
