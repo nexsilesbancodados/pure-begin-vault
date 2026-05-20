@@ -57,3 +57,7 @@ verify_jwt = true
 
 
 
+
+[functions.apply-daily-templates]
+verify_jwt = false
+

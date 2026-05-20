@@ -25,6 +25,7 @@ import {
   Filter,
 } from "lucide-react";
 import { toast } from "sonner";
+import { DailyTasksColumn } from "./DailyTasksColumn";
 
 export type KanbanTask = {
   id: string;
@@ -124,6 +125,19 @@ export function DayKanbanModal({
   const [openCard, setOpenCard] = useState<KanbanTask | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const [orgOwnerId, setOrgOwnerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orgId) { setOrgOwnerId(null); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("organizations")
+        .select("owner_id")
+        .eq("id", orgId)
+        .maybeSingle();
+      setOrgOwnerId((data as any)?.owner_id ?? null);
+    })();
+  }, [orgId]);
 
   const storageKey = useMemo(
     () => `kanban:lists:${orgId || user?.id || "anon"}:${ymd(date)}`,
@@ -616,7 +630,8 @@ export function DayKanbanModal({
             </div>
           ) : (
             <div className="flex items-start gap-3 p-4 sm:p-5 min-w-max h-full">
-              {lists.map((list) => {
+              <DailyTasksColumn date={date} orgId={orgId} ownerOnlyForUserId={orgOwnerId ?? undefined} />
+              {lists.filter((l) => l.name.trim().toLowerCase() !== "tarefas diárias").map((list) => {
                 const c = colorOf(list.color);
                 const items = grouped[list.id] || [];
                 const isHover = hoverCol === list.id;
