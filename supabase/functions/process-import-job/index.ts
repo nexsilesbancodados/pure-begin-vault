@@ -39,6 +39,12 @@ type Row = {
   description?: string;
   fin_type?: "income" | "expense";
   category?: string;
+  due_date?: string;
+  payment_date?: string;
+  paid_amount?: number;
+  document_number?: string;
+  installments?: string;
+  supplier_name?: string;
 };
 
 const CHUNK = 500;
