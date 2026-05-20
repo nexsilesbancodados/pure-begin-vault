@@ -2885,7 +2885,9 @@ export function PDVInterface() {
                               ? brasilcardAmount
                               : id === "crediario"
                                 ? crediarioAmount
-                                : "";
+                                : id === "aparelho"
+                                  ? aparelhoAmount
+                                  : "";
                   const setAmount = (id: string, val: string) => {
                     if (id === "money") setMoneyAmount(val);
                     else if (id === "card") setCardAmount(val);
@@ -2893,6 +2895,7 @@ export function PDVInterface() {
                     else if (id === "prazo") setPrazoAmount(val);
                     else if (id === "brasilcard") setBrasilcardAmount(val);
                     else if (id === "crediario") setCrediarioAmount(val);
+                    else if (id === "aparelho") setAparelhoAmount(val);
                   };
                   return ALL_PAYMENT_METHODS.filter((m) =>
                     visiblePaymentMethods.includes(m.id),
