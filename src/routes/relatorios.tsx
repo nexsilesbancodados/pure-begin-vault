@@ -115,6 +115,31 @@ function ReportsPage() {
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
   const [menuQuery, setMenuQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  type RangePreset = "today" | "7d" | "30d" | "month" | "year" | "all" | "custom";
+  const [rangePreset, setRangePreset] = useState<RangePreset>("month");
+  const [customFrom, setCustomFrom] = useState<string>("");
+  const [customTo, setCustomTo] = useState<string>("");
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const computeRange = useCallback((): { from: Date | null; to: Date | null; label: string } => {
+    const now = new Date();
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+    switch (rangePreset) {
+      case "today": return { from: startOfDay(now), to: endOfDay(now), label: "Hoje" };
+      case "7d": { const f = startOfDay(now); f.setDate(f.getDate() - 6); return { from: f, to: endOfDay(now), label: "Últimos 7 dias" }; }
+      case "30d": { const f = startOfDay(now); f.setDate(f.getDate() - 29); return { from: f, to: endOfDay(now), label: "Últimos 30 dias" }; }
+      case "month": return { from: new Date(now.getFullYear(), now.getMonth(), 1), to: endOfDay(now), label: "Este mês" };
+      case "year": return { from: new Date(now.getFullYear(), 0, 1), to: endOfDay(now), label: "Este ano" };
+      case "all": return { from: null, to: null, label: "Todo o período" };
+      case "custom": {
+        const f = customFrom ? new Date(customFrom + "T00:00:00") : null;
+        const t = customTo ? new Date(customTo + "T23:59:59") : null;
+        const fmt = (d: Date) => d.toLocaleDateString("pt-BR");
+        return { from: f, to: t, label: f && t ? `${fmt(f)} — ${fmt(t)}` : "Personalizado" };
+      }
+    }
+  }, [rangePreset, customFrom, customTo]);
 
 
   type Category = {
