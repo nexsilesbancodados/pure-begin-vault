@@ -125,13 +125,20 @@ const isDeviceItem = (item: SaleItemRow, product?: ProductRow) => {
   );
 };
 
+const ADMIN_EMAILS = ["alfatech791@gmail.com", "contato@focussdev.art"];
+
 export function GoalProgress({
   current: parentCurrent,
   goal: initialGoal = 50000,
   onGoalUpdate,
 }: GoalProgressProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { orgId } = useOrg();
+  const role = String(profile?.role ?? "").toLowerCase();
+  const canEdit =
+    ADMIN_EMAILS.includes(String(user?.email ?? "").toLowerCase()) ||
+    ["super_admin", "owner", "admin"].includes(role);
+  const baselineKey = orgId ? `goal-baseline:${orgId}` : "";
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "settings">("overview");
   const [isLoading, setIsLoading] = useState(false);
@@ -145,10 +152,27 @@ export function GoalProgress({
     start_date: new Date().toISOString().split("T")[0],
     end_date: "",
     notes: "",
+    baseline: 0,
   };
   const [goals, setGoals] = useState(initialGoalState);
   const [editGoals, setEditGoals] = useState(initialGoalState);
   const [stats, setStats] = useState({ units: 0 });
+  const [baseline, setBaseline] = useState<{ value: number; at: string }>({ value: 0, at: "" });
+
+  useEffect(() => {
+    if (!baselineKey || typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(baselineKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setBaseline({ value: Number(parsed?.value) || 0, at: String(parsed?.at ?? "") });
+      } else {
+        setBaseline({ value: 0, at: "" });
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [baselineKey]);
 
   const fetchGoals = useCallback(async () => {
     if (!user?.id || !orgId) return;
