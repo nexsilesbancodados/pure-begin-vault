@@ -53,3 +53,7 @@ verify_jwt = true
 [functions.parse-import-pdf]
 verify_jwt = true
 
+[functions.apply-notes-kind]
+verify_jwt = false
+
+
