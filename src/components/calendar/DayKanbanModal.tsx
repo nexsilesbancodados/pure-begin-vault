@@ -632,6 +632,14 @@ export function DayKanbanModal({
           </div>
         </header>
 
+        {readOnly && (
+          <div className="px-5 py-2 bg-amber-50 border-b border-amber-200 flex items-center gap-2 text-xs text-amber-800">
+            <Lock className="h-3.5 w-3.5" />
+            <span className="font-semibold">Somente leitura</span>
+            <span className="text-amber-700">— você só pode editar o dia de hoje.</span>
+          </div>
+        )}
+
         {/* Progress strip */}
         <div className="px-5 py-2 bg-white/50 border-b border-slate-200/60 flex items-center gap-4">
           <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-600">
