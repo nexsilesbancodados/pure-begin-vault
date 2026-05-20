@@ -38,6 +38,8 @@ import {
   Filter,
   Check,
   X,
+  ShoppingCart,
+  User,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +49,7 @@ import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
 import { ProductForm } from "@/components/estoque/ProductForm";
 import { SupplierPicker } from "@/components/estoque/SupplierPicker";
+import { SalesNoteModal } from "@/components/financeiro/SalesNoteModal";
 
 export const Route = createFileRoute("/financeiro_/notas-aberto")({
   head: () => ({
@@ -91,6 +94,9 @@ interface Nota {
   prazoPagamento: string;
   comprovanteUrls?: string[];
   observacao?: string;
+  kind?: "compra" | "venda";
+  customerName?: string | null;
+  saleIds?: string[];
 }
 
 const COMPROVANTE_SENTINEL_ID = "__comprovante__";
@@ -142,6 +148,9 @@ interface PurchaseNoteRow {
   data_compra: string | null;
   paga: boolean | null;
   prazo_pagamento: string | null;
+  kind?: string | null;
+  customer_name?: string | null;
+  sale_ids?: string[] | null;
 }
 
 interface ProductFormValues {
@@ -385,6 +394,9 @@ const mapPurchaseNote = (row: PurchaseNoteRow): Nota => {
     prazoPagamento: row.prazo_pagamento ?? "",
     comprovanteUrls,
     observacao,
+    kind: row.kind === "venda" ? "venda" : "compra",
+    customerName: row.customer_name ?? null,
+    saleIds: row.sale_ids ?? [],
   };
 };
 
@@ -464,6 +476,8 @@ function NotasAbertoPage() {
   const [addingToNotaId, setAddingToNotaId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [kindTab, setKindTab] = useState<"compra" | "venda">("compra");
+  const [salesOpen, setSalesOpen] = useState(false);
   const detailNota = notas.find((n) => n.id === detailId) ?? null;
 
   const replaceNotas = useCallback(
@@ -909,12 +923,13 @@ function NotasAbertoPage() {
               <div className="space-y-1.5">
                 <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                   <FileText className="h-3.5 w-3.5" />
-                  Notas de Compra
+                  {kindTab === "venda" ? "Notas de Venda" : "Notas de Compra"}
                 </div>
                 <h1 className="text-3xl font-bold tracking-tight">Notas em Aberto</h1>
                 <p className="text-sm text-muted-foreground max-w-xl">
-                  Cadastre notas de fornecedores, vincule produtos e acompanhe vencimentos de
-                  pagamento.
+                  {kindTab === "venda"
+                    ? "Registre vendas concluídas no PDV com prazo de 7 dias para receber dos clientes."
+                    : "Cadastre notas de fornecedores, vincule produtos e acompanhe vencimentos de pagamento."}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1034,25 +1049,65 @@ function NotasAbertoPage() {
                     </div>
                   </PopoverContent>
                 </Popover>
-                <Button
-                  onClick={() => setOpen(true)}
-                  size="lg"
-                  className="gap-2 shadow-lg shadow-primary/20"
-                  disabled={!orgId}
-                >
-                  <Plus className="h-4 w-4" />
-                  Cadastrar Nota
-                </Button>
+                {kindTab === "venda" ? (
+                  <Button
+                    onClick={() => setSalesOpen(true)}
+                    size="lg"
+                    className="gap-2 shadow-lg shadow-primary/20"
+                    disabled={!orgId}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Cadastrar Nota de Venda
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => setOpen(true)}
+                    size="lg"
+                    className="gap-2 shadow-lg shadow-primary/20"
+                    disabled={!orgId}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Cadastrar Nota
+                  </Button>
+                )}
               </div>
             </div>
           </div>
 
+          {/* Kind tabs: Compra | Venda */}
+          <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border w-fit">
+            {(
+              [
+                { v: "compra" as const, l: "Notas de Compra", c: notas.filter((n) => (n.kind ?? "compra") === "compra").length },
+                { v: "venda" as const, l: "Notas de Venda", c: notas.filter((n) => n.kind === "venda").length },
+              ]
+            ).map((t) => {
+              const active = kindTab === t.v;
+              return (
+                <button
+                  key={t.v}
+                  onClick={() => setKindTab(t.v)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                    active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t.v === "venda" ? <ShoppingCart className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                  {t.l}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    {t.c}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           {/* KPIs */}
-          {notas.length > 0 &&
+          {notas.filter((n) => (n.kind ?? "compra") === kindTab).length > 0 &&
             (() => {
-              const totalNotas = notas.length;
-              const emAberto = notas.filter((n) => !n.paga);
-              const pagas = notas.filter((n) => n.paga);
+              const scoped = notas.filter((n) => (n.kind ?? "compra") === kindTab);
+              const totalNotas = scoped.length;
+              const emAberto = scoped.filter((n) => !n.paga);
+              const pagas = scoped.filter((n) => n.paga);
               const valorAberto = emAberto.reduce((s, n) => s + n.total, 0);
               const today = new Date();
               today.setHours(0, 0, 0, 0);
@@ -1177,6 +1232,7 @@ function NotasAbertoPage() {
               const today = new Date();
               today.setHours(0, 0, 0, 0);
               const visible = notas.filter((n) => {
+                if ((n.kind ?? "compra") !== kindTab) return false;
                 const isOverdue = !n.paga && n.prazoPagamento && new Date(n.prazoPagamento) < today;
                 if (statusFilter === "open" && n.paga) return false;
                 if (statusFilter === "paid" && !n.paga) return false;
@@ -1184,8 +1240,9 @@ function NotasAbertoPage() {
                 if (supplierFilter.length > 0 && !supplierFilter.includes(n.fornecedor)) return false;
                 if (listSearch) {
                   const s = listSearch.toLowerCase();
+                  const who = (n.kind === "venda" ? n.customerName : n.fornecedor) || "";
                   if (
-                    !n.fornecedor.toLowerCase().includes(s) &&
+                    !who.toLowerCase().includes(s) &&
                     !`nota ${n.noteNumber}`.includes(s)
                   )
                     return false;
@@ -1265,9 +1322,15 @@ function NotasAbertoPage() {
                           {/* Metadata */}
                           <div className="space-y-1.5 text-xs">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <Building2 className="h-3.5 w-3.5 shrink-0" />
+                              {n.kind === "venda" ? (
+                                <User className="h-3.5 w-3.5 shrink-0" />
+                              ) : (
+                                <Building2 className="h-3.5 w-3.5 shrink-0" />
+                              )}
                               <span className="truncate">
-                                {n.fornecedor || "Fornecedor não informado"}
+                                {n.kind === "venda"
+                                  ? n.customerName || "Cliente não informado"
+                                  : n.fornecedor || "Fornecedor não informado"}
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -1878,6 +1941,17 @@ function NotasAbertoPage() {
         onOpenChange={(o) => !o && setEditingProduct(null)}
         product={editingProduct}
         onSave={handleSaveProduct}
+      />
+      <SalesNoteModal
+        open={salesOpen}
+        onOpenChange={setSalesOpen}
+        orgId={orgId ?? null}
+        userId={userId ?? null}
+        nextNoteNumber={(notas.reduce((m, n) => Math.max(m, n.noteNumber), 0) || 0) + 1}
+        onCreated={() => {
+          setSalesOpen(false);
+          void loadNotes({ silent: true });
+        }}
       />
     </div>
   );
