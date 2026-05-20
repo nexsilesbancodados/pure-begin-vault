@@ -184,17 +184,6 @@ function Login() {
         }
       }
 
-      // Conta dev: garante a organização teste (não bloqueia login se RPC falhar)
-      if (isDevAccount) {
-        try {
-          await supabase.rpc("switch_organization", {
-            _org_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd",
-          });
-        } catch (e) {
-          console.warn("switch_organization falhou (dev):", e);
-        }
-      }
-
       if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
       else localStorage.removeItem("conecta:lastEmail");
 
