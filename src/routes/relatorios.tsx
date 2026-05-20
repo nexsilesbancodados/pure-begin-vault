@@ -809,13 +809,82 @@ function ReportsPage() {
                       <span className="text-sm font-black text-slate-900">Visão Geral</span>
                     )}
                   </div>
-                  <button
-                    onClick={handleExport}
-                    className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-xs font-black shadow-sm hover:bg-primary/90 transition"
-                    title="Exportar CSV"
-                  >
-                    <Download className="h-3.5 w-3.5" /> Exportar CSV
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative">
+                      <button
+                        onClick={() => setFilterOpen((v) => !v)}
+                        className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-bold shadow-sm hover:bg-slate-50 transition"
+                        title="Filtrar por data"
+                      >
+                        <Filter className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Período:</span>
+                        <span className="text-primary">{computeRange().label}</span>
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </button>
+                      {filterOpen && (
+                        <>
+                          <div className="fixed inset-0 z-30" onClick={() => setFilterOpen(false)} />
+                          <div className="absolute right-0 top-full mt-2 z-40 w-72 rounded-xl border border-slate-200 bg-white shadow-xl p-3">
+                            <div className="text-[11px] font-black uppercase text-slate-500 mb-2">Período</div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {([
+                                ["today", "Hoje"],
+                                ["7d", "7 dias"],
+                                ["30d", "30 dias"],
+                                ["month", "Este mês"],
+                                ["year", "Este ano"],
+                                ["all", "Tudo"],
+                              ] as [RangePreset, string][]).map(([key, label]) => (
+                                <button
+                                  key={key}
+                                  onClick={() => { setRangePreset(key); if (key !== "custom") setFilterOpen(false); }}
+                                  className={`text-xs font-bold px-3 py-2 rounded-lg border transition ${rangePreset === key ? "bg-primary text-white border-primary" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"}`}
+                                >
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-slate-100">
+                              <div className="text-[11px] font-black uppercase text-slate-500 mb-2">Personalizado</div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <label className="text-[10px] font-bold text-slate-500">
+                                  De
+                                  <input
+                                    type="date"
+                                    value={customFrom}
+                                    onChange={(e) => { setCustomFrom(e.target.value); setRangePreset("custom"); }}
+                                    className="mt-1 w-full text-xs px-2 py-1.5 rounded-md border border-slate-200 focus:outline-none focus:border-primary"
+                                  />
+                                </label>
+                                <label className="text-[10px] font-bold text-slate-500">
+                                  Até
+                                  <input
+                                    type="date"
+                                    value={customTo}
+                                    onChange={(e) => { setCustomTo(e.target.value); setRangePreset("custom"); }}
+                                    className="mt-1 w-full text-xs px-2 py-1.5 rounded-md border border-slate-200 focus:outline-none focus:border-primary"
+                                  />
+                                </label>
+                              </div>
+                              <button
+                                onClick={() => setFilterOpen(false)}
+                                className="mt-3 w-full h-8 rounded-lg bg-primary text-white text-xs font-black hover:bg-primary/90 transition"
+                              >
+                                Aplicar
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      onClick={handleExport}
+                      className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-white text-xs font-black shadow-sm hover:bg-primary/90 transition"
+                      title="Exportar CSV"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Exportar CSV
+                    </button>
+                  </div>
                 </div>
               );
             })()}
