@@ -766,6 +766,7 @@ export function KpiCard({
           </div>
         </DialogContent>
       </Dialog>
+      )}
     </>
   );
 }
