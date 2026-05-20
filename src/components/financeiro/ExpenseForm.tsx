@@ -37,7 +37,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Package, User as UserIcon } from "lucide-react";
+import { Package, User as UserIcon, Upload, File as FileIcon, Calendar, Tag, CreditCard, Hash } from "lucide-react";
+import { toast } from "sonner";
 
 interface ExpenseFormProps {
   open: boolean;
@@ -48,7 +49,7 @@ interface ExpenseFormProps {
   variant?: "expense" | "income";
 }
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   "Despesa",
   "Compras",
   "Folha de pagamento",
@@ -113,6 +114,10 @@ export function ExpenseForm({
   const [searchPerson, setSearchPerson] = useState("");
   const [loadingPeople, setLoadingPeople] = useState(false);
   const [personPopoverOpen, setPersonPopoverOpen] = useState(false);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [newCategoryOpen, setNewCategoryOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [files, setFiles] = useState<{ id: string; name: string; size: number; type: string }[]>([]);
 
   const todayISO = () => new Date().toISOString().split("T")[0];
   const cashboxDefault = `Caixa do dia ${new Date().toLocaleDateString("pt-BR")} - Sistema`;
@@ -229,9 +234,34 @@ export function ExpenseForm({
     setPayments([]);
   };
 
+  // When status flips to "paid", auto-fill payment amount and a default method
+  useEffect(() => {
+    if (form.status === "paid" && !form.payment_amount && form.amount) {
+      setForm((f) => ({
+        ...f,
+        payment_amount: f.amount,
+        payment_method: f.payment_method || "pix",
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.status]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.amount) return;
+    if (!form.title.trim()) {
+      toast.error("Informe o título");
+      setTab("dados");
+      return;
+    }
+    if (!form.amount || parseNum(form.amount) <= 0) {
+      toast.error("Informe um valor maior que zero");
+      setTab("dados");
+      return;
+    }
+    if (form.status === "paid" && !form.payment_method) {
+      toast.error("Selecione a forma de pagamento");
+      return;
+    }
     setSaving(true);
     try {
       await onSave({
@@ -255,6 +285,7 @@ export function ExpenseForm({
         fees: parseNum(form.fees),
         discount: parseNum(form.discount),
         payments,
+        files: files.map((f) => ({ name: f.name, size: f.size, type: f.type })),
         transaction_date: form.due_date || new Date().toISOString(),
       });
     } finally {
@@ -479,14 +510,53 @@ export function ExpenseForm({
                         <SelectValue placeholder="Selecionar" />
                       </SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((c) => (
+                        {categories.map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0 text-emerald-600 border-emerald-500/40">
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                    <Popover open={newCategoryOpen} onOpenChange={setNewCategoryOpen}>
+                      <PopoverTrigger asChild>
+                        <Button type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0 text-emerald-600 border-emerald-500/40" title="Adicionar categoria">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3" align="end">
+                        <Label className="text-xs font-semibold mb-1.5 block">Nova categoria</Label>
+                        <Input
+                          value={newCategory}
+                          onChange={(e) => setNewCategory(e.target.value)}
+                          placeholder="Ex: Manutenção"
+                          className="h-9 mb-2"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const name = newCategory.trim();
+                              if (!name) return;
+                              if (!categories.includes(name)) setCategories((arr) => [...arr, name]);
+                              setForm((f) => ({ ...f, category: name }));
+                              setNewCategory("");
+                              setNewCategoryOpen(false);
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            const name = newCategory.trim();
+                            if (!name) return;
+                            if (!categories.includes(name)) setCategories((arr) => [...arr, name]);
+                            setForm((f) => ({ ...f, category: name }));
+                            setNewCategory("");
+                            setNewCategoryOpen(false);
+                          }}
+                        >
+                          Adicionar
+                        </Button>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </Field>
                 <Field label="Forma de cobrança">
@@ -668,16 +738,89 @@ export function ExpenseForm({
           )}
 
           {tab === "arquivos" && (
-            <div className="p-10 text-center text-muted-foreground">
-              <Paperclip className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Anexos serão habilitados em breve.</p>
+            <div className="p-5 space-y-4">
+              <label
+                htmlFor="expense-files"
+                className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-2xl p-10 cursor-pointer hover:border-blue-500/60 hover:bg-blue-500/5 transition"
+              >
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm font-semibold">Clique para anexar arquivos</p>
+                <p className="text-xs text-muted-foreground">Comprovantes, NFs, boletos (PDF, PNG, JPG)</p>
+                <input
+                  id="expense-files"
+                  type="file"
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const list = Array.from(e.target.files || []);
+                    if (!list.length) return;
+                    setFiles((arr) => [
+                      ...arr,
+                      ...list.map((f) => ({
+                        id: crypto.randomUUID(),
+                        name: f.name,
+                        size: f.size,
+                        type: f.type,
+                      })),
+                    ]);
+                    toast.success(`${list.length} arquivo(s) anexado(s)`);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+              {files.length > 0 && (
+                <div className="border border-border rounded-xl divide-y divide-border overflow-hidden">
+                  {files.map((f) => (
+                    <div key={f.id} className="flex items-center gap-3 px-4 py-2.5">
+                      <div className="h-9 w-9 rounded-lg bg-blue-500/15 text-blue-600 grid place-items-center">
+                        <FileIcon className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{f.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{(f.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFiles((arr) => arr.filter((x) => x.id !== f.id))}
+                        className="text-red-600 hover:bg-red-500/10 p-2 rounded-md"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {tab === "detalhes" && (
-            <div className="p-10 text-center text-muted-foreground">
-              <Info className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Detalhes adicionais serão exibidos aqui.</p>
+            <div className="p-5 space-y-3">
+              <SectionTitle>Resumo do lançamento</SectionTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <DetailRow icon={<FileText className="h-4 w-4" />} label="Título" value={form.title || "—"} />
+                <DetailRow icon={<UserIcon className="h-4 w-4" />} label="Pessoa" value={form.person || "—"} />
+                <DetailRow icon={<Calendar className="h-4 w-4" />} label="Vencimento" value={form.due_date ? new Date(form.due_date + "T00:00").toLocaleDateString("pt-BR") : "—"} />
+                <DetailRow icon={<Calendar className="h-4 w-4" />} label="Competência" value={form.competence_date ? new Date(form.competence_date + "T00:00").toLocaleDateString("pt-BR") : "—"} />
+                <DetailRow icon={<Tag className="h-4 w-4" />} label="Categoria" value={form.category || "—"} />
+                <DetailRow icon={<Tag className="h-4 w-4" />} label="Tags" value={form.tags || "—"} />
+                <DetailRow icon={<CreditCard className="h-4 w-4" />} label="Forma de cobrança" value={BILLING_METHODS.find((b) => b.value === form.billing_method)?.label || "—"} />
+                <DetailRow icon={<Hash className="h-4 w-4" />} label="Parcela" value={form.installment_number || "—"} />
+                <DetailRow icon={<DollarSign className="h-4 w-4" />} label="Valor base" value={`R$ ${brl(parseNum(form.amount))}`} />
+                <DetailRow icon={<DollarSign className="h-4 w-4" />} label="Multa/Juros" value={`R$ ${brl(parseNum(form.fees))}`} />
+                <DetailRow icon={<DollarSign className="h-4 w-4" />} label="Desconto" value={`R$ ${brl(parseNum(form.discount))}`} />
+                <DetailRow icon={<DollarSign className="h-4 w-4" />} label="Valor total" value={`R$ ${brl(totals.total)}`} highlight />
+                <DetailRow icon={<CheckCircle2 className="h-4 w-4" />} label="Total pago" value={`R$ ${brl(totals.paid)}`} />
+                <DetailRow icon={<ArrowLeftRight className="h-4 w-4" />} label="Saldo" value={`R$ ${brl(totals.balance)}`} highlight />
+                <DetailRow icon={<Paperclip className="h-4 w-4" />} label="Anexos" value={files.length ? `${files.length} arquivo(s)` : "—"} />
+                <DetailRow icon={<Info className="h-4 w-4" />} label="Pagamentos" value={payments.length ? `${payments.length} lançado(s)` : "—"} />
+              </div>
+              {form.notes && (
+                <>
+                  <SectionTitle>Observações</SectionTitle>
+                  <p className="text-sm whitespace-pre-wrap text-muted-foreground bg-muted/40 rounded-lg p-3">{form.notes}</p>
+                </>
+              )}
             </div>
           )}
 
@@ -723,6 +866,34 @@ function Field({
     </div>
   );
 }
+
+function DetailRow({
+  icon,
+  label,
+  value,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className={cn(
+      "flex items-center gap-3 rounded-xl border border-border px-3 py-2.5",
+      highlight ? "bg-blue-500/5 border-blue-500/30" : "bg-card"
+    )}>
+      <div className="h-8 w-8 rounded-lg grid place-items-center bg-muted text-muted-foreground shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className={cn("text-sm font-semibold truncate", highlight && "text-blue-700 dark:text-blue-300")}>{value}</div>
+      </div>
+    </div>
+  );
+}
+
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (

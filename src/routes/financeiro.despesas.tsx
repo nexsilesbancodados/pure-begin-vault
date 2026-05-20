@@ -199,6 +199,23 @@ function DespesasPage() {
   const handleSave = async (data: any) => {
     if (!user?.id || !orgId) return;
     try {
+      const extras: string[] = [];
+      if (data.supplier) extras.push(`Fornecedor: ${data.supplier}`);
+      if (data.payment_method) extras.push(`Pagamento: ${data.payment_method}`);
+      if (data.competence_date) extras.push(`Competência: ${data.competence_date}`);
+      if (data.billing_method) extras.push(`Cobrança: ${data.billing_method}`);
+      if (data.installment_number) extras.push(`Parcela: ${data.installment_number}`);
+      if (data.tags) extras.push(`Tags: ${data.tags}`);
+      if (data.fees) extras.push(`Multa/Juros: ${data.fees}`);
+      if (data.discount) extras.push(`Desconto: ${data.discount}`);
+      if (Array.isArray(data.payments) && data.payments.length) {
+        extras.push(`Pagamentos: ${data.payments.length} lançamento(s)`);
+      }
+      if (Array.isArray(data.files) && data.files.length) {
+        extras.push(`Anexos: ${data.files.map((f: any) => f.name).join(", ")}`);
+      }
+      if (data.notes) extras.push(data.notes);
+
       const payload = {
         organization_id: orgId,
         user_id: user.id,
@@ -208,13 +225,7 @@ function DespesasPage() {
         due_date: data.due_date,
         paid_at: data.payment_date,
         status: data.status,
-        notes: [
-          data.supplier ? `Fornecedor: ${data.supplier}` : null,
-          data.payment_method ? `Pagamento: ${data.payment_method}` : null,
-          data.notes,
-        ]
-          .filter(Boolean)
-          .join("\n") || null,
+        notes: extras.filter(Boolean).join("\n") || null,
       };
 
       if (editing) {
