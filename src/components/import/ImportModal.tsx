@@ -1136,6 +1136,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                     </div>
                   ))}
                 </div>
+                )}
               </div>
 
               {/* Pré-visualização final */}
