@@ -5,8 +5,10 @@ import { Topbar } from "@/components/layout/Topbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
-import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, Circle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, Circle, LayoutGrid, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
+import { DayKanbanModal } from "@/components/calendar/DayKanbanModal";
+
 
 export const Route = createFileRoute("/calendario")({
   head: () => ({
