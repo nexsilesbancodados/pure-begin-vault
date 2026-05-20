@@ -295,7 +295,7 @@ export function GoalProgress({
       }
     });
     setStats({ units });
-  }, [user?.id, orgId, getPeriodRange]);
+  }, [user?.id, orgId, getPeriodRange, baseline.at]);
 
   useEffect(() => {
     if (user?.id) fetchGoals();
