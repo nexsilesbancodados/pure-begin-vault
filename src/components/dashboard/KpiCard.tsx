@@ -67,6 +67,7 @@ import { startOfDay, endOfDay, startOfMonth, endOfMonth, format as formatDate } 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Package, User as UserIcon, Coins } from "lucide-react";
+import { TodaySalesModal } from "./TodaySalesModal";
 
 export function KpiCard({
   label,
