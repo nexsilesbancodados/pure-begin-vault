@@ -828,7 +828,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                     Importar {KIND_META[kind].label}
                   </DialogTitle>
                   <DialogDescription className="text-white/80 text-xs mt-0.5">
-                    Migre seu histórico em minutos · CSV ou Excel
+                    Migre seu histórico em minutos · CSV, Excel ou PDF (IA)
                   </DialogDescription>
                 </div>
               </div>
