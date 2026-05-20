@@ -932,7 +932,7 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                   ref={fileInputRef}
                   type="file"
                   className="hidden"
-                  accept=".csv,.xlsx,.xls"
+                  accept=".csv,.xlsx,.xls,.pdf"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f) handleFile(f);
@@ -947,10 +947,10 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                       {isDragging ? "Solte para enviar" : "Arraste ou clique para escolher"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      CSV · XLSX · XLS · até 10MB
+                      CSV · XLSX · XLS · PDF · até 10MB
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex items-center gap-2 mt-1 flex-wrap justify-center">
                     <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-success/10 text-success border border-success/20">
                       .CSV
                     </span>
@@ -959,6 +959,9 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                     </span>
                     <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-warning/10 text-warning border border-warning/20">
                       .XLS
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+                      .PDF
                     </span>
                   </div>
                 </div>
