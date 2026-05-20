@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
@@ -44,6 +44,86 @@ interface GoalProgressProps {
   goal?: number;
   onGoalUpdate?: () => void;
 }
+
+const COMPLETED_STATUSES = ["completed", "concluded", "paid"];
+const DEVICE_CATEGORY_TERMS = ["smartphone", "celular", "celulares", "aparelho", "aparelhos"];
+const DEVICE_NAME_TERMS = [
+  "iphone",
+  "galaxy",
+  "samsung",
+  "xiaomi",
+  "redmi",
+  "motorola",
+  "moto g",
+  "poco",
+  "realme",
+];
+const ACCESSORY_TERMS = [
+  "capa",
+  "película",
+  "pelicula",
+  "carregador",
+  "cabo",
+  "fone",
+  "airpod",
+  "airpods",
+  "serviço",
+  "servico",
+  "mão de obra",
+  "mao de obra",
+];
+
+type Metadata = Record<string, unknown>;
+type SaleRow = { id: string };
+type SaleItemRow = {
+  sale_id: string | null;
+  product_id: string | null;
+  product_name: string | null;
+  quantity: number | string | null;
+  imei: string | null;
+  metadata: Metadata | null;
+};
+type ProductRow = {
+  id: string;
+  name: string | null;
+  category: string | null;
+  model: string | null;
+  metadata: Metadata | null;
+};
+
+const normalizeText = (value: unknown) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const isDeviceItem = (item: SaleItemRow, product?: ProductRow) => {
+  const category = normalizeText(product?.category);
+  if (category) return DEVICE_CATEGORY_TERMS.some((term) => category.includes(term));
+
+  const metadata = item?.metadata && typeof item.metadata === "object" ? item.metadata : {};
+  const searchable = normalizeText(
+    [
+      item?.product_name,
+      product?.name,
+      product?.model,
+      metadata.model,
+      metadata.imei,
+      metadata.IMEI,
+      metadata.imei1,
+      metadata.capacity,
+      metadata.battery_health,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  if (!searchable) return false;
+  if (ACCESSORY_TERMS.some((term) => searchable.includes(term))) return false;
+  return (
+    DEVICE_NAME_TERMS.some((term) => searchable.includes(term)) ||
+    Boolean(metadata.imei || metadata.IMEI || metadata.imei1)
+  );
+};
 
 export function GoalProgress({
   current: parentCurrent,
@@ -70,62 +150,7 @@ export function GoalProgress({
   const [editGoals, setEditGoals] = useState(initialGoalState);
   const [stats, setStats] = useState({ units: 0 });
 
-  // Override manual (apenas Maio): permite ao gestor informar quantos aparelhos foram vendidos até agora
-  const now = new Date();
-  const isMay = now.getMonth() === 4; // 0=Jan, 4=Maio
-  const overrideKey = orgId ? `goal-units-override:${orgId}:${now.getFullYear()}-05` : "";
-  const [manualUnits, setManualUnits] = useState<number | null>(null);
-  const [editingManual, setEditingManual] = useState(false);
-  const [manualInput, setManualInput] = useState("");
-
-  useEffect(() => {
-    if (!overrideKey) return;
-    const stored = localStorage.getItem(overrideKey);
-    setManualUnits(stored !== null ? Number(stored) : null);
-  }, [overrideKey]);
-
-  useEffect(() => {
-    if (user?.id) fetchGoals();
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (user?.id && orgId) fetchStats();
-  }, [user?.id, orgId, period]);
-
-  // Realtime: atualiza automaticamente o contador de aparelhos vendidos
-  // sempre que houver inserção/atualização em sales_orders ou sale_items da loja
-  useEffect(() => {
-    if (!user?.id || !orgId) return;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    const schedule = () => {
-      if (timer) return;
-      timer = setTimeout(() => {
-        timer = null;
-        fetchStats();
-      }, 800);
-    };
-    const channel = supabase
-      .channel(`goal-progress-${orgId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "sales_orders", filter: `organization_id=eq.${orgId}` },
-        schedule,
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "sale_items" },
-        schedule,
-      )
-      .subscribe();
-    return () => {
-      if (timer) clearTimeout(timer);
-      supabase.removeChannel(channel);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, orgId, period]);
-
-
-  const fetchGoals = async () => {
+  const fetchGoals = useCallback(async () => {
     if (!user?.id || !orgId) return;
     const { data } = await supabase
       .from("business_goals")
@@ -151,9 +176,9 @@ export function GoalProgress({
       setGoals(fetchedGoals);
       setEditGoals(fetchedGoals);
     }
-  };
+  }, [user?.id, orgId]);
 
-  const getPeriodRange = () => {
+  const getPeriodRange = useCallback(() => {
     const now = new Date();
     const start = new Date();
     const end = new Date();
@@ -179,30 +204,109 @@ export function GoalProgress({
         break;
     }
     return { start, end };
-  };
+  }, [period]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
+    if (!user?.id || !orgId) return;
     const { start, end } = getPeriodRange();
-    const { data: sales } = await supabase
+    const { data: sales, error: salesError } = await supabase
       .from("sales_orders")
-      .select("id, total_amount, sale_items:sale_items(quantity)")
+      .select("id")
       .gte("created_at", start.toISOString())
       .lte("created_at", end.toISOString())
-      .in("status", ["completed", "concluded"])
+      .in("status", COMPLETED_STATUSES)
       .in("channel", ["pdv", "import"])
       .eq("organization_id", orgId);
 
-    let units = 0;
-    (sales || []).forEach((s: any) => {
-      const items = s.sale_items || [];
-      if (items.length) {
-        units += items.reduce((a: number, i: any) => a + (Number(i.quantity) || 0), 0);
+    if (salesError) {
+      console.error("Erro ao buscar vendas da meta:", salesError);
+      return;
+    }
+
+    const saleIds = ((sales || []) as SaleRow[]).map((s) => s.id).filter(Boolean);
+    if (!saleIds.length) {
+      setStats({ units: 0 });
+      return;
+    }
+
+    const { data: items, error: itemsError } = await supabase
+      .from("sale_items")
+      .select("sale_id, product_id, product_name, quantity, imei, metadata")
+      .eq("organization_id", orgId)
+      .in("sale_id", saleIds);
+
+    if (itemsError) {
+      console.error("Erro ao buscar itens vendidos da meta:", itemsError);
+      return;
+    }
+
+    const saleItems = (items || []) as SaleItemRow[];
+    const productIds = Array.from(
+      new Set(saleItems.map((i) => i.product_id).filter((id): id is string => Boolean(id))),
+    );
+    const productsById = new Map<string, ProductRow>();
+    if (productIds.length) {
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id, name, category, model, metadata")
+        .eq("organization_id", orgId)
+        .in("id", productIds);
+      if (productsError) {
+        console.error("Erro ao buscar produtos da meta:", productsError);
       } else {
-        units += 1;
+        ((products || []) as ProductRow[]).forEach((product) =>
+          productsById.set(product.id, product),
+        );
+      }
+    }
+
+    let units = 0;
+    saleItems.forEach((item) => {
+      if (isDeviceItem(item, item.product_id ? productsById.get(item.product_id) : undefined)) {
+        units += Math.max(1, Number(item.quantity) || 1);
       }
     });
     setStats({ units });
-  };
+  }, [user?.id, orgId, getPeriodRange]);
+
+  useEffect(() => {
+    if (user?.id) fetchGoals();
+  }, [user?.id, fetchGoals]);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // Realtime: atualiza automaticamente o contador quando uma venda/itens/produto mudam na loja atual.
+  useEffect(() => {
+    if (!user?.id || !orgId) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const poller = window.setInterval(() => fetchStats(), 10000);
+    const refreshOnFocus = () => fetchStats();
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        fetchStats();
+      }, 700);
+    };
+    const channel = supabase.channel(`goal-progress-${orgId}`);
+    (["sales_orders", "sale_items", "products"] as const).forEach((table) => {
+      channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table, filter: `organization_id=eq.${orgId}` },
+        schedule,
+      );
+    });
+    channel.subscribe();
+    window.addEventListener("focus", refreshOnFocus);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.clearInterval(poller);
+      window.removeEventListener("focus", refreshOnFocus);
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, orgId, fetchStats]);
 
   const handleSave = async () => {
     if (!user?.id || !orgId) {
@@ -224,9 +328,8 @@ export function GoalProgress({
         target_value: editGoals.monthly,
         type: editGoals.type,
         deadline: editGoals.end_date || null,
-        current_value: manualUnits ?? stats.units,
+        current_value: stats.units,
       };
-
 
       let error;
       if (existingGoal?.id) {
@@ -236,33 +339,30 @@ export function GoalProgress({
           .eq("id", existingGoal.id);
         error = updateError;
       } else {
-        const { error: insertError } = await supabase
-          .from("business_goals")
-          .insert([goalData]);
+        const { error: insertError } = await supabase.from("business_goals").insert([goalData]);
         error = insertError;
       }
 
       if (error) throw error;
-      
+
       setGoals({ ...editGoals });
       setIsModalOpen(false);
       toast.success("Metas atualizadas com sucesso!");
       if (onGoalUpdate) onGoalUpdate();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Erro ao salvar metas:", e);
-      toast.error(`Erro ao salvar metas: ${e.message || "Tente novamente"}`);
+      const message = e instanceof Error ? e.message : "Tente novamente";
+      toast.error(`Erro ao salvar metas: ${message}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-
-  const effectiveUnits = isMay && manualUnits !== null ? manualUnits : stats.units;
+  const effectiveUnits = stats.units;
   const currentDisplay = effectiveUnits;
   const pct = Math.min(100, Math.round((currentDisplay / (goals.monthly || 1)) * 100)) || 0;
   const projection = Math.round((effectiveUnits / (new Date().getDate() || 1)) * 30);
   const remaining = Math.max(0, goals.monthly - effectiveUnits);
-
 
   const dayOfMonth = new Date().getDate();
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
@@ -304,11 +404,24 @@ export function GoalProgress({
         <div className="flex items-center gap-4 relative min-w-0">
           <div className="relative h-[110px] w-[110px] shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 140 140">
-              <circle cx="70" cy="70" r={radius} stroke="var(--color-muted)" strokeWidth="10" fill="none" />
               <circle
-                cx="70" cy="70" r={radius}
-                stroke="var(--color-primary)" strokeWidth="10" fill="none" strokeLinecap="round"
-                strokeDasharray={circumference} strokeDashoffset={offset}
+                cx="70"
+                cy="70"
+                r={radius}
+                stroke="var(--color-muted)"
+                strokeWidth="10"
+                fill="none"
+              />
+              <circle
+                cx="70"
+                cy="70"
+                r={radius}
+                stroke="var(--color-primary)"
+                strokeWidth="10"
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={offset}
                 style={{ transition: "stroke-dashoffset 1s ease-out" }}
               />
             </svg>
@@ -325,66 +438,31 @@ export function GoalProgress({
             <div>
               <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
                 <span>Aparelhos vendidos</span>
-                {isMay && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setManualInput(String(effectiveUnits));
-                      setEditingManual(true);
-                    }}
-                    className="text-[10px] font-semibold text-primary hover:underline"
-                  >
-                    {manualUnits !== null ? "Editar" : "Informar"}
-                  </button>
-                )}
               </div>
-              {isMay && editingManual ? (
-                <div className="flex items-center gap-1 mt-1" onClick={(e) => e.stopPropagation()}>
-                  <Input
-                    type="number"
-                    min={0}
-                    autoFocus
-                    value={manualInput}
-                    onChange={(e) => setManualInput(e.target.value)}
-                    className="h-8 text-sm w-20"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-8 px-2"
-                    onClick={() => {
-                      const n = Math.max(0, Number(manualInput) || 0);
-                      setManualUnits(n);
-                      if (overrideKey) localStorage.setItem(overrideKey, String(n));
-                      setEditingManual(false);
-                      toast.success("Quantidade atualizada");
-                    }}
-                  >
-                    <Save className="h-3 w-3" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-lg font-bold font-display truncate">
-                  {effectiveUnits} <span className="text-muted-foreground text-sm font-medium">/ {goals.monthly} un.</span>
-                </div>
-              )}
+              <div className="text-lg font-bold font-display truncate">
+                {effectiveUnits}{" "}
+                <span className="text-muted-foreground text-sm font-medium">
+                  / {goals.monthly} un.
+                </span>
+              </div>
             </div>
             <div className="pt-2 border-t border-border">
               <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                 <Package className="h-3 w-3" /> Faltam para meta
               </div>
-              <div className="text-[13px] font-semibold text-primary truncate">
-                {remaining} un.
-              </div>
+              <div className="text-[13px] font-semibold text-primary truncate">{remaining} un.</div>
             </div>
           </div>
-
         </div>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[680px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v === "settings" ? "settings" : "overview")}
+            className="w-full"
+          >
             <div className="bg-gradient-to-br from-primary/10 via-background to-background p-6 pb-0">
               <DialogHeader className="mb-4">
                 <div className="flex items-center justify-between gap-4">
@@ -393,15 +471,28 @@ export function GoalProgress({
                       <Trophy className="h-6 w-6 text-primary-foreground" />
                     </div>
                     <div>
-                      <DialogTitle className="text-2xl font-black tracking-tight">Análise de Metas</DialogTitle>
-                      <DialogDescription className="font-medium">Meta de aparelhos vendidos por período.</DialogDescription>
+                      <DialogTitle className="text-2xl font-black tracking-tight">
+                        Análise de Metas
+                      </DialogTitle>
+                      <DialogDescription className="font-medium">
+                        Meta de aparelhos vendidos por período.
+                      </DialogDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="hidden sm:flex items-center gap-1.5 text-muted-foreground">
                       <Filter className="h-4 w-4" />
                     </div>
-                    <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+                    <Select
+                      value={period}
+                      onValueChange={(v) =>
+                        setPeriod(
+                          ["month", "last_month", "last30", "year"].includes(v)
+                            ? (v as "month" | "last_month" | "last30" | "year")
+                            : "month",
+                        )
+                      }
+                    >
                       <SelectTrigger className="h-9 w-[150px] rounded-xl text-xs font-bold">
                         <SelectValue />
                       </SelectTrigger>
@@ -426,8 +517,18 @@ export function GoalProgress({
                 </div>
               </DialogHeader>
               <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 h-12 rounded-2xl">
-                <TabsTrigger value="overview" className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm">Visão Geral de Performance</TabsTrigger>
-                <TabsTrigger value="settings" className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm">Ajustar Objetivos</TabsTrigger>
+                <TabsTrigger
+                  value="overview"
+                  className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Visão Geral de Performance
+                </TabsTrigger>
+                <TabsTrigger
+                  value="settings"
+                  className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  Ajustar Objetivos
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -440,29 +541,39 @@ export function GoalProgress({
                         <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
                           <Package className="h-4 w-4" />
                         </div>
-                        <span className="text-[12px] font-bold text-muted-foreground">Aparelhos Vendidos</span>
+                        <span className="text-[12px] font-bold text-muted-foreground">
+                          Aparelhos Vendidos
+                        </span>
                       </div>
                       <div className="text-right">
                         <div className="text-lg font-black">{stats.units} un.</div>
                       </div>
                     </div>
                     <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${pct}%` }} />
+                      <div
+                        className="h-full bg-blue-500 transition-all duration-1000"
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                     <div className="flex justify-between mt-2 text-[10px] font-bold uppercase tracking-wider">
                       <span className="text-muted-foreground">Progresso</span>
-                      <span className="text-primary">{pct}% de {goals.monthly} un.</span>
+                      <span className="text-primary">
+                        {pct}% de {goals.monthly} un.
+                      </span>
                     </div>
                   </div>
 
                   <div className="p-4 rounded-2xl bg-card border border-border shadow-sm">
                     <div className="flex items-center gap-2 mb-3">
                       <Target className="h-4 w-4 text-primary" />
-                      <span className="text-[12px] font-bold text-muted-foreground">Faltam para bater a meta</span>
+                      <span className="text-[12px] font-bold text-muted-foreground">
+                        Faltam para bater a meta
+                      </span>
                     </div>
                     <div className="text-2xl font-black">{remaining} un.</div>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      Ritmo necessário: {Math.ceil(remaining / Math.max(1, daysInMonth - dayOfMonth))} un./dia
+                      Ritmo necessário:{" "}
+                      {Math.ceil(remaining / Math.max(1, daysInMonth - dayOfMonth))} un./dia
                     </p>
                   </div>
                 </div>
@@ -476,19 +587,31 @@ export function GoalProgress({
                       </div>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground font-medium">Média diária</span>
-                          <span className="font-bold">{(stats.units / (dayOfMonth || 1)).toFixed(1)} un.</span>
+                          <span className="text-xs text-muted-foreground font-medium">
+                            Média diária
+                          </span>
+                          <span className="font-bold">
+                            {(stats.units / (dayOfMonth || 1)).toFixed(1)} un.
+                          </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-muted-foreground font-medium">Projeção final</span>
+                          <span className="text-xs text-muted-foreground font-medium">
+                            Projeção final
+                          </span>
                           <span className="font-bold">{projection} un.</span>
                         </div>
                       </div>
                     </div>
                     <Separator className="my-4 bg-primary/10" />
                     <div className="flex gap-3">
-                      <div className={`h-10 w-10 shrink-0 rounded-xl flex items-center justify-center ${onTrack ? 'bg-success/15 text-success' : 'bg-warning/15 text-warning'}`}>
-                        {onTrack ? <CheckCircle2 className="h-5 w-5" /> : <Rocket className="h-5 w-5" />}
+                      <div
+                        className={`h-10 w-10 shrink-0 rounded-xl flex items-center justify-center ${onTrack ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}
+                      >
+                        {onTrack ? (
+                          <CheckCircle2 className="h-5 w-5" />
+                        ) : (
+                          <Rocket className="h-5 w-5" />
+                        )}
                       </div>
                       <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
                         {onTrack
@@ -504,10 +627,12 @@ export function GoalProgress({
                     </h4>
                     <ul className="space-y-2">
                       <li className="text-[11px] text-muted-foreground flex items-center gap-2">
-                        <div className="h-1 w-1 rounded-full bg-primary" /> Reforçar abordagem em loja
+                        <div className="h-1 w-1 rounded-full bg-primary" /> Reforçar abordagem em
+                        loja
                       </li>
                       <li className="text-[11px] text-muted-foreground flex items-center gap-2">
-                        <div className="h-1 w-1 rounded-full bg-primary" /> Aumentar conversão de orçamentos
+                        <div className="h-1 w-1 rounded-full bg-primary" /> Aumentar conversão de
+                        orçamentos
                       </li>
                     </ul>
                   </div>
@@ -537,11 +662,18 @@ export function GoalProgress({
                       value={editGoals.monthly}
                       onChange={(e) => {
                         const v = Number(e.target.value);
-                        setEditGoals({ ...editGoals, monthly: v, daily: Math.round(v / 30), weekly: Math.round(v / 4) });
+                        setEditGoals({
+                          ...editGoals,
+                          monthly: v,
+                          daily: Math.round(v / 30),
+                          weekly: Math.round(v / 4),
+                        });
                       }}
                       className="h-12 rounded-xl text-lg font-black"
                     />
-                    <p className="text-[11px] text-muted-foreground">Quantidade de aparelhos a vender no período.</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Quantidade de aparelhos a vender no período.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -550,7 +682,9 @@ export function GoalProgress({
                       <Input
                         type="number"
                         value={editGoals.daily}
-                        onChange={(e) => setEditGoals({ ...editGoals, daily: Number(e.target.value) })}
+                        onChange={(e) =>
+                          setEditGoals({ ...editGoals, daily: Number(e.target.value) })
+                        }
                         className="h-10 rounded-xl"
                       />
                     </div>
@@ -559,7 +693,9 @@ export function GoalProgress({
                       <Input
                         type="number"
                         value={editGoals.weekly}
-                        onChange={(e) => setEditGoals({ ...editGoals, weekly: Number(e.target.value) })}
+                        onChange={(e) =>
+                          setEditGoals({ ...editGoals, weekly: Number(e.target.value) })
+                        }
                         className="h-10 rounded-xl"
                       />
                     </div>
@@ -588,9 +724,23 @@ export function GoalProgress({
                   </div>
 
                   <div className="flex gap-3 pt-4">
-                    <Button variant="ghost" onClick={() => setIsModalOpen(false)} className="flex-1 h-12 rounded-xl font-bold">Cancelar</Button>
-                    <Button onClick={handleSave} disabled={isLoading} className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25">
-                      {isLoading ? <Activity className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                    <Button
+                      variant="ghost"
+                      onClick={() => setIsModalOpen(false)}
+                      className="flex-1 h-12 rounded-xl font-bold"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={handleSave}
+                      disabled={isLoading}
+                      className="flex-[2] h-12 rounded-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25"
+                    >
+                      {isLoading ? (
+                        <Activity className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
                       Salvar Meta
                     </Button>
                   </div>
