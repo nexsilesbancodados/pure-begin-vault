@@ -209,6 +209,49 @@ export function PDVInterface() {
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
+  const fetchSellers = useCallback(async () => {
+    if (!orgId) return;
+    const { data } = await supabase
+      .from("employees")
+      .select("id, name, email, position")
+      .eq("organization_id", orgId)
+      .order("name", { ascending: true });
+    setSellers((data as any) || []);
+  }, [orgId]);
+
+  useEffect(() => {
+    fetchSellers();
+  }, [fetchSellers]);
+
+  const saveSeller = async () => {
+    if (!orgId) return toast.error("Selecione uma loja");
+    const name = newSeller.name.trim();
+    if (!name) return toast.error("Informe o nome do vendedor");
+    setSavingSeller(true);
+    try {
+      const { data, error } = await supabase
+        .from("employees")
+        .insert({
+          organization_id: orgId,
+          name,
+          email: newSeller.email.trim() || null,
+          position: newSeller.position.trim() || "Vendedor",
+        })
+        .select("id, name, email, position")
+        .single();
+      if (error) throw error;
+      setSellers((prev) => [...prev, data as any].sort((a, b) => a.name.localeCompare(b.name)));
+      setVendedorId((data as any).id);
+      toast.success(`Vendedor "${name}" cadastrado`);
+      setNewSeller({ name: "", email: "", position: "Vendedor" });
+      setSellerModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Falha ao cadastrar vendedor");
+    } finally {
+      setSavingSeller(false);
+    }
+  };
+
   const fetchProducts = useCallback(async () => {
     if (!user?.id || !orgId) return;
     setLoadingProducts(true);
