@@ -572,12 +572,24 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
   const notes =
     get("notes") || description || (customerName ? `Cliente: ${customerName}` : "Importado via sistema");
 
+  // Status: pagamento explícito > status explícito > default
+  const inferredStatus = paymentDate || (paidAmount && paidAmount > 0)
+    ? "concluded"
+    : normalizeStatus(explicitStatus);
+
+  // created_at: para financeiro, prioriza data de emissão > vencimento > pagamento.
+  // Para outros, usa date (com fallback "ontem" para não poluir métricas de "hoje").
+  const finPrimaryDate = date ?? dueDate ?? paymentDate;
+  const createdAt = kind === "financeiro"
+    ? (finPrimaryDate ?? new Date()).toISOString()
+    : (date ?? new Date(new Date().setHours(0, 0, 0, 0) - 86400000)).toISOString();
+
   return {
     total_amount: isNaN(amount) ? (productPrice ? productPrice * productQty : 0) : Math.abs(amount),
     payment_method: normalizePayment(get("payment")),
-    status: normalizeStatus(get("status")),
+    status: inferredStatus,
     notes: String(notes).slice(0, 500),
-    created_at: (date ?? new Date(new Date().setHours(0, 0, 0, 0) - 86400000)).toISOString(), // Default to yesterday if no date is found to avoid polluting "Today's" stats with historical imports
+    created_at: createdAt,
     customer_name: customerName || undefined,
     customer_phone: customerPhone || undefined,
     customer_email: customerEmail || undefined,
@@ -599,6 +611,12 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
     description: description,
     fin_type: finType,
     category: categoryRaw,
+    due_date: dueDate ? dueDate.toISOString() : undefined,
+    payment_date: paymentDate ? paymentDate.toISOString() : undefined,
+    paid_amount: paidAmount,
+    document_number: documentNumber,
+    installments: installments,
+    supplier_name: supplierName,
     _raw: row,
     _valid: errors.length === 0,
     _error: errors.length ? `Linha ${idx + 2}: ${errors.join(", ")}` : undefined,
