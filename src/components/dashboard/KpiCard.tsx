@@ -144,6 +144,26 @@ export function KpiCard({
           } else {
             setDisplayValue(total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
           }
+
+          // Fallback: if no sales today, fetch last 7 days so the modal can
+          // still show recent product activity instead of an empty state.
+          if (!(data || []).length && !isMonthly) {
+            const past = new Date(start);
+            past.setDate(past.getDate() - 7);
+            const { data: prev } = await filterFor(
+              supabase
+                .from("sales_orders")
+                .select("total_amount, created_at, id, payment_method, channel, status, customers(name), sale_items(product_name, quantity, unit_price, imei, metadata)")
+                .not("status", "in", "(canceled,cancelled,refunded,voided)")
+                .gte("created_at", past.toISOString())
+                .lt("created_at", start.toISOString())
+                .order("created_at", { ascending: false })
+                .limit(50),
+            );
+            setFallbackSales(prev || []);
+          } else {
+            setFallbackSales([]);
+          }
         } else if (l.includes("leads")) {
           const { data, count } = await filterFor(
             supabase
