@@ -188,11 +188,21 @@ function CalendarPage() {
                     return (
                       <button
                         key={i}
-                        onClick={() => setSelected(d)}
-                        className={`aspect-square rounded-lg border text-left p-1.5 hover:border-primary transition ${isSelected ? "border-primary bg-primary/5" : "border-border"}`}
+                        onClick={() => {
+                          setSelected(d);
+                          setKanbanOpen(true);
+                        }}
+                        className={`group relative aspect-square rounded-xl border text-left p-1.5 hover:border-primary hover:shadow-md transition ${isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card"}`}
                       >
-                        <div className={`text-xs font-bold ${isToday ? "text-primary" : ""}`}>
-                          {d.getDate()}
+                        <div className="flex items-center justify-between">
+                          <div className={`text-xs font-bold ${isToday ? "h-6 w-6 grid place-items-center rounded-full bg-primary text-primary-foreground" : ""}`}>
+                            {d.getDate()}
+                          </div>
+                          {list.length > 0 && (
+                            <span className="text-[9px] font-bold px-1.5 rounded-full bg-primary/15 text-primary">
+                              {list.length}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-0.5 space-y-0.5">
                           {list.slice(0, 2).map((t) => (
@@ -209,9 +219,15 @@ function CalendarPage() {
                             </div>
                           )}
                         </div>
+                        <div className="absolute inset-x-1 bottom-1 opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                          <div className="flex items-center justify-center gap-1 text-[9px] font-bold text-primary bg-primary/10 rounded-md py-0.5">
+                            <LayoutGrid className="h-2.5 w-2.5" /> abrir quadro
+                          </div>
+                        </div>
                       </button>
                     );
                   })}
+
                 </div>
               )}
             </div>
