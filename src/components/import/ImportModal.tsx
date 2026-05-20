@@ -1263,22 +1263,43 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                   {(kind === "financeiro"
                     ? [
                         {
-                          title: "Lançamento financeiro",
+                          title: "Identificação do lançamento",
                           fields: [
-                            { field: "description", label: "Descrição" },
-                            { field: "fin_type", label: "Tipo (compra/despesa)" },
-                            { field: "category", label: "Categoria" },
-                            { field: "date", label: "Data" },
-                            { field: "amount", label: "Valor *", required: true },
-                            { field: "payment", label: "Pagamento" },
+                            { field: "description", label: "Descrição / Histórico" },
+                            { field: "fin_type", label: "Tipo (entrada/saída)" },
+                            { field: "category", label: "Categoria / Plano de contas" },
+                            { field: "document_number", label: "Nº Documento / NF" },
                           ],
                         },
                         {
-                          title: "Complementar",
+                          title: "Datas",
                           fields: [
-                            { field: "customer", label: "Cliente / Fornecedor" },
+                            { field: "date", label: "Data de Emissão / Lançamento" },
+                            { field: "due_date", label: "Data de Vencimento" },
+                            { field: "payment_date", label: "Data de Pagamento / Baixa" },
+                          ],
+                        },
+                        {
+                          title: "Valores",
+                          fields: [
+                            { field: "amount", label: "Valor *", required: true },
+                            { field: "paid_amount", label: "Valor Pago / Recebido" },
+                            { field: "installments", label: "Parcela (ex.: 2/12)" },
+                          ],
+                        },
+                        {
+                          title: "Pagamento",
+                          fields: [
+                            { field: "payment", label: "Forma de Pagamento" },
+                            { field: "status", label: "Status (pago/pendente)" },
+                          ],
+                        },
+                        {
+                          title: "Parte envolvida",
+                          fields: [
+                            { field: "customer", label: "Cliente (recebimento)" },
+                            { field: "supplier", label: "Fornecedor (despesa)" },
                             { field: "customer_document", label: "CPF / CNPJ" },
-                            { field: "status", label: "Status" },
                             { field: "notes", label: "Observação" },
                           ],
                         },
