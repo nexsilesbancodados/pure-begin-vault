@@ -28,6 +28,7 @@ interface AuthContextType {
   profile: Profile | null;
   permissions: AppPermissions | null;
   loading: boolean;
+  login: (email: string, password: string) => Promise<{ session: Session; user: User }>;
   logout: () => Promise<void>;
 }
 
@@ -41,43 +42,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Busca a sessão local + força um getUser() para garantir que `user_metadata`
-    // (incluindo `allowed_menu`) seja a versão mais recente do servidor,
-    // mesmo se o JWT em cache estiver desatualizado após o admin editar o usuário.
-    const hydrate = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      if (session?.user) {
-        const { data: fresh } = await supabase.auth.getUser();
-        setUser(fresh?.user ?? session.user);
-        fetchProfile(session.user.id);
-      } else {
-        setUser(null);
-      }
+    refreshAuthenticatedState().catch(() => {
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setPermissions(null);
       setLoading(false);
-    };
-    hydrate();
+    });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        // Refresh metadata do servidor após qualquer mudança de auth.
-        supabase.auth.getUser().then(({ data: fresh }) => {
-          if (fresh?.user) setUser(fresh.user);
-        });
-        fetchProfile(session.user.id);
-      } else setProfile(null);
-      setLoading(false);
+      refreshAuthenticatedState(session).catch(() => setLoading(false));
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  async function refreshAuthenticatedState(nextSession?: Session | null) {
+    setLoading(true);
+    const resolvedSession =
+      nextSession === undefined
+        ? (await supabase.auth.getSession()).data.session
+        : nextSession;
+
+    setSession(resolvedSession);
+
+    if (!resolvedSession?.user) {
+      setUser(null);
+      setProfile(null);
+      setPermissions(null);
+      setLoading(false);
+      return;
+    }
+
+    let resolvedUser = resolvedSession.user;
+    try {
+      const { data: fresh, error } = await supabase.auth.getUser();
+      if (!error && fresh.user) resolvedUser = fresh.user;
+    } catch (error) {
+      console.warn("Não foi possível atualizar o usuário autenticado:", error);
+    }
+
+    setUser(resolvedUser);
+    await fetchProfile(resolvedUser.id);
+    setLoading(false);
+  }
+
   async function fetchProfile(userId: string) {
-    let { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    const profileResult = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    let { data } = profileResult;
+
+    if (profileResult.error) {
+      console.warn("Não foi possível carregar o perfil autenticado:", profileResult.error);
+      setProfile(null);
+      setPermissions(null);
+      return;
+    }
 
     // Auto-ativa primeira loja se profile.organization_id está nulo
     // (caso comum: usuário recém-cadastrado por convite via create-team-user)
@@ -103,27 +124,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    if (data) {
-      setProfile(data);
-      const role = String(data.role ?? "")
-        .trim()
-        .toLowerCase();
-      // Atribuir permissões baseadas no cargo
-      if (role === "super_admin" || 
-          role === "owner" || 
-          role === "admin" || 
-          data.email === "alfatech791@gmail.com" || 
-          data.email === "contato@focussdev.art") {
-        setPermissions(DEFAULT_ADMIN_PERMISSIONS);
-      } else if (role.includes("financeiro")) {
-        setPermissions({ ...DEFAULT_EMPLOYEE_PERMISSIONS, financeiro: true, relatorios: true });
-      } else if (role.includes("vendedor")) {
-        setPermissions({ ...DEFAULT_EMPLOYEE_PERMISSIONS, vendas: true, pdv: true, crm: true });
-      } else {
-        setPermissions(DEFAULT_EMPLOYEE_PERMISSIONS);
-      }
+    if (!data) {
+      setProfile(null);
+      setPermissions(null);
+      return;
+    }
+
+    setProfile(data);
+    const role = String(data.role ?? "")
+      .trim()
+      .toLowerCase();
+    // Atribuir permissões baseadas no cargo
+    if (role === "super_admin" || 
+        role === "owner" || 
+        role === "admin" || 
+        data.email === "alfatech791@gmail.com" || 
+        data.email === "contato@focussdev.art") {
+      setPermissions(DEFAULT_ADMIN_PERMISSIONS);
+    } else if (role.includes("financeiro")) {
+      setPermissions({ ...DEFAULT_EMPLOYEE_PERMISSIONS, financeiro: true, relatorios: true });
+    } else if (role.includes("vendedor")) {
+      setPermissions({ ...DEFAULT_EMPLOYEE_PERMISSIONS, vendas: true, pdv: true, crm: true });
+    } else {
+      setPermissions(DEFAULT_EMPLOYEE_PERMISSIONS);
     }
   }
+
+  const login = async (email: string, password: string) => {
+    setLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password,
+    });
+
+    if (error) {
+      setLoading(false);
+      throw error;
+    }
+
+    const activeSession = data.session ?? (await supabase.auth.getSession()).data.session;
+    if (!activeSession) {
+      setLoading(false);
+      throw new Error("Login aceito, mas a sessão não foi criada.");
+    }
+
+    await refreshAuthenticatedState(activeSession);
+    return { session: activeSession, user: activeSession.user };
+  };
 
   const logout = async () => {
     try {
@@ -143,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, profile, permissions, loading, logout }}>
+    <AuthContext.Provider value={{ session, user, profile, permissions, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
