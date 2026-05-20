@@ -148,10 +148,38 @@ export const Route = createRootRoute({
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  // Executa SINCRONAMENTE no <head>, antes de qualquer bundle JS.
+  // Em hosts de preview, desregistra Service Workers e limpa todos os caches,
+  // evitando tela branca causada por bundles obsoletos (ex.: import legado de
+  // src/hooks/useAuth). Roda 1x por sessão; recarrega se algo foi removido.
+  const cacheBuster = `(() => {
+    try {
+      var h = location.hostname;
+      var isPreview = h.indexOf('lovable.app') !== -1 || h.indexOf('lovableproject.com') !== -1 || h === 'localhost' || h === '127.0.0.1';
+      if (!isPreview) return;
+      if (sessionStorage.getItem('__sw_purged__')) return;
+      var work = [];
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        work.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+          return Promise.all(rs.map(function(r){ return r.unregister(); })).then(function(){ return rs.length > 0; });
+        }));
+      }
+      if (typeof caches !== 'undefined') {
+        work.push(caches.keys().then(function(keys){
+          return Promise.all(keys.map(function(k){ return caches.delete(k); })).then(function(){ return keys.length > 0; });
+        }));
+      }
+      Promise.all(work).then(function(results){
+        sessionStorage.setItem('__sw_purged__', '1');
+        if (results.some(Boolean)) location.reload();
+      }).catch(function(){ sessionStorage.setItem('__sw_purged__', '1'); });
+    } catch(e) {}
+  })();`;
   return (
     <html lang="en">
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: cacheBuster }} />
       </head>
       <body>
         {children}
