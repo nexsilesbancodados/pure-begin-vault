@@ -63,7 +63,7 @@ const toneStyles: Record<Tone, { icon: string; gradient: string; ring: string }>
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
-import { startOfDay, endOfDay, format as formatDate } from "date-fns";
+import { startOfDay, endOfDay, startOfMonth, endOfMonth, format as formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Package, User as UserIcon, Coins } from "lucide-react";
@@ -90,6 +90,9 @@ export function KpiCard({
   const [displayValue, setDisplayValue] = useState(initialValue);
   const [isLoading, setIsLoading] = useState(false);
   const [salesData, setSalesData] = useState<any[]>([]);
+  const [osData, setOsData] = useState<any[]>([]);
+  const [stockData, setStockData] = useState<any[]>([]);
+  const [leadsData, setLeadsData] = useState<any[]>([]);
   const { user } = useAuth();
   const { orgId } = useOrg();
 
@@ -101,9 +104,10 @@ export function KpiCard({
     const fetchDayData = async () => {
       setIsLoading(true);
       try {
-        const start = startOfDay(date);
-        const end = endOfDay(date);
         const l = label.toLowerCase();
+        const isMonthly = l.includes("mensal") || l.includes("mês") || l.includes("mes") || l.includes("ticket");
+        const start = isMonthly ? startOfMonth(date) : startOfDay(date);
+        const end = isMonthly ? endOfMonth(date) : endOfDay(date);
 
         const filterFor = (q: any) => q.eq("organization_id", orgId);
         if (l.includes("vendas") || l.includes("faturamento") || l.includes("ticket")) {
@@ -123,40 +127,57 @@ export function KpiCard({
             (acc: number, curr: any) => acc + (Number(curr.total_amount) || 0),
             0,
           );
-          
+
           const pdvTotal = (data || [])
             .filter((s: any) => s.channel !== 'import')
             .reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
-          
+
           const importTotal = (data || [])
             .filter((s: any) => s.channel === 'import')
             .reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
 
-          if (l.includes("vendas") && importTotal > 0) {
+          if (l.includes("ticket")) {
+            const avg = (data || []).length ? total / (data || []).length : 0;
+            setDisplayValue(avg.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+          } else if (l.includes("vendas") && importTotal > 0) {
             setDisplayValue(`${pdvTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (+${importTotal.toLocaleString("pt-BR")})`);
           } else {
             setDisplayValue(total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
           }
         } else if (l.includes("leads")) {
-          const { count } = await filterFor(
+          const { data, count } = await filterFor(
             supabase
               .from("leads")
-              .select("*", { count: "exact", head: true })
+              .select("id, name, phone, email, source, status, created_at", { count: "exact" })
               .gte("created_at", start.toISOString())
-              .lte("created_at", end.toISOString()),
+              .lte("created_at", end.toISOString())
+              .order("created_at", { ascending: false }),
           );
-
-          setDisplayValue(String(count || 0));
-        } else if (l.includes("os")) {
-          const { count } = await filterFor(
+          setLeadsData(data || []);
+          setDisplayValue(String(count ?? (data?.length || 0)));
+        } else if (l.includes("os") || l.includes("ordens") || l.includes("serviço") || l.includes("servico")) {
+          const { data, count } = await filterFor(
             supabase
               .from("service_orders")
-              .select("*", { count: "exact", head: true })
-              .gte("created_at", start.toISOString())
-              .lte("created_at", end.toISOString()),
+              .select("id, customer_name, device, problem, status, total_amount, created_at", { count: "exact" })
+              .not("status", "in", "(delivered,canceled,cancelled)")
+              .order("created_at", { ascending: false }),
           );
-
-          setDisplayValue(String(count || 0));
+          setOsData(data || []);
+          setDisplayValue(String(count ?? (data?.length || 0)));
+        } else if (l.includes("estoque")) {
+          const { data } = await filterFor(
+            supabase
+              .from("products")
+              .select("id, name, sku, stock_quantity, min_stock, cost_price, sale_price, imei")
+              .order("stock_quantity", { ascending: true })
+              .limit(200),
+          );
+          const low = (data || []).filter(
+            (p: any) => (Number(p.stock_quantity) || 0) <= (Number(p.min_stock) || 5),
+          );
+          setStockData(low);
+          setDisplayValue(String(low.length));
         }
       } catch (error) {
         console.error("Error fetching day data:", error);
@@ -543,7 +564,107 @@ export function KpiCard({
                 </div>
               )}
 
-            {!salesData.length && (
+            {osData.length > 0 && (
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between px-1">
+                  <h4 className="text-sm font-bold flex items-center gap-2">
+                    <Wrench className="h-4 w-4 text-primary" /> Ordens em andamento
+                  </h4>
+                  <Badge variant="secondary" className="text-[10px] font-bold bg-primary/10 text-primary border-none">
+                    {osData.length} OS
+                  </Badge>
+                </div>
+                <ScrollArea className="h-[240px] w-full rounded-2xl border border-border bg-muted/20 p-3">
+                  <div className="space-y-2">
+                    {osData.map((o: any) => (
+                      <div key={o.id} className="p-3 rounded-xl bg-card border border-border/60 shadow-sm">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-bold truncate">{o.customer_name || "Cliente"}</p>
+                            <p className="text-[11px] text-muted-foreground truncate">
+                              {o.device || "—"} · {o.problem || "Sem descrição"}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5">{o.status || "aberto"}</Badge>
+                            <p className="text-[11px] font-black text-primary mt-1">
+                              {(Number(o.total_amount) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            {stockData.length > 0 && (
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between px-1">
+                  <h4 className="text-sm font-bold flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive" /> Itens com estoque baixo
+                  </h4>
+                  <Badge variant="secondary" className="text-[10px] font-bold bg-destructive/10 text-destructive border-none">
+                    {stockData.length} itens
+                  </Badge>
+                </div>
+                <ScrollArea className="h-[240px] w-full rounded-2xl border border-border bg-muted/20 p-3">
+                  <div className="space-y-2">
+                    {stockData.map((p: any) => (
+                      <div key={p.id} className="p-3 rounded-xl bg-card border border-border/60 shadow-sm flex justify-between items-center gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-bold truncate">{p.name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">
+                            SKU {p.sku || "—"} {p.imei ? `· IMEI ${p.imei}` : ""}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <Badge variant="outline" className="text-[10px] h-5 px-1.5 border-destructive/30 text-destructive">
+                            {p.stock_quantity ?? 0} un.
+                          </Badge>
+                          <p className="text-[9px] text-muted-foreground mt-1">mín {p.min_stock ?? 5}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            {leadsData.length > 0 && (
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center justify-between px-1">
+                  <h4 className="text-sm font-bold flex items-center gap-2">
+                    <Users className="h-4 w-4 text-info" /> Leads do período
+                  </h4>
+                  <Badge variant="secondary" className="text-[10px] font-bold bg-info/10 text-info border-none">
+                    {leadsData.length} leads
+                  </Badge>
+                </div>
+                <ScrollArea className="h-[240px] w-full rounded-2xl border border-border bg-muted/20 p-3">
+                  <div className="space-y-2">
+                    {leadsData.map((ld: any) => (
+                      <div key={ld.id} className="p-3 rounded-xl bg-card border border-border/60 shadow-sm">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-bold truncate">{ld.name || "Lead"}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {ld.phone || ld.email || "—"} {ld.source ? `· ${ld.source}` : ""}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 shrink-0">
+                            {ld.status || "novo"}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            {!salesData.length && !osData.length && !stockData.length && !leadsData.length && (
               <div className="p-4 rounded-xl border border-border bg-orange-50/50 dark:bg-orange-900/10 flex items-start gap-3">
                 <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-900/20 grid place-items-center shrink-0">
                   <Info className="h-4 w-4 text-orange-600 dark:text-orange-400" />
