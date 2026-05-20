@@ -2444,7 +2444,8 @@ export function PDVInterface() {
         </div>
 
         {/* Lado Direito: Carrinho e Checkout */}
-        <div className="bg-card border border-border rounded-2xl flex flex-col shadow-xl overflow-hidden animate-in slide-in-from-right duration-500">
+        <div id="pdv-cart" className="bg-card border border-border rounded-2xl flex flex-col shadow-xl overflow-hidden animate-in slide-in-from-right duration-500 scroll-mt-20">
+
           <div className="p-5 border-b border-border bg-muted/20 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 font-bold text-lg">
