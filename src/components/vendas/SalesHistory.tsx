@@ -35,6 +35,7 @@ import {
   ShieldCheck,
   Package,
   Hash,
+  Download,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
