@@ -3361,6 +3361,8 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
+      is_super_calendar_editor: { Args: never; Returns: boolean }
+      is_today_brt: { Args: { _ts: string }; Returns: boolean }
       leave_organization: { Args: { _org_id: string }; Returns: undefined }
       list_organization_members: {
         Args: { _org_id: string }
