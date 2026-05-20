@@ -490,8 +490,14 @@ function ReportsPage() {
     };
   }, [user?.id, fetchReportsData]);
 
-  const allowedRoles = ["admin", "owner", "super_admin", "manager"];
-  if (profile && !allowedRoles.includes(profile.role ?? "")) {
+  const SUPER_EMAILS = ["alfatech791@gmail.com", "contato@focussdev.art"];
+  const allowedRoles = ["admin", "owner", "super_admin", "manager", "financeiro"];
+  const userEmail = (profile?.email ?? user?.email ?? "").toLowerCase();
+  const role = String(profile?.role ?? "").trim().toLowerCase();
+  const isSuper = SUPER_EMAILS.includes(userEmail);
+  const hasReportsPerm = !!(permissions as any)?.relatorios;
+  const allowed = isSuper || hasReportsPerm || allowedRoles.includes(role);
+  if (profile && !allowed) {
     return (
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
