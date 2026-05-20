@@ -223,8 +223,13 @@ export function DailyTasksColumn({
           </div>
         ) : (
           templates.map((t) => {
-            const confirmed = completedSet.has(t.id);
+            const completion = completions.find((c) => c.template_id === t.id);
+            const confirmed = !!completion;
             const prio = PRIORITY_META[t.priority] ?? PRIORITY_META.medium;
+            const doneAt = completion ? new Date(completion.completed_at) : null;
+            const doneAtLabel = doneAt
+              ? doneAt.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+              : "";
             return (
               <div
                 key={t.id}
