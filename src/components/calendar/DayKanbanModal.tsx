@@ -673,7 +673,7 @@ export function DayKanbanModal({
             </div>
           ) : (
             <div className="flex items-start gap-3 p-4 sm:p-5 min-w-max h-full">
-              <DailyTasksColumn date={date} orgId={orgId} ownerOnlyForUserId={orgOwnerId ?? undefined} />
+              <DailyTasksColumn date={date} orgId={orgId} ownerOnlyForUserId={orgOwnerId ?? undefined} readOnly={readOnly} />
               {lists.filter((l) => l.name.trim().toLowerCase() !== "tarefas diárias").map((list) => {
                 const c = colorOf(list.color);
                 const items = grouped[list.id] || [];
