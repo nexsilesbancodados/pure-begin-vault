@@ -2173,28 +2173,93 @@ function SyncPreview({ rows, brl }: { rows: ParsedRow[]; brl: (n: number) => str
         </DialogContent>
       </Dialog>
 
-      {/* Customer detail */}
+      {/* Customer detail — formato igual ao cadastro de Clientes do sistema */}
       <Dialog open={selectedCustomer !== null} onOpenChange={(o) => !o && setSelectedCustomer(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="sm:max-w-[560px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-info" />
-              Cadastro do Cliente
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-11 w-11 rounded-full bg-info/15 flex items-center justify-center font-black text-info text-base">
+                {(selectedCustomer?.name || "?").trim().charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div className="text-base font-black">{selectedCustomer?.name || "Cadastro de Cliente"}</div>
+                <div className="text-[11px] font-normal text-muted-foreground">
+                  Prévia do cadastro — será criado/atualizado durante a importação
+                </div>
+              </div>
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              Prévia dos dados que serão criados/atualizados na importação.
-            </DialogDescription>
           </DialogHeader>
           {selectedCustomer && (
-            <div className="space-y-3">
-              <DetailRow label="Nome" value={selectedCustomer.name} />
-              <DetailRow label="Documento (CPF/CNPJ)" value={selectedCustomer.document} mono />
-              <DetailRow label="Telefone" value={selectedCustomer.phone} mono />
-              <DetailRow label="Email" value={selectedCustomer.email} mono />
-              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+            <div className="grid gap-4 py-2">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground">Nome Completo</label>
+                <input
+                  readOnly
+                  value={selectedCustomer.name || ""}
+                  placeholder="Ex: João da Silva"
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-muted/30 text-sm font-medium"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground">E-mail</label>
+                  <input
+                    readOnly
+                    value={selectedCustomer.email || ""}
+                    placeholder="Não informado"
+                    className="w-full h-10 px-3 rounded-lg border border-border bg-muted/30 text-sm font-mono"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground">WhatsApp / Celular</label>
+                  <input
+                    readOnly
+                    value={selectedCustomer.phone || ""}
+                    placeholder="Não informado"
+                    className="w-full h-10 px-3 rounded-lg border border-border bg-muted/30 text-sm font-mono"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-muted-foreground">CPF / CNPJ</label>
+                <input
+                  readOnly
+                  value={selectedCustomer.document || ""}
+                  placeholder="000.000.000-00"
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-muted/30 text-sm font-mono"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground">Endereço (Rua)</label>
+                  <input
+                    readOnly
+                    placeholder="Não informado na planilha"
+                    className="w-full h-10 px-3 rounded-lg border border-dashed border-border bg-muted/20 text-sm text-muted-foreground italic"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-muted-foreground">Cidade</label>
+                  <input
+                    readOnly
+                    placeholder="Não informado na planilha"
+                    className="w-full h-10 px-3 rounded-lg border border-dashed border-border bg-muted/20 text-sm text-muted-foreground italic"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pt-3 mt-1 border-t border-border">
                 <Stat label="Compras" value={String(selectedCustomer.orders)} />
                 <Stat label="Total" value={brl(selectedCustomer.total)} accent="info" />
                 <Stat label="Ticket méd." value={brl(selectedCustomer.total / Math.max(selectedCustomer.orders, 1))} />
+              </div>
+
+              <div className="rounded-lg border border-info/20 bg-info/5 p-3 flex items-start gap-2">
+                <ShieldCheck className="h-4 w-4 text-info shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Este cadastro será <strong className="text-foreground">criado ou atualizado</strong> automaticamente
+                  no módulo <strong className="text-foreground">Clientes</strong> ao concluir a importação, vinculado às {selectedCustomer.orders} venda(s) acima.
+                </p>
               </div>
             </div>
           )}
@@ -2203,6 +2268,7 @@ function SyncPreview({ rows, brl }: { rows: ParsedRow[]; brl: (n: number) => str
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* Product detail */}
       <Dialog open={selectedProduct !== null} onOpenChange={(o) => !o && setSelectedProduct(null)}>
