@@ -16,7 +16,34 @@ import {
   Search,
   Filter,
   RefreshCw,
+  ShoppingCart,
+  DollarSign,
+  Package,
+  Users,
+  Boxes,
+  FileText,
 } from "lucide-react";
+
+type JobKind = "vendas" | "financeiro" | "produtos" | "estoque" | "clientes" | "outro";
+
+function detectKind(fileName: string): JobKind {
+  const n = fileName.toLowerCase();
+  if (/\b(vendas?|sales|pedidos?)\b|\[vendas/.test(n)) return "vendas";
+  if (/\b(financeiro|finance|caixa|receitas?|despesas?|contas?)\b|\[financeiro/.test(n)) return "financeiro";
+  if (/\b(produtos?|catalogo|catálogo)\b|\[produtos/.test(n)) return "produtos";
+  if (/\b(estoque|inventario|inventário|stock)\b|\[estoque/.test(n)) return "estoque";
+  if (/\b(clientes?|customers?|contatos?)\b|\[clientes/.test(n)) return "clientes";
+  return "outro";
+}
+
+const KIND_META: Record<JobKind, { label: string; icon: React.ComponentType<{ className?: string }>; tone: string; chip: string }> = {
+  vendas:     { label: "Vendas",     icon: ShoppingCart, tone: "from-primary/15 to-info/10 text-primary border-primary/30",        chip: "bg-primary/10 text-primary border-primary/30" },
+  financeiro: { label: "Financeiro", icon: DollarSign,   tone: "from-success/15 to-success/5 text-success border-success/30",      chip: "bg-success/10 text-success border-success/30" },
+  produtos:   { label: "Produtos",   icon: Package,      tone: "from-info/15 to-info/5 text-info border-info/30",                  chip: "bg-info/10 text-info border-info/30" },
+  estoque:    { label: "Estoque",    icon: Boxes,        tone: "from-warning/15 to-warning/5 text-warning border-warning/30",      chip: "bg-warning/10 text-warning border-warning/30" },
+  clientes:   { label: "Clientes",   icon: Users,        tone: "from-accent/15 to-accent/5 text-accent border-accent/30",          chip: "bg-accent/10 text-accent border-accent/30" },
+  outro:      { label: "Arquivo",    icon: FileText,     tone: "from-muted to-transparent text-muted-foreground border-border",    chip: "bg-muted text-muted-foreground border-border" },
+};
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImportModal } from "@/components/import/ImportModal";
