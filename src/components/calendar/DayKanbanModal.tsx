@@ -1153,7 +1153,7 @@ function CardDrawer({
                   <span className="text-[10px] uppercase font-bold text-slate-500">Responsável</span>
                   <div
                     className="h-7 w-7 rounded-full bg-gradient-to-br from-sky-500 to-indigo-600 text-white grid place-items-center text-[11px] font-bold"
-                    title={assignee.name || assignee.email}
+                    title={assignee.name || assignee.email || ""}
                   >
                     {initials(assignee.name, assignee.email)}
                   </div>
