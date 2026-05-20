@@ -93,14 +93,21 @@ async function processJob(supabase: any, jobId: string) {
   // SAFETY NET: se a linha tem product_name OU customer_name OU job rotulado
   // como [Vendas], ela SEMPRE é tratada como venda — mesmo que algum mapeamento
   // tenha inferido fin_type por engano (ex.: descrição "Venda ...").
-  const jobLabel = String(job.label || "").toLowerCase();
-  const forceSales = /vendas|sale|sales|pedido|order/.test(jobLabel);
+  const jobLabel = String(job.label || job.file_name || "").toLowerCase();
+  const forceSales = /vendas|\bsale\b|sales|pedido|order/.test(jobLabel);
   const forceStock = /estoque|stock|produto|product/.test(jobLabel);
+  const forceFinance = /financeiro|finance|despesa|pagar|receber|conta[s]?[ _-]?(a|à)?[ _-]?(pagar|receber)|caixa|fluxo/.test(jobLabel);
+  // Em arquivo financeiro, customer_name representa fornecedor; não deve forçar venda.
   const looksLikeSale = (r: Row) =>
-    !!r.product_name || !!r.customer_name || !!r.customer_document;
+    !!r.product_name || (!forceFinance && (!!r.customer_name || !!r.customer_document));
 
   const finRows = allRows.filter((r) => {
     if (forceSales || forceStock) return false;
+    if (forceFinance) {
+      // Em job financeiro, infere expense por padrão quando não vier mapeado
+      if (!r.fin_type) r.fin_type = /pagar|despesa|expense/.test(jobLabel) ? "expense" : "income";
+      return true;
+    }
     if (looksLikeSale(r)) return false;
     return r.fin_type === "income" || r.fin_type === "expense";
   });
