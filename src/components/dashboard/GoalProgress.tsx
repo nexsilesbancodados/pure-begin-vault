@@ -727,6 +727,25 @@ export function GoalProgress({
                     </p>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label className="text-[13px] font-bold flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" /> Aparelhos já vendidos (base inicial)
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={editGoals.baseline}
+                      onChange={(e) =>
+                        setEditGoals({ ...editGoals, baseline: Number(e.target.value) || 0 })
+                      }
+                      className="h-10 rounded-xl"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Informe quantos aparelhos já foram vendidos até agora. As próximas vendas serão
+                      somadas a partir desse número.
+                    </p>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-[13px] font-bold">Meta Diária</Label>
