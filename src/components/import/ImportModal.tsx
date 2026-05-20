@@ -85,6 +85,12 @@ type ParsedRow = {
   description?: string;
   fin_type?: "income" | "expense";
   category?: string;
+  due_date?: string;        // vencimento (ISO)
+  payment_date?: string;    // data de pagamento/baixa (ISO)
+  paid_amount?: number;     // valor efetivamente pago
+  document_number?: string; // NF / nº documento / boleto
+  installments?: string;    // "2/12" ou "12x"
+  supplier_name?: string;   // fornecedor (despesa)
   _raw: Record<string, any>;
   _valid: boolean;
   _error?: string;
@@ -207,22 +213,52 @@ const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
   },
   financeiro: {
     amount: [
-      "valor", "total", "vlr", "amount", "value", "recebido", "pago", "bruto", "liquido"
+      "valor", "valor total", "vlr total", "vlr", "total", "amount", "value", "bruto", "valor bruto", "valor lancamento", "valor titulo", "valor original", "valor doc"
+    ],
+    paid_amount: [
+      "valor pago", "vlr pago", "pago", "recebido", "valor recebido", "vlr recebido", "valor baixa", "valor liquidado", "liquido", "líquido", "valor liquido"
     ],
     date: [
-      "data", "date", "dt", "emissao", "vencimento", "created", "criado", "dia", "competencia"
+      "data", "data emissao", "emissao", "emissão", "data lancamento", "lançamento", "data documento", "competencia", "competência", "criado", "created", "dt emissao"
+    ],
+    due_date: [
+      "vencimento", "data vencimento", "venc", "vence em", "due", "due date", "prazo", "data prazo", "dt vencimento", "vencto"
+    ],
+    payment_date: [
+      "data pagamento", "dt pagamento", "data pago", "pago em", "data baixa", "baixa", "liquidacao", "liquidação", "data quitacao", "quitado em", "dt pgto", "data recebimento", "recebido em"
     ],
     description: [
-      "descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título", "identificador"
+      "descricao", "descrição", "description", "historico", "histórico", "memo", "titulo", "título", "identificador", "lancamento", "lançamento", "referencia", "referência"
     ],
     fin_type: [
-      "tipo", "natureza", "type", "operacao", "operação", "movimento", "fluxo"
+      "tipo", "natureza", "type", "operacao", "operação", "movimento", "fluxo", "d/c", "dc", "entrada saida"
     ],
     category: [
-      "categoria", "category", "classe", "centro de custo", "grupo", "plano", "tag"
+      "categoria", "category", "classe", "centro de custo", "grupo", "plano", "plano contas", "plano de contas", "conta contabil", "tag"
     ],
     payment: [
-      "pagamento", "pagto", "metodo", "method", "forma", "payment", "meio"
+      "forma pagamento", "forma de pagamento", "metodo", "método", "method", "meio", "meio pagamento", "forma pgto", "pagto", "tipo pagamento"
+    ],
+    document_number: [
+      "documento", "num documento", "n documento", "numero documento", "número documento", "nf", "nota", "nota fiscal", "num nota", "n nota", "boleto", "num boleto", "n doc", "doc"
+    ],
+    installments: [
+      "parcela", "parcelas", "parc", "qt parcelas", "qtd parcelas", "num parcela", "n parcela", "x"
+    ],
+    customer: [
+      "cliente", "customer", "pagador", "sacado", "razao social", "razão social", "pessoa", "nome"
+    ],
+    supplier: [
+      "fornecedor", "vendor", "supplier", "credor", "beneficiario", "beneficiário", "favorecido", "razao social fornecedor"
+    ],
+    customer_document: [
+      "cpf", "cnpj", "documento pessoa", "doc cliente", "doc fornecedor", "cpf/cnpj", "cpf cnpj"
+    ],
+    status: [
+      "status", "situacao", "situação", "estado", "etapa", "pago/pendente"
+    ],
+    notes: [
+      "observacao", "observação", "obs", "comentario", "comentário", "notes", "anotacao", "anotação"
     ],
   }
 };
@@ -339,10 +375,12 @@ function buildHeaderMap(sample: Record<string, any>, kind: ImportKind): Record<s
 
   // Ordem: campos mais específicos primeiro para não roubar headers
   const fieldOrder = [
-    "customer_document", "customer_email", "customer_phone", "customer",
+    "customer_document", "customer_email", "customer_phone", "supplier", "customer",
     "imei", "ean", "product_sku",
-    "amount", "discount", "unit_price", "cost_price",
-    "date", "payment", "status",
+    "document_number", "installments",
+    "due_date", "payment_date", "date",
+    "paid_amount", "amount", "discount", "unit_price", "cost_price",
+    "payment", "status",
     "quantity", "brand", "model", "product",
     "fin_type", "category", "description", "notes",
   ];
@@ -447,13 +485,16 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
   const rawAmount = get("amount");
   const amount = parseCurrency(rawAmount);
   let date = parseDate(get("date"));
-  // Sanidade: rejeita datas absurdas (provável data de nascimento ou erro
-  // de mapeamento). Aceita apenas datas dos últimos 20 anos até +1 ano.
-  if (date) {
-    const y = date.getFullYear();
-    const nowY = new Date().getFullYear();
-    if (y < nowY - 20 || y > nowY + 1) date = null;
-  }
+  let dueDate = parseDate(get("due_date"));
+  let paymentDate = parseDate(get("payment_date"));
+  // Sanidade: rejeita datas absurdas. Aceita apenas dos últimos 20 anos até +5 anos
+  // (vencimentos podem estar no futuro).
+  const sanitize = (d: Date | null) => {
+    if (!d) return null;
+    const y = d.getFullYear(); const nowY = new Date().getFullYear();
+    return y < nowY - 20 || y > nowY + 5 ? null : d;
+  };
+  date = sanitize(date); dueDate = sanitize(dueDate); paymentDate = sanitize(paymentDate);
 
   const errors: string[] = [];
   
@@ -465,7 +506,10 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
     else if (amount <= 0) errors.push("valor deve ser maior que zero");
   }
 
-  const customerName = get("customer") ? String(get("customer")).trim() : undefined;
+  const supplierRaw = get("supplier");
+  const customerName = (get("customer") ? String(get("customer")).trim() : undefined)
+    || (supplierRaw ? String(supplierRaw).trim() : undefined);
+  const supplierName = supplierRaw ? String(supplierRaw).trim() : undefined;
   const customerPhone = get("customer_phone") ? String(get("customer_phone")).trim() : undefined;
   const customerEmail = get("customer_email") ? String(get("customer_email")).trim() : undefined;
   const customerDocRaw = get("customer_document");
@@ -476,6 +520,15 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
   const productSku = get("product_sku") ? String(get("product_sku")).trim() : undefined;
   const qtyRaw = get("quantity");
   const productQty = qtyRaw != null && qtyRaw !== "" ? Number(parseCurrency(qtyRaw)) || 1 : 1;
+
+  const paidAmountRaw = get("paid_amount");
+  const paidAmount = paidAmountRaw != null && paidAmountRaw !== ""
+    ? Math.abs(parseCurrency(paidAmountRaw))
+    : undefined;
+  const documentNumber = get("document_number") ? String(get("document_number")).trim() : undefined;
+  const installments = get("installments") ? String(get("installments")).trim() : undefined;
+  // Se forneceu data de pagamento, força status "pago" (a menos que status explícito diga o contrário)
+  const explicitStatus = get("status");
 
   if (kind === "estoque" && !productName) {
     errors.push("nome do produto obrigatório");
@@ -519,12 +572,24 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
   const notes =
     get("notes") || description || (customerName ? `Cliente: ${customerName}` : "Importado via sistema");
 
+  // Status: pagamento explícito > status explícito > default
+  const inferredStatus = paymentDate || (paidAmount && paidAmount > 0)
+    ? "concluded"
+    : normalizeStatus(explicitStatus);
+
+  // created_at: para financeiro, prioriza data de emissão > vencimento > pagamento.
+  // Para outros, usa date (com fallback "ontem" para não poluir métricas de "hoje").
+  const finPrimaryDate = date ?? dueDate ?? paymentDate;
+  const createdAt = kind === "financeiro"
+    ? (finPrimaryDate ?? new Date()).toISOString()
+    : (date ?? new Date(new Date().setHours(0, 0, 0, 0) - 86400000)).toISOString();
+
   return {
     total_amount: isNaN(amount) ? (productPrice ? productPrice * productQty : 0) : Math.abs(amount),
     payment_method: normalizePayment(get("payment")),
-    status: normalizeStatus(get("status")),
+    status: inferredStatus,
     notes: String(notes).slice(0, 500),
-    created_at: (date ?? new Date(new Date().setHours(0, 0, 0, 0) - 86400000)).toISOString(), // Default to yesterday if no date is found to avoid polluting "Today's" stats with historical imports
+    created_at: createdAt,
     customer_name: customerName || undefined,
     customer_phone: customerPhone || undefined,
     customer_email: customerEmail || undefined,
@@ -546,6 +611,12 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
     description: description,
     fin_type: finType,
     category: categoryRaw,
+    due_date: dueDate ? dueDate.toISOString() : undefined,
+    payment_date: paymentDate ? paymentDate.toISOString() : undefined,
+    paid_amount: paidAmount,
+    document_number: documentNumber,
+    installments: installments,
+    supplier_name: supplierName,
     _raw: row,
     _valid: errors.length === 0,
     _error: errors.length ? `Linha ${idx + 2}: ${errors.join(", ")}` : undefined,
@@ -754,6 +825,12 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
         // usuário escolheu importação financeira pura.
         fin_type: kind === "financeiro" ? r.fin_type : undefined,
         category: r.category,
+        due_date: kind === "financeiro" ? r.due_date : undefined,
+        payment_date: kind === "financeiro" ? r.payment_date : undefined,
+        paid_amount: kind === "financeiro" ? r.paid_amount : undefined,
+        document_number: kind === "financeiro" ? r.document_number : undefined,
+        installments: kind === "financeiro" ? r.installments : undefined,
+        supplier_name: kind === "financeiro" ? r.supplier_name : undefined,
       })),
     );
     if (!jobId) return;
@@ -1192,22 +1269,43 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                   {(kind === "financeiro"
                     ? [
                         {
-                          title: "Lançamento financeiro",
+                          title: "Identificação do lançamento",
                           fields: [
-                            { field: "description", label: "Descrição" },
-                            { field: "fin_type", label: "Tipo (compra/despesa)" },
-                            { field: "category", label: "Categoria" },
-                            { field: "date", label: "Data" },
-                            { field: "amount", label: "Valor *", required: true },
-                            { field: "payment", label: "Pagamento" },
+                            { field: "description", label: "Descrição / Histórico" },
+                            { field: "fin_type", label: "Tipo (entrada/saída)" },
+                            { field: "category", label: "Categoria / Plano de contas" },
+                            { field: "document_number", label: "Nº Documento / NF" },
                           ],
                         },
                         {
-                          title: "Complementar",
+                          title: "Datas",
                           fields: [
-                            { field: "customer", label: "Cliente / Fornecedor" },
+                            { field: "date", label: "Data de Emissão / Lançamento" },
+                            { field: "due_date", label: "Data de Vencimento" },
+                            { field: "payment_date", label: "Data de Pagamento / Baixa" },
+                          ],
+                        },
+                        {
+                          title: "Valores",
+                          fields: [
+                            { field: "amount", label: "Valor *", required: true },
+                            { field: "paid_amount", label: "Valor Pago / Recebido" },
+                            { field: "installments", label: "Parcela (ex.: 2/12)" },
+                          ],
+                        },
+                        {
+                          title: "Pagamento",
+                          fields: [
+                            { field: "payment", label: "Forma de Pagamento" },
+                            { field: "status", label: "Status (pago/pendente)" },
+                          ],
+                        },
+                        {
+                          title: "Parte envolvida",
+                          fields: [
+                            { field: "customer", label: "Cliente (recebimento)" },
+                            { field: "supplier", label: "Fornecedor (despesa)" },
                             { field: "customer_document", label: "CPF / CNPJ" },
-                            { field: "status", label: "Status" },
                             { field: "notes", label: "Observação" },
                           ],
                         },
