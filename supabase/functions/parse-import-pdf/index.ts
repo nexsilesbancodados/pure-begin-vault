@@ -43,9 +43,9 @@ serve(async (req) => {
     }
 
     const bytes = base64ToBytes(fileBase64);
-    if (bytes.byteLength > 15 * 1024 * 1024) {
+    if (bytes.byteLength > 8 * 1024 * 1024) {
       return new Response(
-        JSON.stringify({ error: `PDF muito grande: ${(bytes.byteLength / 1024 / 1024).toFixed(1)}MB (máx 15MB)` }),
+        JSON.stringify({ error: `PDF muito grande: ${(bytes.byteLength / 1024 / 1024).toFixed(1)}MB (máx 8MB). Divida o arquivo.` }),
         { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
