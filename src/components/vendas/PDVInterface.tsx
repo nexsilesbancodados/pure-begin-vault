@@ -2848,167 +2848,158 @@ export function PDVInterface() {
             </div>
 
             <div className="space-y-3 py-2">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  {
-                    id: "money",
-                    icon: Banknote,
-                    label: "Dinheiro",
-                    color: "text-green-600",
-                    bg: "bg-green-500/10",
-                  },
-                  {
-                    id: "card",
-                    icon: CreditCard,
-                    label: "Cartão",
-                    color: "text-blue-600",
-                    bg: "bg-blue-500/10",
-                  },
-                  {
-                    id: "pix",
-                    icon: QrCode,
-                    label: "PIX",
-                    color: "text-purple-600",
-                    bg: "bg-purple-500/10",
-                  },
-                  {
-                    id: "prazo",
-                    icon: CalendarClock,
-                    label: "Prazo 7d",
-                    color: "text-amber-600",
-                    bg: "bg-amber-500/10",
-                  },
-                ].map((method) => (
-                  <button
-                    key={method.id}
-                    onClick={() => {
-                      setPaymentMethod(method.id);
-                      // Auto-preencher se nada foi digitado
-                      if (totalReceived === 0) {
-                        if (method.id === "money") setMoneyAmount(total.toFixed(2));
-                        if (method.id === "card") setCardAmount(total.toFixed(2));
-                        if (method.id === "pix") setPixAmount(total.toFixed(2));
-                        if (method.id === "prazo") setPrazoAmount(total.toFixed(2));
-                      }
-                    }}
-                    className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition text-[11px] font-bold uppercase
-                      ${
-                        paymentMethod === method.id
-                          ? `border-primary ${method.bg} ${method.color}`
-                          : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
-                      }`}
-                  >
-                    {(method.id === "money" && parseFloat(moneyAmount) > 0) ||
-                    (method.id === "card" && parseFloat(cardAmount) > 0) ||
-                    (method.id === "pix" && parseFloat(pixAmount) > 0) ||
-                    (method.id === "prazo" && parseFloat(prazoAmount) > 0) ? (
-                      <div className="absolute -top-2 -right-2 h-5 w-5 bg-primary text-white text-[10px] rounded-full flex items-center justify-center border-2 border-card">
-                        ✓
-                      </div>
-                    ) : null}
-                    <method.icon className="h-5 w-5" />
-                    {method.label}
-                  </button>
-                ))}
+              <div
+                className={`grid gap-2 ${
+                  visiblePaymentMethods.length <= 2
+                    ? "grid-cols-2"
+                    : visiblePaymentMethods.length === 3
+                      ? "grid-cols-3"
+                      : "grid-cols-2 sm:grid-cols-4"
+                }`}
+              >
+                {(() => {
+                  const getAmount = (id: string) =>
+                    id === "money"
+                      ? moneyAmount
+                      : id === "card"
+                        ? cardAmount
+                        : id === "pix"
+                          ? pixAmount
+                          : id === "prazo"
+                            ? prazoAmount
+                            : id === "brasilcard"
+                              ? brasilcardAmount
+                              : id === "crediario"
+                                ? crediarioAmount
+                                : "";
+                  const setAmount = (id: string, val: string) => {
+                    if (id === "money") setMoneyAmount(val);
+                    else if (id === "card") setCardAmount(val);
+                    else if (id === "pix") setPixAmount(val);
+                    else if (id === "prazo") setPrazoAmount(val);
+                    else if (id === "brasilcard") setBrasilcardAmount(val);
+                    else if (id === "crediario") setCrediarioAmount(val);
+                  };
+                  return ALL_PAYMENT_METHODS.filter((m) =>
+                    visiblePaymentMethods.includes(m.id),
+                  ).map((method) => {
+                    const hasValue = parseFloat(getAmount(method.id)) > 0;
+                    return (
+                      <button
+                        key={method.id}
+                        onClick={() => {
+                          setPaymentMethod(method.id);
+                          if (totalReceived === 0) setAmount(method.id, total.toFixed(2));
+                        }}
+                        className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition text-[11px] font-bold uppercase
+                          ${
+                            paymentMethod === method.id
+                              ? `border-primary ${method.bg} ${method.color}`
+                              : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
+                          }`}
+                      >
+                        {hasValue && (
+                          <div className="absolute -top-2 -right-2 h-5 w-5 bg-primary text-white text-[10px] rounded-full flex items-center justify-center border-2 border-card">
+                            ✓
+                          </div>
+                        )}
+                        <method.icon className="h-5 w-5" />
+                        {method.label}
+                      </button>
+                    );
+                  });
+                })()}
               </div>
 
-              {paymentMethod && (
-                <div className="animate-in slide-in-from-top-2 duration-300">
-                  <div className="relative group">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      {paymentMethod === "money" && <Banknote className="h-4 w-4 text-primary" />}
-                      {paymentMethod === "card" && <CreditCard className="h-4 w-4 text-primary" />}
-                      {paymentMethod === "pix" && <QrCode className="h-4 w-4 text-primary" />}
-                      {paymentMethod === "prazo" && (
-                        <CalendarClock className="h-4 w-4 text-amber-600" />
+              {paymentMethod &&
+                visiblePaymentMethods.includes(paymentMethod) &&
+                (() => {
+                  const cfg = ALL_PAYMENT_METHODS.find((m) => m.id === paymentMethod);
+                  if (!cfg) return null;
+                  const Icon = cfg.icon;
+                  const getAmount = (id: string) =>
+                    id === "money"
+                      ? moneyAmount
+                      : id === "card"
+                        ? cardAmount
+                        : id === "pix"
+                          ? pixAmount
+                          : id === "prazo"
+                            ? prazoAmount
+                            : id === "brasilcard"
+                              ? brasilcardAmount
+                              : id === "crediario"
+                                ? crediarioAmount
+                                : "";
+                  const setAmount = (id: string, val: string) => {
+                    if (id === "money") setMoneyAmount(val);
+                    else if (id === "card") setCardAmount(val);
+                    else if (id === "pix") setPixAmount(val);
+                    else if (id === "prazo") setPrazoAmount(val);
+                    else if (id === "brasilcard") setBrasilcardAmount(val);
+                    else if (id === "crediario") setCrediarioAmount(val);
+                  };
+                  const currentVal = getAmount(paymentMethod);
+                  return (
+                    <div className="animate-in slide-in-from-top-2 duration-300">
+                      <div className="relative group">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                          <Icon className={`h-4 w-4 ${cfg.color}`} />
+                          <span className="text-xs font-bold text-muted-foreground">R$</span>
+                        </div>
+                        <Input
+                          type="number"
+                          className="pl-16 h-12 text-lg font-black bg-primary/5 border-primary/20 focus-visible:ring-primary/30 rounded-xl"
+                          placeholder="0,00"
+                          autoFocus
+                          value={currentVal}
+                          onChange={(e) => setAmount(paymentMethod, e.target.value)}
+                        />
+                        <button
+                          onClick={() => setAmount(paymentMethod, "")}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      {paymentMethod === "prazo" && parseFloat(prazoAmount) > 0 && (
+                        <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-700">
+                          <CalendarClock className="h-3.5 w-3.5" />
+                          Vencimento em{" "}
+                          {new Date(Date.now() + 7 * 86400000).toLocaleDateString("pt-BR")} · será
+                          lançado em Contas a Receber.
+                        </div>
                       )}
-                      <span className="text-xs font-bold text-muted-foreground">R$</span>
+                      {paymentMethod === "crediario" && parseFloat(crediarioAmount) > 0 && (
+                        <div className="mt-2 flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] font-semibold text-rose-700">
+                          <Wallet className="h-3.5 w-3.5" />
+                          Lançado no Crediário do cliente · gestão em Contas a Receber.
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center px-1 mt-1.5">
+                        <p className="text-[10px] text-muted-foreground font-medium italic">
+                          Informe o valor recebido em {cfg.label}
+                        </p>
+                        {totalReceived > 0 && totalReceived < total && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 text-[9px] font-bold text-primary hover:bg-primary/5 p-0 px-2"
+                            onClick={() => {
+                              const cur = parseFloat(currentVal) || 0;
+                              const remaining = (total - (totalReceived - cur)).toFixed(2);
+                              setAmount(paymentMethod, remaining);
+                            }}
+                          >
+                            Completar Restante
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <Input
-                      type="number"
-                      className="pl-16 h-12 text-lg font-black bg-primary/5 border-primary/20 focus-visible:ring-primary/30 rounded-xl"
-                      placeholder="0,00"
-                      autoFocus
-                      value={
-                        paymentMethod === "money"
-                          ? moneyAmount
-                          : paymentMethod === "card"
-                            ? cardAmount
-                            : paymentMethod === "pix"
-                              ? pixAmount
-                              : paymentMethod === "prazo"
-                                ? prazoAmount
-                                : ""
-                      }
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (paymentMethod === "money") setMoneyAmount(val);
-                        if (paymentMethod === "card") setCardAmount(val);
-                        if (paymentMethod === "pix") setPixAmount(val);
-                        if (paymentMethod === "prazo") setPrazoAmount(val);
-                      }}
-                    />
-                    <button
-                      onClick={() => {
-                        if (paymentMethod === "money") setMoneyAmount("");
-                        if (paymentMethod === "card") setCardAmount("");
-                        if (paymentMethod === "pix") setPixAmount("");
-                        if (paymentMethod === "prazo") setPrazoAmount("");
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-muted text-muted-foreground"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {paymentMethod === "prazo" && parseFloat(prazoAmount) > 0 && (
-                    <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-700">
-                      <CalendarClock className="h-3.5 w-3.5" />
-                      Vencimento em{" "}
-                      {new Date(Date.now() + 7 * 86400000).toLocaleDateString("pt-BR")} · será
-                      lançado em Contas a Receber.
-                    </div>
-                  )}
-                  <div className="flex justify-between items-center px-1 mt-1.5">
-                    <p className="text-[10px] text-muted-foreground font-medium italic">
-                      Informe o valor recebido em{" "}
-                      {paymentMethod === "money"
-                        ? "dinheiro"
-                        : paymentMethod === "card"
-                          ? "cartão"
-                          : paymentMethod === "pix"
-                            ? "PIX"
-                            : "prazo (7 dias)"}
-                    </p>
-                    {totalReceived > 0 && totalReceived < total && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-5 text-[9px] font-bold text-primary hover:bg-primary/5 p-0 px-2"
-                        onClick={() => {
-                          const currentVal =
-                            parseFloat(
-                              paymentMethod === "money"
-                                ? moneyAmount
-                                : paymentMethod === "card"
-                                  ? cardAmount
-                                  : paymentMethod === "pix"
-                                    ? pixAmount
-                                    : prazoAmount,
-                            ) || 0;
-                          const remaining = (total - (totalReceived - currentVal)).toFixed(2);
-                          if (paymentMethod === "money") setMoneyAmount(remaining);
-                          if (paymentMethod === "card") setCardAmount(remaining);
-                          if (paymentMethod === "pix") setPixAmount(remaining);
-                          if (paymentMethod === "prazo") setPrazoAmount(remaining);
-                        }}
-                      >
-                        Completar Restante
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
+                  );
+                })()}
             </div>
+
 
             <Button
               disabled={cart.length === 0 || !paymentMethod}
