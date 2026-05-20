@@ -156,6 +156,11 @@ export function GoalProgress({
   const [stats, setStats] = useState({ units: 0 });
   const [weekly, setWeekly] = useState<{ label: string; units: number; isCurrent: boolean }[]>([]);
   const [baseline, setBaseline] = useState<{ value: number; at: string }>({ value: 0, at: "" });
+  const [weeklyBaseline, setWeeklyBaseline] = useState<{ value: number; weekIdx: number }>({
+    value: 0,
+    weekIdx: -1,
+  });
+  const weeklyBaselineKey = orgId ? `goal-weekly-baseline:${orgId}` : "";
 
   useEffect(() => {
     if (!baselineKey || typeof window === "undefined") return;
@@ -170,7 +175,23 @@ export function GoalProgress({
     } catch {
       /* ignore */
     }
-  }, [baselineKey]);
+    if (weeklyBaselineKey) {
+      try {
+        const raw = window.localStorage.getItem(weeklyBaselineKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setWeeklyBaseline({
+            value: Number(parsed?.value) || 0,
+            weekIdx: Number(parsed?.weekIdx ?? -1),
+          });
+        } else {
+          setWeeklyBaseline({ value: 0, weekIdx: -1 });
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [baselineKey, weeklyBaselineKey]);
 
   const fetchGoals = useCallback(async () => {
     if (!user?.id || !orgId) return;
