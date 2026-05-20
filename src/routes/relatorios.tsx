@@ -109,6 +109,9 @@ function ReportsPage() {
   });
   const [activeCategory, setActiveCategory] = useState("visao-geral");
   const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [menuQuery, setMenuQuery] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
 
   type Category = {
     id: string;
