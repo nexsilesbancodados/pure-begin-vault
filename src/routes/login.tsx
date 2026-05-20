@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Mail,
   Lock,
@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -48,6 +49,8 @@ export const Route = createFileRoute("/login")({
 });
 
 function Login() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -106,12 +109,9 @@ function Login() {
     try {
       const isDevAccount = cleanEmail === "contato@focussdev.art" && password === "senha123";
 
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password,
-      });
-
-      if (signInError) {
+      try {
+        await login(cleanEmail, password);
+      } catch (signInError) {
         // Conta dev: tenta provisionar via Edge Function e logar de novo
         if (isDevAccount) {
           try {
@@ -124,8 +124,7 @@ function Login() {
                 role: "super_admin",
               },
             });
-            const retry = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-            if (retry.error) throw retry.error;
+            await login(cleanEmail, password);
           } catch (provErr: unknown) {
             console.error("Provisionamento dev falhou:", provErr);
             showLoginError("Falha no acesso automático da conta dev.");
@@ -137,57 +136,10 @@ function Login() {
         }
       }
 
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session) {
-        showLoginError(
-          "Login aceito, mas a sessão não foi salva. Atualize a página e tente novamente.",
-        );
-        return;
-      }
-
-      const currentUserId = signInData?.user?.id ?? sessionData.session.user.id;
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id, organization_id")
-        .eq("id", currentUserId)
-        .maybeSingle();
-
-      if (profileError) {
-        console.warn("Perfil não carregou após login:", profileError);
-        showLoginError(
-          "Login aceito, mas não consegui carregar seu perfil. Peça ao administrador para revisar seu acesso.",
-        );
-        return;
-      }
-
-      if (!profile) {
-        showLoginError(
-          "Login aceito, mas sua conta ainda não tem perfil vinculado. Peça ao administrador para recriar seu acesso.",
-        );
-        return;
-      }
-
-      if (!profile.organization_id) {
-        const { data: memberships } = await supabase
-          .from("user_organizations")
-          .select("organization_id, is_default")
-          .eq("user_id", currentUserId)
-          .order("is_default", { ascending: false })
-          .limit(1);
-        const firstOrgId = (memberships as { organization_id?: string | null }[] | null)?.[0]
-          ?.organization_id;
-        if (firstOrgId) {
-          const { error: switchError } = await supabase.rpc("switch_organization", {
-            _org_id: firstOrgId,
-          });
-          if (switchError) console.warn("Não foi possível ativar loja no login:", switchError);
-        }
-      }
-
       if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
       else localStorage.removeItem("conecta:lastEmail");
 
-      window.location.replace("/painel");
+      navigate({ to: "/painel", replace: true });
     } catch (err: unknown) {
       showLoginError(readableAuthError(err instanceof Error ? err.message : undefined));
     }
