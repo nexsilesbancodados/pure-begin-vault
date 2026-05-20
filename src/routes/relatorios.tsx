@@ -380,6 +380,14 @@ function ReportsPage() {
       const currentLeads = leads.filter((l) => l.created_at != null && new Date(l.created_at) >= monthStart);
       const wonLeads = currentLeads.filter((l) => l.status != null && ["won", "concluded"].includes(l.status)).length;
 
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 6);
+      const salesToday = concludedSales.filter((s) => s.created_at && new Date(s.created_at) >= todayStart);
+      const salesWeek = concludedSales.filter((s) => s.created_at && new Date(s.created_at) >= weekStart);
+      const revenueToday = salesToday.reduce((a, c) => a + (c.total_amount || 0), 0);
+      const revenueWeek = salesWeek.reduce((a, c) => a + (c.total_amount || 0), 0);
+
       setStats({
         revenue: monthRevenue,
         leads: currentLeads.length,
