@@ -1403,18 +1403,26 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
               >
                 <ArrowLeft className="h-4 w-4" /> Voltar
               </Button>
+              {stats.valid > 0 && kind !== "estoque" && (
+                <div className="hidden sm:flex flex-col items-end justify-center mr-1">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+                    Valor total
+                  </span>
+                  <span className="text-sm font-black text-success leading-tight">{brl(stats.total)}</span>
+                </div>
+              )}
               <Button
                 onClick={handleImport}
                 disabled={isImporting || stats.valid === 0}
-                className="rounded-xl font-black bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20 min-w-[160px] gap-1.5"
+                className="rounded-xl font-black bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20 min-w-[180px] gap-1.5"
               >
                 {isImporting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Importando
+                    <Loader2 className="h-4 w-4 animate-spin" /> Importando…
                   </>
                 ) : (
                   <>
-                    Importar {stats.valid} <ArrowRight className="h-4 w-4" />
+                    Importar {stats.valid} {stats.valid === 1 ? "linha" : "linhas"} <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </Button>
