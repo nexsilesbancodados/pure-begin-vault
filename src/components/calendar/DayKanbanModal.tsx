@@ -127,6 +127,28 @@ export function DayKanbanModal({
   const searchRef = useRef<HTMLInputElement>(null);
   const [orgOwnerId, setOrgOwnerId] = useState<string | null>(null);
 
+  // Regra de edição: somente alfatech791@gmail.com pode editar qualquer dia;
+  // os demais usuários só podem editar o DIA ATUAL.
+  const SUPER_EDITOR_EMAIL = "alfatech791@gmail.com";
+  const isSuperEditor =
+    (user?.email || "").trim().toLowerCase() === SUPER_EDITOR_EMAIL;
+  const isToday = useMemo(() => {
+    const t = new Date();
+    return (
+      t.getFullYear() === date.getFullYear() &&
+      t.getMonth() === date.getMonth() &&
+      t.getDate() === date.getDate()
+    );
+  }, [date]);
+  const readOnly = !isSuperEditor && !isToday;
+  const guard = () => {
+    if (readOnly) {
+      toast.error("Somente o dia de hoje pode ser editado");
+      return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
     if (!orgId) { setOrgOwnerId(null); return; }
     (async () => {
