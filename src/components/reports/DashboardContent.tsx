@@ -148,9 +148,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
               {loading ? (
                 <div className="h-7 w-20 bg-muted animate-pulse rounded-md" />
               ) : (
-                <h3 className="text-2xl font-black font-display tracking-tight text-foreground group-hover:text-primary transition-colors">
+                <h3 className="text-xl md:text-2xl font-black font-display tracking-tight text-foreground group-hover:text-primary transition-colors tabular-nums break-all leading-tight" title={String(stat.value)}>
                   {stat.value}
                 </h3>
+
               )}
               {/* sparkline */}
               <div className="mt-4 flex items-end gap-[3px] h-8">
@@ -370,9 +371,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
               {loading ? (
                 <div className="h-7 w-24 bg-muted animate-pulse rounded-md mt-3" />
               ) : (
-                <h3 className="mt-3 text-2xl font-black font-display tracking-tight text-foreground">
+                <h3 className="mt-3 text-xl md:text-2xl font-black font-display tracking-tight text-foreground tabular-nums break-all leading-tight" title={String(it.value)}>
                   {it.value}
                 </h3>
+
               )}
             </div>
           ))}
