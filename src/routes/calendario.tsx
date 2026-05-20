@@ -5,8 +5,10 @@ import { Topbar } from "@/components/layout/Topbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
-import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, Circle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, Circle, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
+import { DayKanbanModal } from "@/components/calendar/DayKanbanModal";
+
 
 export const Route = createFileRoute("/calendario")({
   head: () => ({
@@ -52,7 +54,9 @@ function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Date>(new Date());
   const [modalOpen, setModalOpen] = useState(false);
+  const [kanbanOpen, setKanbanOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", priority: "medium" });
+
 
   const load = async () => {
     if (!user?.id) return;
@@ -184,11 +188,21 @@ function CalendarPage() {
                     return (
                       <button
                         key={i}
-                        onClick={() => setSelected(d)}
-                        className={`aspect-square rounded-lg border text-left p-1.5 hover:border-primary transition ${isSelected ? "border-primary bg-primary/5" : "border-border"}`}
+                        onClick={() => {
+                          setSelected(d);
+                          setKanbanOpen(true);
+                        }}
+                        className={`group relative aspect-square rounded-xl border text-left p-1.5 hover:border-primary hover:shadow-md transition ${isSelected ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card"}`}
                       >
-                        <div className={`text-xs font-bold ${isToday ? "text-primary" : ""}`}>
-                          {d.getDate()}
+                        <div className="flex items-center justify-between">
+                          <div className={`text-xs font-bold ${isToday ? "h-6 w-6 grid place-items-center rounded-full bg-primary text-primary-foreground" : ""}`}>
+                            {d.getDate()}
+                          </div>
+                          {list.length > 0 && (
+                            <span className="text-[9px] font-bold px-1.5 rounded-full bg-primary/15 text-primary">
+                              {list.length}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-0.5 space-y-0.5">
                           {list.slice(0, 2).map((t) => (
@@ -205,9 +219,15 @@ function CalendarPage() {
                             </div>
                           )}
                         </div>
+                        <div className="absolute inset-x-1 bottom-1 opacity-0 group-hover:opacity-100 transition pointer-events-none">
+                          <div className="flex items-center justify-center gap-1 text-[9px] font-bold text-primary bg-primary/10 rounded-md py-0.5">
+                            <LayoutGrid className="h-2.5 w-2.5" /> abrir quadro
+                          </div>
+                        </div>
                       </button>
                     );
                   })}
+
                 </div>
               )}
             </div>
@@ -227,13 +247,24 @@ function CalendarPage() {
                     })}
                   </div>
                 </div>
-                <button
-                  onClick={() => setModalOpen(true)}
-                  className="h-9 w-9 grid place-items-center rounded-lg bg-primary text-primary-foreground hover:opacity-90"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setKanbanOpen(true)}
+                    className="h-9 px-3 rounded-lg bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-1.5 hover:opacity-90"
+                    title="Abrir quadro Kanban do dia"
+                  >
+                    <LayoutGrid className="h-4 w-4" /> Quadro
+                  </button>
+                  <button
+                    onClick={() => setModalOpen(true)}
+                    className="h-9 w-9 grid place-items-center rounded-lg border border-border hover:bg-muted"
+                    title="Nova tarefa rápida"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
+
 
               <div className="space-y-2">
                 {selectedTasks.length === 0 && (
@@ -327,6 +358,16 @@ function CalendarPage() {
           </div>
         </div>
       )}
+
+      <DayKanbanModal
+        open={kanbanOpen}
+        onClose={() => {
+          setKanbanOpen(false);
+          load();
+        }}
+        date={selected}
+      />
     </div>
   );
+
 }
