@@ -120,34 +120,16 @@ serve(async (req) => {
       rows = parseContent(content);
     }
 
-    // 2) Fallback: vision on the PDF (scanned / unreadable text)
-    if (rows.length === 0) {
-      mode = "vision";
-      model = "google/gemini-2.5-flash";
-      try {
-        const content = await callAI({
-          model,
-          response_format: { type: "json_object" },
-          reasoning: { effort: "none" },
-          messages: [
-            { role: "system", content: prompt + ' Return {"rows":[...]}.' },
-            {
-              role: "user",
-              content: [
-                { type: "text", text: "Extraia todas as linhas deste PDF agora." },
-                {
-                  type: "image_url",
-                  image_url: { url: `data:application/pdf;base64,${fileBase64}` },
-                },
-              ],
-            },
-          ],
-        });
-        rows = parseContent(content);
-      } catch (e: any) {
-        if (e.message === "RATE_LIMIT" || e.message === "NO_CREDITS") throw e;
-        console.error("Vision fallback failed:", e);
-      }
+    // PDF escaneado (sem texto extraível) → orientamos conversão para Excel/CSV
+    if (rows.length === 0 && !hasGoodText) {
+      return new Response(
+        JSON.stringify({
+          error: "Não foi possível ler o PDF (parece escaneado). Converta para Excel/CSV ou use um PDF com texto selecionável.",
+          pages,
+          text_length: pdfText.length,
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const elapsed = Date.now() - t0;
