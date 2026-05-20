@@ -281,6 +281,8 @@ export function GoalProgress({
   useEffect(() => {
     if (!user?.id || !orgId) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    const poller = window.setInterval(() => fetchStats(), 10000);
+    const refreshOnFocus = () => fetchStats();
     const schedule = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
@@ -297,8 +299,11 @@ export function GoalProgress({
       );
     });
     channel.subscribe();
+    window.addEventListener("focus", refreshOnFocus);
     return () => {
       if (timer) clearTimeout(timer);
+      window.clearInterval(poller);
+      window.removeEventListener("focus", refreshOnFocus);
       supabase.removeChannel(channel);
     };
   }, [user?.id, orgId, fetchStats]);
