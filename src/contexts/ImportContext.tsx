@@ -249,10 +249,10 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const n = count ?? ids.length;
-    const extras = removed.sales + removed.finance + removed.receivable + removed.payable + removed.stock + removed.products;
+    const extras = removed.sales + removed.finance + removed.receivable + removed.payable + removed.stock + removed.products + removed.customers;
     toast.success(
       `${n} ${n === 1 ? "importação removida" : "importações removidas"}${
-        extras > 0 ? ` · ${extras} registros limpos` : ""
+        extras > 0 ? ` · ${extras} registros e caches limpos` : ""
       }`,
     );
   }, [orgId, jobs, cascadeDelete]);
@@ -269,6 +269,7 @@ export function ImportProvider({ children }: { children: React.ReactNode }) {
       removed.sales && `${removed.sales} vendas`,
       removed.stock && `${removed.stock} mov. estoque`,
       removed.products && `${removed.products} produtos`,
+      removed.customers && `${removed.customers} clientes`,
       removed.receivable && `${removed.receivable} receitas`,
       removed.payable && `${removed.payable} despesas`,
       removed.finance && `${removed.finance} mov. financeiras`,
