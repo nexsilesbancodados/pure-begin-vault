@@ -157,6 +157,7 @@ export function GoalProgress({
   const [goals, setGoals] = useState(initialGoalState);
   const [editGoals, setEditGoals] = useState(initialGoalState);
   const [stats, setStats] = useState({ units: 0 });
+  const [weekly, setWeekly] = useState<{ label: string; units: number; isCurrent: boolean }[]>([]);
   const [baseline, setBaseline] = useState<{ value: number; at: string }>({ value: 0, at: "" });
 
   useEffect(() => {
@@ -335,6 +336,74 @@ export function GoalProgress({
       supabase.removeChannel(channel);
     };
   }, [user?.id, orgId, fetchStats]);
+
+  // Weekly breakdown for the current month (devices only)
+  useEffect(() => {
+    if (!user?.id || !orgId) return;
+    let cancelled = false;
+    (async () => {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      const { data: sales } = await supabase
+        .from("sales_orders")
+        .select("id, created_at")
+        .gte("created_at", monthStart.toISOString())
+        .lte("created_at", monthEnd.toISOString())
+        .in("status", COMPLETED_STATUSES)
+        .in("channel", ["pdv", "import"])
+        .eq("organization_id", orgId);
+      const saleMap = new Map<string, Date>();
+      ((sales || []) as { id: string; created_at: string }[]).forEach((s) =>
+        saleMap.set(s.id, new Date(s.created_at)),
+      );
+      const ids = Array.from(saleMap.keys());
+      const weeksInMonth = Math.ceil(monthEnd.getDate() / 7);
+      const buckets = Array.from({ length: weeksInMonth }, () => 0);
+      const currentWeekIdx = Math.min(weeksInMonth - 1, Math.floor((now.getDate() - 1) / 7));
+
+      if (ids.length) {
+        const { data: items } = await supabase
+          .from("sale_items")
+          .select("sale_id, product_id, product_name, quantity, imei, metadata")
+          .eq("organization_id", orgId)
+          .in("sale_id", ids);
+        const list = (items || []) as SaleItemRow[];
+        const productIds = Array.from(
+          new Set(list.map((i) => i.product_id).filter((id): id is string => Boolean(id))),
+        );
+        const productsById = new Map<string, ProductRow>();
+        if (productIds.length) {
+          const { data: products } = await supabase
+            .from("products")
+            .select("id, name, category, model, metadata")
+            .eq("organization_id", orgId)
+            .in("id", productIds);
+          ((products || []) as ProductRow[]).forEach((p) => productsById.set(p.id, p));
+        }
+        list.forEach((it) => {
+          if (!isDeviceItem(it, it.product_id ? productsById.get(it.product_id) : undefined))
+            return;
+          const d = it.sale_id ? saleMap.get(it.sale_id) : null;
+          if (!d) return;
+          const wk = Math.min(weeksInMonth - 1, Math.floor((d.getDate() - 1) / 7));
+          buckets[wk] += Math.max(1, Number(it.quantity) || 1);
+        });
+      }
+      if (!cancelled) {
+        setWeekly(
+          buckets.map((u, i) => ({
+            label: `S${i + 1}`,
+            units: u,
+            isCurrent: i === currentWeekIdx,
+          })),
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, orgId, stats.units]);
 
   const handleSave = async () => {
     if (!user?.id || !orgId) {
@@ -522,6 +591,73 @@ export function GoalProgress({
             </div>
           </div>
         </div>
+
+        {weekly.length > 0 && (() => {
+          const weeklyGoal = Math.max(1, Math.round((goals.monthly || 0) / weekly.length));
+          const maxVal = Math.max(weeklyGoal, ...weekly.map((w) => w.units));
+          const currentWeek = weekly.find((w) => w.isCurrent);
+          const currentPct = currentWeek
+            ? Math.min(100, Math.round((currentWeek.units / weeklyGoal) * 100))
+            : 0;
+          return (
+            <div className="mt-5 pt-4 border-t border-border relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <Activity className="h-3 w-3 text-primary" />
+                  Meta semanal
+                </div>
+                <div className="text-[10px] font-bold text-muted-foreground">
+                  <span className="text-primary">{currentWeek?.units ?? 0}</span>
+                  <span className="text-muted-foreground/70"> / {weeklyGoal} un.</span>
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
+                    {currentPct}%
+                  </span>
+                </div>
+              </div>
+              <div className="relative h-[56px] flex items-end gap-1.5">
+                <div
+                  className="absolute left-0 right-0 border-t border-dashed border-primary/40 pointer-events-none"
+                  style={{ bottom: `${(weeklyGoal / maxVal) * 100}%` }}
+                />
+                {weekly.map((w, i) => {
+                  const h = Math.max(4, (w.units / maxVal) * 100);
+                  const hit = w.units >= weeklyGoal;
+                  return (
+                    <TooltipProvider key={i} delayDuration={100}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex-1 h-full flex flex-col items-center justify-end gap-1 group/bar cursor-default">
+                            <div
+                              className={`w-full rounded-md transition-all duration-500 ${
+                                w.isCurrent
+                                  ? "bg-gradient-to-t from-primary to-primary/60 ring-2 ring-primary/30"
+                                  : hit
+                                    ? "bg-success/70 group-hover/bar:bg-success"
+                                    : "bg-muted-foreground/30 group-hover/bar:bg-muted-foreground/50"
+                              }`}
+                              style={{ height: `${h}%` }}
+                            />
+                            <span
+                              className={`text-[9px] font-bold ${w.isCurrent ? "text-primary" : "text-muted-foreground"}`}
+                            >
+                              {w.label}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-[11px]">
+                          <p className="font-bold">
+                            {w.label} · {w.units} un.
+                          </p>
+                          <p className="text-muted-foreground">Meta: {weeklyGoal} un.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
