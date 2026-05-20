@@ -97,7 +97,7 @@ const normalizeText = (value: unknown) =>
     .toLowerCase();
 
 const isDeviceItem = (item: SaleItemRow, product?: ProductRow) => {
-  const category = normalizeText(product?.category || item?.category);
+  const category = normalizeText(product?.category);
   if (category) return DEVICE_CATEGORY_TERMS.some((term) => category.includes(term));
 
   const metadata = item?.metadata && typeof item.metadata === "object" ? item.metadata : {};
