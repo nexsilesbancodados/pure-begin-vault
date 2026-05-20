@@ -921,12 +921,13 @@ function NotasAbertoPage() {
               <div className="space-y-1.5">
                 <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                   <FileText className="h-3.5 w-3.5" />
-                  Notas de Compra
+                  {kindTab === "venda" ? "Notas de Venda" : "Notas de Compra"}
                 </div>
                 <h1 className="text-3xl font-bold tracking-tight">Notas em Aberto</h1>
                 <p className="text-sm text-muted-foreground max-w-xl">
-                  Cadastre notas de fornecedores, vincule produtos e acompanhe vencimentos de
-                  pagamento.
+                  {kindTab === "venda"
+                    ? "Registre vendas concluídas no PDV com prazo de 7 dias para receber dos clientes."
+                    : "Cadastre notas de fornecedores, vincule produtos e acompanhe vencimentos de pagamento."}
                 </p>
               </div>
               <div className="flex items-center gap-2">
