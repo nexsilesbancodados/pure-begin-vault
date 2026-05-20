@@ -431,6 +431,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             { label: "Receitas recebidas", value: fmtBRL(e.receitasPaid), tone: "success" },
             { label: "Total a receber", value: fmtBRL(e.receitasTotal), tone: "primary" },
             { label: "Saldo de caixa", value: fmtBRL(e.caixaSaldo), tone: e.caixaSaldo >= 0 ? "success" : "destructive" },
+            { label: "Margem líquida", value: fmtBRL(e.financeMargin || 0), tone: (e.financeMargin || 0) >= 0 ? "success" : "destructive" },
+            { label: "Contas vencidas (qtd)", value: String(e.financeOverdueCount || 0), tone: "destructive" },
+            { label: "Entradas (caixa)", value: fmtBRL(e.caixaIncome), tone: "success" },
+            { label: "Saídas (caixa)", value: fmtBRL(e.caixaExpense), tone: "warning" },
           ],
         );
       case "vendas":
@@ -442,10 +446,16 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           "Performance de Vendas",
           "Indicadores do mês atual sincronizados com o histórico de vendas.",
           [
-            { label: "Faturamento", value: fmtBRL(stats.revenue || 0), tone: "primary" },
+            { label: "Faturamento (mês)", value: fmtBRL(stats.revenue || 0), tone: "primary" },
+            { label: "Faturamento (7d)", value: fmtBRL(e.revenueWeek || 0), tone: "info" },
+            { label: "Faturamento (hoje)", value: fmtBRL(e.revenueToday || 0), tone: "success" },
             { label: "Ticket médio", value: fmtBRL(stats.avgTicket || 0), tone: "info" },
+            { label: "Vendas (mês)", value: String(e.salesMonth || 0), tone: "primary" },
+            { label: "Vendas (7d)", value: String(e.salesWeek || 0), tone: "info" },
+            { label: "Vendas (hoje)", value: String(e.salesToday || 0), tone: "success" },
             { label: "Conversão", value: `${(stats.conversion || 0).toFixed(1)}%`, tone: "success" },
             { label: "Leads no mês", value: String(stats.leads || 0), tone: "warning" },
+            { label: "Total de vendas", value: String(e.salesCount || 0), tone: "primary" },
           ],
         );
       case "produto":
