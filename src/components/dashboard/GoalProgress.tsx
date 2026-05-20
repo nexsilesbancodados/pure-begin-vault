@@ -358,9 +358,10 @@ export function GoalProgress({
       setIsModalOpen(false);
       toast.success("Metas atualizadas com sucesso!");
       if (onGoalUpdate) onGoalUpdate();
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("Erro ao salvar metas:", e);
-      toast.error(`Erro ao salvar metas: ${e.message || "Tente novamente"}`);
+      const message = e instanceof Error ? e.message : "Tente novamente";
+      toast.error(`Erro ao salvar metas: ${message}`);
     } finally {
       setIsLoading(false);
     }
@@ -505,7 +506,11 @@ export function GoalProgress({
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[680px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v === "settings" ? "settings" : "overview")}
+            className="w-full"
+          >
             <div className="bg-gradient-to-br from-primary/10 via-background to-background p-6 pb-0">
               <DialogHeader className="mb-4">
                 <div className="flex items-center justify-between gap-4">
@@ -526,7 +531,16 @@ export function GoalProgress({
                     <div className="hidden sm:flex items-center gap-1.5 text-muted-foreground">
                       <Filter className="h-4 w-4" />
                     </div>
-                    <Select value={period} onValueChange={(v) => setPeriod(v as any)}>
+                    <Select
+                      value={period}
+                      onValueChange={(v) =>
+                        setPeriod(
+                          ["month", "last_month", "last30", "year"].includes(v)
+                            ? (v as "month" | "last_month" | "last30" | "year")
+                            : "month",
+                        )
+                      }
+                    >
                       <SelectTrigger className="h-9 w-[150px] rounded-xl text-xs font-bold">
                         <SelectValue />
                       </SelectTrigger>
