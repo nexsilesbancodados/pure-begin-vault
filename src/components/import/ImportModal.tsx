@@ -122,6 +122,18 @@ const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
     customer_email: [
       "email", "e-mail", "mail", "correio"
     ],
+    customer_birthdate: [
+      "nascimento", "data nascimento", "data de nascimento", "aniversario", "aniversário", "birth", "birthdate", "dt nasc", "nasc"
+    ],
+    customer_address: [
+      "rua", "endereco", "endereço", "logradouro", "address", "av", "avenida", "rua/numero", "rua numero"
+    ],
+    customer_neighborhood: [
+      "bairro", "neighborhood", "distrito", "setor", "quadra"
+    ],
+    customer_city: [
+      "cidade", "city", "municipio", "município", "localidade"
+    ],
     product: [
       "produto", "item", "product", "mercadoria", "aparelho", "nome produto"
     ],
