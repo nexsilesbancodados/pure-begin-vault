@@ -391,6 +391,9 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     receitasOpen: 0, receitasTotal: 0, receitasPaid: 0,
     caixaSaldo: 0, caixaIncome: 0, caixaExpense: 0,
     productsCount: 0, productsActive: 0, lowStock: 0, outOfStock: 0, stockValue: 0,
+    salesCount: 0, salesToday: 0, salesWeek: 0, salesMonth: 0,
+    revenueToday: 0, revenueWeek: 0,
+    financeMargin: 0, financeOverdueCount: 0,
   };
 
   const getContent = () => {
