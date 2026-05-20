@@ -29,6 +29,11 @@ import {
   Maximize2,
   Filter,
   Check,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  Zap,
+  TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
