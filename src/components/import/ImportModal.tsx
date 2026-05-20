@@ -1561,7 +1561,7 @@ function FullscreenPreview({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-background overflow-hidden">
+          <div className="rounded-2xl border border-border bg-background overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="bg-muted/50 sticky top-0 z-10">
                 <tr className="border-b border-border">
