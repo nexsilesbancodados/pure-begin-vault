@@ -1,5 +1,4 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { Client } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
 
 const SQL = `
 create or replace function public.is_super_calendar_editor()
@@ -52,13 +51,16 @@ create policy "members delete own completions today" on public.daily_task_comple
 `;
 
 Deno.serve(async () => {
-  const url = Deno.env.get("SUPABASE_URL")!;
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const admin = createClient(url, key);
-  // exec via RPC isn't available; use pg HTTP via supabase-js? Fallback: try .rpc('exec_sql')
-  const { error } = await admin.rpc("exec_sql" as any, { sql: SQL });
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message, hint: "Crie a função exec_sql ou use o SQL editor manualmente." }), { status: 500, headers: { "Content-Type": "application/json" } });
+  const dbUrl = Deno.env.get("SUPABASE_DB_URL");
+  if (!dbUrl) return new Response(JSON.stringify({ error: "SUPABASE_DB_URL ausente" }), { status: 500 });
+  const client = new Client(dbUrl);
+  try {
+    await client.connect();
+    await client.queryArray(SQL);
+    return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: String((e as Error).message) }), { status: 500, headers: { "Content-Type": "application/json" } });
+  } finally {
+    try { await client.end(); } catch {}
   }
-  return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
 });
