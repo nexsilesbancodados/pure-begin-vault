@@ -2223,14 +2223,17 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          customer_name: string | null
           data_compra: string
           fornecedor: string
           id: string
           items: Json
+          kind: string
           note_number: number
           organization_id: string
           paga: boolean
           prazo_pagamento: string | null
+          sale_ids: string[]
           total: number
           updated_at: string
           updated_by: string | null
@@ -2238,14 +2241,17 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          customer_name?: string | null
           data_compra?: string
           fornecedor?: string
           id?: string
           items?: Json
+          kind?: string
           note_number: number
           organization_id: string
           paga?: boolean
           prazo_pagamento?: string | null
+          sale_ids?: string[]
           total?: number
           updated_at?: string
           updated_by?: string | null
@@ -2253,14 +2259,17 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          customer_name?: string | null
           data_compra?: string
           fornecedor?: string
           id?: string
           items?: Json
+          kind?: string
           note_number?: number
           organization_id?: string
           paga?: boolean
           prazo_pagamento?: string | null
+          sale_ids?: string[]
           total?: number
           updated_at?: string
           updated_by?: string | null
