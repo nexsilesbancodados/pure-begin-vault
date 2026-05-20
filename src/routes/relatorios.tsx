@@ -395,14 +395,20 @@ function ReportsPage() {
       const txs = (txRes.data || []) as TxRow[];
       const prods = (prodRes.data || []) as ProductRow[];
 
-      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+      const range = computeRange();
+      const inRange = (iso: string | null) => {
+        if (!iso) return false;
+        const d = new Date(iso);
+        if (range.from && d < range.from) return false;
+        if (range.to && d > range.to) return false;
+        return true;
+      };
+      const monthStart = range.from ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1);
       const concludedSales = sales.filter((s) => s.status === "concluded" || s.status === "completed");
-      const currentMonthSales = concludedSales.filter(
-        (s) => s.created_at != null && new Date(s.created_at) >= monthStart,
-      );
+      const currentMonthSales = concludedSales.filter((s) => inRange(s.created_at));
       const monthRevenue = currentMonthSales.reduce((acc, c) => acc + (c.total_amount || 0), 0);
 
-      const currentLeads = leads.filter((l) => l.created_at != null && new Date(l.created_at) >= monthStart);
+      const currentLeads = leads.filter((l) => inRange(l.created_at));
       const wonLeads = currentLeads.filter((l) => l.status != null && ["won", "concluded"].includes(l.status)).length;
 
       const now = new Date();
@@ -412,6 +418,7 @@ function ReportsPage() {
       const salesWeek = concludedSales.filter((s) => s.created_at && new Date(s.created_at) >= weekStart);
       const revenueToday = salesToday.reduce((a, c) => a + (c.total_amount || 0), 0);
       const revenueWeek = salesWeek.reduce((a, c) => a + (c.total_amount || 0), 0);
+      void monthStart;
 
       setStats({
         revenue: monthRevenue,
