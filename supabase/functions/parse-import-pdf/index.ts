@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
+import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -43,9 +43,9 @@ serve(async (req) => {
     }
 
     const bytes = base64ToBytes(fileBase64);
-    if (bytes.byteLength > 15 * 1024 * 1024) {
+    if (bytes.byteLength > 8 * 1024 * 1024) {
       return new Response(
-        JSON.stringify({ error: `PDF muito grande: ${(bytes.byteLength / 1024 / 1024).toFixed(1)}MB (máx 15MB)` }),
+        JSON.stringify({ error: `PDF muito grande: ${(bytes.byteLength / 1024 / 1024).toFixed(1)}MB (máx 8MB). Divida o arquivo.` }),
         { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -120,34 +120,16 @@ serve(async (req) => {
       rows = parseContent(content);
     }
 
-    // 2) Fallback: vision on the PDF (scanned / unreadable text)
-    if (rows.length === 0) {
-      mode = "vision";
-      model = "google/gemini-2.5-flash";
-      try {
-        const content = await callAI({
-          model,
-          response_format: { type: "json_object" },
-          reasoning: { effort: "none" },
-          messages: [
-            { role: "system", content: prompt + ' Return {"rows":[...]}.' },
-            {
-              role: "user",
-              content: [
-                { type: "text", text: "Extraia todas as linhas deste PDF agora." },
-                {
-                  type: "image_url",
-                  image_url: { url: `data:application/pdf;base64,${fileBase64}` },
-                },
-              ],
-            },
-          ],
-        });
-        rows = parseContent(content);
-      } catch (e: any) {
-        if (e.message === "RATE_LIMIT" || e.message === "NO_CREDITS") throw e;
-        console.error("Vision fallback failed:", e);
-      }
+    // PDF escaneado (sem texto extraível) → orientamos conversão para Excel/CSV
+    if (rows.length === 0 && !hasGoodText) {
+      return new Response(
+        JSON.stringify({
+          error: "Não foi possível ler o PDF (parece escaneado). Converta para Excel/CSV ou use um PDF com texto selecionável.",
+          pages,
+          text_length: pdfText.length,
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const elapsed = Date.now() - t0;
