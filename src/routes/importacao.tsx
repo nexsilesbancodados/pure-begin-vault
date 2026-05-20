@@ -16,7 +16,34 @@ import {
   Search,
   Filter,
   RefreshCw,
+  ShoppingCart,
+  DollarSign,
+  Package,
+  Users,
+  Boxes,
+  FileText,
 } from "lucide-react";
+
+type JobKind = "vendas" | "financeiro" | "produtos" | "estoque" | "clientes" | "outro";
+
+function detectKind(fileName: string): JobKind {
+  const n = fileName.toLowerCase();
+  if (/\b(vendas?|sales|pedidos?)\b|\[vendas/.test(n)) return "vendas";
+  if (/\b(financeiro|finance|caixa|receitas?|despesas?|contas?)\b|\[financeiro/.test(n)) return "financeiro";
+  if (/\b(produtos?|catalogo|catálogo)\b|\[produtos/.test(n)) return "produtos";
+  if (/\b(estoque|inventario|inventário|stock)\b|\[estoque/.test(n)) return "estoque";
+  if (/\b(clientes?|customers?|contatos?)\b|\[clientes/.test(n)) return "clientes";
+  return "outro";
+}
+
+const KIND_META: Record<JobKind, { label: string; icon: React.ComponentType<{ className?: string }>; tone: string; chip: string }> = {
+  vendas:     { label: "Vendas",     icon: ShoppingCart, tone: "from-primary/15 to-info/10 text-primary border-primary/30",        chip: "bg-primary/10 text-primary border-primary/30" },
+  financeiro: { label: "Financeiro", icon: DollarSign,   tone: "from-success/15 to-success/5 text-success border-success/30",      chip: "bg-success/10 text-success border-success/30" },
+  produtos:   { label: "Produtos",   icon: Package,      tone: "from-info/15 to-info/5 text-info border-info/30",                  chip: "bg-info/10 text-info border-info/30" },
+  estoque:    { label: "Estoque",    icon: Boxes,        tone: "from-warning/15 to-warning/5 text-warning border-warning/30",      chip: "bg-warning/10 text-warning border-warning/30" },
+  clientes:   { label: "Clientes",   icon: Users,        tone: "from-accent/15 to-accent/5 text-accent border-accent/30",          chip: "bg-accent/10 text-accent border-accent/30" },
+  outro:      { label: "Arquivo",    icon: FileText,     tone: "from-muted to-transparent text-muted-foreground border-border",    chip: "bg-muted text-muted-foreground border-border" },
+};
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ImportModal } from "@/components/import/ImportModal";
@@ -290,11 +317,31 @@ function JobCard({ job, onDelete, onClick }: { job: ImportJob; onDelete: (id: st
       <div className={`w-1 shrink-0 ${stripe}`} />
       <div className="flex-1 min-w-0">
         <div className="p-4 flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-            {job.status === "running" ? <Loader2 className="h-5 w-5 animate-spin" /> : job.status === "done" ? <CheckCircle2 className="h-5 w-5 text-success" /> : <AlertCircle className="h-5 w-5 text-destructive" />}
-          </div>
+          {(() => {
+            const kind = detectKind(job.fileName);
+            const meta = KIND_META[kind];
+            const KindIcon = meta.icon;
+            const StatusIcon = job.status === "running" ? Loader2 : job.status === "done" ? CheckCircle2 : AlertCircle;
+            return (
+              <div className={`relative h-12 w-12 rounded-xl bg-gradient-to-br border flex items-center justify-center shrink-0 ${meta.tone}`}>
+                <KindIcon className="h-5 w-5" />
+                <span className={`absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-card border border-border flex items-center justify-center ${job.status === "done" ? "text-success" : job.status === "error" ? "text-destructive" : "text-info"}`}>
+                  <StatusIcon className={`h-3 w-3 ${job.status === "running" ? "animate-spin" : ""}`} />
+                </span>
+              </div>
+            );
+          })()}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
+              {(() => {
+                const meta = KIND_META[detectKind(job.fileName)];
+                const KindIcon = meta.icon;
+                return (
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${meta.chip}`}>
+                    <KindIcon className="h-3 w-3" /> {meta.label}
+                  </span>
+                );
+              })()}
               <p className="font-black text-sm truncate">{job.fileName}</p>
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${statusTone}`}>
                 {job.status === "running" ? STEP_LABEL[job.step] : job.status === "done" ? "Concluída" : "Erro"}
