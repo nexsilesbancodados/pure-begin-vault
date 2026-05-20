@@ -1100,6 +1100,8 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                             { field: "date", label: "Data da Venda" },
                             { field: "payment", label: "Forma de Pagamento" },
                             { field: "status", label: "Status" },
+                            { field: "discount", label: "Desconto" },
+                            { field: "notes", label: "Observação" },
                           ],
                         },
                         {
@@ -1115,9 +1117,20 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
                           title: "Item Vendido",
                           fields: [
                             { field: "product", label: "Produto" },
+                            { field: "product_sku", label: "Código / SKU" },
                             { field: "quantity", label: "Quantidade" },
                             { field: "unit_price", label: "Preço unitário" },
-                            { field: "discount", label: "Desconto" },
+                            { field: "cost_price", label: "Preço de custo" },
+                            { field: "category", label: "Categoria" },
+                          ],
+                        },
+                        {
+                          title: "Identificadores do Aparelho",
+                          fields: [
+                            { field: "imei", label: "IMEI / Serial" },
+                            { field: "ean", label: "EAN / Código de barras" },
+                            { field: "brand", label: "Marca" },
+                            { field: "model", label: "Modelo" },
                           ],
                         },
                       ]
