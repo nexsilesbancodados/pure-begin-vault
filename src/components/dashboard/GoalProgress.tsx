@@ -480,6 +480,13 @@ export function GoalProgress({
         setBaseline(next);
       }
 
+      // Persiste meta semanal manual (sobrescreve o cálculo mensal/4)
+      if (typeof window !== "undefined" && weeklyOverrideKey) {
+        const w = Math.max(0, Number(editGoals.weekly) || 0);
+        if (w > 0) window.localStorage.setItem(weeklyOverrideKey, String(w));
+        else window.localStorage.removeItem(weeklyOverrideKey);
+      }
+
       setGoals({ ...editGoals });
       setIsModalOpen(false);
       toast.success("Metas atualizadas com sucesso!");
