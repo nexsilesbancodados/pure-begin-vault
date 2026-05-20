@@ -485,13 +485,16 @@ function parseRow(row: any, hmap: Record<string, string>, idx: number, kind: Imp
   const rawAmount = get("amount");
   const amount = parseCurrency(rawAmount);
   let date = parseDate(get("date"));
-  // Sanidade: rejeita datas absurdas (provável data de nascimento ou erro
-  // de mapeamento). Aceita apenas datas dos últimos 20 anos até +1 ano.
-  if (date) {
-    const y = date.getFullYear();
-    const nowY = new Date().getFullYear();
-    if (y < nowY - 20 || y > nowY + 1) date = null;
-  }
+  let dueDate = parseDate(get("due_date"));
+  let paymentDate = parseDate(get("payment_date"));
+  // Sanidade: rejeita datas absurdas. Aceita apenas dos últimos 20 anos até +5 anos
+  // (vencimentos podem estar no futuro).
+  const sanitize = (d: Date | null) => {
+    if (!d) return null;
+    const y = d.getFullYear(); const nowY = new Date().getFullYear();
+    return y < nowY - 20 || y > nowY + 5 ? null : d;
+  };
+  date = sanitize(date); dueDate = sanitize(dueDate); paymentDate = sanitize(paymentDate);
 
   const errors: string[] = [];
   
