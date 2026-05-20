@@ -375,10 +375,12 @@ function buildHeaderMap(sample: Record<string, any>, kind: ImportKind): Record<s
 
   // Ordem: campos mais específicos primeiro para não roubar headers
   const fieldOrder = [
-    "customer_document", "customer_email", "customer_phone", "customer",
+    "customer_document", "customer_email", "customer_phone", "supplier", "customer",
     "imei", "ean", "product_sku",
-    "amount", "discount", "unit_price", "cost_price",
-    "date", "payment", "status",
+    "document_number", "installments",
+    "due_date", "payment_date", "date",
+    "paid_amount", "amount", "discount", "unit_price", "cost_price",
+    "payment", "status",
     "quantity", "brand", "model", "product",
     "fin_type", "category", "description", "notes",
   ];
