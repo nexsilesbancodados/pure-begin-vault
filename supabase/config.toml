@@ -61,3 +61,6 @@ verify_jwt = true
 [functions.apply-daily-templates]
 verify_jwt = false
 
+
+[functions.apply-calendar-rls]
+verify_jwt = false
