@@ -22,6 +22,10 @@ type Row = {
   customer_phone?: string;
   customer_email?: string;
   customer_document?: string;
+  customer_birthdate?: string;
+  customer_address?: string;
+  customer_neighborhood?: string;
+  customer_city?: string;
   product_name?: string;
   product_quantity?: number;
   product_price?: number;
