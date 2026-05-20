@@ -25,6 +25,7 @@ import {
   Filter,
 } from "lucide-react";
 import { toast } from "sonner";
+import { DailyTasksColumn } from "./DailyTasksColumn";
 
 export type KanbanTask = {
   id: string;
