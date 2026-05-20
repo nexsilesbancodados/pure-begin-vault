@@ -72,36 +72,65 @@ export function TodaySalesModal({ open, onOpenChange }: Props) {
       setLoading(true);
       const start = startOfDay(date);
       const end = endOfDay(date);
-      const { data, error } = await supabase
+      // 1) Base sales without embeds — embedded relations have silently
+      // returned empty results before in this project.
+      const { data: rows, error } = await supabase
         .from("sales_orders")
         .select(
-          "id, sale_number, total_amount, discount, created_at, payment_method, channel, status, customers(name), sale_items(product_name, quantity, unit_price, unit_cost, imei, metadata)",
+          "id, sale_number, total_amount, discount, created_at, payment_method, channel, status, customer_id",
         )
         .eq("organization_id", orgId)
         .not("status", "in", "(canceled,cancelled,refunded,voided)")
         .gte("created_at", start.toISOString())
         .lte("created_at", end.toISOString())
         .order("created_at", { ascending: false });
-      if (error) console.error("TodaySalesModal fetch error:", error);
+      if (error) console.error("TodaySalesModal sales error:", error);
       if (!alive) return;
-      const list = data || [];
-      // Fetch payments separately to avoid PostgREST relationship issues
+      const list = (rows || []) as any[];
+
       if (list.length) {
-        const ids = list.map((s: any) => s.id);
-        const { data: pays } = await supabase
-          .from("sale_payments")
-          .select("sale_id, method, amount")
-          .in("sale_id", ids);
-        const map = new Map<string, any[]>();
-        (pays || []).forEach((p: any) => {
-          const arr = map.get(p.sale_id) || [];
-          arr.push(p);
-          map.set(p.sale_id, arr);
+        const ids = list.map((s) => s.id);
+        const customerIds = Array.from(
+          new Set(list.map((s) => s.customer_id).filter(Boolean)),
+        );
+
+        const [itemsRes, paysRes, custRes] = await Promise.all([
+          supabase
+            .from("sale_items")
+            .select("sale_id, product_name, quantity, unit_price, unit_cost, imei, metadata")
+            .in("sale_id", ids),
+          supabase
+            .from("sale_payments")
+            .select("sale_id, method, amount")
+            .in("sale_id", ids),
+          customerIds.length
+            ? supabase.from("customers").select("id, name").in("id", customerIds)
+            : Promise.resolve({ data: [] as any[] }),
+        ]);
+
+        const itemsMap = new Map<string, any[]>();
+        (itemsRes.data || []).forEach((i: any) => {
+          const arr = itemsMap.get(i.sale_id) || [];
+          arr.push(i);
+          itemsMap.set(i.sale_id, arr);
         });
-        list.forEach((s: any) => {
-          s.sale_payments = map.get(s.id) || [];
+        const paysMap = new Map<string, any[]>();
+        (paysRes.data || []).forEach((p: any) => {
+          const arr = paysMap.get(p.sale_id) || [];
+          arr.push(p);
+          paysMap.set(p.sale_id, arr);
+        });
+        const custMap = new Map<string, string>();
+        (custRes.data || []).forEach((c: any) => custMap.set(c.id, c.name));
+
+        list.forEach((s) => {
+          s.sale_items = itemsMap.get(s.id) || [];
+          s.sale_payments = paysMap.get(s.id) || [];
+          s.customers = s.customer_id ? { name: custMap.get(s.customer_id) } : null;
         });
       }
+
+      if (!alive) return;
       setSales(list);
       setLoading(false);
     })();
