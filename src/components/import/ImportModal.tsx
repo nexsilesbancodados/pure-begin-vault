@@ -1589,7 +1589,7 @@ function FullscreenPreview({
                   return (
                     <tr
                       key={i}
-                      className={`hover:bg-primary/5 transition-colors ${
+                      className={`group hover:bg-primary/5 transition-colors ${
                         !r._valid ? "bg-destructive/5" : ""
                       }`}
                     >
