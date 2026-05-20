@@ -39,7 +39,12 @@ import {
   Wrench,
   IdCard,
   CalendarClock,
+  Settings,
+  Check,
+  Wallet,
+  Landmark,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Product } from "@/lib/mock";
 import { ProductForm } from "@/components/estoque/ProductForm";
 import { PixCharge } from "@/components/vendas/PixCharge";
