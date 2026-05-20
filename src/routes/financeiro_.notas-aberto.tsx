@@ -1423,7 +1423,7 @@ function NotasAbertoPage() {
       </Dialog>
 
       <Dialog open={detailId != null} onOpenChange={(o) => !o && setDetailId(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-hidden p-0 gap-0">
           {detailNota && (
             <div className="flex flex-col max-h-[90vh]">
               {/* Header */}
