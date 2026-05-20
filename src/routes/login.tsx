@@ -380,7 +380,6 @@ function Login() {
         </div>
       </div>
 
-
       {/* ============ Right — Marketing ============ */}
       <div className="hidden lg:flex relative overflow-hidden bg-gradient-hero p-12 flex-col justify-between text-primary-foreground">
         {/* Decorative blobs */}
