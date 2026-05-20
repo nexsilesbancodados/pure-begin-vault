@@ -994,12 +994,16 @@ export function GoalProgress({
                       <Label className="text-[13px] font-bold">Meta Semanal</Label>
                       <Input
                         type="number"
+                        min={0}
                         value={editGoals.weekly}
                         onChange={(e) =>
                           setEditGoals({ ...editGoals, weekly: Number(e.target.value) })
                         }
                         className="h-10 rounded-xl"
                       />
+                      <p className="text-[10px] text-muted-foreground">
+                        Sobrescreve o cálculo automático (mensal ÷ semanas).
+                      </p>
                     </div>
                   </div>
 
