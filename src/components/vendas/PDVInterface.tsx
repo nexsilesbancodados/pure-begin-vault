@@ -984,6 +984,7 @@ export function PDVInterface() {
     if (parseFloat(prazoAmount) > 0) usedMethods.push("Prazo 7 dias");
     if (parseFloat(brasilcardAmount) > 0) usedMethods.push("BrasilCard");
     if (parseFloat(crediarioAmount) > 0) usedMethods.push("Crediário");
+    if (parseFloat(aparelhoAmount) > 0) usedMethods.push("Aparelho");
 
     const finalPaymentMethod =
       usedMethods.length > 1
