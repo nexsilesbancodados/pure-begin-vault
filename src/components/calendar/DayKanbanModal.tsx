@@ -23,6 +23,7 @@ import {
   AlignLeft,
   Clock,
   Filter,
+  Lock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DailyTasksColumn } from "./DailyTasksColumn";
