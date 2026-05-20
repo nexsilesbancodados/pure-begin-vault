@@ -2924,6 +2924,83 @@ export function PDVInterface() {
           </div>
         </div>
       </div>
+
+      {sellerModalOpen && (
+        <div
+          className="fixed inset-0 z-[80] bg-black/50 grid place-items-center p-4"
+          onClick={() => !savingSeller && setSellerModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-card border border-border rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/15 grid place-items-center">
+                <UserPlus className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg leading-tight">Novo vendedor</h3>
+                <p className="text-xs text-muted-foreground">Cadastro rápido na loja atual</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <Label className="text-[11px] font-bold uppercase text-muted-foreground">Nome *</Label>
+                <input
+                  autoFocus
+                  value={newSeller.name}
+                  onChange={(e) => setNewSeller({ ...newSeller, name: e.target.value })}
+                  placeholder="Ex.: João Silva"
+                  className="w-full h-10 mt-1 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  onKeyDown={(e) => e.key === "Enter" && saveSeller()}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-[11px] font-bold uppercase text-muted-foreground">Cargo</Label>
+                  <input
+                    value={newSeller.position}
+                    onChange={(e) => setNewSeller({ ...newSeller, position: e.target.value })}
+                    placeholder="Vendedor"
+                    className="w-full h-10 mt-1 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] font-bold uppercase text-muted-foreground">E-mail</Label>
+                  <input
+                    type="email"
+                    value={newSeller.email}
+                    onChange={(e) => setNewSeller({ ...newSeller, email: e.target.value })}
+                    placeholder="opcional"
+                    className="w-full h-10 mt-1 px-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSellerModalOpen(false)}
+                disabled={savingSeller}
+                className="h-10 px-4 rounded-lg border border-border text-sm font-bold hover:bg-muted disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={saveSeller}
+                disabled={savingSeller || !newSeller.name.trim()}
+                className="h-10 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-bold inline-flex items-center gap-2 hover:opacity-90 disabled:opacity-50"
+              >
+                {savingSeller ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Cadastrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
