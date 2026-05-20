@@ -867,6 +867,32 @@ function Field({
   );
 }
 
+function DetailRow({
+  icon,
+  label,
+  value,
+  highlight,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className={cn(
+      "flex items-center gap-3 rounded-xl border border-border px-3 py-2.5",
+      highlight ? "bg-blue-500/5 border-blue-500/30" : "bg-card"
+    )}>
+      <div className="h-8 w-8 rounded-lg grid place-items-center bg-muted text-muted-foreground shrink-0">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</div>
+        <div className={cn("text-sm font-semibold truncate", highlight && "text-blue-700 dark:text-blue-300")}>{value}</div>
+      </div>
+    </div>
+  );
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="border-b border-border pb-1.5">
