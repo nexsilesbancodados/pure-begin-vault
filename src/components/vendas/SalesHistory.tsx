@@ -234,6 +234,9 @@ const downloadIframeAsPdf = async (iframe: HTMLIFrameElement, filename: string) 
   const body = doc?.body;
   if (!body) return;
   await downloadNodeAsPdf(body, filename);
+};
+
+
 
 const METHOD_LABEL: Record<string, string> = {
   cash: "Dinheiro",
