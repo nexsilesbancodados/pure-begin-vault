@@ -660,19 +660,32 @@ export function ImportModal({ isOpen, onClose, onImportSuccess, initialKind }: I
     try {
       let parsed: { rows: ParsedRow[]; hmap: Record<string, string>; headers: string[]; raw: any[] };
       if (ext === "pdf") {
-        toast.info("Lendo PDF com IA, isso pode levar alguns segundos...");
-        const b64 = await new Promise<string>((resolve, reject) => {
-          const r = new FileReader();
-          r.onload = () => {
-            const s = (r.result as string) || "";
-            resolve(s.split(",")[1] || "");
-          };
-          r.onerror = reject;
-          r.readAsDataURL(f);
-        });
-        const { data, error } = await (supabase as any).functions.invoke("parse-import-pdf", {
-          body: { fileBase64: b64, fileName: f.name, kind },
-        });
+        const t0 = Date.now();
+        setPdfParsing({ elapsed: 0, phase: "Lendo arquivo..." });
+        const timer = setInterval(() => {
+          setPdfParsing((p) => p ? { ...p, elapsed: Math.floor((Date.now() - t0) / 1000) } : null);
+        }, 250);
+        let data: any, error: any;
+        try {
+          const b64 = await new Promise<string>((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => {
+              const s = (r.result as string) || "";
+              resolve(s.split(",")[1] || "");
+            };
+            r.onerror = reject;
+            r.readAsDataURL(f);
+          });
+          setPdfParsing({ elapsed: Math.floor((Date.now() - t0) / 1000), phase: "Extraindo dados com IA..." });
+          const res = await (supabase as any).functions.invoke("parse-import-pdf", {
+            body: { fileBase64: b64, fileName: f.name, kind, fast: true },
+          });
+          data = res.data; error = res.error;
+          if (!error) toast.success(`PDF lido em ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+        } finally {
+          clearInterval(timer);
+          setPdfParsing(null);
+        }
         if (error) throw new Error(error.message || "Falha ao processar PDF");
         const json: any[] = data?.rows || [];
         if (json.length === 0) {
