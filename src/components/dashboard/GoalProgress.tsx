@@ -796,7 +796,7 @@ export function GoalProgress({
                     </Button>
                   </div>
                 </div>
-              </div>
+              </fieldset>
             </TabsContent>
           </Tabs>
         </DialogContent>
