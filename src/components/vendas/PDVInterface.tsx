@@ -196,6 +196,25 @@ export function PDVInterface() {
   const [cardAmount, setCardAmount] = useState<string>("");
   const [pixAmount, setPixAmount] = useState<string>("");
   const [prazoAmount, setPrazoAmount] = useState<string>("");
+  const [brasilcardAmount, setBrasilcardAmount] = useState<string>("");
+  const [crediarioAmount, setCrediarioAmount] = useState<string>("");
+  const [visiblePaymentMethods, setVisiblePaymentMethods] = useState<string[]>(() => {
+    if (typeof window === "undefined") return ["money", "card", "pix", "prazo"];
+    try {
+      const saved = localStorage.getItem("pdv:visiblePaymentMethods");
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr) && arr.length === 4) return arr;
+      }
+    } catch {}
+    return ["money", "card", "pix", "prazo"];
+  });
+  const [methodsPickerOpen, setMethodsPickerOpen] = useState(false);
+  useEffect(() => {
+    try {
+      localStorage.setItem("pdv:visiblePaymentMethods", JSON.stringify(visiblePaymentMethods));
+    } catch {}
+  }, [visiblePaymentMethods]);
   const [barcode, setBarcode] = useState("");
   const [vendedorId, setVendedorId] = useState<string>("");
   const [sellers, setSellers] = useState<Array<{ id: string; name: string; email?: string | null; position?: string | null }>>([]);
