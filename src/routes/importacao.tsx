@@ -317,11 +317,31 @@ function JobCard({ job, onDelete, onClick }: { job: ImportJob; onDelete: (id: st
       <div className={`w-1 shrink-0 ${stripe}`} />
       <div className="flex-1 min-w-0">
         <div className="p-4 flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-            {job.status === "running" ? <Loader2 className="h-5 w-5 animate-spin" /> : job.status === "done" ? <CheckCircle2 className="h-5 w-5 text-success" /> : <AlertCircle className="h-5 w-5 text-destructive" />}
-          </div>
+          {(() => {
+            const kind = detectKind(job.fileName);
+            const meta = KIND_META[kind];
+            const KindIcon = meta.icon;
+            const StatusIcon = job.status === "running" ? Loader2 : job.status === "done" ? CheckCircle2 : AlertCircle;
+            return (
+              <div className={`relative h-12 w-12 rounded-xl bg-gradient-to-br border flex items-center justify-center shrink-0 ${meta.tone}`}>
+                <KindIcon className="h-5 w-5" />
+                <span className={`absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-card border border-border flex items-center justify-center ${job.status === "done" ? "text-success" : job.status === "error" ? "text-destructive" : "text-info"}`}>
+                  <StatusIcon className={`h-3 w-3 ${job.status === "running" ? "animate-spin" : ""}`} />
+                </span>
+              </div>
+            );
+          })()}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
+              {(() => {
+                const meta = KIND_META[detectKind(job.fileName)];
+                const KindIcon = meta.icon;
+                return (
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${meta.chip}`}>
+                    <KindIcon className="h-3 w-3" /> {meta.label}
+                  </span>
+                );
+              })()}
               <p className="font-black text-sm truncate">{job.fileName}</p>
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${statusTone}`}>
                 {job.status === "running" ? STEP_LABEL[job.step] : job.status === "done" ? "Concluída" : "Erro"}
