@@ -213,22 +213,52 @@ const FIELD_ALIASES: Record<ImportKind, Record<string, string[]>> = {
   },
   financeiro: {
     amount: [
-      "valor", "total", "vlr", "amount", "value", "recebido", "pago", "bruto", "liquido"
+      "valor", "valor total", "vlr total", "vlr", "total", "amount", "value", "bruto", "valor bruto", "valor lancamento", "valor titulo", "valor original", "valor doc"
+    ],
+    paid_amount: [
+      "valor pago", "vlr pago", "pago", "recebido", "valor recebido", "vlr recebido", "valor baixa", "valor liquidado", "liquido", "líquido", "valor liquido"
     ],
     date: [
-      "data", "date", "dt", "emissao", "vencimento", "created", "criado", "dia", "competencia"
+      "data", "data emissao", "emissao", "emissão", "data lancamento", "lançamento", "data documento", "competencia", "competência", "criado", "created", "dt emissao"
+    ],
+    due_date: [
+      "vencimento", "data vencimento", "venc", "vence em", "due", "due date", "prazo", "data prazo", "dt vencimento", "vencto"
+    ],
+    payment_date: [
+      "data pagamento", "dt pagamento", "data pago", "pago em", "data baixa", "baixa", "liquidacao", "liquidação", "data quitacao", "quitado em", "dt pgto", "data recebimento", "recebido em"
     ],
     description: [
-      "descricao", "description", "historico", "histórico", "memo", "lancamento", "lançamento", "titulo", "título", "identificador"
+      "descricao", "descrição", "description", "historico", "histórico", "memo", "titulo", "título", "identificador", "lancamento", "lançamento", "referencia", "referência"
     ],
     fin_type: [
-      "tipo", "natureza", "type", "operacao", "operação", "movimento", "fluxo"
+      "tipo", "natureza", "type", "operacao", "operação", "movimento", "fluxo", "d/c", "dc", "entrada saida"
     ],
     category: [
-      "categoria", "category", "classe", "centro de custo", "grupo", "plano", "tag"
+      "categoria", "category", "classe", "centro de custo", "grupo", "plano", "plano contas", "plano de contas", "conta contabil", "tag"
     ],
     payment: [
-      "pagamento", "pagto", "metodo", "method", "forma", "payment", "meio"
+      "forma pagamento", "forma de pagamento", "metodo", "método", "method", "meio", "meio pagamento", "forma pgto", "pagto", "tipo pagamento"
+    ],
+    document_number: [
+      "documento", "num documento", "n documento", "numero documento", "número documento", "nf", "nota", "nota fiscal", "num nota", "n nota", "boleto", "num boleto", "n doc", "doc"
+    ],
+    installments: [
+      "parcela", "parcelas", "parc", "qt parcelas", "qtd parcelas", "num parcela", "n parcela", "x"
+    ],
+    customer: [
+      "cliente", "customer", "pagador", "sacado", "razao social", "razão social", "pessoa", "nome"
+    ],
+    supplier: [
+      "fornecedor", "vendor", "supplier", "credor", "beneficiario", "beneficiário", "favorecido", "razao social fornecedor"
+    ],
+    customer_document: [
+      "cpf", "cnpj", "documento pessoa", "doc cliente", "doc fornecedor", "cpf/cnpj", "cpf cnpj"
+    ],
+    status: [
+      "status", "situacao", "situação", "estado", "etapa", "pago/pendente"
+    ],
+    notes: [
+      "observacao", "observação", "obs", "comentario", "comentário", "notes", "anotacao", "anotação"
     ],
   }
 };
