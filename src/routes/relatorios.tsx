@@ -541,58 +541,150 @@ function ReportsPage() {
           subtitle="Análise detalhada do seu desempenho comercial"
         />
         <div className="flex flex-1 overflow-hidden">
-          <aside className="w-72 border-r border-slate-100 bg-white overflow-y-auto hidden md:block shadow-sm shrink-0">
-            <div className="p-4">
-              <button className="w-full flex items-center justify-between p-3 rounded-xl bg-[#E8F0FE] text-primary font-bold text-sm mb-6">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <span>Relatórios</span>
-                  <span className="bg-success text-white text-[10px] px-1.5 py-0.5 rounded-full font-black">
-                    NOVO
+          {sidebarOpen ? (
+            <aside className="w-72 border-r border-slate-100 bg-white overflow-y-auto hidden md:flex md:flex-col shadow-sm shrink-0">
+              <div className="p-4 sticky top-0 bg-white z-10 border-b border-slate-100">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="font-black text-sm text-slate-900">Relatórios</span>
+                    <span className="bg-success text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">
+                      NOVO
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="h-7 w-7 grid place-items-center rounded-md hover:bg-slate-100 text-slate-500"
+                    title="Recolher menu"
+                    aria-label="Recolher menu de relatórios"
+                  >
+                    <PanelLeftClose className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={menuQuery}
+                    onChange={(e) => setMenuQuery(e.target.value)}
+                    placeholder="Buscar relatório..."
+                    className="w-full pl-8 pr-7 h-9 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-primary outline-none transition"
+                  />
+                  {menuQuery && (
+                    <button
+                      onClick={() => setMenuQuery("")}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 h-5 w-5 grid place-items-center rounded text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                      aria-label="Limpar busca"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="p-4 pt-3 flex-1">
+                <nav className="space-y-1">
+                  {(() => {
+                    const q = menuQuery.trim().toLowerCase();
+                    const filtered = !q
+                      ? categories
+                      : categories
+                          .map((c) => {
+                            const parentMatch = c.label.toLowerCase().includes(q);
+                            const matchedChildren = (c.children ?? []).filter((ch) =>
+                              ch.label.toLowerCase().includes(q),
+                            );
+                            if (parentMatch || matchedChildren.length) {
+                              return { ...c, children: parentMatch ? c.children : matchedChildren };
+                            }
+                            return null;
+                          })
+                          .filter(Boolean) as Category[];
+
+                    if (filtered.length === 0) {
+                      return (
+                        <p className="text-xs text-slate-500 text-center py-6">
+                          Nenhum relatório encontrado para "{menuQuery}"
+                        </p>
+                      );
+                    }
+                    const autoExpanded = q ? filtered.map((c) => c.id) : expandedCategories;
+                    return (
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext
+                          items={filtered.map((c) => c.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          {filtered.map((cat) => (
+                            <SortableCategory
+                              key={cat.id}
+                              cat={cat}
+                              activeCategory={activeCategory}
+                              expandedCategories={autoExpanded}
+                              setActiveCategory={setActiveCategory}
+                              toggleCategory={toggleCategory}
+                            />
+                          ))}
+                        </SortableContext>
+                      </DndContext>
+                    );
+                  })()}
+                </nav>
+              </div>
+            </aside>
+          ) : (
+            <div className="hidden md:flex flex-col items-center pt-4 border-r border-slate-100 bg-white w-12 shrink-0">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="h-9 w-9 grid place-items-center rounded-md hover:bg-slate-100 text-slate-600"
+                title="Expandir menu"
+                aria-label="Expandir menu de relatórios"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#F8FAFC]">
+            {activeCategory !== "visao-geral" && (() => {
+              const findLabel = (id: string): string => {
+                for (const c of categories) {
+                  if (c.id === id) return c.label;
+                  for (const ch of c.children ?? []) if (ch.id === id) return ch.label;
+                }
+                return id.replace(/-/g, " ");
+              };
+              const parent = categories.find(
+                (c) => c.id === activeCategory || c.children?.some((ch) => ch.id === activeCategory),
+              );
+              return (
+                <div className="mb-6 flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setActiveCategory("visao-geral")}
+                    className="text-sm font-bold text-primary hover:underline flex items-center gap-1"
+                  >
+                    <ChevronRight className="h-4 w-4 rotate-180" /> Visão Geral
+                  </button>
+                  {parent && parent.id !== activeCategory && (
+                    <>
+                      <span className="text-slate-300">/</span>
+                      <button
+                        onClick={() => setActiveCategory(parent.id)}
+                        className="text-sm font-bold text-slate-600 hover:text-primary hover:underline"
+                      >
+                        {parent.label}
+                      </button>
+                    </>
+                  )}
+                  <span className="text-slate-300">/</span>
+                  <span className="text-sm font-black text-slate-900">
+                    {findLabel(activeCategory)}
                   </span>
                 </div>
-                <ChevronDown className="h-4 w-4" />
-              </button>
-              <nav className="space-y-1">
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext
-                    items={categories.map((c) => c.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {categories.map((cat) => (
-                      <SortableCategory
-                        key={cat.id}
-                        cat={cat}
-                        activeCategory={activeCategory}
-                        expandedCategories={expandedCategories}
-                        setActiveCategory={setActiveCategory}
-                        toggleCategory={toggleCategory}
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
-              </nav>
-            </div>
-          </aside>
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#F8FAFC]">
-            {activeCategory !== "visao-geral" && (
-              <div className="mb-6 flex items-center gap-2">
-                <button
-                  onClick={() => setActiveCategory("visao-geral")}
-                  className="text-sm font-bold text-primary hover:underline flex items-center gap-1"
-                >
-                  <ChevronRight className="h-4 w-4 rotate-180" /> Visão Geral
-                </button>
-                <span className="text-slate-300">/</span>
-                <span className="text-sm font-black text-slate-900 uppercase tracking-widest">
-                  {activeCategory.replace(/-/g, " ")}
-                </span>
-              </div>
-            )}
+              );
+            })()}
             <DashboardContent
               activeCategory={activeCategory}
               stats={stats}
@@ -605,6 +697,7 @@ function ReportsPage() {
             />
           </main>
         </div>
+
       </div>
     </div>
   );
