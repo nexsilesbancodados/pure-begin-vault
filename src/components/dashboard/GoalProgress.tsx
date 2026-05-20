@@ -591,6 +591,73 @@ export function GoalProgress({
             </div>
           </div>
         </div>
+
+        {weekly.length > 0 && (() => {
+          const weeklyGoal = Math.max(1, Math.round((goals.monthly || 0) / weekly.length));
+          const maxVal = Math.max(weeklyGoal, ...weekly.map((w) => w.units));
+          const currentWeek = weekly.find((w) => w.isCurrent);
+          const currentPct = currentWeek
+            ? Math.min(100, Math.round((currentWeek.units / weeklyGoal) * 100))
+            : 0;
+          return (
+            <div className="mt-5 pt-4 border-t border-border relative">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <Activity className="h-3 w-3 text-primary" />
+                  Meta semanal
+                </div>
+                <div className="text-[10px] font-bold text-muted-foreground">
+                  <span className="text-primary">{currentWeek?.units ?? 0}</span>
+                  <span className="text-muted-foreground/70"> / {weeklyGoal} un.</span>
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
+                    {currentPct}%
+                  </span>
+                </div>
+              </div>
+              <div className="relative h-[56px] flex items-end gap-1.5">
+                <div
+                  className="absolute left-0 right-0 border-t border-dashed border-primary/40 pointer-events-none"
+                  style={{ bottom: `${(weeklyGoal / maxVal) * 100}%` }}
+                />
+                {weekly.map((w, i) => {
+                  const h = Math.max(4, (w.units / maxVal) * 100);
+                  const hit = w.units >= weeklyGoal;
+                  return (
+                    <TooltipProvider key={i} delayDuration={100}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex-1 h-full flex flex-col items-center justify-end gap-1 group/bar cursor-default">
+                            <div
+                              className={`w-full rounded-md transition-all duration-500 ${
+                                w.isCurrent
+                                  ? "bg-gradient-to-t from-primary to-primary/60 ring-2 ring-primary/30"
+                                  : hit
+                                    ? "bg-success/70 group-hover/bar:bg-success"
+                                    : "bg-muted-foreground/30 group-hover/bar:bg-muted-foreground/50"
+                              }`}
+                              style={{ height: `${h}%` }}
+                            />
+                            <span
+                              className={`text-[9px] font-bold ${w.isCurrent ? "text-primary" : "text-muted-foreground"}`}
+                            >
+                              {w.label}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-[11px]">
+                          <p className="font-bold">
+                            {w.label} · {w.units} un.
+                          </p>
+                          <p className="text-muted-foreground">Meta: {weeklyGoal} un.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
