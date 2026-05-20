@@ -39,6 +39,7 @@ import {
   YAxis,
 } from "recharts";
 import { SalesChart } from "@/components/dashboard/SalesChart";
+import { SalesReportTable } from "@/components/reports/SalesReportTable";
 
 interface ExtraStats {
   despesasOpen: number; despesasOverdue: number; despesasTotal: number; despesasPaid: number;
@@ -437,8 +438,9 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             { label: "Saídas (caixa)", value: fmtBRL(e.caixaExpense), tone: "warning" },
           ],
         );
-      case "vendas":
       case "vendas-relatorio":
+        return <SalesReportTable />;
+      case "vendas":
       case "vendas-historico":
       case "vendas-projecoes":
       case "vendas-produtos":
