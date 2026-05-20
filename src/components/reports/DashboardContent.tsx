@@ -45,6 +45,9 @@ interface ExtraStats {
   receitasOpen: number; receitasTotal: number; receitasPaid: number;
   caixaSaldo: number; caixaIncome: number; caixaExpense: number;
   productsCount: number; productsActive: number; lowStock: number; outOfStock: number; stockValue: number;
+  salesCount?: number; salesToday?: number; salesWeek?: number; salesMonth?: number;
+  revenueToday?: number; revenueWeek?: number;
+  financeMargin?: number; financeOverdueCount?: number;
 }
 
 interface DashboardContentProps {
@@ -388,6 +391,9 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     receitasOpen: 0, receitasTotal: 0, receitasPaid: 0,
     caixaSaldo: 0, caixaIncome: 0, caixaExpense: 0,
     productsCount: 0, productsActive: 0, lowStock: 0, outOfStock: 0, stockValue: 0,
+    salesCount: 0, salesToday: 0, salesWeek: 0, salesMonth: 0,
+    revenueToday: 0, revenueWeek: 0,
+    financeMargin: 0, financeOverdueCount: 0,
   };
 
   const getContent = () => {
@@ -425,6 +431,10 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             { label: "Receitas recebidas", value: fmtBRL(e.receitasPaid), tone: "success" },
             { label: "Total a receber", value: fmtBRL(e.receitasTotal), tone: "primary" },
             { label: "Saldo de caixa", value: fmtBRL(e.caixaSaldo), tone: e.caixaSaldo >= 0 ? "success" : "destructive" },
+            { label: "Margem líquida", value: fmtBRL(e.financeMargin || 0), tone: (e.financeMargin || 0) >= 0 ? "success" : "destructive" },
+            { label: "Contas vencidas (qtd)", value: String(e.financeOverdueCount || 0), tone: "destructive" },
+            { label: "Entradas (caixa)", value: fmtBRL(e.caixaIncome), tone: "success" },
+            { label: "Saídas (caixa)", value: fmtBRL(e.caixaExpense), tone: "warning" },
           ],
         );
       case "vendas":
@@ -436,10 +446,16 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           "Performance de Vendas",
           "Indicadores do mês atual sincronizados com o histórico de vendas.",
           [
-            { label: "Faturamento", value: fmtBRL(stats.revenue || 0), tone: "primary" },
+            { label: "Faturamento (mês)", value: fmtBRL(stats.revenue || 0), tone: "primary" },
+            { label: "Faturamento (7d)", value: fmtBRL(e.revenueWeek || 0), tone: "info" },
+            { label: "Faturamento (hoje)", value: fmtBRL(e.revenueToday || 0), tone: "success" },
             { label: "Ticket médio", value: fmtBRL(stats.avgTicket || 0), tone: "info" },
+            { label: "Vendas (mês)", value: String(e.salesMonth || 0), tone: "primary" },
+            { label: "Vendas (7d)", value: String(e.salesWeek || 0), tone: "info" },
+            { label: "Vendas (hoje)", value: String(e.salesToday || 0), tone: "success" },
             { label: "Conversão", value: `${(stats.conversion || 0).toFixed(1)}%`, tone: "success" },
             { label: "Leads no mês", value: String(stats.leads || 0), tone: "warning" },
+            { label: "Total de vendas", value: String(e.salesCount || 0), tone: "primary" },
           ],
         );
       case "produto":
