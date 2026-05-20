@@ -749,6 +749,7 @@ export function DayKanbanModal({
                         const assignee = t.assigned_to ? memberById.get(t.assigned_to) : null;
                         const prio = PRIORITY_META[t.priority] ?? PRIORITY_META.medium;
                         const hasDesc = !!(t.description && t.description.trim());
+                        const confirmed = dailyDone.has(t.id);
                         return (
                           <div
                             key={t.id}
@@ -756,16 +757,18 @@ export function DayKanbanModal({
                             onDragStart={() => setDragId(t.id)}
                             onDragEnd={() => setDragId(null)}
                             onClick={() => setOpenCard(t)}
-                            className={`group rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm hover:shadow-md hover:border-sky-300 transition cursor-pointer ${
-                              dragId === t.id ? "opacity-50 rotate-1" : ""
-                            }`}
+                            className={`group rounded-xl border bg-white p-2.5 shadow-sm hover:shadow-md transition cursor-pointer ${
+                              confirmed
+                                ? "border-emerald-300 bg-emerald-50/60 opacity-80"
+                                : "border-slate-200 hover:border-sky-300"
+                            } ${dragId === t.id ? "opacity-50 rotate-1" : ""}`}
                           >
                             {/* Colored cover */}
-                            <div className={`h-1 -m-2.5 mb-2 rounded-t-xl ${c.bar}`} />
+                            <div className={`h-1 -m-2.5 mb-2 rounded-t-xl ${confirmed ? "bg-emerald-400" : c.bar}`} />
 
                             <div className="flex items-start gap-2">
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm leading-snug text-slate-800">
+                                <div className={`text-sm leading-snug text-slate-800 ${confirmed ? "line-through text-slate-500" : ""}`}>
                                   {t.title}
                                 </div>
                               </div>
@@ -819,6 +822,30 @@ export function DayKanbanModal({
                                 </div>
                               )}
                             </div>
+
+                            {/* Daily completion confirm button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleDailyDone(t.id);
+                              }}
+                              className={`mt-2 w-full inline-flex items-center justify-center gap-1.5 h-8 rounded-md text-[11px] font-bold transition ${
+                                confirmed
+                                  ? "bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200"
+                                  : "bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700"
+                              }`}
+                              title={confirmed ? "Desfazer confirmação do dia" : "Confirmar tarefa realizada hoje"}
+                            >
+                              {confirmed ? (
+                                <>
+                                  <CheckCheck className="h-3.5 w-3.5" /> Concluída hoje
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="h-3.5 w-3.5" /> Confirmar conclusão
+                                </>
+                              )}
+                            </button>
                           </div>
                         );
                       })}
