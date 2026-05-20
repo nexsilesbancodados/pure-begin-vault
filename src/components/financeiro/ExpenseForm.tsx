@@ -114,6 +114,10 @@ export function ExpenseForm({
   const [searchPerson, setSearchPerson] = useState("");
   const [loadingPeople, setLoadingPeople] = useState(false);
   const [personPopoverOpen, setPersonPopoverOpen] = useState(false);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [newCategoryOpen, setNewCategoryOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [files, setFiles] = useState<{ id: string; name: string; size: number; type: string }[]>([]);
 
   const todayISO = () => new Date().toISOString().split("T")[0];
   const cashboxDefault = `Caixa do dia ${new Date().toLocaleDateString("pt-BR")} - Sistema`;
