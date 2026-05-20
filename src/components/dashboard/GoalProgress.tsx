@@ -192,8 +192,9 @@ export function GoalProgress({
         target_value: editGoals.monthly,
         type: editGoals.type,
         deadline: editGoals.end_date || null,
-        current_value: currentDisplay,
+        current_value: manualUnits ?? stats.units,
       };
+
 
       let error;
       if (existingGoal?.id) {
