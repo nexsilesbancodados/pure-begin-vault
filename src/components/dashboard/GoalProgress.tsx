@@ -161,6 +161,7 @@ export function GoalProgress({
     weekIdx: -1,
   });
   const weeklyBaselineKey = orgId ? `goal-weekly-baseline:${orgId}` : "";
+  const weeklyOverrideKey = orgId ? `goal-weekly-override:${orgId}` : "";
 
   useEffect(() => {
     if (!baselineKey || typeof window === "undefined") return;
