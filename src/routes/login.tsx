@@ -85,59 +85,37 @@ function Login() {
     setLoading(true);
 
     try {
-      if (cleanEmail === "contato@focussdev.art" && password === "senha123") {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
+      const isDevAccount = cleanEmail === "contato@focussdev.art" && password === "senha123";
 
-        if (signInError) {
-          // Se o erro for de credenciais inválidas ou usuário não encontrado, tentamos criar via Edge Function
-          // Note: "invalid login credentials" é o erro padrão do Supabase quando e-mail ou senha estão errados.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password,
+      });
+
+      if (signInError) {
+        // Conta dev: tenta provisionar via Edge Function e logar de novo
+        if (isDevAccount) {
           try {
-            const { error: createError } = await supabase.functions.invoke("create-team-user", {
-              body: { 
-                email: cleanEmail, 
-                password: "senha123", 
-                nome: "Desenvolvedor Focuss", 
-                organization_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd", // ID da Loja Teste E2E
-                role: "super_admin" 
-              }
+            await supabase.functions.invoke("create-team-user", {
+              body: {
+                email: cleanEmail,
+                password: "senha123",
+                nome: "Desenvolvedor Focuss",
+                organization_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd",
+                role: "super_admin",
+              },
             });
-            
-            if (!createError) {
-              // Tenta logar novamente após criar ou atualizar
-              const retry = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
-              if (retry.error) throw retry.error;
-              
-              // Força a troca para a organização teste
-              await (supabase as any).rpc("switch_organization", {
-                _org_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd",
-              });
-            } else {
-              throw createError;
-            }
-          } catch (invokeErr: any) {
-            console.error("Erro no provisionamento:", invokeErr);
-            setError("Credenciais inválidas ou falha no acesso automático.");
+            const retry = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+            if (retry.error) throw retry.error;
+          } catch (provErr: any) {
+            console.error("Provisionamento dev falhou:", provErr);
+            setError("Falha no acesso automático da conta dev.");
             setShake(true);
             setTimeout(() => setShake(false), 500);
             setLoading(false);
             return;
           }
         } else {
-          // Já logou com sucesso, garante que está na empresa teste
-          await (supabase as any).rpc("switch_organization", {
-            _org_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd",
-          });
-        }
-      } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-
-        if (signInError) {
           const msg = signInError.message.toLowerCase();
           setError(
             msg.includes("invalid") || msg.includes("credentials")
@@ -150,6 +128,17 @@ function Login() {
           setTimeout(() => setShake(false), 500);
           setLoading(false);
           return;
+        }
+      }
+
+      // Conta dev: garante a organização teste (não bloqueia login se RPC falhar)
+      if (isDevAccount) {
+        try {
+          await (supabase as any).rpc("switch_organization", {
+            _org_id: "3af25257-81f8-4a1c-aa66-d54a92bba6dd",
+          });
+        } catch (e) {
+          console.warn("switch_organization falhou (dev):", e);
         }
       }
 
