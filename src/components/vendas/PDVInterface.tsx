@@ -43,6 +43,7 @@ import {
   Check,
   Wallet,
   Landmark,
+  Smartphone,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Product } from "@/lib/mock";
@@ -99,6 +100,7 @@ const ALL_PAYMENT_METHODS: PaymentMethodConfig[] = [
   { id: "brasilcard", icon: Landmark, label: "BrasilCard", color: "text-cyan-600", bg: "bg-cyan-500/10" },
   { id: "crediario", icon: Wallet, label: "Crediário", color: "text-rose-600", bg: "bg-rose-500/10" },
   { id: "prazo", icon: CalendarClock, label: "Prazo 7d", color: "text-amber-600", bg: "bg-amber-500/10" },
+  { id: "aparelho", icon: Smartphone, label: "Aparelho", color: "text-indigo-600", bg: "bg-indigo-500/10" },
 ];
 
 
@@ -216,6 +218,7 @@ export function PDVInterface() {
   const [prazoAmount, setPrazoAmount] = useState<string>("");
   const [brasilcardAmount, setBrasilcardAmount] = useState<string>("");
   const [crediarioAmount, setCrediarioAmount] = useState<string>("");
+  const [aparelhoAmount, setAparelhoAmount] = useState<string>("");
   const [visiblePaymentMethods, setVisiblePaymentMethods] = useState<string[]>(() => {
     if (typeof window === "undefined") return ["money", "card", "pix", "prazo"];
     try {
@@ -948,9 +951,10 @@ export function PDVInterface() {
       (parseFloat(pixAmount) || 0) +
       (parseFloat(prazoAmount) || 0) +
       (parseFloat(brasilcardAmount) || 0) +
-      (parseFloat(crediarioAmount) || 0)
+      (parseFloat(crediarioAmount) || 0) +
+      (parseFloat(aparelhoAmount) || 0)
     );
-  }, [moneyAmount, cardAmount, pixAmount, prazoAmount, brasilcardAmount, crediarioAmount]);
+  }, [moneyAmount, cardAmount, pixAmount, prazoAmount, brasilcardAmount, crediarioAmount, aparelhoAmount]);
 
   const change = useMemo(() => Math.max(0, totalReceived - total), [totalReceived, total]);
 
@@ -980,6 +984,7 @@ export function PDVInterface() {
     if (parseFloat(prazoAmount) > 0) usedMethods.push("Prazo 7 dias");
     if (parseFloat(brasilcardAmount) > 0) usedMethods.push("BrasilCard");
     if (parseFloat(crediarioAmount) > 0) usedMethods.push("Crediário");
+    if (parseFloat(aparelhoAmount) > 0) usedMethods.push("Aparelho");
 
     const finalPaymentMethod =
       usedMethods.length > 1
@@ -1028,6 +1033,7 @@ export function PDVInterface() {
       const prazoN = parseFloat(prazoAmount) || 0;
       const brasilcardN = parseFloat(brasilcardAmount) || 0;
       const crediarioN = parseFloat(crediarioAmount) || 0;
+      const aparelhoN = parseFloat(aparelhoAmount) || 0;
       if (moneyN > 0) payments.push({ method: "cash", amount: moneyN });
       if (cardN > 0) payments.push({ method: "card", amount: cardN });
       if (pixN > 0) payments.push({ method: "pix", amount: pixN });
@@ -1048,6 +1054,13 @@ export function PDVInterface() {
           method: "credit",
           amount: crediarioN,
           label: "Crediário",
+        });
+      }
+      if (aparelhoN > 0) {
+        payments.push({
+          method: "other",
+          amount: aparelhoN,
+          label: "Aparelho (troca)",
         });
       }
       if (payments.length === 0) {
@@ -1150,6 +1163,7 @@ export function PDVInterface() {
       setPrazoAmount("");
       setBrasilcardAmount("");
       setCrediarioAmount("");
+      setAparelhoAmount("");
       setDiscountValue(0);
       setEditingSaleId(null);
       setLastSaleId(saleId);
@@ -2871,7 +2885,9 @@ export function PDVInterface() {
                               ? brasilcardAmount
                               : id === "crediario"
                                 ? crediarioAmount
-                                : "";
+                                : id === "aparelho"
+                                  ? aparelhoAmount
+                                  : "";
                   const setAmount = (id: string, val: string) => {
                     if (id === "money") setMoneyAmount(val);
                     else if (id === "card") setCardAmount(val);
@@ -2879,6 +2895,7 @@ export function PDVInterface() {
                     else if (id === "prazo") setPrazoAmount(val);
                     else if (id === "brasilcard") setBrasilcardAmount(val);
                     else if (id === "crediario") setCrediarioAmount(val);
+                    else if (id === "aparelho") setAparelhoAmount(val);
                   };
                   return ALL_PAYMENT_METHODS.filter((m) =>
                     visiblePaymentMethods.includes(m.id),
@@ -2930,7 +2947,9 @@ export function PDVInterface() {
                               ? brasilcardAmount
                               : id === "crediario"
                                 ? crediarioAmount
-                                : "";
+                                : id === "aparelho"
+                                  ? aparelhoAmount
+                                  : "";
                   const setAmount = (id: string, val: string) => {
                     if (id === "money") setMoneyAmount(val);
                     else if (id === "card") setCardAmount(val);
@@ -2938,6 +2957,7 @@ export function PDVInterface() {
                     else if (id === "prazo") setPrazoAmount(val);
                     else if (id === "brasilcard") setBrasilcardAmount(val);
                     else if (id === "crediario") setCrediarioAmount(val);
+                    else if (id === "aparelho") setAparelhoAmount(val);
                   };
                   const currentVal = getAmount(paymentMethod);
                   return (
