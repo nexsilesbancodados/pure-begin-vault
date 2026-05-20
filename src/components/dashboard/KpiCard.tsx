@@ -67,6 +67,7 @@ import { startOfDay, endOfDay, startOfMonth, endOfMonth, format as formatDate } 
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Package, User as UserIcon, Coins } from "lucide-react";
+import { TodaySalesModal } from "./TodaySalesModal";
 
 export function KpiCard({
   label,
@@ -227,6 +228,12 @@ export function KpiCard({
     }
   };
 
+  const labelLower = label.toLowerCase();
+  const useSalesModal =
+    labelLower.includes("vendas") ||
+    labelLower.includes("faturamento") ||
+    labelLower.includes("ticket");
+
   return (
     <>
       <button
@@ -295,7 +302,11 @@ export function KpiCard({
         </div>
       </button>
 
+      {useSalesModal ? (
+        <TodaySalesModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+      ) : (
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-2">
@@ -755,6 +766,7 @@ export function KpiCard({
           </div>
         </DialogContent>
       </Dialog>
+      )}
     </>
   );
 }
