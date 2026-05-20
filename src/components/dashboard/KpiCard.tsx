@@ -104,9 +104,10 @@ export function KpiCard({
     const fetchDayData = async () => {
       setIsLoading(true);
       try {
-        const start = startOfDay(date);
-        const end = endOfDay(date);
         const l = label.toLowerCase();
+        const isMonthly = l.includes("mensal") || l.includes("mês") || l.includes("mes") || l.includes("ticket");
+        const start = isMonthly ? startOfMonth(date) : startOfDay(date);
+        const end = isMonthly ? endOfMonth(date) : endOfDay(date);
 
         const filterFor = (q: any) => q.eq("organization_id", orgId);
         if (l.includes("vendas") || l.includes("faturamento") || l.includes("ticket")) {
@@ -126,40 +127,57 @@ export function KpiCard({
             (acc: number, curr: any) => acc + (Number(curr.total_amount) || 0),
             0,
           );
-          
+
           const pdvTotal = (data || [])
             .filter((s: any) => s.channel !== 'import')
             .reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
-          
+
           const importTotal = (data || [])
             .filter((s: any) => s.channel === 'import')
             .reduce((acc: number, curr: any) => acc + (Number(curr.total_amount) || 0), 0);
 
-          if (l.includes("vendas") && importTotal > 0) {
+          if (l.includes("ticket")) {
+            const avg = (data || []).length ? total / (data || []).length : 0;
+            setDisplayValue(avg.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
+          } else if (l.includes("vendas") && importTotal > 0) {
             setDisplayValue(`${pdvTotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} (+${importTotal.toLocaleString("pt-BR")})`);
           } else {
             setDisplayValue(total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }));
           }
         } else if (l.includes("leads")) {
-          const { count } = await filterFor(
+          const { data, count } = await filterFor(
             supabase
               .from("leads")
-              .select("*", { count: "exact", head: true })
+              .select("id, name, phone, email, source, status, created_at", { count: "exact" })
               .gte("created_at", start.toISOString())
-              .lte("created_at", end.toISOString()),
+              .lte("created_at", end.toISOString())
+              .order("created_at", { ascending: false }),
           );
-
-          setDisplayValue(String(count || 0));
-        } else if (l.includes("os")) {
-          const { count } = await filterFor(
+          setLeadsData(data || []);
+          setDisplayValue(String(count ?? (data?.length || 0)));
+        } else if (l.includes("os") || l.includes("ordens") || l.includes("serviço") || l.includes("servico")) {
+          const { data, count } = await filterFor(
             supabase
               .from("service_orders")
-              .select("*", { count: "exact", head: true })
-              .gte("created_at", start.toISOString())
-              .lte("created_at", end.toISOString()),
+              .select("id, customer_name, device, problem, status, total_amount, created_at", { count: "exact" })
+              .not("status", "in", "(delivered,canceled,cancelled)")
+              .order("created_at", { ascending: false }),
           );
-
-          setDisplayValue(String(count || 0));
+          setOsData(data || []);
+          setDisplayValue(String(count ?? (data?.length || 0)));
+        } else if (l.includes("estoque")) {
+          const { data } = await filterFor(
+            supabase
+              .from("products")
+              .select("id, name, sku, stock_quantity, min_stock, cost_price, sale_price, imei")
+              .order("stock_quantity", { ascending: true })
+              .limit(200),
+          );
+          const low = (data || []).filter(
+            (p: any) => (Number(p.stock_quantity) || 0) <= (Number(p.min_stock) || 5),
+          );
+          setStockData(low);
+          setDisplayValue(String(low.length));
         }
       } catch (error) {
         console.error("Error fetching day data:", error);
