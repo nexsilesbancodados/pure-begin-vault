@@ -1938,13 +1938,31 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
               </DialogTitle>
               <DialogDescription>Revise o termo antes de imprimir.</DialogDescription>
             </div>
-            <Button
-              disabled={!warrantyDoc || warrantyLoading}
-              onClick={printWarranty}
-              className="rounded-xl font-bold gap-2"
-            >
-              <Printer className="h-4 w-4" /> Imprimir
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                disabled={!warrantyDoc || warrantyLoading}
+                onClick={() => {
+                  const iframe = warrantyIframeRef.current;
+                  if (!iframe) return;
+                  const safe = (warrantyDoc?.title || "termo-garantia")
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-|-$/g, "");
+                  void downloadIframeAsPdf(iframe, `${safe}.pdf`);
+                }}
+                className="rounded-xl font-bold gap-2"
+              >
+                <Download className="h-4 w-4" /> Baixar PDF
+              </Button>
+              <Button
+                disabled={!warrantyDoc || warrantyLoading}
+                onClick={printWarranty}
+                className="rounded-xl font-bold gap-2"
+              >
+                <Printer className="h-4 w-4" /> Imprimir
+              </Button>
+            </div>
           </div>
           <div className="bg-muted/40 p-4 h-[calc(92vh-73px)]">
             {warrantyLoading || !warrantyDoc ? (
