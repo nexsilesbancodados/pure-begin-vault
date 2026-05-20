@@ -84,14 +84,18 @@ export function GoalProgress({
       .from("business_goals")
       .select("*")
       .eq("organization_id", orgId)
+      .eq("type", "units")
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
-    
+
     if (data) {
+      const target = Number(data.target_value) || 100;
       const fetchedGoals = {
-        daily: Number(data.target_value) / 30 || 0,
-        weekly: Number(data.target_value) / 4 || 0,
-        monthly: Number(data.target_value) || initialGoal,
-        type: (data.type as any) || "revenue",
+        daily: target / 30,
+        weekly: target / 4,
+        monthly: target,
+        type: "units" as const,
         goal_name: data.title || "",
         start_date: data.created_at || new Date().toISOString().split("T")[0],
         end_date: data.deadline || "",
@@ -102,27 +106,55 @@ export function GoalProgress({
     }
   };
 
+  const getPeriodRange = () => {
+    const now = new Date();
+    const start = new Date();
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    switch (period) {
+      case "month":
+        start.setDate(1);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case "last_month": {
+        start.setMonth(now.getMonth() - 1, 1);
+        start.setHours(0, 0, 0, 0);
+        const e = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        return { start, end: e };
+      }
+      case "last30":
+        start.setDate(now.getDate() - 30);
+        start.setHours(0, 0, 0, 0);
+        break;
+      case "year":
+        start.setMonth(0, 1);
+        start.setHours(0, 0, 0, 0);
+        break;
+    }
+    return { start, end };
+  };
 
   const fetchStats = async () => {
-    const firstDayMonth = new Date();
-    firstDayMonth.setDate(1);
-    firstDayMonth.setHours(0, 0, 0, 0);
-
+    const { start, end } = getPeriodRange();
     const { data: sales } = await supabase
       .from("sales_orders")
-      .select("total_amount")
-      .gte("created_at", firstDayMonth.toISOString())
-      .eq("status", "concluded")
+      .select("id, total_amount, sale_items:sale_items(quantity)")
+      .gte("created_at", start.toISOString())
+      .lte("created_at", end.toISOString())
+      .in("status", ["completed", "concluded"])
+      .in("channel", ["pdv", "import"])
       .eq("organization_id", orgId);
 
-    const revenue = sales?.reduce((acc, s) => acc + (Number(s.total_amount) || 0), 0) || 0;
-    const units = sales?.length || 0;
-    setStats({
-      revenue,
-      units,
-      profit: revenue * 0.3,
-      avgTicket: units > 0 ? revenue / units : 0,
+    let units = 0;
+    (sales || []).forEach((s: any) => {
+      const items = s.sale_items || [];
+      if (items.length) {
+        units += items.reduce((a: number, i: any) => a + (Number(i.quantity) || 0), 0);
+      } else {
+        units += 1;
+      }
     });
+    setStats({ units });
   };
 
   const handleSave = async () => {
