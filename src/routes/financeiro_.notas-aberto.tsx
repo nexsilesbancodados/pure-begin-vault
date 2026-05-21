@@ -1924,7 +1924,8 @@ function NotasAbertoPage() {
                                 </Button>
                               </TableCell>
                             </TableRow>
-                          ))}
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
