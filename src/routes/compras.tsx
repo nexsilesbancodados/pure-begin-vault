@@ -625,92 +625,28 @@ function NewQuotationModal({
           </div>
 
           <div className="border rounded-xl overflow-hidden">
-            <div className="overflow-x-auto max-h-[50vh]">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/60 sticky top-0 z-20">
-                  <tr className="text-left">
-                    <th className="px-3 py-2 sticky left-0 bg-muted/60 z-10 min-w-[220px]">
-                      Produto
-                    </th>
-                    <th className="px-2 py-2 w-20 text-center">Qtd.</th>
-                    {supplierNames.map((n, i) => {
-                      const isBestSup = bestSupplierIdx === i && supplierTotals[i] > 0;
-                      return (
-                        <th
-                          key={i}
-                          colSpan={4}
-                          className={
-                            "px-2 py-2 text-center border-l border-border " +
-                            (isBestSup ? "bg-amber-500/15" : "bg-primary/5")
-                          }
-                        >
-                          <div className="flex items-center justify-center gap-1 font-bold">
-                            {isBestSup ? (
-                              <Trophy className="h-3.5 w-3.5 text-amber-500" />
-                            ) : (
-                              <Building2 className="h-3.5 w-3.5" />
-                            )}
-                            {n || `Fornecedor ${i + 1}`}
-                          </div>
-                        </th>
-                      );
-                    })}
-                    <th className="px-2 py-2 text-center border-l border-border bg-emerald-500/10 min-w-[110px]">
-                      Venda
-                    </th>
-                    <th className="px-2 py-2 text-center border-l border-border bg-emerald-500/10 min-w-[120px]">
-                      Lucro
-                    </th>
-                  </tr>
-                  <tr className="text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/40">
-                    <th className="px-3 py-1.5 sticky left-0 bg-muted/40 z-10" />
-                    <th className="px-2 py-1.5" />
-                    {supplierNames.map((_, i) => (
-                      <Fragment key={`h${i}`}>
-                        <th className="px-1.5 py-1.5 border-l border-border text-center">
-                          Custo
-                        </th>
-                        <th className="px-1.5 py-1.5 text-center">Frete 1</th>
-                        <th className="px-1.5 py-1.5 text-center">Frete 2</th>
-                        <th className="px-1.5 py-1.5 text-center font-bold text-foreground">
-                          Total
-                        </th>
-                      </Fragment>
-                    ))}
-                    <th className="px-1.5 py-1.5 border-l border-border text-center">unit.</th>
-                    <th className="px-1.5 py-1.5 text-center">unit. / margem</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((it, rowIdx) => {
-                    const r = computeRow(it);
-                    return (
-                      <tr key={it.id} className="border-t align-middle hover:bg-muted/20">
-                        <td className="px-3 py-2 sticky left-0 bg-card z-10">
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] font-bold text-muted-foreground w-5 text-center">
-                              {rowIdx + 1}
-                            </span>
-                            <Input
-                              value={it.name}
-                              onChange={(e) => updateItem(it.id, { name: e.target.value })}
-                              placeholder="Nome do produto"
-                              className="h-9"
-                            />
-                            {items.length > 1 && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => removeItem(it.id)}
-                                className="h-9 w-9 shrink-0"
-                                title="Remover item"
-                              >
-                                <Trash2 className="h-4 w-4 text-rose-600" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-2 py-2">
+            <div className="overflow-x-auto max-h-[55vh] divide-y divide-border">
+              {items.map((it, rowIdx) => {
+                const r = computeRow(it);
+                const sale = Number(it.salePrice) || 0;
+                return (
+                  <div key={it.id} className="bg-card">
+                    {/* Cabeçalho do item */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-muted/40 border-b border-border">
+                      <span className="text-[10px] font-bold text-muted-foreground w-6 text-center">
+                        #{rowIdx + 1}
+                      </span>
+                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-[1fr_110px] gap-2">
+                        <Input
+                          value={it.name}
+                          onChange={(e) => updateItem(it.id, { name: e.target.value })}
+                          placeholder="Descrição do produto (ex.: iPhone 15 Pro Max 256)"
+                          className="h-9 font-semibold"
+                        />
+                        <div className="flex items-center gap-1">
+                          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">
+                            Qtd.
+                          </Label>
                           <Input
                             type="number"
                             min={1}
@@ -720,16 +656,67 @@ function NewQuotationModal({
                                 quantity: Math.max(1, Number(e.target.value) || 1),
                               })
                             }
-                            className="h-9 text-center"
+                            className="h-9 text-center w-20"
                           />
-                        </td>
-                        {supplierNames.map((_, i) => {
-                          const bd = r.sups[i] ?? emptyBreakdown();
-                          const isBest = r.bestIdx === i && r.bestUnit > 0;
-                          return (
-                            <Fragment key={`row-${it.id}-${i}`}>
-                              <td className="px-1 py-2 border-l border-border">
+                        </div>
+                      </div>
+                      {items.length > 1 && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => removeItem(it.id)}
+                          className="h-8 w-8 shrink-0"
+                          title="Remover item"
+                        >
+                          <Trash2 className="h-4 w-4 text-rose-600" />
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* Tabela transposta: linhas = labels, colunas = fornecedores */}
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-muted/30">
+                          <th className="text-left px-3 py-2 text-[11px] uppercase tracking-wider font-bold text-muted-foreground w-[160px]">
+                            Fornecedores:
+                          </th>
+                          {supplierNames.map((n, i) => {
+                            const isBest = bestSupplierIdx === i && supplierTotals[i] > 0;
+                            return (
+                              <th
+                                key={i}
+                                className={
+                                  "text-left px-3 py-2 border-l border-border " +
+                                  (isBest ? "bg-amber-500/15" : "bg-primary/5")
+                                }
+                              >
+                                <div className="flex items-center gap-1 font-bold text-foreground">
+                                  {isBest ? (
+                                    <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                                  ) : (
+                                    <Building2 className="h-3.5 w-3.5 text-primary" />
+                                  )}
+                                  {n || `Fornecedor ${i + 1}`}
+                                </div>
+                              </th>
+                            );
+                          })}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* CUSTO */}
+                        <tr className="border-t border-border">
+                          <td className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold text-muted-foreground bg-muted/10">
+                            Custo
+                          </td>
+                          {supplierNames.map((_, i) => {
+                            const bd = r.sups[i] ?? emptyBreakdown();
+                            return (
+                              <td key={`cost-${i}`} className="px-2 py-1 border-l border-border">
                                 <div className="relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                                    R$
+                                  </span>
                                   <Input
                                     type="number"
                                     step="0.01"
@@ -739,7 +726,7 @@ function NewQuotationModal({
                                       updateBreakdown(it.id, i, "cost", e.target.value)
                                     }
                                     placeholder="0,00"
-                                    className="h-9 text-right pr-7"
+                                    className="h-8 pl-8 pr-7 text-right tabular-nums"
                                   />
                                   {bd.cost > 0 && (
                                     <button
@@ -753,46 +740,166 @@ function NewQuotationModal({
                                   )}
                                 </div>
                               </td>
-                              <td className="px-1 py-2">
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min={0}
-                                  value={bd.frete1 || ""}
-                                  onChange={(e) =>
-                                    updateBreakdown(it.id, i, "frete1", e.target.value)
-                                  }
-                                  placeholder="0,00"
-                                  className="h-9 text-right"
-                                />
+                            );
+                          })}
+                        </tr>
+
+                        {/* FRETE 1 */}
+                        <tr className="border-t border-border">
+                          <td className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold text-muted-foreground bg-muted/10">
+                            Frete 1
+                          </td>
+                          {supplierNames.map((_, i) => {
+                            const bd = r.sups[i] ?? emptyBreakdown();
+                            return (
+                              <td key={`f1-${i}`} className="px-2 py-1 border-l border-border">
+                                <div className="relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                                    R$
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min={0}
+                                    value={bd.frete1 || ""}
+                                    onChange={(e) =>
+                                      updateBreakdown(it.id, i, "frete1", e.target.value)
+                                    }
+                                    placeholder="0,00"
+                                    className="h-8 pl-8 text-right tabular-nums"
+                                  />
+                                </div>
                               </td>
-                              <td className="px-1 py-2">
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min={0}
-                                  value={bd.frete2 || ""}
-                                  onChange={(e) =>
-                                    updateBreakdown(it.id, i, "frete2", e.target.value)
-                                  }
-                                  placeholder="0,00"
-                                  className="h-9 text-right"
-                                />
+                            );
+                          })}
+                        </tr>
+
+                        {/* FRETE 2 */}
+                        <tr className="border-t border-border">
+                          <td className="px-3 py-1.5 text-[11px] uppercase tracking-wider font-bold text-muted-foreground bg-muted/10">
+                            Frete 2
+                          </td>
+                          {supplierNames.map((_, i) => {
+                            const bd = r.sups[i] ?? emptyBreakdown();
+                            return (
+                              <td key={`f2-${i}`} className="px-2 py-1 border-l border-border">
+                                <div className="relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                                    R$
+                                  </span>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min={0}
+                                    value={bd.frete2 || ""}
+                                    onChange={(e) =>
+                                      updateBreakdown(it.id, i, "frete2", e.target.value)
+                                    }
+                                    placeholder="0,00"
+                                    className="h-8 pl-8 text-right tabular-nums"
+                                  />
+                                </div>
                               </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* TOTAL */}
+                        <tr className="border-t-2 border-border bg-muted/20">
+                          <td className="px-3 py-2 text-[11px] uppercase tracking-wider font-black text-foreground">
+                            Total
+                          </td>
+                          {supplierNames.map((_, i) => {
+                            const isBest = r.bestIdx === i && r.bestUnit > 0;
+                            return (
                               <td
+                                key={`tot-${i}`}
                                 className={
-                                  "px-2 py-2 text-right font-bold tabular-nums whitespace-nowrap " +
+                                  "px-3 py-2 text-right font-black tabular-nums border-l border-border " +
                                   (isBest
-                                    ? "text-emerald-700 bg-emerald-50/70 dark:bg-emerald-950/30"
+                                    ? "bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-700"
                                     : "")
                                 }
                               >
-                                {r.unitTotals[i] > 0 ? (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {isBest && <Trophy className="h-3 w-3 text-emerald-600" />}
+                                  {r.unitTotals[i] > 0
+                                    ? `R$ ${fmt(r.unitTotals[i])}`
+                                    : "—"}
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+
+                        {/* PREÇO DE VENDA — input único, mesma venda para qualquer fornecedor */}
+                        <tr className="border-t border-border bg-emerald-500/5">
+                          <td className="px-3 py-2 text-[11px] uppercase tracking-wider font-bold text-emerald-700 dark:text-emerald-400">
+                            Preço de Venda
+                          </td>
+                          <td
+                            colSpan={supplierNames.length}
+                            className="px-2 py-1 border-l border-border"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="relative max-w-[200px]">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                                  R$
+                                </span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min={0}
+                                  value={it.salePrice || ""}
+                                  onChange={(e) =>
+                                    updateItem(it.id, {
+                                      salePrice: Number(e.target.value) || 0,
+                                    })
+                                  }
+                                  placeholder="0,00"
+                                  className="h-8 pl-8 text-right tabular-nums font-semibold"
+                                />
+                              </div>
+                              <span className="text-[11px] text-muted-foreground">
+                                aplicado em todos os fornecedores
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* LUCRO */}
+                        <tr className="border-t border-border bg-emerald-500/5">
+                          <td className="px-3 py-2 text-[11px] uppercase tracking-wider font-black text-emerald-700 dark:text-emerald-400">
+                            Lucro
+                          </td>
+                          {supplierNames.map((_, i) => {
+                            const total = r.unitTotals[i];
+                            const profit = total > 0 ? sale - total : 0;
+                            const isBest = r.bestIdx === i && r.bestUnit > 0;
+                            return (
+                              <td
+                                key={`lucro-${i}`}
+                                className={
+                                  "px-3 py-2 text-right font-black tabular-nums border-l border-border " +
+                                  (isBest ? "bg-emerald-100/50 dark:bg-emerald-950/40" : "")
+                                }
+                              >
+                                {total > 0 ? (
                                   <div className="flex flex-col items-end">
-                                    <span>R$ {fmt(r.unitTotals[i])}</span>
-                                    {isBest && (
-                                      <span className="text-[10px] font-semibold text-emerald-600 inline-flex items-center gap-0.5">
-                                        <Trophy className="h-2.5 w-2.5" /> melhor
+                                    <span
+                                      className={
+                                        profit > 0
+                                          ? "text-emerald-600"
+                                          : profit < 0
+                                            ? "text-rose-600"
+                                            : "text-muted-foreground"
+                                      }
+                                    >
+                                      R$ {fmt(profit)}
+                                    </span>
+                                    {sale > 0 && profit !== 0 && (
+                                      <span className="text-[10px] font-semibold text-muted-foreground">
+                                        {((profit / sale) * 100).toFixed(1)}% margem
                                       </span>
                                     )}
                                   </div>
@@ -800,98 +907,50 @@ function NewQuotationModal({
                                   "—"
                                 )}
                               </td>
-                            </Fragment>
-                          );
-                        })}
-                        <td className="px-1 py-2 border-l border-border bg-emerald-500/5">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min={0}
-                            value={it.salePrice || ""}
-                            onChange={(e) =>
-                              updateItem(it.id, { salePrice: Number(e.target.value) || 0 })
-                            }
-                            placeholder="0,00"
-                            className="h-9 text-right"
-                          />
-                        </td>
-                        <td className="px-2 py-2 text-right tabular-nums bg-emerald-500/5 whitespace-nowrap">
-                          <div
+                            );
+                          })}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+
+              {/* Subtotais consolidados por fornecedor (toda a cotação) */}
+              <div className="bg-muted/40 border-t-2 border-border">
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr>
+                      <td className="px-3 py-2 text-[11px] uppercase tracking-wider font-black text-muted-foreground w-[160px]">
+                        Subtotal geral
+                      </td>
+                      {supplierNames.map((_, i) => {
+                        const isBest = bestSupplierIdx === i && supplierTotals[i] > 0;
+                        return (
+                          <td
+                            key={`gsub-${i}`}
                             className={
-                              "font-bold " +
-                              (r.profitPerUnit > 0
-                                ? "text-emerald-600"
-                                : r.profitPerUnit < 0
-                                  ? "text-rose-600"
-                                  : "text-muted-foreground")
+                              "px-3 py-2 text-right font-black tabular-nums border-l border-border " +
+                              (isBest
+                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                                : "")
                             }
                           >
-                            {r.bestUnit > 0 ? `R$ ${fmt(r.profitPerUnit)}` : "—"}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground flex items-center justify-end gap-1">
-                            <span>tot. R$ {fmt(r.profitTotal)}</span>
-                            {r.marginPct !== 0 && (
-                              <Badge
-                                variant="outline"
-                                className={
-                                  "px-1 py-0 h-4 text-[9px] " +
-                                  (r.marginPct >= 0
-                                    ? "border-emerald-300 text-emerald-700"
-                                    : "border-rose-300 text-rose-700")
-                                }
-                              >
-                                {r.marginPct.toFixed(1)}%
-                              </Badge>
+                            {supplierTotals[i] > 0 ? (
+                              <span className="inline-flex items-center gap-1.5">
+                                {isBest && <Trophy className="h-3.5 w-3.5" />}R${" "}
+                                {fmt(supplierTotals[i])}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
                             )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                {/* Subtotais por fornecedor */}
-                <tfoot className="bg-muted/40 border-t-2 border-border sticky bottom-0 z-10">
-                  <tr>
-                    <td
-                      colSpan={2}
-                      className="px-3 py-2 text-xs uppercase tracking-wider font-bold text-muted-foreground sticky left-0 bg-muted/40"
-                    >
-                      Subtotal por fornecedor
-                    </td>
-                    {supplierNames.map((_, i) => {
-                      const isBest = bestSupplierIdx === i && supplierTotals[i] > 0;
-                      return (
-                        <td
-                          key={`sub-${i}`}
-                          colSpan={4}
-                          className={
-                            "px-2 py-2 text-right font-black tabular-nums border-l border-border " +
-                            (isBest
-                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                              : "")
-                          }
-                        >
-                          {supplierTotals[i] > 0 ? (
-                            <span className="inline-flex items-center gap-1">
-                              {isBest && <Trophy className="h-3.5 w-3.5" />}
-                              R$ {fmt(supplierTotals[i])}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-                      );
-                    })}
-                    <td colSpan={2} className="px-2 py-2 text-right text-xs text-muted-foreground border-l border-border bg-emerald-500/5">
-                      lucro total
-                      <div className={"text-base font-black " + (grand.profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
-                        R$ {fmt(grand.profit)}
-                      </div>
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
             <div className="border-t bg-muted/30 px-3 py-2 flex justify-between items-center">
               <div className="text-xs text-muted-foreground">
