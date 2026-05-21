@@ -959,7 +959,7 @@ export function StockList() {
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-foreground/80 whitespace-nowrap">
                       <div className="inline-flex items-center gap-1.5">
-                        <span>{product.imei || "—"}</span>
+                        <span>{getPrimaryImei(product) || "—"}</span>
                         {(() => {
                           const issue = productImeiIssue(product);
                           if (issue === "duplicate")
