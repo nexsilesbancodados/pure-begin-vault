@@ -1319,7 +1319,7 @@ export function PDVInterface() {
   };
 
   return (
-    <div className="flex flex-col gap-4 h-full lg:h-[calc(100vh-140px)] animate-in fade-in duration-500 overflow-y-auto lg:overflow-hidden p-2 sm:p-0">
+    <div className="flex flex-col gap-4 min-h-full animate-in fade-in duration-500 p-2 sm:p-0 pb-6">
       {/* Header de Ações Rápidas */}
       <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-4 sm:p-5 border border-primary/20 rounded-2xl shadow-sm">
         <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
@@ -1379,7 +1379,7 @@ export function PDVInterface() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_450px] gap-4 sm:gap-6 flex-1 overflow-visible lg:overflow-hidden">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_450px] gap-4 sm:gap-6 flex-1 items-start">
         <Dialog open={isCheckoutModalOpen} onOpenChange={setIsCheckoutModalOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
