@@ -1807,82 +1807,167 @@ export function PDVInterface() {
         </Dialog>
 
         <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
-          <DialogContent className="sm:max-w-[400px] text-center">
-            <DialogHeader>
-              <DialogTitle className="flex flex-col items-center gap-2">
-                <div className="h-16 w-16 bg-success/10 text-success rounded-full flex items-center justify-center mb-2">
-                  <CheckCircle2 className="h-10 w-10" />
+          <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden border-0 shadow-2xl">
+            {/* Header com gradiente */}
+            <div className="relative bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 px-6 pt-8 pb-12 text-center text-white">
+              <div className="absolute inset-0 opacity-20" style={{
+                backgroundImage: "radial-gradient(circle at 20% 30%, white 1px, transparent 1px), radial-gradient(circle at 80% 70%, white 1px, transparent 1px)",
+                backgroundSize: "40px 40px",
+              }} />
+              <div className="relative">
+                <div className="mx-auto h-20 w-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center ring-4 ring-white/30 animate-in zoom-in duration-500">
+                  <CheckCircle2 className="h-12 w-12 text-white drop-shadow" strokeWidth={2.5} />
                 </div>
-                Venda Realizada!
-              </DialogTitle>
-            </DialogHeader>
-            <div className="py-6 space-y-4">
-              <p className="text-muted-foreground text-sm">
-                A venda foi processada e registrada com sucesso no sistema.
-              </p>
-              <div className="grid grid-cols-1 gap-3">
-                <Button
-                  className="w-full gap-2 h-12 font-bold"
-                  onClick={() => handlePrintReceipt()}
-                >
-                  <Printer className="h-4 w-4" /> Imprimir Recibo
-                </Button>
-                {lastSaleId && (
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 translate-x-12 text-yellow-200 animate-pulse">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <DialogHeader className="mt-4 space-y-1">
+                  <DialogTitle className="text-2xl font-bold text-white">
+                    Venda Realizada!
+                  </DialogTitle>
+                  <p className="text-white/90 text-sm">
+                    Registrada com sucesso no sistema
+                  </p>
+                </DialogHeader>
+              </div>
+            </div>
+
+            {/* Resumo da venda */}
+            <div className="px-6 -mt-6 relative z-10">
+              <div className="rounded-xl bg-card border shadow-lg p-4 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1.5">
+                    <Hash className="h-3.5 w-3.5" /> Venda
+                  </span>
+                  <span className="font-mono font-semibold">
+                    #{lastSaleId ? lastSaleId.slice(0, 8).toUpperCase() : "----"}
+                  </span>
+                </div>
+                {lastSaleData?.customer?.name && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5" /> Cliente
+                    </span>
+                    <span className="font-semibold truncate max-w-[200px]">{lastSaleData.customer.name}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1.5">
+                    <ShoppingBag className="h-3.5 w-3.5" /> Itens
+                  </span>
+                  <span className="font-semibold">
+                    {lastSaleData?.items?.reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 0} produto(s)
+                  </span>
+                </div>
+                <div className="border-t pt-2 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">Total</span>
+                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {(lastSaleData?.total ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Ações */}
+            <div className="px-6 pt-5 pb-2 space-y-2">
+              <Button
+                className="w-full gap-2 h-12 font-bold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
+                onClick={() => handlePrintReceipt()}
+              >
+                <Printer className="h-4 w-4" /> Imprimir Recibo
+              </Button>
+
+              {lastSaleId && (
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="outline"
-                    className="w-full gap-2 h-12 font-bold"
+                    className="gap-2 h-11 font-semibold"
+                    onClick={async () => {
+                      const url = `${window.location.origin}/recibo/${lastSaleId}`;
+                      const phone = (lastSaleData?.customer?.phone || "").replace(/\D/g, "");
+                      const msg = encodeURIComponent(`Olá! Segue o cupom da sua compra: ${url}`);
+                      const wa = phone
+                        ? `https://wa.me/55${phone}?text=${msg}`
+                        : `https://wa.me/?text=${msg}`;
+                      window.open(wa, "_blank");
+                    }}
+                  >
+                    <Share2 className="h-4 w-4" /> WhatsApp
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-2 h-11 font-semibold"
                     onClick={async () => {
                       const url = `${window.location.origin}/recibo/${lastSaleId}`;
                       await navigator.clipboard.writeText(url);
-                      toast.success("Link copiado", { description: url });
-                      window.open(url, "_blank");
+                      toast.success("Link copiado!", { description: url });
                     }}
                   >
-                    <ReceiptText className="h-4 w-4" /> Cupom online (compartilhável)
+                    <Copy className="h-4 w-4" /> Copiar link
                   </Button>
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full gap-2 h-12 font-bold">
-                      <FileText className="h-4 w-4" />
-                      Imprimir Termo
-                      <ChevronDown className="h-4 w-4 ml-auto opacity-50" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-[350px]" align="end">
-                    <DropdownMenuItem
-                      className="cursor-pointer py-3 font-semibold"
-                      onClick={() => handlePrintWarranty("seminovo")}
-                    >
-                      iPhone Seminovo (7 meses de garantia)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="cursor-pointer py-3 font-semibold"
-                      onClick={() => handlePrintWarranty("lacrado")}
-                    >
-                      iPhone Lacrado (1 ano de garantia)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="cursor-pointer py-3 font-semibold"
-                      onClick={() => handlePrintWarranty("android")}
-                    >
-                      Aparelho Android (1 ano de garantia)
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                </div>
+              )}
+
+              {lastSaleId && (
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 h-11 font-semibold"
+                  onClick={() => {
+                    const url = `${window.location.origin}/recibo/${lastSaleId}`;
+                    window.open(url, "_blank");
+                  }}
+                >
+                  <ReceiptText className="h-4 w-4" /> Cupom online
+                </Button>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full gap-2 h-11 font-semibold">
+                    <FileText className="h-4 w-4" />
+                    Imprimir Termo de Garantia
+                    <ChevronDown className="h-4 w-4 ml-auto opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[380px]" align="end">
+                  <DropdownMenuItem
+                    className="cursor-pointer py-3 font-semibold"
+                    onClick={() => handlePrintWarranty("seminovo")}
+                  >
+                    iPhone Seminovo (7 meses de garantia)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer py-3 font-semibold"
+                    onClick={() => handlePrintWarranty("lacrado")}
+                  >
+                    iPhone Lacrado (1 ano de garantia)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer py-3 font-semibold"
+                    onClick={() => handlePrintWarranty("android")}
+                  >
+                    Aparelho Android (1 ano de garantia)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-            <DialogFooter>
+
+            <DialogFooter className="px-6 pb-5 pt-2 sm:justify-center">
               <Button
                 variant="ghost"
-                className="w-full"
+                className="w-full text-muted-foreground hover:text-foreground"
                 onClick={() => setIsSuccessModalOpen(false)}
               >
-                Fechar e Iniciar Nova Venda
+                Fechar e iniciar nova venda
+                <kbd className="ml-2 hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium">
+                  Esc
+                </kbd>
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+
 
         <Dialog open={isCustomerModalOpen} onOpenChange={setIsCustomerModalOpen}>
           <DialogContent>
