@@ -5,9 +5,11 @@ import { Topbar } from "@/components/layout/Topbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
-import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, Circle, LayoutGrid } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Loader2, CheckCircle2, Circle, LayoutGrid, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { DayKanbanModal } from "@/components/calendar/DayKanbanModal";
+import { RemindersModal, checkRemindersDueToday } from "@/components/calendar/RemindersModal";
+
 
 
 export const Route = createFileRoute("/calendario")({
@@ -55,6 +57,7 @@ function CalendarPage() {
   const [selected, setSelected] = useState<Date>(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [kanbanOpen, setKanbanOpen] = useState(false);
+  const [remindersOpen, setRemindersOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", priority: "medium" });
 
 
@@ -74,6 +77,11 @@ function CalendarPage() {
   useEffect(() => {
     load(); /* eslint-disable-next-line */
   }, [user?.id, cursor]);
+
+  useEffect(() => {
+    if (user?.id && orgId) void checkRemindersDueToday({ userId: user.id, organizationId: orgId });
+  }, [user?.id, orgId]);
+
 
   const days = useMemo(() => {
     const start = startOfMonth(cursor);
@@ -159,6 +167,13 @@ function CalendarPage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display font-bold text-xl capitalize">{monthLabel}</h2>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setRemindersOpen(true)}
+                    className="h-9 px-3 rounded-lg border border-border text-xs font-bold inline-flex items-center gap-1.5 hover:bg-muted text-primary"
+                    title="Lembretes recorrentes (aluguel, contas mensais...)"
+                  >
+                    <Bell className="h-4 w-4" /> Lembretes
+                  </button>
                   <button
                     onClick={() =>
                       setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
@@ -385,6 +400,8 @@ function CalendarPage() {
         }}
         date={selected}
       />
+
+      <RemindersModal open={remindersOpen} onClose={() => setRemindersOpen(false)} />
     </div>
   );
 
