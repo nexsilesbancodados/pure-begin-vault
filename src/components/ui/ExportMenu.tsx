@@ -137,7 +137,7 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notep
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div className="flex items-center gap-2">
                 <NotebookPen className="h-5 w-5 text-primary" />
-                <h3 className="font-bold text-base">Bloco de Notas</h3>
+                <h3 className="font-bold text-base">{mode === "wholesale" ? "Lista Atacado (+R$ 350)" : "Bloco de Notas"}</h3>
               </div>
               <button onClick={() => setNotepadOpen(false)} className="p-1 hover:bg-muted rounded-lg">
                 <X className="h-4 w-4" />
