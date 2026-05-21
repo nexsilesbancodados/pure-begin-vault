@@ -411,7 +411,7 @@ function NewQuotationModal({
               </Button>
             </div>
             <div className="space-y-2">
-              {items.map((it, idx) => (
+              {items.map((it) => (
                 <div key={it.id} className="flex gap-2 items-center">
                   <Input
                     placeholder="Nome do produto"
