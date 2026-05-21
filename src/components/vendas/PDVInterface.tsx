@@ -836,6 +836,7 @@ export function PDVInterface() {
 
   const filteredProducts = useMemo(() => {
     return allProducts.filter((p) => {
+      if ((p.stock || 0) <= 0) return false;
       const q = search.toLowerCase();
       const pa = p as any;
       const haystack = [
