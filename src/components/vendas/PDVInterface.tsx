@@ -44,6 +44,11 @@ import {
   Wallet,
   Landmark,
   Smartphone,
+  Share2,
+  Copy,
+  Sparkles,
+  Hash,
+  ShoppingBag,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Product } from "@/lib/mock";
