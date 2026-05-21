@@ -593,6 +593,14 @@ export function StockList() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <button
+            onClick={() => setIsImportOpen(true)}
+            className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition shadow-sm"
+          >
+            <Upload className="h-4 w-4" /> Importar
+          </button>
+
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 text-sm font-semibold border border-border transition">
