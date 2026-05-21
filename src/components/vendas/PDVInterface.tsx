@@ -117,7 +117,7 @@ export function PDVInterface() {
   const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string } | null>(
     null,
   );
-  const [customersList, setCustomersList] = useState<{ id: string; full_name: string }[]>([]);
+  const [customersList, setCustomersList] = useState<{ id: string; full_name: string; partner?: string }[]>([]);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
@@ -415,13 +415,32 @@ export function PDVInterface() {
     try {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name")
+        .select("id, name, notes")
         .eq("organization_id", orgId)
         .order("name")
         .limit(200);
 
       if (error) throw error;
-      setCustomersList((data || []).map((c: any) => ({ id: c.id, full_name: c.name })));
+      setCustomersList(
+        (data || []).map((c: any) => {
+          let partner: string | undefined;
+          try {
+            const extras = c.notes ? JSON.parse(c.notes) : null;
+            if (extras && typeof extras === "object" && extras.empresa_parceira) {
+              partner = String(extras.empresa_parceira);
+            }
+          } catch {
+            /* notes não é JSON */
+          }
+          if (!partner) {
+            const n = (c.name || "").toLowerCase();
+            if (n.includes("atacadocell") || n.includes("atacado cell")) partner = "atacadocell";
+            else if (n.includes("premier")) partner = "premier_castanhal";
+            else if (n.includes("alfatech")) partner = "alfatech_curuca";
+          }
+          return { id: c.id, full_name: c.name, partner };
+        }),
+      );
     } catch (error) {
       console.error("Erro ao carregar clientes:", error);
     }
