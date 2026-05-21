@@ -460,6 +460,7 @@ function NotasAbertoPage() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [orgProductIds, setOrgProductIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [listSearch, setListSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "overdue" | "paid">("all");
@@ -852,6 +853,57 @@ function NotasAbertoPage() {
     if (open) loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, orgId]);
+
+  // Carrega o conjunto de IDs de produtos da loja atual para detectar
+  // itens importados de lojas parceiras que ainda precisam ser cadastrados.
+  useEffect(() => {
+    if (!orgId) {
+      setOrgProductIds(new Set());
+      return;
+    }
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("products")
+          .select("id")
+          .eq("organization_id", orgId);
+        if (!active) return;
+        const ids = new Set<string>(
+          ((data ?? []) as Array<{ id: string }>).map((r) => r.id),
+        );
+        setOrgProductIds(ids);
+      } catch {
+        if (active) setOrgProductIds(new Set());
+      }
+    })();
+    const ch = supabase
+      .channel(`org-products-${orgId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products", filter: `organization_id=eq.${orgId}` },
+        (payload) => {
+          setOrgProductIds((prev) => {
+            const next = new Set(prev);
+            const newRow = payload.new as { id?: string } | null;
+            const oldRow = payload.old as { id?: string } | null;
+            if (payload.eventType === "DELETE" && oldRow?.id) next.delete(oldRow.id);
+            else if (newRow?.id) next.add(newRow.id);
+            return next;
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      active = false;
+      void supabase.removeChannel(ch);
+    };
+  }, [orgId, notas.length]);
+
+  const isPendingItem = (p: Product) =>
+    !!p.id && !p.id.startsWith("__") && !orgProductIds.has(p.id);
+
+  const getPendingCount = (n: Nota) => n.items.filter(isPendingItem).length;
 
   const filtered = products.filter((p) => {
     if (!search) return true;
@@ -1266,6 +1318,7 @@ function NotasAbertoPage() {
                           (new Date(n.prazoPagamento).getTime() - today.getTime()) / 86400000,
                         )
                       : null;
+                    const pendingCount = getPendingCount(n);
                     return (
                       <Card
                         key={n.id}
@@ -1278,6 +1331,14 @@ function NotasAbertoPage() {
                             n.paga ? "bg-emerald-500" : isOverdue ? "bg-rose-500" : "bg-primary"
                           }`}
                         />
+                        {pendingCount > 0 && (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">
+                              Nota importada · {pendingCount} produto(s) p/ cadastrar
+                            </span>
+                          </div>
+                        )}
 
                         <div className="p-4 space-y-3">
                           {/* Header */}
@@ -1508,6 +1569,18 @@ function NotasAbertoPage() {
 
               {/* Content (scrollable) */}
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                {getPendingCount(detailNota) > 0 && (
+                  <div className="flex items-start gap-2.5 p-3 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div className="text-xs leading-relaxed">
+                      <p className="font-semibold">Nota importada de loja parceira</p>
+                      <p className="text-amber-700/90 dark:text-amber-400/90">
+                        {getPendingCount(detailNota)} produto(s) ainda não está(ão) cadastrado(s)
+                        no seu estoque. Clique no nome do produto abaixo para cadastrá-lo.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {/* Informações da nota */}
                 <section>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
@@ -1792,8 +1865,10 @@ function NotasAbertoPage() {
                               </TableCell>
                             </TableRow>
                           )}
-                          {detailNota.items.map((p) => (
-                            <TableRow key={p.id} className="hover:bg-muted/30">
+                          {detailNota.items.map((p) => {
+                            const pending = isPendingItem(p);
+                            return (
+                            <TableRow key={p.id} className={"hover:bg-muted/30 " + (pending ? "bg-amber-50/40 dark:bg-amber-950/20" : "")}>
                               <TableCell
                                 className="font-medium text-primary cursor-pointer hover:underline"
                                 onClick={async () => {
@@ -1808,9 +1883,17 @@ function NotasAbertoPage() {
                                     setEditingProduct(p);
                                   }
                                 }}
-                                title="Abrir cadastro do produto"
+                                title={pending ? "Produto não cadastrado — clique para cadastrar" : "Abrir cadastro do produto"}
                               >
-                                {p.name}
+                                <span className="inline-flex items-center gap-2">
+                                  {p.name}
+                                  {pending && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-amber-300 dark:border-amber-800 bg-amber-100/70 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      Cadastrar
+                                    </span>
+                                  )}
+                                </span>
                               </TableCell>
                               <TableCell className="text-muted-foreground font-mono text-xs">
                                 {p.imei ?? "—"}
@@ -1841,7 +1924,8 @@ function NotasAbertoPage() {
                                 </Button>
                               </TableCell>
                             </TableRow>
-                          ))}
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     </div>
