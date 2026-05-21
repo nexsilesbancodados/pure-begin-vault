@@ -48,6 +48,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
+import { ExportMenu } from "@/components/ui/ExportMenu";
 
 export function StockList() {
   const { user } = useAuth();
@@ -600,12 +601,28 @@ export function StockList() {
             <Upload className="h-4 w-4" /> Importar
           </button>
 
-          <button
-            onClick={handleExport}
-            className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 text-sm font-semibold border border-border transition"
-          >
-            <FileDown className="h-4 w-4 text-primary" /> Exportar
-          </button>
+          <ExportMenu
+            filename="estoque-atual"
+            rows={filteredProducts}
+            cols={[
+              { key: "name", label: "Nome" },
+              { key: "sku", label: "SKU" },
+              { key: "imei", label: "IMEI" },
+              { key: "imei2", label: "IMEI 2" },
+              { key: "category", label: "Categoria" },
+              { key: "brand", label: "Marca" },
+              { key: "supplier", label: "Fornecedor" },
+              { key: "color", label: "Cor" },
+              { key: "capacity", label: "Capacidade" },
+              { key: "battery_health", label: "Saúde Bateria" },
+              { key: "stock", label: "Estoque" },
+              { key: "min_stock", label: "Min Estoque" },
+              { key: "price", label: "Preço Venda" },
+              { key: "cost_price", label: "Preço Custo" },
+              { key: "location", label: "Localização" },
+              { key: "observations", label: "Observações" },
+            ]}
+          />
 
 
 
