@@ -113,7 +113,7 @@ function CalendarPage() {
       void start;
       setReminderDays(map);
     })();
-  }, [user?.id, orgId, remindersOpen]);
+  }, [user?.id, orgId, remindersOpen, cursor]);
 
 
   const days = useMemo(() => {
