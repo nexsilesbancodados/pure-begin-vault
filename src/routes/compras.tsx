@@ -375,7 +375,7 @@ function computeBestSupplier(q: Quotation) {
   return best;
 }
 
-// ===== Helpers de importação (parser de listas coladas) =====
+// ===== Helpers de importação (parser inteligente de listas coladas) =====
 const normalize = (s: string) =>
   s
     .toLowerCase()
@@ -385,23 +385,109 @@ const normalize = (s: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const parseLine = (raw: string): { name: string; value: number } | null => {
-  const line = raw.trim();
-  if (!line) return null;
-  const matches = Array.from(line.matchAll(/(\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)/g));
-  if (matches.length === 0) return { name: line, value: 0 };
-  const last = matches[matches.length - 1];
-  const raw2 = last[0];
-  let num: number;
-  if (raw2.includes(",")) num = Number(raw2.replace(/\./g, "").replace(",", "."));
-  else if (/\d{1,3}(\.\d{3})+$/.test(raw2)) num = Number(raw2.replace(/\./g, ""));
-  else num = Number(raw2);
-  const idx = last.index ?? 0;
-  const name = (line.slice(0, idx) + line.slice(idx + raw2.length))
-    .replace(/[-–—|:R\$]/g, " ")
+// Remove emojis e símbolos decorativos comuns em listas de WhatsApp
+const stripDecor = (s: string) =>
+  s
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}]/gu, " ")
+    .replace(/[•·●◉○⚪⚫🟢🟡🔴🟠🟣🟤⭐✅❌📱📲💲💰📦🛒]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return { name: name || line, value: Number.isFinite(num) ? num : 0 };
+
+const COLOR_WORDS = [
+  "preto","branco","azul","verde","vermelho","roxo","rosa","dourado","prata",
+  "grafite","natural","starlight","sierra","titanio","midnight",
+  "estelar","amarelo","laranja","cinza","gold","silver","black","white","blue",
+  "green","red","purple","pink","gray","clara","escura"
+];
+const isColorToken = (t: string) => COLOR_WORDS.includes(t);
+
+const parseStorage = (text: string): string | null => {
+  const t = text.toLowerCase();
+  const tb = t.match(/\b([12])\s*tb\b/);
+  if (tb) return `${Number(tb[1]) * 1024}`;
+  const m = t.match(/\b(64|128|256|512|1024|2048)\s*(gb|g)?\b/);
+  return m ? m[1] : null;
+};
+
+// Extrai todos os preços de uma linha
+const extractPrices = (line: string): number[] => {
+  const out: number[] = [];
+  const re = /(?:R\$\s*)?(\d{1,3}(?:[.\s]\d{3})+(?:,\d{1,2})?|\d+,\d{1,2}|\d{3,6})/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(line)) !== null) {
+    const raw = m[1];
+    let n: number;
+    if (raw.includes(",")) n = Number(raw.replace(/\./g, "").replace(/\s/g, "").replace(",", "."));
+    else if (/\d{1,3}([.\s]\d{3})+$/.test(raw)) n = Number(raw.replace(/[.\s]/g, ""));
+    else n = Number(raw);
+    if (!Number.isFinite(n)) continue;
+    if (!raw.includes(",") && !raw.includes(".") && [64, 128, 256, 512, 1024, 2048].includes(n)) continue;
+    if (n >= 50) out.push(n);
+  }
+  return out;
+};
+
+const parseProductLine = (raw: string): { name: string; qty: number } | null => {
+  let line = stripDecor(raw).trim();
+  if (!line) return null;
+  let qty = 1;
+  const pre = line.match(/^(\d{1,3})\s*[-x×.)\]]\s*(.+)$/i);
+  if (pre) {
+    const q = Number(pre[1]);
+    if (q > 0 && q <= 50) qty = q;
+    line = pre[2].trim();
+  } else {
+    const suf = line.match(/^(.*?)\s+(\d{1,2})$/);
+    if (suf && !parseStorage(suf[2])) {
+      qty = Number(suf[2]) || 1;
+      line = suf[1].trim();
+    }
+  }
+  const name = line.replace(/\s+/g, " ").trim();
+  return name ? { name, qty } : null;
+};
+
+type SupEntry = { name: string; tokens: string[]; storage: string | null; color: string | null; price: number };
+
+const parseSupplierBlock = (text: string): SupEntry[] => {
+  const lines = text.split(/\r?\n/).map((l) => stripDecor(l)).filter(Boolean);
+  const entries: SupEntry[] = [];
+  let header = "";
+  for (const ln of lines) {
+    const prices = extractPrices(ln);
+    const looksLikeModel = /\b(iphone|galaxy|redmi|moto|poco|xiaomi|samsung|note|nord|pixel|mate|huawei|honor|asus|rog|zenfone)\b/i.test(ln);
+    if (prices.length === 0 && looksLikeModel) {
+      header = ln;
+      continue;
+    }
+    if (prices.length === 0) continue;
+    const cleaned = ln.replace(/(?:R\$\s*)?\d[\d.\s,]*/g, " ").replace(/\s+/g, " ").trim();
+    const ctx = `${header} ${cleaned}`.trim();
+    const storage = parseStorage(ctx);
+    const tokens = normalize(ctx).split(" ").filter(Boolean);
+    const colors = tokens.filter(isColorToken);
+    if (colors.length > 1 && prices.length === 1) {
+      for (const c of colors) {
+        entries.push({ name: ctx, tokens, storage, color: c, price: prices[0] });
+      }
+    } else {
+      const color = colors[0] ?? null;
+      for (const p of prices) {
+        entries.push({ name: ctx, tokens, storage, color, price: p });
+      }
+    }
+  }
+  return entries;
+};
+
+const scoreMatch = (prodTokens: string[], prodStorage: string | null, prodColors: string[], e: SupEntry): number => {
+  const set = new Set(e.tokens);
+  let s = 0;
+  for (const t of prodTokens) if (set.has(t)) s += t.length >= 3 ? 2 : 1;
+  if (prodStorage && e.storage && prodStorage === e.storage) s += 8;
+  else if (prodStorage && e.storage && prodStorage !== e.storage) s -= 6;
+  if (prodColors.length && e.color && prodColors.includes(e.color)) s += 4;
+  return s;
 };
 
 
@@ -418,71 +504,57 @@ function NewQuotationModal({
   const [items, setItems] = useState<QuotationItem[]>([
     { id: newId(), name: "", quantity: 1, salePrice: 0 },
   ]);
-  // 3 fornecedores fixos por padrão
   const [supplierNames, setSupplierNames] = useState<string[]>([
     "Fornecedor 1",
     "Fornecedor 2",
     "Fornecedor 3",
   ]);
-  // breakdown[itemId][supplierIdx] = {cost, frete1, frete2}
   const [breakdown, setBreakdown] = useState<Record<string, PriceBreakdown[]>>(() => ({
     [items[0].id]: [emptyBreakdown(), emptyBreakdown(), emptyBreakdown()],
   }));
   const [notes, setNotes] = useState("");
-  const [markup, setMarkup] = useState<number>(30); // % padrão sugerido
+  const [markup, setMarkup] = useState<number>(30);
   const [importOpen, setImportOpen] = useState(false);
   const [importProducts, setImportProducts] = useState("");
   const [importSup, setImportSup] = useState<string[]>(["", "", ""]);
 
   const applyImport = () => {
-    // 1) Parse lista de produtos -> nome + qtd (último número = qtd, default 1)
-    const prodLines = importProducts
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter(Boolean);
+    const prodLines = importProducts.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     if (prodLines.length === 0) {
       toast.error("Cole a lista de produtos");
       return;
     }
     const parsedProducts = prodLines
-      .map((l) => {
-        const p = parseLine(l);
-        if (!p) return null;
-        const qty = p.value > 0 && p.value < 10000 ? Math.round(p.value) : 1;
-        return { name: p.name, qty };
-      })
+      .map(parseProductLine)
       .filter(Boolean) as { name: string; qty: number }[];
 
-    // 2) Parse cada lista de fornecedor -> map normalizado nome->preço + array em ordem
-    const supParsed = importSup.map((txt) => {
-      const lines = txt
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean);
-      const arr = lines.map((l) => parseLine(l)).filter(Boolean) as {
-        name: string;
-        value: number;
-      }[];
-      const map = new Map<string, number>();
-      arr.forEach((it) => {
-        if (it.name) map.set(normalize(it.name), it.value);
-      });
-      return { arr, map };
-    });
+    const supParsed = importSup.map((txt) => parseSupplierBlock(txt));
 
-    // 3) Constrói items e breakdown casando por nome; fallback por ordem
     const newItems: QuotationItem[] = [];
     const newBreakdown: Record<string, PriceBreakdown[]> = {};
+    let matched = 0;
     parsedProducts.forEach((prod, idx) => {
       const id = newId();
       newItems.push({ id, name: prod.name, quantity: prod.qty, salePrice: 0 });
-      const norm = normalize(prod.name);
-      const costs = supParsed.map((sp) => {
-        const byName = sp.map.get(norm);
-        if (byName != null && byName > 0) return byName;
-        // fallback: mesma posição
-        const byIdx = sp.arr[idx]?.value;
-        return byIdx && byIdx > 0 ? byIdx : 0;
+      const pTokens = normalize(prod.name).split(" ").filter(Boolean);
+      const pStorage = parseStorage(prod.name);
+      const pColors = pTokens.filter(isColorToken);
+
+      const costs = supParsed.map((entries) => {
+        if (entries.length === 0) return 0;
+        let best: { score: number; price: number } | null = null;
+        for (const e of entries) {
+          const sc = scoreMatch(pTokens, pStorage, pColors, e);
+          if (sc <= 0) continue;
+          if (!best || sc > best.score || (sc === best.score && e.price < best.price)) {
+            best = { score: sc, price: e.price };
+          }
+        }
+        if (best) {
+          matched++;
+          return best.price;
+        }
+        return entries[idx]?.price ?? 0;
       });
       newBreakdown[id] = costs.map((c) => ({ cost: c, frete1: 0, frete2: 0 }));
     });
@@ -490,7 +562,9 @@ function NewQuotationModal({
     setItems(newItems);
     setBreakdown(newBreakdown);
     setImportOpen(false);
-    toast.success(`${newItems.length} produto(s) importado(s) — confira os valores.`);
+    toast.success(
+      `${newItems.length} produto(s) importado(s) · ${matched} casamento(s) automáticos.`,
+    );
   };
 
 
