@@ -476,7 +476,6 @@ function NotasAbertoPage() {
   const [addingToNotaId, setAddingToNotaId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [kindTab, setKindTab] = useState<"compra" | "venda">("compra");
   const [salesOpen, setSalesOpen] = useState(false);
   const detailNota = notas.find((n) => n.id === detailId) ?? null;
