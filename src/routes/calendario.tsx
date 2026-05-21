@@ -85,17 +85,32 @@ function CalendarPage() {
     (async () => {
       const { data } = await supabase
         .from("recurring_reminders" as any)
-        .select("title, day_of_month, active")
+        .select("title, day_of_month, days_of_week, frequency, active")
         .eq("organization_id", orgId)
         .eq("active", true);
       const map = new Map<number, { count: number; titles: string[] }>();
-      ((data as any[]) || []).forEach((r) => {
-        const k = Number(r.day_of_month);
+      const start = startOfMonth(cursor);
+      const end = endOfMonth(cursor);
+      const addTo = (k: number, title: string) => {
         const cur = map.get(k) || { count: 0, titles: [] };
         cur.count += 1;
-        cur.titles.push(r.title);
+        cur.titles.push(title);
         map.set(k, cur);
+      };
+      ((data as any[]) || []).forEach((r) => {
+        if (r.frequency === "weekly") {
+          const dows: number[] = r.days_of_week || [];
+          if (dows.length === 0) return;
+          for (let d = 1; d <= end.getDate(); d++) {
+            const dt = new Date(cursor.getFullYear(), cursor.getMonth(), d);
+            if (dows.includes(dt.getDay())) addTo(d, r.title);
+          }
+        } else {
+          const k = Number(r.day_of_month);
+          if (k >= 1 && k <= end.getDate()) addTo(k, r.title);
+        }
       });
+      void start;
       setReminderDays(map);
     })();
   }, [user?.id, orgId, remindersOpen]);
