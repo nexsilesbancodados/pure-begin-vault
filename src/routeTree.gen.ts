@@ -50,6 +50,7 @@ import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as CrmRouteImport } from './routes/crm'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ConciliacaoRouteImport } from './routes/conciliacao'
+import { Route as ComprasRouteImport } from './routes/compras'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as CalendarioRouteImport } from './routes/calendario'
 import { Route as CaixaPdvRouteImport } from './routes/caixa-pdv'
@@ -318,6 +319,11 @@ const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
 const ConciliacaoRoute = ConciliacaoRouteImport.update({
   id: '/conciliacao',
   path: '/conciliacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ComprasRoute = ComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientesRoute = ClientesRouteImport.update({
@@ -656,6 +662,7 @@ export interface FileRoutesByFullPath {
   '/caixa-pdv': typeof CaixaPdvRoute
   '/calendario': typeof CalendarioRoute
   '/clientes': typeof ClientesRoute
+  '/compras': typeof ComprasRoute
   '/conciliacao': typeof ConciliacaoRoute
   '/configuracoes': typeof ConfiguracoesRouteWithChildren
   '/crm': typeof CrmRoute
@@ -763,6 +770,7 @@ export interface FileRoutesByTo {
   '/caixa-pdv': typeof CaixaPdvRoute
   '/calendario': typeof CalendarioRoute
   '/clientes': typeof ClientesRoute
+  '/compras': typeof ComprasRoute
   '/conciliacao': typeof ConciliacaoRoute
   '/configuracoes': typeof ConfiguracoesRouteWithChildren
   '/crm': typeof CrmRoute
@@ -871,6 +879,7 @@ export interface FileRoutesById {
   '/caixa-pdv': typeof CaixaPdvRoute
   '/calendario': typeof CalendarioRoute
   '/clientes': typeof ClientesRoute
+  '/compras': typeof ComprasRoute
   '/conciliacao': typeof ConciliacaoRoute
   '/configuracoes': typeof ConfiguracoesRouteWithChildren
   '/crm': typeof CrmRoute
@@ -980,6 +989,7 @@ export interface FileRouteTypes {
     | '/caixa-pdv'
     | '/calendario'
     | '/clientes'
+    | '/compras'
     | '/conciliacao'
     | '/configuracoes'
     | '/crm'
@@ -1087,6 +1097,7 @@ export interface FileRouteTypes {
     | '/caixa-pdv'
     | '/calendario'
     | '/clientes'
+    | '/compras'
     | '/conciliacao'
     | '/configuracoes'
     | '/crm'
@@ -1194,6 +1205,7 @@ export interface FileRouteTypes {
     | '/caixa-pdv'
     | '/calendario'
     | '/clientes'
+    | '/compras'
     | '/conciliacao'
     | '/configuracoes'
     | '/crm'
@@ -1302,6 +1314,7 @@ export interface RootRouteChildren {
   CaixaPdvRoute: typeof CaixaPdvRoute
   CalendarioRoute: typeof CalendarioRoute
   ClientesRoute: typeof ClientesRoute
+  ComprasRoute: typeof ComprasRoute
   ConciliacaoRoute: typeof ConciliacaoRoute
   ConfiguracoesRoute: typeof ConfiguracoesRouteWithChildren
   CrmRoute: typeof CrmRoute
@@ -1650,6 +1663,13 @@ declare module '@tanstack/react-router' {
       path: '/conciliacao'
       fullPath: '/conciliacao'
       preLoaderRoute: typeof ConciliacaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compras': {
+      id: '/compras'
+      path: '/compras'
+      fullPath: '/compras'
+      preLoaderRoute: typeof ComprasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clientes': {
@@ -2250,6 +2270,7 @@ const rootRouteChildren: RootRouteChildren = {
   CaixaPdvRoute: CaixaPdvRoute,
   CalendarioRoute: CalendarioRoute,
   ClientesRoute: ClientesRoute,
+  ComprasRoute: ComprasRoute,
   ConciliacaoRoute: ConciliacaoRoute,
   ConfiguracoesRoute: ConfiguracoesRouteWithChildren,
   CrmRoute: CrmRoute,
