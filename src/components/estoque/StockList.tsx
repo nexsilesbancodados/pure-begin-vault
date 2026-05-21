@@ -25,6 +25,13 @@ import {
   BarChart3,
   AlertCircle,
   Copy,
+  DollarSign,
+  Wallet,
+  Percent,
+  Boxes,
+  PackageX,
+  PackageMinus,
+  SlidersHorizontal,
 } from "lucide-react";
 import { ProductForm } from "./ProductForm";
 import { ImportModal } from "@/components/import/ImportModal";
