@@ -16,6 +16,10 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useState, Suspense, lazy } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats, type Period } from "@/hooks/useDashboardStats";
+import { useDashboardRole, ROLE_LABEL } from "@/lib/userRole";
+import { SellerRanking } from "@/components/dashboard/SellerRanking";
+import { StoresComparison } from "@/components/dashboard/StoresComparison";
+import { TodayTasksWidget } from "@/components/dashboard/TodayTasksWidget";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,59 +80,76 @@ function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [period] = useState<Period>("today");
   const { stats, loading, refresh } = useDashboardStats(period);
+  const role = useDashboardRole();
 
-  const kpis = [
-    {
-      label: "Vendas de hoje",
-      value: stats.todaySalesPDV.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-      trend: "+12%",
-      sub: stats.todaySalesImport > 0 
-        ? `R$ ${stats.todaySalesImport.toLocaleString("pt-BR")} importados`
-        : "Total faturado via PDV",
-      icon: "ShoppingBag",
-      tone: "success",
-    },
-    {
-      label: "Ordens de Serviço",
-      value: String(stats.activeOS),
-      trend: "",
-      sub: "Aparelhos em bancada",
-      icon: "Wrench",
-      tone: "warning",
-    },
-    {
-      label: "Estoque Baixo",
-      value: String(stats.lowStock),
-      trend: "",
-      sub: "Itens sob limite mínimo",
-      icon: "Box",
-      tone: "destructive",
-    },
-    {
-      label: "Faturamento Mensal",
-      value: stats.monthRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-      trend: "+8%",
-      sub: "Mês atual acumulado",
-      icon: "DollarSign",
-      tone: "primary",
-    },
-    {
-      label: "Novos Leads",
-      value: String(stats.newLeads),
-      trend: "",
-      sub: "Contatos recebidos hoje",
-      icon: "Users",
-      tone: "info",
-    },
-    {
-      label: "Ticket Médio",
-      value: stats.avgTicket.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-      trend: "",
-      sub: "Média por venda (30d)",
-      icon: "TrendingUp",
-      tone: "success",
-    },
-  ];
+  const KPI_TODAY_SALES = {
+    label: "Vendas de hoje",
+    value: stats.todaySalesPDV.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+    trend: "+12%",
+    sub: stats.todaySalesImport > 0
+      ? `R$ ${stats.todaySalesImport.toLocaleString("pt-BR")} importados`
+      : "Total faturado via PDV",
+    icon: "ShoppingBag",
+    tone: "success",
+  };
+  const KPI_OS = {
+    label: "Ordens de Serviço",
+    value: String(stats.activeOS),
+    trend: "",
+    sub: "Aparelhos em bancada",
+    icon: "Wrench",
+    tone: "warning",
+  };
+  const KPI_STOCK = {
+    label: "Estoque Baixo",
+    value: String(stats.lowStock),
+    trend: "",
+    sub: "Itens sob limite mínimo",
+    icon: "Box",
+    tone: "destructive",
+  };
+  const KPI_MONTH = {
+    label: "Faturamento Mensal",
+    value: stats.monthRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+    trend: "+8%",
+    sub: "Mês atual acumulado",
+    icon: "DollarSign",
+    tone: "primary",
+  };
+  const KPI_LEADS = {
+    label: "Novos Leads",
+    value: String(stats.newLeads),
+    trend: "",
+    sub: "Contatos recebidos hoje",
+    icon: "Users",
+    tone: "info",
+  };
+  const KPI_TICKET = {
+    label: "Ticket Médio",
+    value: stats.avgTicket.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+    trend: "",
+    sub: "Média por venda (30d)",
+    icon: "TrendingUp",
+    tone: "success",
+  };
+
+  // KPIs específicos por cargo
+  const kpis =
+    role === "vendedor"
+      ? [KPI_TODAY_SALES, KPI_LEADS, KPI_TICKET, KPI_MONTH]
+      : role === "financeiro"
+        ? [KPI_MONTH, KPI_TODAY_SALES, KPI_TICKET, KPI_STOCK]
+        : role === "tecnico"
+          ? [KPI_OS, KPI_STOCK, KPI_TODAY_SALES, KPI_LEADS]
+          : [KPI_TODAY_SALES, KPI_OS, KPI_STOCK, KPI_MONTH, KPI_LEADS, KPI_TICKET];
+
+  const roleSubtitle: Record<string, string> = {
+    admin: "Visão executiva consolidada com todos os indicadores.",
+    vendedor: "Suas vendas, leads e meta — foco em performance.",
+    financeiro: "Faturamento, ticket médio e indicadores financeiros.",
+    tecnico: "Ordens de serviço, estoque e bancada.",
+  };
+
 
   return (
     <div className="min-h-screen flex w-full bg-background/50">
@@ -137,15 +158,20 @@ function Dashboard() {
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar
           title={`Olá, ${displayName}! 👋`}
-          subtitle="Aqui está o resumo do seu negócio hoje."
+          subtitle={roleSubtitle[role]}
           toggleSidebar={() => setSidebarOpen(true)}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
-          <HeroHeader userName={displayName} />
+          <HeroHeader userName={displayName} status={roleSubtitle[role]} />
+
+          <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary">
+            {ROLE_LABEL[role]}
+          </div>
 
           <QuickActions />
 
-          <LowStockAlert />
+          {(role === "admin" || role === "tecnico") && <LowStockAlert />}
+
 
           <div className="flex flex-col xl:flex-row gap-4 sm:gap-6">
             <div className="flex-1 flex flex-col gap-6 min-w-0">
@@ -196,6 +222,17 @@ function Dashboard() {
                   <ChannelMini />
                 </Suspense>
               </div>
+
+              {/* Widgets por cargo */}
+              {(role === "admin" || role === "vendedor") && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <SellerRanking limit={5} scopeToMe={role === "vendedor"} />
+                  <TodayTasksWidget />
+                </div>
+              )}
+              {(role === "financeiro" || role === "tecnico") && <TodayTasksWidget />}
+              {role === "admin" && <StoresComparison />}
+
 
               <Suspense
                 fallback={
