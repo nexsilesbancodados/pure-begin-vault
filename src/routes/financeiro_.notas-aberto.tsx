@@ -905,6 +905,68 @@ function NotasAbertoPage() {
 
   const getPendingCount = (n: Nota) => n.items.filter(isPendingItem).length;
 
+  // Marca quais produtos da nota em detalhe já foram vendidos (PDV/importação).
+  const [soldProductIds, setSoldProductIds] = useState<Set<string>>(new Set());
+  const [soldImeis, setSoldImeis] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!detailId || !orgId) {
+      setSoldProductIds(new Set());
+      setSoldImeis(new Set());
+      return;
+    }
+    const nota = notas.find((n) => n.id === detailId);
+    if (!nota) return;
+    let active = true;
+    (async () => {
+      const ids = nota.items
+        .map((p) => p.id)
+        .filter((id) => id && !id.startsWith("__")) as string[];
+      const imeis = nota.items
+        .map((p) => p.imei ?? getImeiFromMetadata(p.metadata))
+        .filter(Boolean) as string[];
+      const soldIds = new Set<string>();
+      const soldIm = new Set<string>();
+      try {
+        if (ids.length) {
+          const { data } = await supabase
+            .from("sale_items")
+            .select("product_id, imei")
+            .eq("organization_id", orgId)
+            .in("product_id", ids);
+          (data ?? []).forEach((r: { product_id?: string | null; imei?: string | null }) => {
+            if (r.product_id) soldIds.add(r.product_id);
+            if (r.imei) soldIm.add(String(r.imei));
+          });
+        }
+        if (imeis.length) {
+          const { data } = await supabase
+            .from("sale_items")
+            .select("imei")
+            .eq("organization_id", orgId)
+            .in("imei", imeis);
+          (data ?? []).forEach((r: { imei?: string | null }) => {
+            if (r.imei) soldIm.add(String(r.imei));
+          });
+        }
+      } catch {
+        // silencioso
+      }
+      if (!active) return;
+      setSoldProductIds(soldIds);
+      setSoldImeis(soldIm);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [detailId, orgId, notas]);
+
+  const isSoldItem = (p: Product) => {
+    if (!p.id || p.id.startsWith("__")) return false;
+    if (soldProductIds.has(p.id)) return true;
+    const imei = p.imei ?? getImeiFromMetadata(p.metadata);
+    return !!imei && soldImeis.has(String(imei));
+  };
+
   const filtered = products.filter((p) => {
     if (!search) return true;
     const s = search.toLowerCase();
@@ -1822,11 +1884,22 @@ function NotasAbertoPage() {
                     const lucro = totalVenda - totalCusto;
                     const margem = totalVenda > 0 ? (lucro / totalVenda) * 100 : 0;
                     return (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
                         <div className="rounded-lg border bg-muted/30 px-3 py-2">
                           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Itens</div>
                           <div className="text-sm font-semibold">{detailNota.items.length}</div>
                         </div>
+                        {(() => {
+                          const soldCount = detailNota.items.filter(isSoldItem).length;
+                          return (
+                            <div className="rounded-lg border bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Vendidos</div>
+                              <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                                {soldCount} / {detailNota.items.length}
+                              </div>
+                            </div>
+                          );
+                        })()}
                         <div className="rounded-lg border bg-muted/30 px-3 py-2">
                           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Custo total</div>
                           <div className="text-sm font-semibold">R$ {totalCusto.toFixed(2)}</div>
@@ -1867,8 +1940,9 @@ function NotasAbertoPage() {
                           )}
                           {detailNota.items.map((p) => {
                             const pending = isPendingItem(p);
+                            const sold = isSoldItem(p);
                             return (
-                            <TableRow key={p.id} className={"hover:bg-muted/30 " + (pending ? "bg-amber-50/40 dark:bg-amber-950/20" : "")}>
+                            <TableRow key={p.id} className={"hover:bg-muted/30 " + (sold ? "bg-emerald-50/40 dark:bg-emerald-950/20" : pending ? "bg-amber-50/40 dark:bg-amber-950/20" : "")}>
                               <TableCell
                                 className="font-medium text-primary cursor-pointer hover:underline"
                                 onClick={async () => {
@@ -1885,9 +1959,15 @@ function NotasAbertoPage() {
                                 }}
                                 title={pending ? "Produto não cadastrado — clique para cadastrar" : "Abrir cadastro do produto"}
                               >
-                                <span className="inline-flex items-center gap-2">
-                                  {p.name}
-                                  {pending && (
+                                <span className="inline-flex items-center gap-2 flex-wrap">
+                                  <span className={sold ? "line-through text-muted-foreground" : ""}>{p.name}</span>
+                                  {sold && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-emerald-300 dark:border-emerald-800 bg-emerald-100/70 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      Vendido
+                                    </span>
+                                  )}
+                                  {pending && !sold && (
                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-amber-300 dark:border-amber-800 bg-amber-100/70 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">
                                       <AlertTriangle className="h-3 w-3" />
                                       Cadastrar

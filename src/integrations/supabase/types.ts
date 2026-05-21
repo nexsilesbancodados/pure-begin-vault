@@ -2428,7 +2428,9 @@ export type Database = {
           active: boolean
           amount: number | null
           created_at: string
-          day_of_month: number
+          day_of_month: number | null
+          days_of_week: number[]
+          frequency: string
           id: string
           notes: string | null
           organization_id: string
@@ -2440,7 +2442,9 @@ export type Database = {
           active?: boolean
           amount?: number | null
           created_at?: string
-          day_of_month: number
+          day_of_month?: number | null
+          days_of_week?: number[]
+          frequency?: string
           id?: string
           notes?: string | null
           organization_id: string
@@ -2452,7 +2456,9 @@ export type Database = {
           active?: boolean
           amount?: number | null
           created_at?: string
-          day_of_month?: number
+          day_of_month?: number | null
+          days_of_week?: number[]
+          frequency?: string
           id?: string
           notes?: string | null
           organization_id?: string
