@@ -53,6 +53,7 @@ function CalendarPage() {
   const { orgId } = useOrg();
   const [cursor, setCursor] = useState(new Date());
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [reminderDays, setReminderDays] = useState<Map<number, { count: number; titles: string[] }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Date>(new Date());
   const [modalOpen, setModalOpen] = useState(false);
