@@ -20,7 +20,7 @@ function PDVPage() {
           subtitle="Ponto de Venda Rápido"
           toggleSidebar={() => setSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-hidden p-0 lg:p-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 lg:p-6 pb-8">
           <PDVInterface />
         </main>
       </div>
