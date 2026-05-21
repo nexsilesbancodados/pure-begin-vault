@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card } from "@/components/ui/card";
@@ -50,21 +50,26 @@ export const Route = createFileRoute("/compras")({
 
 type QuotationStatus = "aberta" | "fechada" | "cancelada";
 
+export interface PriceBreakdown {
+  cost: number;
+  frete1: number;
+  frete2: number;
+}
+
 interface QuotationItem {
   id: string;
   name: string;
   quantity: number;
+  salePrice?: number;
   notes?: string;
 }
 
 interface SupplierQuote {
   id: string;
   supplier: string;
-  // chave: itemId -> preço unitário (number ou null se não cotou)
-  prices: Record<string, number | null>;
-  // observações por fornecedor
+  // chave: itemId -> número (legado) ou breakdown {cost, frete1, frete2}
+  prices: Record<string, number | PriceBreakdown | null>;
   notes?: string;
-  // prazo de entrega em dias
   leadTimeDays?: number;
 }
 
@@ -77,6 +82,21 @@ interface Quotation {
   suppliers: SupplierQuote[];
   winnerSupplierId?: string | null;
 }
+
+const emptyBreakdown = (): PriceBreakdown => ({ cost: 0, frete1: 0, frete2: 0 });
+
+const unitTotal = (p: number | PriceBreakdown | null | undefined): number => {
+  if (p == null) return 0;
+  if (typeof p === "number") return p;
+  return (Number(p.cost) || 0) + (Number(p.frete1) || 0) + (Number(p.frete2) || 0);
+};
+
+const asBreakdown = (p: number | PriceBreakdown | null | undefined): PriceBreakdown => {
+  if (p == null) return emptyBreakdown();
+  if (typeof p === "number") return { cost: p, frete1: 0, frete2: 0 };
+  return { cost: p.cost || 0, frete1: p.frete1 || 0, frete2: p.frete2 || 0 };
+};
+
 
 const storageKey = (orgId: string) => `purchase_quotations_${orgId}`;
 
@@ -322,10 +342,16 @@ function StatusBadge({ status }: { status: QuotationStatus }) {
 
 function computeSupplierTotal(q: Quotation, s: SupplierQuote) {
   return q.items.reduce((sum, it) => {
-    const unit = s.prices[it.id];
-    if (unit == null) return sum;
-    return sum + Number(unit) * (Number(it.quantity) || 0);
+    const unit = unitTotal(s.prices[it.id]);
+    return sum + unit * (Number(it.quantity) || 0);
   }, 0);
+}
+
+function computeSupplierRevenue(q: Quotation) {
+  return q.items.reduce(
+    (sum, it) => sum + (Number(it.salePrice) || 0) * (Number(it.quantity) || 0),
+    0,
+  );
 }
 
 function computeBestSupplier(q: Quotation) {
@@ -341,6 +367,7 @@ function computeBestSupplier(q: Quotation) {
   return best;
 }
 
+
 function NewQuotationModal({
   onClose,
   onCreate,
@@ -350,21 +377,91 @@ function NewQuotationModal({
 }) {
   const [title, setTitle] = useState("");
   const [items, setItems] = useState<QuotationItem[]>([
-    { id: newId(), name: "", quantity: 1 },
+    { id: newId(), name: "", quantity: 1, salePrice: 0 },
   ]);
-  const [suppliers, setSuppliers] = useState<string[]>([""]);
+  // 3 fornecedores fixos por padrão
+  const [supplierNames, setSupplierNames] = useState<string[]>([
+    "Fornecedor 1",
+    "Fornecedor 2",
+    "Fornecedor 3",
+  ]);
+  // breakdown[itemId][supplierIdx] = {cost, frete1, frete2}
+  const [breakdown, setBreakdown] = useState<Record<string, PriceBreakdown[]>>(() => ({
+    [items[0].id]: [emptyBreakdown(), emptyBreakdown(), emptyBreakdown()],
+  }));
 
-  const addItem = () =>
-    setItems((p) => [...p, { id: newId(), name: "", quantity: 1 }]);
-  const addSupplier = () => setSuppliers((p) => [...p, ""]);
+  const addItem = () => {
+    const id = newId();
+    setItems((p) => [...p, { id, name: "", quantity: 1, salePrice: 0 }]);
+    setBreakdown((p) => ({
+      ...p,
+      [id]: supplierNames.map(() => emptyBreakdown()),
+    }));
+  };
+
+  const removeItem = (id: string) => {
+    setItems((p) => p.filter((x) => x.id !== id));
+    setBreakdown((p) => {
+      const n = { ...p };
+      delete n[id];
+      return n;
+    });
+  };
+
+  const updateItem = (id: string, patch: Partial<QuotationItem>) => {
+    setItems((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  };
+
+  const updateBreakdown = (
+    itemId: string,
+    supIdx: number,
+    field: keyof PriceBreakdown,
+    value: string,
+  ) => {
+    const num = Number(value.replace(",", ".")) || 0;
+    setBreakdown((p) => {
+      const arr = (p[itemId] ?? supplierNames.map(() => emptyBreakdown())).slice();
+      arr[supIdx] = { ...arr[supIdx], [field]: num };
+      return { ...p, [itemId]: arr };
+    });
+  };
+
+  const updateSupplierName = (idx: number, name: string) =>
+    setSupplierNames((p) => p.map((x, i) => (i === idx ? name : x)));
+
+  // cálculos por linha
+  const computeRow = (it: QuotationItem) => {
+    const sups = breakdown[it.id] ?? supplierNames.map(() => emptyBreakdown());
+    const unitTotals = sups.map((b) => (b.cost || 0) + (b.frete1 || 0) + (b.frete2 || 0));
+    const positives = unitTotals.filter((v) => v > 0);
+    const bestUnit = positives.length ? Math.min(...positives) : 0;
+    const bestIdx = bestUnit > 0 ? unitTotals.indexOf(bestUnit) : -1;
+    const sale = Number(it.salePrice) || 0;
+    const profitPerUnit = bestUnit > 0 ? sale - bestUnit : 0;
+    const profitTotal = profitPerUnit * (Number(it.quantity) || 0);
+    return { sups, unitTotals, bestUnit, bestIdx, profitPerUnit, profitTotal };
+  };
+
+  const grand = useMemo(() => {
+    let cost = 0;
+    let revenue = 0;
+    let profit = 0;
+    items.forEach((it) => {
+      const r = computeRow(it);
+      const qty = Number(it.quantity) || 0;
+      if (r.bestUnit > 0) cost += r.bestUnit * qty;
+      revenue += (Number(it.salePrice) || 0) * qty;
+      profit += r.profitTotal;
+    });
+    return { cost, revenue, profit };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, breakdown, supplierNames]);
 
   const submit = () => {
     if (!title.trim()) return toast.error("Informe um título");
     const validItems = items.filter((i) => i.name.trim() && i.quantity > 0);
     if (validItems.length === 0) return toast.error("Adicione ao menos 1 item");
-    const validSuppliers = suppliers.filter((s) => s.trim());
-    if (validSuppliers.length === 0)
-      return toast.error("Adicione ao menos 1 fornecedor");
+    const validNames = supplierNames.map((n, i) => n.trim() || `Fornecedor ${i + 1}`);
 
     const q: Quotation = {
       id: newId(),
@@ -372,121 +469,287 @@ function NewQuotationModal({
       status: "aberta",
       createdAt: new Date().toISOString(),
       items: validItems,
-      suppliers: validSuppliers.map((name) => ({
+      suppliers: validNames.map((name, idx) => ({
         id: newId(),
-        supplier: name.trim(),
-        prices: Object.fromEntries(validItems.map((i) => [i.id, null])),
+        supplier: name,
+        prices: Object.fromEntries(
+          validItems.map((i) => [
+            i.id,
+            (breakdown[i.id] ?? [])[idx] ?? emptyBreakdown(),
+          ]),
+        ),
       })),
     };
     onCreate(q);
   };
 
+  const fmt = (v: number) =>
+    v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-[1200px] w-[95vw] p-0">
+        <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" /> Nova Cotação de Compra
           </DialogTitle>
           <DialogDescription>
-            Liste os itens desejados e os fornecedores que você quer cotar.
+            Compare 3 fornecedores lado a lado — Custo + Frete 1 + Frete 2 = Total. Informe o
+            preço de venda para visualizar o lucro automaticamente.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-1">
-          <div>
-            <Label>Título</Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex.: Reposição iPhones — Junho"
-            />
+        <div className="px-6 space-y-5 max-h-[70vh] overflow-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Título da cotação</Label>
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ex.: Reposição iPhones — Junho"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {supplierNames.map((n, i) => (
+                <div key={i}>
+                  <Label className="text-xs">Fornecedor {i + 1}</Label>
+                  <Input
+                    value={n}
+                    onChange={(e) => updateSupplierName(i, e.target.value)}
+                    placeholder={`Fornecedor ${i + 1}`}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Itens ({items.length})</Label>
+          <div className="border rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/60">
+                  <tr className="text-left">
+                    <th className="px-3 py-2 sticky left-0 bg-muted/60 z-10 min-w-[220px]">
+                      Produto
+                    </th>
+                    <th className="px-2 py-2 w-20 text-center">Qtd.</th>
+                    {supplierNames.map((n, i) => (
+                      <th
+                        key={i}
+                        colSpan={4}
+                        className="px-2 py-2 text-center border-l border-border bg-primary/5"
+                      >
+                        <div className="flex items-center justify-center gap-1 font-bold">
+                          <Building2 className="h-3.5 w-3.5" /> {n || `Fornecedor ${i + 1}`}
+                        </div>
+                      </th>
+                    ))}
+                    <th className="px-2 py-2 text-center border-l border-border bg-emerald-500/10 min-w-[110px]">
+                      Venda
+                    </th>
+                    <th className="px-2 py-2 text-center border-l border-border bg-emerald-500/10 min-w-[110px]">
+                      Lucro
+                    </th>
+                  </tr>
+                  <tr className="text-[11px] uppercase tracking-wider text-muted-foreground bg-muted/40">
+                    <th className="px-3 py-1.5 sticky left-0 bg-muted/40 z-10" />
+                    <th className="px-2 py-1.5" />
+                    {supplierNames.map((_, i) => (
+                      <Fragment key={`h${i}`}>
+                        <th className="px-1.5 py-1.5 border-l border-border text-center">
+                          Custo
+                        </th>
+                        <th className="px-1.5 py-1.5 text-center">Frete 1</th>
+                        <th className="px-1.5 py-1.5 text-center">Frete 2</th>
+                        <th className="px-1.5 py-1.5 text-center font-bold text-foreground">
+                          Total
+                        </th>
+                      </Fragment>
+                    ))}
+                    <th className="px-1.5 py-1.5 border-l border-border text-center">unit.</th>
+                    <th className="px-1.5 py-1.5 text-center">total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((it) => {
+                    const r = computeRow(it);
+                    return (
+                      <tr key={it.id} className="border-t align-middle">
+                        <td className="px-3 py-2 sticky left-0 bg-card z-10">
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={it.name}
+                              onChange={(e) => updateItem(it.id, { name: e.target.value })}
+                              placeholder="Nome do produto"
+                              className="h-9"
+                            />
+                            {items.length > 1 && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => removeItem(it.id)}
+                                className="h-9 w-9 shrink-0"
+                              >
+                                <Trash2 className="h-4 w-4 text-rose-600" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-2 py-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            value={it.quantity}
+                            onChange={(e) =>
+                              updateItem(it.id, {
+                                quantity: Math.max(1, Number(e.target.value) || 1),
+                              })
+                            }
+                            className="h-9 text-center"
+                          />
+                        </td>
+                        {supplierNames.map((_, i) => {
+                          const bd = r.sups[i] ?? emptyBreakdown();
+                          const isBest = r.bestIdx === i && r.bestUnit > 0;
+                          return (
+                            <Fragment key={`row-${it.id}-${i}`}>
+                              <td className="px-1 py-2 border-l border-border">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min={0}
+                                  value={bd.cost || ""}
+                                  onChange={(e) =>
+                                    updateBreakdown(it.id, i, "cost", e.target.value)
+                                  }
+                                  placeholder="0,00"
+                                  className="h-9 text-right"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min={0}
+                                  value={bd.frete1 || ""}
+                                  onChange={(e) =>
+                                    updateBreakdown(it.id, i, "frete1", e.target.value)
+                                  }
+                                  placeholder="0,00"
+                                  className="h-9 text-right"
+                                />
+                              </td>
+                              <td className="px-1 py-2">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min={0}
+                                  value={bd.frete2 || ""}
+                                  onChange={(e) =>
+                                    updateBreakdown(it.id, i, "frete2", e.target.value)
+                                  }
+                                  placeholder="0,00"
+                                  className="h-9 text-right"
+                                />
+                              </td>
+                              <td
+                                className={
+                                  "px-2 py-2 text-right font-bold tabular-nums " +
+                                  (isBest
+                                    ? "text-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/30"
+                                    : "")
+                                }
+                              >
+                                {r.unitTotals[i] > 0 ? `R$ ${fmt(r.unitTotals[i])}` : "—"}
+                              </td>
+                            </Fragment>
+
+                          );
+                        })}
+                        <td className="px-1 py-2 border-l border-border bg-emerald-500/5">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min={0}
+                            value={it.salePrice || ""}
+                            onChange={(e) =>
+                              updateItem(it.id, { salePrice: Number(e.target.value) || 0 })
+                            }
+                            placeholder="0,00"
+                            className="h-9 text-right"
+                          />
+                        </td>
+                        <td className="px-2 py-2 text-right tabular-nums bg-emerald-500/5">
+                          <div
+                            className={
+                              "font-bold " +
+                              (r.profitPerUnit > 0
+                                ? "text-emerald-600"
+                                : r.profitPerUnit < 0
+                                  ? "text-rose-600"
+                                  : "text-muted-foreground")
+                            }
+                          >
+                            {r.bestUnit > 0 ? `R$ ${fmt(r.profitPerUnit)}` : "—"}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
+                            tot. R$ {fmt(r.profitTotal)}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="border-t bg-muted/30 px-3 py-2 flex justify-end">
               <Button size="sm" variant="outline" onClick={addItem} className="gap-1">
-                <Plus className="h-3.5 w-3.5" /> Item
+                <Plus className="h-3.5 w-3.5" /> Adicionar item
               </Button>
-            </div>
-            <div className="space-y-2">
-              {items.map((it) => (
-                <div key={it.id} className="flex gap-2 items-center">
-                  <Input
-                    placeholder="Nome do produto"
-                    value={it.name}
-                    onChange={(e) =>
-                      setItems((p) =>
-                        p.map((x) => (x.id === it.id ? { ...x, name: e.target.value } : x)),
-                      )
-                    }
-                  />
-                  <Input
-                    type="number"
-                    min={1}
-                    className="w-24"
-                    value={it.quantity}
-                    onChange={(e) =>
-                      setItems((p) =>
-                        p.map((x) =>
-                          x.id === it.id
-                            ? { ...x, quantity: Math.max(1, Number(e.target.value) || 1) }
-                            : x,
-                        ),
-                      )
-                    }
-                  />
-                  {items.length > 1 && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setItems((p) => p.filter((x) => x.id !== it.id))}
-                    >
-                      <Trash2 className="h-4 w-4 text-rose-600" />
-                    </Button>
-                  )}
-                </div>
-              ))}
             </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Fornecedores ({suppliers.length})</Label>
-              <Button size="sm" variant="outline" onClick={addSupplier} className="gap-1">
-                <Plus className="h-3.5 w-3.5" /> Fornecedor
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {suppliers.map((s, idx) => (
-                <div key={idx} className="flex gap-2 items-center">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Nome do fornecedor"
-                    value={s}
-                    onChange={(e) =>
-                      setSuppliers((p) => p.map((x, i) => (i === idx ? e.target.value : x)))
-                    }
-                  />
-                  {suppliers.length > 1 && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() =>
-                        setSuppliers((p) => p.filter((_, i) => i !== idx))
-                      }
-                    >
-                      <Trash2 className="h-4 w-4 text-rose-600" />
-                    </Button>
-                  )}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Card className="p-4 bg-gradient-to-br from-muted/40 to-card">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                Custo (melhor)
+              </div>
+              <div className="text-2xl font-black mt-1 tabular-nums">R$ {fmt(grand.cost)}</div>
+            </Card>
+            <Card className="p-4 bg-gradient-to-br from-primary/10 to-card border-primary/30">
+              <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                Receita prevista
+              </div>
+              <div className="text-2xl font-black mt-1 tabular-nums">R$ {fmt(grand.revenue)}</div>
+            </Card>
+            <Card
+              className={
+                "p-4 bg-gradient-to-br " +
+                (grand.profit >= 0
+                  ? "from-emerald-500/10 to-card border-emerald-300"
+                  : "from-rose-500/10 to-card border-rose-300")
+              }
+            >
+              <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
+                Lucro estimado
+              </div>
+              <div
+                className={
+                  "text-2xl font-black mt-1 tabular-nums " +
+                  (grand.profit >= 0 ? "text-emerald-600" : "text-rose-600")
+                }
+              >
+                R$ {fmt(grand.profit)}
+              </div>
+              {grand.revenue > 0 && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  margem {((grand.profit / grand.revenue) * 100).toFixed(1)}%
                 </div>
-              ))}
-            </div>
+              )}
+            </Card>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 pb-6 pt-3 border-t mt-2">
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
@@ -496,6 +759,7 @@ function NewQuotationModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
   );
 }
 
@@ -604,15 +868,15 @@ function QuotationDetailModal({
               <TableBody>
                 {q.items.map((it) => {
                   const prices = q.suppliers
-                    .map((s) => s.prices[it.id])
-                    .filter((v): v is number => v != null && v > 0);
+                    .map((s) => unitTotal(s.prices[it.id]))
+                    .filter((v) => v > 0);
                   const minUnit = prices.length ? Math.min(...prices) : null;
                   return (
                     <TableRow key={it.id}>
                       <TableCell className="font-medium">{it.name}</TableCell>
                       <TableCell className="text-center">{it.quantity}</TableCell>
                       {q.suppliers.map((s) => {
-                        const v = s.prices[it.id];
+                        const v = unitTotal(s.prices[it.id]);
                         const isMin = minUnit != null && v === minUnit;
                         return (
                           <TableCell key={s.id} className="text-right">
@@ -620,7 +884,7 @@ function QuotationDetailModal({
                               type="number"
                               step="0.01"
                               min={0}
-                              value={v ?? ""}
+                              value={v || ""}
                               onChange={(e) => updatePrice(s.id, it.id, e.target.value)}
                               className={
                                 "h-9 text-right " +
@@ -635,6 +899,7 @@ function QuotationDetailModal({
                       })}
                     </TableRow>
                   );
+
                 })}
               </TableBody>
             </Table>
