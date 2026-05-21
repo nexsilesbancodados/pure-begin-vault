@@ -554,20 +554,16 @@ function NewQuotationModal({
                     <th className="px-3 py-1.5 sticky left-0 bg-muted/40 z-10" />
                     <th className="px-2 py-1.5" />
                     {supplierNames.map((_, i) => (
-                      <>
-                        <th key={`c${i}`} className="px-1.5 py-1.5 border-l border-border text-center">
+                      <Fragment key={`h${i}`}>
+                        <th className="px-1.5 py-1.5 border-l border-border text-center">
                           Custo
                         </th>
-                        <th key={`f1${i}`} className="px-1.5 py-1.5 text-center">
-                          Frete 1
-                        </th>
-                        <th key={`f2${i}`} className="px-1.5 py-1.5 text-center">
-                          Frete 2
-                        </th>
-                        <th key={`t${i}`} className="px-1.5 py-1.5 text-center font-bold text-foreground">
+                        <th className="px-1.5 py-1.5 text-center">Frete 1</th>
+                        <th className="px-1.5 py-1.5 text-center">Frete 2</th>
+                        <th className="px-1.5 py-1.5 text-center font-bold text-foreground">
                           Total
                         </th>
-                      </>
+                      </Fragment>
                     ))}
                     <th className="px-1.5 py-1.5 border-l border-border text-center">unit.</th>
                     <th className="px-1.5 py-1.5 text-center">total</th>
