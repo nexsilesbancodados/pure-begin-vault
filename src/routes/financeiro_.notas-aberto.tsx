@@ -1798,7 +1798,18 @@ function NotasAbertoPage() {
                             <TableRow key={p.id} className="hover:bg-muted/30">
                               <TableCell
                                 className="font-medium text-primary cursor-pointer hover:underline"
-                                onClick={() => setEditingProduct(p)}
+                                onClick={async () => {
+                                  try {
+                                    const { data } = await supabase
+                                      .from("products")
+                                      .select("*")
+                                      .eq("id", p.id)
+                                      .maybeSingle();
+                                    setEditingProduct(((data as Product) ?? p));
+                                  } catch {
+                                    setEditingProduct(p);
+                                  }
+                                }}
                                 title="Abrir cadastro do produto"
                               >
                                 {p.name}
