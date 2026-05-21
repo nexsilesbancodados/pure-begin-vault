@@ -31,6 +31,7 @@ function pick(row: any, keys: string[]) {
 export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notepad = true }: Props<T>) {
   const [open, setOpen] = useState(false);
   const [notepadOpen, setNotepadOpen] = useState(false);
+  const [mode, setMode] = useState<"retail" | "wholesale">("retail");
   const [orgName, setOrgName] = useState<string>("");
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
@@ -47,17 +48,21 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notep
   }, [notepadOpen, orgId]);
 
   const generated = useMemo(() => {
-    const header = `📋 ${orgName || "Estoque"} — Disponível\n${new Date().toLocaleDateString("pt-BR")}\n${"─".repeat(28)}\n`;
+    const isWholesale = mode === "wholesale";
+    const title = isWholesale ? "Lista Atacado" : "Disponível";
+    const header = `📋 ${orgName || "Estoque"} — ${title}\n${new Date().toLocaleDateString("pt-BR")}\n${"─".repeat(28)}\n`;
     const lines = rows.map((r: any) => {
       const model = pick(r, ["name", "model", "product_name", "title"]);
       const gb = pick(r, ["capacity", "storage", "gb"]);
       const color = pick(r, ["color", "cor"]);
-      const price = fmtBRL(pick(r, ["price", "sale_price", "preco"]));
+      const rawPrice = Number(pick(r, ["price", "sale_price", "preco"])) || 0;
+      const finalPrice = isWholesale && rawPrice > 0 ? rawPrice + 350 : rawPrice;
+      const price = fmtBRL(finalPrice);
       const parts = [model, gb && `${gb}`, color].filter(Boolean).join(" ");
       return price ? `• ${parts} — ${price}` : `• ${parts}`;
     });
     return header + lines.join("\n") + `\n${"─".repeat(28)}\nTotal: ${rows.length} ${rows.length === 1 ? "item" : "itens"}`;
-  }, [rows, orgName]);
+  }, [rows, orgName, mode]);
 
   useEffect(() => {
     if (notepadOpen) setText(generated);
@@ -69,7 +74,10 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notep
     { id: "pdf", label: "PDF (imprimir)", icon: Printer, fn: () => Export.pdf(filename, rows, cols) },
     { id: "json", label: "JSON (técnico)", icon: FileJson, fn: () => Export.json(filename, rows) },
     ...(notepad
-      ? [{ id: "notepad", label: "Bloco de Notas", icon: NotebookPen, fn: () => setNotepadOpen(true) }]
+      ? [
+          { id: "notepad", label: "Bloco de Notas", icon: NotebookPen, fn: () => { setMode("retail"); setNotepadOpen(true); } },
+          { id: "wholesale", label: "Lista Atacado (+R$ 350)", icon: NotebookPen, fn: () => { setMode("wholesale"); setNotepadOpen(true); } },
+        ]
       : []),
   ];
 
@@ -129,7 +137,7 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notep
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div className="flex items-center gap-2">
                 <NotebookPen className="h-5 w-5 text-primary" />
-                <h3 className="font-bold text-base">Bloco de Notas</h3>
+                <h3 className="font-bold text-base">{mode === "wholesale" ? "Lista Atacado (+R$ 350)" : "Bloco de Notas"}</h3>
               </div>
               <button onClick={() => setNotepadOpen(false)} className="p-1 hover:bg-muted rounded-lg">
                 <X className="h-4 w-4" />
