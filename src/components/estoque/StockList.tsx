@@ -1179,6 +1179,8 @@ export function StockList() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );
