@@ -80,59 +80,76 @@ function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [period] = useState<Period>("today");
   const { stats, loading, refresh } = useDashboardStats(period);
+  const role = useDashboardRole();
 
-  const kpis = [
-    {
-      label: "Vendas de hoje",
-      value: stats.todaySalesPDV.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-      trend: "+12%",
-      sub: stats.todaySalesImport > 0 
-        ? `R$ ${stats.todaySalesImport.toLocaleString("pt-BR")} importados`
-        : "Total faturado via PDV",
-      icon: "ShoppingBag",
-      tone: "success",
-    },
-    {
-      label: "Ordens de Serviço",
-      value: String(stats.activeOS),
-      trend: "",
-      sub: "Aparelhos em bancada",
-      icon: "Wrench",
-      tone: "warning",
-    },
-    {
-      label: "Estoque Baixo",
-      value: String(stats.lowStock),
-      trend: "",
-      sub: "Itens sob limite mínimo",
-      icon: "Box",
-      tone: "destructive",
-    },
-    {
-      label: "Faturamento Mensal",
-      value: stats.monthRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-      trend: "+8%",
-      sub: "Mês atual acumulado",
-      icon: "DollarSign",
-      tone: "primary",
-    },
-    {
-      label: "Novos Leads",
-      value: String(stats.newLeads),
-      trend: "",
-      sub: "Contatos recebidos hoje",
-      icon: "Users",
-      tone: "info",
-    },
-    {
-      label: "Ticket Médio",
-      value: stats.avgTicket.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-      trend: "",
-      sub: "Média por venda (30d)",
-      icon: "TrendingUp",
-      tone: "success",
-    },
-  ];
+  const KPI_TODAY_SALES = {
+    label: "Vendas de hoje",
+    value: stats.todaySalesPDV.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+    trend: "+12%",
+    sub: stats.todaySalesImport > 0
+      ? `R$ ${stats.todaySalesImport.toLocaleString("pt-BR")} importados`
+      : "Total faturado via PDV",
+    icon: "ShoppingBag",
+    tone: "success",
+  };
+  const KPI_OS = {
+    label: "Ordens de Serviço",
+    value: String(stats.activeOS),
+    trend: "",
+    sub: "Aparelhos em bancada",
+    icon: "Wrench",
+    tone: "warning",
+  };
+  const KPI_STOCK = {
+    label: "Estoque Baixo",
+    value: String(stats.lowStock),
+    trend: "",
+    sub: "Itens sob limite mínimo",
+    icon: "Box",
+    tone: "destructive",
+  };
+  const KPI_MONTH = {
+    label: "Faturamento Mensal",
+    value: stats.monthRevenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+    trend: "+8%",
+    sub: "Mês atual acumulado",
+    icon: "DollarSign",
+    tone: "primary",
+  };
+  const KPI_LEADS = {
+    label: "Novos Leads",
+    value: String(stats.newLeads),
+    trend: "",
+    sub: "Contatos recebidos hoje",
+    icon: "Users",
+    tone: "info",
+  };
+  const KPI_TICKET = {
+    label: "Ticket Médio",
+    value: stats.avgTicket.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+    trend: "",
+    sub: "Média por venda (30d)",
+    icon: "TrendingUp",
+    tone: "success",
+  };
+
+  // KPIs específicos por cargo
+  const kpis =
+    role === "vendedor"
+      ? [KPI_TODAY_SALES, KPI_LEADS, KPI_TICKET, KPI_MONTH]
+      : role === "financeiro"
+        ? [KPI_MONTH, KPI_TODAY_SALES, KPI_TICKET, KPI_STOCK]
+        : role === "tecnico"
+          ? [KPI_OS, KPI_STOCK, KPI_TODAY_SALES, KPI_LEADS]
+          : [KPI_TODAY_SALES, KPI_OS, KPI_STOCK, KPI_MONTH, KPI_LEADS, KPI_TICKET];
+
+  const roleSubtitle: Record<string, string> = {
+    admin: "Visão executiva consolidada com todos os indicadores.",
+    vendedor: "Suas vendas, leads e meta — foco em performance.",
+    financeiro: "Faturamento, ticket médio e indicadores financeiros.",
+    tecnico: "Ordens de serviço, estoque e bancada.",
+  };
+
 
   return (
     <div className="min-h-screen flex w-full bg-background/50">
