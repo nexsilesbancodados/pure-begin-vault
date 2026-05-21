@@ -80,8 +80,25 @@ function CalendarPage() {
   }, [user?.id, cursor]);
 
   useEffect(() => {
-    if (user?.id && orgId) void checkRemindersDueToday({ userId: user.id, organizationId: orgId });
-  }, [user?.id, orgId]);
+    if (!user?.id || !orgId) return;
+    void checkRemindersDueToday({ userId: user.id, organizationId: orgId });
+    (async () => {
+      const { data } = await supabase
+        .from("recurring_reminders" as any)
+        .select("title, day_of_month, active")
+        .eq("organization_id", orgId)
+        .eq("active", true);
+      const map = new Map<number, { count: number; titles: string[] }>();
+      ((data as any[]) || []).forEach((r) => {
+        const k = Number(r.day_of_month);
+        const cur = map.get(k) || { count: 0, titles: [] };
+        cur.count += 1;
+        cur.titles.push(r.title);
+        map.set(k, cur);
+      });
+      setReminderDays(map);
+    })();
+  }, [user?.id, orgId, remindersOpen]);
 
 
   const days = useMemo(() => {
