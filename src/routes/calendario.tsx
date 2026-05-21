@@ -78,6 +78,11 @@ function CalendarPage() {
     load(); /* eslint-disable-next-line */
   }, [user?.id, cursor]);
 
+  useEffect(() => {
+    if (user?.id && orgId) void checkRemindersDueToday({ userId: user.id, organizationId: orgId });
+  }, [user?.id, orgId]);
+
+
   const days = useMemo(() => {
     const start = startOfMonth(cursor);
     const end = endOfMonth(cursor);
