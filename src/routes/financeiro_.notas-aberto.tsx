@@ -1569,6 +1569,18 @@ function NotasAbertoPage() {
 
               {/* Content (scrollable) */}
               <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                {getPendingCount(detailNota) > 0 && (
+                  <div className="flex items-start gap-2.5 p-3 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div className="text-xs leading-relaxed">
+                      <p className="font-semibold">Nota importada de loja parceira</p>
+                      <p className="text-amber-700/90 dark:text-amber-400/90">
+                        {getPendingCount(detailNota)} produto(s) ainda não está(ão) cadastrado(s)
+                        no seu estoque. Clique no nome do produto abaixo para cadastrá-lo.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {/* Informações da nota */}
                 <section>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
