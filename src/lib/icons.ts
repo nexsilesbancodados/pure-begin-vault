@@ -93,6 +93,7 @@ export const iconMap: Record<string, LucideIcon> = {
   Settings,
   Shield,
   ShoppingBag,
+  ShoppingCart,
   Sparkles,
   Star,
   Store,
