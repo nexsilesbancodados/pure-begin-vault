@@ -70,6 +70,15 @@ export const sidebarItems = [
       { title: "Etiquetas", url: "/estoque/etiquetas" },
     ],
   },
+  {
+    title: "Compras",
+    url: "/compras",
+    icon: "ShoppingCart" as const,
+    children: [
+      { title: "Cotações de Compra", url: "/compras", icon: "ClipboardList" },
+      { title: "Notas em Aberto", url: "/financeiro/notas-aberto", icon: "FileWarning" },
+    ],
+  },
 
   // ─── FINANCEIRO ─────────────────────────────────────
   { type: "header", title: "Financeiro" },
