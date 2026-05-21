@@ -35,6 +35,10 @@ import {
   CheckCircle2,
   Clock,
   FileText,
+  Percent,
+  Sparkles,
+  Copy,
+  TrendingUp,
 } from "lucide-react";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
