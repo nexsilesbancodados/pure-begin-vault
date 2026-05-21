@@ -375,6 +375,37 @@ function computeBestSupplier(q: Quotation) {
   return best;
 }
 
+// ===== Helpers de importação (parser de listas coladas) =====
+const normalize = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const parseLine = (raw: string): { name: string; value: number } | null => {
+  const line = raw.trim();
+  if (!line) return null;
+  const matches = Array.from(line.matchAll(/(\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)/g));
+  if (matches.length === 0) return { name: line, value: 0 };
+  const last = matches[matches.length - 1];
+  const raw2 = last[0];
+  let num: number;
+  if (raw2.includes(",")) num = Number(raw2.replace(/\./g, "").replace(",", "."));
+  else if (/\d{1,3}(\.\d{3})+$/.test(raw2)) num = Number(raw2.replace(/\./g, ""));
+  else num = Number(raw2);
+  const idx = last.index ?? 0;
+  const name = (line.slice(0, idx) + line.slice(idx + raw2.length))
+    .replace(/[-–—|:R\$]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return { name: name || line, value: Number.isFinite(num) ? num : 0 };
+};
+
+
+
 
 function NewQuotationModal({
   onClose,
