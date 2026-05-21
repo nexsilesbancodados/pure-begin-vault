@@ -570,10 +570,12 @@ export function StockList() {
       {/* Toolbar */}
       <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
+          {/* === ACTIONS GROUP === */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 text-sm font-semibold border border-border transition">
-                <Layers className="h-4 w-4 text-primary" /> Estoque geral
+                <Layers className="h-4 w-4 text-primary" />
+                {viewTab === "low" ? "Estoque baixo" : viewTab === "out" ? "Esgotados" : "Estoque geral"}
                 <ArrowUpDown className="h-3 w-3 opacity-50" />
               </button>
             </DropdownMenuTrigger>
@@ -631,25 +633,10 @@ export function StockList() {
             ]}
           />
 
+          {/* Visual divider */}
+          <div className="h-6 w-px bg-border mx-1 hidden md:block" />
 
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 text-sm font-semibold border border-border transition">
-                <BarChart3 className="h-4 w-4 text-primary" /> Ferramentas
-                <ArrowUpDown className="h-3 w-3 opacity-50" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={handleExport}>
-                <FileDown className="h-4 w-4" /> Exportar CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsImportOpen(true)}>
-                <Upload className="h-4 w-4" /> Importar planilha
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
+          {/* === FILTERS GROUP === */}
           <Select value={filterCategory} onValueChange={setFilterCategory}>
             <SelectTrigger className="h-9 w-[170px] rounded-lg bg-muted border-border text-sm font-semibold">
               <div className="flex items-center gap-2">
@@ -680,18 +667,38 @@ export function StockList() {
             </SelectContent>
           </Select>
 
-          <button
-            onClick={clearFilters}
-            className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-sm font-semibold transition"
-          >
-            <X className="h-4 w-4" /> Limpar filtros
-          </button>
+          {(() => {
+            const activeCount =
+              (filterCategory !== "all" ? 1 : 0) +
+              (imeiFilter !== "all" ? 1 : 0) +
+              (viewTab !== "all" ? 1 : 0) +
+              (onlyCurrent ? 1 : 0) +
+              (onlyNfe ? 1 : 0) +
+              (advType ? 1 : 0) +
+              (searchTerm ? 1 : 0);
+            if (activeCount === 0) return null;
+            return (
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-sm font-semibold transition"
+              >
+                <X className="h-4 w-4" /> Limpar filtros
+                <span className="ml-1 inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-black">
+                  {activeCount}
+                </span>
+              </button>
+            );
+          })()}
 
           <button
             onClick={() => setAdvancedOpen(!advancedOpen)}
-            className="ml-auto inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm font-semibold hover:bg-muted transition"
+            className={`ml-auto inline-flex items-center gap-2 h-9 px-3 rounded-lg border text-sm font-semibold transition ${
+              advancedOpen
+                ? "bg-primary/10 border-primary/40 text-primary"
+                : "border-border hover:bg-muted"
+            }`}
           >
-            <Filter className="h-4 w-4 text-primary" />
+            <SlidersHorizontal className="h-4 w-4" />
             {advancedOpen ? "Ocultar" : "Mostrar"} filtros avançados
           </button>
         </div>
@@ -737,6 +744,7 @@ export function StockList() {
           </div>
         )}
       </div>
+
 
       {/* KPIs (compact, clicáveis) */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
