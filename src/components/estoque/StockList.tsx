@@ -946,7 +946,31 @@ export function StockList() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-foreground/80 whitespace-nowrap">
-                      {product.imei || "—"}
+                      <div className="inline-flex items-center gap-1.5">
+                        <span>{product.imei || "—"}</span>
+                        {(() => {
+                          const issue = productImeiIssue(product);
+                          if (issue === "duplicate")
+                            return (
+                              <span
+                                title="IMEI duplicado em outro produto"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/30"
+                              >
+                                <Copy className="h-2.5 w-2.5" /> duplicado
+                              </span>
+                            );
+                          if (issue === "missing")
+                            return (
+                              <span
+                                title="Aparelho sem IMEI cadastrado — clique no produto para preencher"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30"
+                              >
+                                <AlertCircle className="h-2.5 w-2.5" /> sem IMEI
+                              </span>
+                            );
+                          return null;
+                        })()}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right text-sm font-semibold text-foreground tabular-nums whitespace-nowrap">
                       {fmtBRL(product.price)}
