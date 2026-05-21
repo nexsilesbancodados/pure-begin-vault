@@ -430,6 +430,69 @@ function NewQuotationModal({
   }));
   const [notes, setNotes] = useState("");
   const [markup, setMarkup] = useState<number>(30); // % padrão sugerido
+  const [importOpen, setImportOpen] = useState(false);
+  const [importProducts, setImportProducts] = useState("");
+  const [importSup, setImportSup] = useState<string[]>(["", "", ""]);
+
+  const applyImport = () => {
+    // 1) Parse lista de produtos -> nome + qtd (último número = qtd, default 1)
+    const prodLines = importProducts
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (prodLines.length === 0) {
+      toast.error("Cole a lista de produtos");
+      return;
+    }
+    const parsedProducts = prodLines
+      .map((l) => {
+        const p = parseLine(l);
+        if (!p) return null;
+        const qty = p.value > 0 && p.value < 10000 ? Math.round(p.value) : 1;
+        return { name: p.name, qty };
+      })
+      .filter(Boolean) as { name: string; qty: number }[];
+
+    // 2) Parse cada lista de fornecedor -> map normalizado nome->preço + array em ordem
+    const supParsed = importSup.map((txt) => {
+      const lines = txt
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const arr = lines.map((l) => parseLine(l)).filter(Boolean) as {
+        name: string;
+        value: number;
+      }[];
+      const map = new Map<string, number>();
+      arr.forEach((it) => {
+        if (it.name) map.set(normalize(it.name), it.value);
+      });
+      return { arr, map };
+    });
+
+    // 3) Constrói items e breakdown casando por nome; fallback por ordem
+    const newItems: QuotationItem[] = [];
+    const newBreakdown: Record<string, PriceBreakdown[]> = {};
+    parsedProducts.forEach((prod, idx) => {
+      const id = newId();
+      newItems.push({ id, name: prod.name, quantity: prod.qty, salePrice: 0 });
+      const norm = normalize(prod.name);
+      const costs = supParsed.map((sp) => {
+        const byName = sp.map.get(norm);
+        if (byName != null && byName > 0) return byName;
+        // fallback: mesma posição
+        const byIdx = sp.arr[idx]?.value;
+        return byIdx && byIdx > 0 ? byIdx : 0;
+      });
+      newBreakdown[id] = costs.map((c) => ({ cost: c, frete1: 0, frete2: 0 }));
+    });
+
+    setItems(newItems);
+    setBreakdown(newBreakdown);
+    setImportOpen(false);
+    toast.success(`${newItems.length} produto(s) importado(s) — confira os valores.`);
+  };
+
 
   const addItem = () => {
     const id = newId();
