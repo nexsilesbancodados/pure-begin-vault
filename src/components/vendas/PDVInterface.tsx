@@ -1379,7 +1379,7 @@ export function PDVInterface() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_450px] gap-4 sm:gap-6 flex-1 overflow-visible lg:overflow-hidden">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_450px] gap-4 sm:gap-6 flex-1 items-start">
         <Dialog open={isCheckoutModalOpen} onOpenChange={setIsCheckoutModalOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
