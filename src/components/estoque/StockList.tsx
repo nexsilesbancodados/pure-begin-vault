@@ -389,6 +389,35 @@ export function StockList() {
   const [onlyCurrent, setOnlyCurrent] = useState(true);
   const [onlyNfe, setOnlyNfe] = useState(false);
   const [advType, setAdvType] = useState("");
+  const [imeiFilter, setImeiFilter] = useState<"all" | "missing" | "duplicate">("all");
+
+  // Categorias que exigem IMEI
+  const isPhoneCategory = (cat?: string | null) => {
+    const c = String(cat || "").toLowerCase();
+    return /(smart|celular|iphone|aparelho|tablet|smartwatch|watch)/.test(c);
+  };
+
+  // Mapa de IMEIs duplicados entre todos os produtos carregados
+  const duplicateImeis = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of localProducts) {
+      for (const v of [p.imei, p.imei2]) {
+        const k = String(v || "").trim();
+        if (!k) continue;
+        counts.set(k, (counts.get(k) ?? 0) + 1);
+      }
+    }
+    const dups = new Set<string>();
+    counts.forEach((n, k) => n > 1 && dups.add(k));
+    return dups;
+  }, [localProducts]);
+
+  const productImeiIssue = (p: any): "missing" | "duplicate" | null => {
+    const imeis = [p.imei, p.imei2].map((v) => String(v || "").trim()).filter(Boolean);
+    if (imeis.some((i) => duplicateImeis.has(i))) return "duplicate";
+    if (isPhoneCategory(p.category) && imeis.length === 0) return "missing";
+    return null;
+  };
 
   const daysInStock = (created: string | null) => {
     if (!created) return 0;
