@@ -1151,9 +1151,67 @@ function NewQuotationModal({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Sub-dialog: Importar listas */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-w-4xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-5 w-5 text-primary" /> Importar listas
+            </DialogTitle>
+            <DialogDescription>
+              Cole abaixo a lista de produtos e as 3 listas de preços (uma por fornecedor). O
+              sistema casa os itens pelo nome — se não achar, usa a ordem das linhas. Aceita
+              formatos como <code>iPhone 15 Pro 256 — 7.500,00</code> ou{" "}
+              <code>iPhone 15 Pro 256 7500</code>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <Label className="text-xs font-bold">
+                Lista de produtos (1 por linha — opcional: quantidade ao final)
+              </Label>
+              <Textarea
+                value={importProducts}
+                onChange={(e) => setImportProducts(e.target.value)}
+                placeholder={"iPhone 15 Pro Max 256 2\niPhone 14 128\nGalaxy S24 Ultra 1"}
+                rows={6}
+                className="font-mono text-xs"
+              />
+            </div>
+            {[0, 1, 2].map((i) => (
+              <div key={i}>
+                <Label className="text-xs font-bold">
+                  Preços {supplierNames[i] || `Fornecedor ${i + 1}`} (nome e preço por linha)
+                </Label>
+                <Textarea
+                  value={importSup[i]}
+                  onChange={(e) =>
+                    setImportSup((p) => p.map((v, j) => (j === i ? e.target.value : v)))
+                  }
+                  placeholder={"iPhone 15 Pro Max 256 — 7500,00\niPhone 14 128 — 4200,00"}
+                  rows={8}
+                  className="font-mono text-xs"
+                />
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setImportOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={applyImport} className="gap-1">
+              <Sparkles className="h-4 w-4" /> Gerar cotação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
+
 
 function QuotationDetailModal({
   quotation,
