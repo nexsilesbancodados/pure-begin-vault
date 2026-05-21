@@ -50,7 +50,6 @@ import { toast } from "sonner";
 import { ProductForm } from "@/components/estoque/ProductForm";
 import { SupplierPicker } from "@/components/estoque/SupplierPicker";
 import { SalesNoteModal } from "@/components/financeiro/SalesNoteModal";
-import { ProductDetailsModal } from "@/components/financeiro/ProductDetailsModal";
 
 export const Route = createFileRoute("/financeiro_/notas-aberto")({
   head: () => ({
