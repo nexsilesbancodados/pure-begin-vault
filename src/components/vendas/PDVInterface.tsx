@@ -153,6 +153,7 @@ export function PDVInterface() {
     v: (typeof customerForm)[K],
   ) => setCustomerForm((p) => ({ ...p, [k]: v }));
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
   const [isLookingUpCep, setIsLookingUpCep] = useState(false);
 
   const lookupCep = async (rawCep: string) => {
