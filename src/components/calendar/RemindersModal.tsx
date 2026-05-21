@@ -376,7 +376,13 @@ export function RemindersModal({
               <div className="space-y-2">
                 {items.map((r) => {
                   const done = compByReminder.get(r.id);
-                  const isToday = r.day_of_month === today.getDate();
+                  const isWeekly = r.frequency === "weekly";
+                  const isToday = isWeekly
+                    ? (r.days_of_week || []).includes(todayDow)
+                    : r.day_of_month === today.getDate();
+                  const scheduleLabel = isWeekly
+                    ? (r.days_of_week || []).map((d) => WEEKDAYS[d]?.l).filter(Boolean).join(", ") || "—"
+                    : `Dia ${r.day_of_month}`;
                   return (
                     <div
                       key={r.id}
@@ -408,7 +414,7 @@ export function RemindersModal({
                           </span>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary inline-flex items-center gap-1">
                             <CalendarDays className="h-3 w-3" />
-                            Dia {r.day_of_month}
+                            {isWeekly ? "Semanal" : "Mensal"} · {scheduleLabel}
                           </span>
                           {r.amount != null && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-foreground/10">
