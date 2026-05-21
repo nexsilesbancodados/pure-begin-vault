@@ -117,7 +117,7 @@ export function PDVInterface() {
   const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string } | null>(
     null,
   );
-  const [customersList, setCustomersList] = useState<{ id: string; full_name: string }[]>([]);
+  const [customersList, setCustomersList] = useState<{ id: string; full_name: string; partner?: string }[]>([]);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
@@ -415,13 +415,32 @@ export function PDVInterface() {
     try {
       const { data, error } = await supabase
         .from("customers")
-        .select("id, name")
+        .select("id, name, notes")
         .eq("organization_id", orgId)
         .order("name")
         .limit(200);
 
       if (error) throw error;
-      setCustomersList((data || []).map((c: any) => ({ id: c.id, full_name: c.name })));
+      setCustomersList(
+        (data || []).map((c: any) => {
+          let partner: string | undefined;
+          try {
+            const extras = c.notes ? JSON.parse(c.notes) : null;
+            if (extras && typeof extras === "object" && extras.empresa_parceira) {
+              partner = String(extras.empresa_parceira);
+            }
+          } catch {
+            /* notes não é JSON */
+          }
+          if (!partner) {
+            const n = (c.name || "").toLowerCase();
+            if (n.includes("atacadocell") || n.includes("atacado cell")) partner = "atacadocell";
+            else if (n.includes("premier")) partner = "premier_castanhal";
+            else if (n.includes("alfatech")) partner = "alfatech_curuca";
+          }
+          return { id: c.id, full_name: c.name, partner };
+        }),
+      );
     } catch (error) {
       console.error("Erro ao carregar clientes:", error);
     }
@@ -1735,7 +1754,26 @@ export function PDVInterface() {
               <ScrollArea className="h-[250px] rounded-md border p-4">
                 <div className="space-y-2">
                   {filteredCustomers.length > 0 ? (
-                    filteredCustomers.map((customer) => (
+                    filteredCustomers.map((customer) => {
+                      const PARTNERS: Record<string, { label: string; initials: string; cls: string }> = {
+                        atacadocell: {
+                          label: "AtacadoCell",
+                          initials: "AC",
+                          cls: "bg-blue-100 text-blue-700 border-blue-200",
+                        },
+                        premier_castanhal: {
+                          label: "Premier Castanhal",
+                          initials: "PC",
+                          cls: "bg-amber-100 text-amber-700 border-amber-200",
+                        },
+                        alfatech_curuca: {
+                          label: "Alfatech Curuçá",
+                          initials: "AT",
+                          cls: "bg-emerald-100 text-emerald-700 border-emerald-200",
+                        },
+                      };
+                      const partner = customer.partner ? PARTNERS[customer.partner] : null;
+                      return (
                       <div
                         key={customer.id}
                         className="w-full flex items-center gap-1 p-1 rounded-lg border border-transparent hover:border-border hover:bg-muted transition group"
@@ -1748,7 +1786,24 @@ export function PDVInterface() {
                           }}
                           className="flex-1 text-left px-2 py-2 flex items-center justify-between gap-2"
                         >
-                          <div className="font-medium truncate">{customer.full_name}</div>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {partner && (
+                              <span
+                                title={`Empresa parceira: ${partner.label}`}
+                                className={`shrink-0 inline-flex items-center justify-center h-6 w-6 rounded-full text-[10px] font-bold border ${partner.cls}`}
+                              >
+                                {partner.initials}
+                              </span>
+                            )}
+                            <div className="font-medium truncate">{customer.full_name}</div>
+                            {partner && (
+                              <span
+                                className={`hidden sm:inline-flex shrink-0 items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold border ${partner.cls}`}
+                              >
+                                {partner.label}
+                              </span>
+                            )}
+                          </div>
                           <Plus className="h-4 w-4 opacity-0 group-hover:opacity-60 transition shrink-0" />
                         </button>
                         <button
@@ -1763,7 +1818,8 @@ export function PDVInterface() {
                           <Settings className="h-4 w-4" />
                         </button>
                       </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="text-center py-4 text-muted-foreground text-sm">
                       Nenhum cliente encontrado.
