@@ -39,6 +39,8 @@ import {
   Sparkles,
   Copy,
   TrendingUp,
+  ClipboardPaste,
+  Wand2,
 } from "lucide-react";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
