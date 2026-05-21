@@ -1271,13 +1271,16 @@ export function PDVInterface() {
           orgId === ATACADO_ORG_ID &&
           isPartnerTarget
         ) {
+          // Para o parceiro, o CUSTO do produto é o preço de venda da Atacado Cell
+          // (afinal, é por esse valor que o parceiro está comprando da Atacado).
           const partnerItems = cart.map((it) => ({
             id: it.id,
             name: it.name,
             sku: (it as any).sku,
             imei: (it as any).imei,
             price: it.price,
-            cost_price: (it as any).cost_price ?? 0,
+            cost_price: it.price,
+            unit_cost: it.price,
             quantity: it.quantity,
             line_total: it.price * it.quantity,
           }));
