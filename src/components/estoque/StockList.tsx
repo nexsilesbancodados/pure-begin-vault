@@ -25,6 +25,13 @@ import {
   BarChart3,
   AlertCircle,
   Copy,
+  DollarSign,
+  Wallet,
+  Percent,
+  Boxes,
+  PackageX,
+  PackageMinus,
+  SlidersHorizontal,
 } from "lucide-react";
 import { ProductForm } from "./ProductForm";
 import { ImportModal } from "@/components/import/ImportModal";
@@ -563,10 +570,12 @@ export function StockList() {
       {/* Toolbar */}
       <div className="bg-card border border-border rounded-2xl p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
+          {/* === ACTIONS GROUP === */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 text-sm font-semibold border border-border transition">
-                <Layers className="h-4 w-4 text-primary" /> Estoque geral
+                <Layers className="h-4 w-4 text-primary" />
+                {viewTab === "low" ? "Estoque baixo" : viewTab === "out" ? "Esgotados" : "Estoque geral"}
                 <ArrowUpDown className="h-3 w-3 opacity-50" />
               </button>
             </DropdownMenuTrigger>
@@ -624,25 +633,10 @@ export function StockList() {
             ]}
           />
 
+          {/* Visual divider */}
+          <div className="h-6 w-px bg-border mx-1 hidden md:block" />
 
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 text-sm font-semibold border border-border transition">
-                <BarChart3 className="h-4 w-4 text-primary" /> Ferramentas
-                <ArrowUpDown className="h-3 w-3 opacity-50" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={handleExport}>
-                <FileDown className="h-4 w-4" /> Exportar CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsImportOpen(true)}>
-                <Upload className="h-4 w-4" /> Importar planilha
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
+          {/* === FILTERS GROUP === */}
           <Select value={filterCategory} onValueChange={setFilterCategory}>
             <SelectTrigger className="h-9 w-[170px] rounded-lg bg-muted border-border text-sm font-semibold">
               <div className="flex items-center gap-2">
@@ -673,18 +667,38 @@ export function StockList() {
             </SelectContent>
           </Select>
 
-          <button
-            onClick={clearFilters}
-            className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-sm font-semibold transition"
-          >
-            <X className="h-4 w-4" /> Limpar filtros
-          </button>
+          {(() => {
+            const activeCount =
+              (filterCategory !== "all" ? 1 : 0) +
+              (imeiFilter !== "all" ? 1 : 0) +
+              (viewTab !== "all" ? 1 : 0) +
+              (onlyCurrent ? 1 : 0) +
+              (onlyNfe ? 1 : 0) +
+              (advType ? 1 : 0) +
+              (searchTerm ? 1 : 0);
+            if (activeCount === 0) return null;
+            return (
+              <button
+                onClick={clearFilters}
+                className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-sm font-semibold transition"
+              >
+                <X className="h-4 w-4" /> Limpar filtros
+                <span className="ml-1 inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-black">
+                  {activeCount}
+                </span>
+              </button>
+            );
+          })()}
 
           <button
             onClick={() => setAdvancedOpen(!advancedOpen)}
-            className="ml-auto inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-border text-sm font-semibold hover:bg-muted transition"
+            className={`ml-auto inline-flex items-center gap-2 h-9 px-3 rounded-lg border text-sm font-semibold transition ${
+              advancedOpen
+                ? "bg-primary/10 border-primary/40 text-primary"
+                : "border-border hover:bg-muted"
+            }`}
           >
-            <Filter className="h-4 w-4 text-primary" />
+            <SlidersHorizontal className="h-4 w-4" />
             {advancedOpen ? "Ocultar" : "Mostrar"} filtros avançados
           </button>
         </div>
@@ -731,15 +745,28 @@ export function StockList() {
         )}
       </div>
 
+
       {/* KPIs (compact, clicáveis) */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {[
+      {(() => {
+        const margin =
+          totalStats.totalValue > 0
+            ? ((totalStats.totalValue - totalStats.totalCost) / totalStats.totalValue) * 100
+            : 0;
+        const fmtBRL = (n: number) =>
+          n >= 1000
+            ? `R$ ${(n / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k`
+            : n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        const tiles = [
           {
             key: "all",
             label: "Itens",
             value: totalStats.totalItems,
+            full: `${totalStats.totalItems} itens`,
+            icon: Boxes,
             color: "text-primary",
             bg: "bg-primary/10",
+            ring: "ring-primary/30",
+            border: "border-primary/60",
             apply: () => {
               setViewTab("all");
               setColFilters((f) => ({ ...f, availability: "all" }));
@@ -750,9 +777,13 @@ export function StockList() {
           {
             key: "value",
             label: "Venda estimada",
-            value: totalStats.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+            value: fmtBRL(totalStats.totalValue),
+            full: totalStats.totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+            icon: DollarSign,
             color: "text-emerald-600",
             bg: "bg-emerald-500/10",
+            ring: "ring-emerald-500/30",
+            border: "border-emerald-500/60",
             apply: () => {
               setViewTab("all");
               setColFilters((f) => ({ ...f, availability: "available" }));
@@ -762,9 +793,13 @@ export function StockList() {
           {
             key: "cost",
             label: "Custo total",
-            value: totalStats.totalCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+            value: fmtBRL(totalStats.totalCost),
+            full: totalStats.totalCost.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+            icon: Wallet,
             color: "text-info",
             bg: "bg-info/10",
+            ring: "ring-info/30",
+            border: "border-info/60",
             apply: () => {
               setViewTab("all");
               setColFilters((f) => ({ ...f, availability: "available" }));
@@ -772,11 +807,27 @@ export function StockList() {
             },
           },
           {
+            key: "margin",
+            label: "Margem",
+            value: `${margin.toFixed(1)}%`,
+            full: `Lucro potencial: ${fmtBRL(totalStats.totalValue - totalStats.totalCost)}`,
+            icon: Percent,
+            color: "text-violet-600",
+            bg: "bg-violet-500/10",
+            ring: "ring-violet-500/30",
+            border: "border-violet-500/60",
+            apply: () => {},
+          },
+          {
             key: "low",
             label: "Estoque baixo",
             value: totalStats.lowStock,
+            full: `${totalStats.lowStock} produtos abaixo do mínimo`,
+            icon: PackageMinus,
             color: "text-amber-600",
             bg: "bg-amber-500/10",
+            ring: "ring-amber-500/30",
+            border: "border-amber-500/60",
             apply: () => {
               setViewTab("low");
               setColFilters((f) => ({ ...f, availability: "available" }));
@@ -787,8 +838,12 @@ export function StockList() {
             key: "out",
             label: "Esgotados",
             value: totalStats.outOfStock,
+            full: `${totalStats.outOfStock} produtos sem estoque`,
+            icon: PackageX,
             color: "text-destructive",
             bg: "bg-destructive/10",
+            ring: "ring-destructive/30",
+            border: "border-destructive/60",
             apply: () => {
               setViewTab("out");
               setOnlyCurrent(false);
@@ -796,33 +851,49 @@ export function StockList() {
               setColFilters((f) => ({ ...f, availability: "out" }));
             },
           },
-        ].map((k) => {
-          const active =
-            (k.key === "out" && (viewTab === "out" || colFilters.availability === "out")) ||
-            (k.key === "low" && viewTab === "low") ||
-            (k.key === "all" &&
-              viewTab === "all" &&
-              colFilters.availability === "all" &&
-              !onlyCurrent);
-          return (
-            <button
-              key={k.key}
-              type="button"
-              onClick={k.apply}
-              className={`text-left rounded-xl ${k.bg} border px-4 py-3 transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-                active ? "border-primary/60 ring-1 ring-primary/30" : "border-border"
-              }`}
-              aria-pressed={active}
-              title={`Filtrar por ${k.label}`}
-            >
-              <div className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-                {k.label}
-              </div>
-              <div className={`text-lg font-black mt-1 ${k.color} truncate`}>{k.value || 0}</div>
-            </button>
-          );
-        })}
-      </div>
+        ];
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {tiles.map((k) => {
+              const active =
+                (k.key === "out" && (viewTab === "out" || colFilters.availability === "out")) ||
+                (k.key === "low" && viewTab === "low") ||
+                (k.key === "all" &&
+                  viewTab === "all" &&
+                  colFilters.availability === "all" &&
+                  !onlyCurrent);
+              const Icon = k.icon;
+              return (
+                <button
+                  key={k.key}
+                  type="button"
+                  onClick={k.apply}
+                  title={k.full}
+                  aria-pressed={active}
+                  className={`group relative text-left rounded-2xl ${k.bg} border px-4 py-3.5 overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                    active ? `${k.border} ring-2 ${k.ring} shadow-md` : "border-border"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground leading-tight">
+                      {k.label}
+                    </div>
+                    <div className={`h-7 w-7 rounded-lg ${k.bg} ${k.color} flex items-center justify-center ring-1 ring-inset ring-current/10 shrink-0`}>
+                      <Icon className="h-3.5 w-3.5" />
+                    </div>
+                  </div>
+                  <div className={`text-xl sm:text-2xl font-black mt-1.5 ${k.color} truncate tracking-tight`}>
+                    {k.value || 0}
+                  </div>
+                  {/* subtle hover sheen */}
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-transparent via-white/0 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
+
 
       {/* Table */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-card">
