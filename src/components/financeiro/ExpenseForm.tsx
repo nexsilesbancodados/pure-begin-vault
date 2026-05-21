@@ -607,7 +607,13 @@ export function ExpenseForm({
                 <Field required label="Valor (R$)">
                   <Input
                     value={form.amount}
-                    onChange={(e) => setForm({ ...form, amount: e.target.value.replace(/[^\d.,]/g, "") })}
+                    onChange={(e) => {
+                      const next = e.target.value.replace(/[^\d.,]/g, "");
+                      setForm((f) => {
+                        const shouldMirror = !f.payment_amount || f.payment_amount === f.amount;
+                        return { ...f, amount: next, payment_amount: shouldMirror ? next : f.payment_amount };
+                      });
+                    }}
                     placeholder="0,00"
                     className="h-10 tabular-nums"
                     required
