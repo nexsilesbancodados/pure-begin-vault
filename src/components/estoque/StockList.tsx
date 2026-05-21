@@ -461,9 +461,14 @@ export function StockList() {
       const available = (p.stock || 0) > 0;
       if (colFilters.availability === "available" && !available) return false;
       if (colFilters.availability === "out" && available) return false;
+      if (imeiFilter !== "all") {
+        const issue = productImeiIssue(p);
+        if (imeiFilter === "missing" && issue !== "missing") return false;
+        if (imeiFilter === "duplicate" && issue !== "duplicate") return false;
+      }
       return true;
     });
-  }, [filteredProducts, colFilters, onlyCurrent, onlyNfe, advType]);
+  }, [filteredProducts, colFilters, onlyCurrent, onlyNfe, advType, imeiFilter, duplicateImeis]);
 
   const clearFilters = () => {
     setSearchTerm("");
