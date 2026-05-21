@@ -40,19 +40,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [permissions, setPermissions] = useState<AppPermissions | null>(null);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
+  const initializedRef = useRef(false);
+
+  const safeSet = <T,>(setter: (v: T) => void) => (v: T) => {
+    if (mountedRef.current) setter(v);
+  };
 
   useEffect(() => {
+    mountedRef.current = true;
+
     refreshAuthenticatedState().catch(() => {
+      if (!mountedRef.current) return;
       setSession(null);
       setUser(null);
       setProfile(null);
       setPermissions(null);
       setLoading(false);
+    }).finally(() => {
+      initializedRef.current = true;
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mountedRef.current) return;
+      // Ignora o evento INITIAL_SESSION — já tratado pelo refresh inicial
+      if (!initializedRef.current && _event === "INITIAL_SESSION") return;
+
       setSession(session);
       setUser(session?.user ?? null);
       if (!session?.user) {
@@ -63,11 +78,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       window.setTimeout(() => {
-        refreshAuthenticatedState(session).catch(() => setLoading(false));
+        if (!mountedRef.current) return;
+        refreshAuthenticatedState(session).catch(() => {
+          if (mountedRef.current) setLoading(false);
+        });
       }, 0);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mountedRef.current = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   async function refreshAuthenticatedState(nextSession?: Session | null) {
