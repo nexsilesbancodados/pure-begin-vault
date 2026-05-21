@@ -272,21 +272,30 @@ export function RemindersModal({
             <div className="text-[11px] uppercase font-bold text-muted-foreground">
               {editing ? "Editar lembrete" : "Novo lembrete"}
             </div>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, frequency: "monthly" })}
+                  className={`h-8 px-3 rounded-md text-xs font-bold ${form.frequency === "monthly" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                >
+                  Mensal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, frequency: "weekly" })}
+                  className={`h-8 px-3 rounded-md text-xs font-bold ${form.frequency === "weekly" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                >
+                  Semanal
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               <input
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder="Ex: Aluguel da loja"
-                className="md:col-span-6 h-10 px-3 rounded-lg border border-border bg-background text-sm"
-              />
-              <input
-                type="number"
-                value={form.day_of_month}
-                onChange={(e) => setForm({ ...form, day_of_month: e.target.value })}
-                placeholder="Dia"
-                min={1}
-                max={31}
-                className="md:col-span-2 h-10 px-3 rounded-lg border border-border bg-background text-sm"
+                className="md:col-span-8 h-10 px-3 rounded-lg border border-border bg-background text-sm"
               />
               <input
                 type="number"
@@ -296,6 +305,36 @@ export function RemindersModal({
                 placeholder="R$ valor (opcional)"
                 className="md:col-span-4 h-10 px-3 rounded-lg border border-border bg-background text-sm"
               />
+              {form.frequency === "monthly" ? (
+                <div className="md:col-span-12 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-bold">Dia do mês:</span>
+                  <input
+                    type="number"
+                    value={form.day_of_month}
+                    onChange={(e) => setForm({ ...form, day_of_month: e.target.value })}
+                    min={1}
+                    max={31}
+                    className="w-24 h-10 px-3 rounded-lg border border-border bg-background text-sm"
+                  />
+                </div>
+              ) : (
+                <div className="md:col-span-12 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-bold mr-1">Dias da semana:</span>
+                  {WEEKDAYS.map((d) => {
+                    const active = form.days_of_week.includes(d.v);
+                    return (
+                      <button
+                        key={d.v}
+                        type="button"
+                        onClick={() => toggleDow(d.v)}
+                        className={`h-8 px-3 rounded-lg text-xs font-bold border ${active ? "bg-primary text-primary-foreground border-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
+                      >
+                        {d.l}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <textarea
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
