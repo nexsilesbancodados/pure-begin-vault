@@ -249,11 +249,22 @@ function CalendarPage() {
                           <div className={`text-xs font-bold ${isToday ? "h-6 w-6 grid place-items-center rounded-full bg-primary text-primary-foreground" : ""}`}>
                             {d.getDate()}
                           </div>
-                          {list.length > 0 && (
-                            <span className="text-[9px] font-bold px-1.5 rounded-full bg-primary/15 text-primary">
-                              {list.length}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {reminderDays.get(d.getDate()) && (
+                              <span
+                                title={reminderDays.get(d.getDate())!.titles.join(" • ")}
+                                className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                              >
+                                <Bell className="h-2.5 w-2.5" />
+                                {reminderDays.get(d.getDate())!.count}
+                              </span>
+                            )}
+                            {list.length > 0 && (
+                              <span className="text-[9px] font-bold px-1.5 rounded-full bg-primary/15 text-primary">
+                                {list.length}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="mt-0.5 space-y-0.5">
                           {list.slice(0, 2).map((t) => (
