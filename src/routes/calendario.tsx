@@ -400,6 +400,8 @@ function CalendarPage() {
         }}
         date={selected}
       />
+
+      <RemindersModal open={remindersOpen} onClose={() => setRemindersOpen(false)} />
     </div>
   );
 
