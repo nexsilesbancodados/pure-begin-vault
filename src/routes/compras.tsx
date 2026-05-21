@@ -436,6 +436,17 @@ function NewQuotationModal({
   const updateSupplierName = (idx: number, name: string) =>
     setSupplierNames((p) => p.map((x, i) => (i === idx ? name : x)));
 
+  // copiar custo do fornecedor para todos os demais
+  const copyCostToAll = (itemId: string, fromIdx: number) => {
+    setBreakdown((p) => {
+      const arr = (p[itemId] ?? supplierNames.map(() => emptyBreakdown())).slice();
+      const src = arr[fromIdx] ?? emptyBreakdown();
+      const next = arr.map(() => ({ ...src }));
+      return { ...p, [itemId]: next };
+    });
+    toast.success("Custo replicado para os 3 fornecedores");
+  };
+
   // cálculos por linha
   const computeRow = (it: QuotationItem) => {
     const sups = breakdown[it.id] ?? supplierNames.map(() => emptyBreakdown());
@@ -443,11 +454,58 @@ function NewQuotationModal({
     const positives = unitTotals.filter((v) => v > 0);
     const bestUnit = positives.length ? Math.min(...positives) : 0;
     const bestIdx = bestUnit > 0 ? unitTotals.indexOf(bestUnit) : -1;
+    const worstUnit = positives.length ? Math.max(...positives) : 0;
+    const savings = worstUnit > 0 && bestUnit > 0 ? worstUnit - bestUnit : 0;
     const sale = Number(it.salePrice) || 0;
     const profitPerUnit = bestUnit > 0 ? sale - bestUnit : 0;
     const profitTotal = profitPerUnit * (Number(it.quantity) || 0);
-    return { sups, unitTotals, bestUnit, bestIdx, profitPerUnit, profitTotal };
+    const marginPct = sale > 0 && profitPerUnit !== 0 ? (profitPerUnit / sale) * 100 : 0;
+    return {
+      sups,
+      unitTotals,
+      bestUnit,
+      bestIdx,
+      worstUnit,
+      savings,
+      profitPerUnit,
+      profitTotal,
+      marginPct,
+    };
   };
+
+  // aplica markup global no preço de venda baseado no melhor custo
+  const applyMarkup = () => {
+    const pct = Number(markup) || 0;
+    setItems((prev) =>
+      prev.map((it) => {
+        const r = computeRow(it);
+        if (r.bestUnit <= 0) return it;
+        return { ...it, salePrice: Number((r.bestUnit * (1 + pct / 100)).toFixed(2)) };
+      }),
+    );
+    toast.success(`Markup de ${pct}% aplicado em todos os itens`);
+  };
+
+  // subtotais por fornecedor (somando todos os itens)
+  const supplierTotals = useMemo(() => {
+    return supplierNames.map((_, idx) => {
+      let total = 0;
+      items.forEach((it) => {
+        const bd = (breakdown[it.id] ?? [])[idx] ?? emptyBreakdown();
+        const unit = (bd.cost || 0) + (bd.frete1 || 0) + (bd.frete2 || 0);
+        total += unit * (Number(it.quantity) || 0);
+      });
+      return total;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, breakdown, supplierNames]);
+
+  const bestSupplierIdx = useMemo(() => {
+    const positives = supplierTotals.filter((v) => v > 0);
+    if (!positives.length) return -1;
+    const min = Math.min(...positives);
+    return supplierTotals.indexOf(min);
+  }, [supplierTotals]);
 
   const grand = useMemo(() => {
     let cost = 0;
