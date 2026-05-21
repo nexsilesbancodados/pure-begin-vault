@@ -1884,11 +1884,22 @@ function NotasAbertoPage() {
                     const lucro = totalVenda - totalCusto;
                     const margem = totalVenda > 0 ? (lucro / totalVenda) * 100 : 0;
                     return (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-3">
                         <div className="rounded-lg border bg-muted/30 px-3 py-2">
                           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Itens</div>
                           <div className="text-sm font-semibold">{detailNota.items.length}</div>
                         </div>
+                        {(() => {
+                          const soldCount = detailNota.items.filter(isSoldItem).length;
+                          return (
+                            <div className="rounded-lg border bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 px-3 py-2">
+                              <div className="text-[10px] uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Vendidos</div>
+                              <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                                {soldCount} / {detailNota.items.length}
+                              </div>
+                            </div>
+                          );
+                        })()}
                         <div className="rounded-lg border bg-muted/30 px-3 py-2">
                           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Custo total</div>
                           <div className="text-sm font-semibold">R$ {totalCusto.toFixed(2)}</div>
