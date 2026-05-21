@@ -486,6 +486,7 @@ export function StockList() {
     setOnlyCurrent(true);
     setOnlyNfe(false);
     setAdvType("");
+    setImeiFilter("all");
   };
 
   const fmtBRL = (v: number) =>
