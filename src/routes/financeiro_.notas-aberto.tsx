@@ -1929,8 +1929,9 @@ function NotasAbertoPage() {
                           )}
                           {detailNota.items.map((p) => {
                             const pending = isPendingItem(p);
+                            const sold = isSoldItem(p);
                             return (
-                            <TableRow key={p.id} className={"hover:bg-muted/30 " + (pending ? "bg-amber-50/40 dark:bg-amber-950/20" : "")}>
+                            <TableRow key={p.id} className={"hover:bg-muted/30 " + (sold ? "bg-emerald-50/40 dark:bg-emerald-950/20" : pending ? "bg-amber-50/40 dark:bg-amber-950/20" : "")}>
                               <TableCell
                                 className="font-medium text-primary cursor-pointer hover:underline"
                                 onClick={async () => {
@@ -1947,9 +1948,15 @@ function NotasAbertoPage() {
                                 }}
                                 title={pending ? "Produto não cadastrado — clique para cadastrar" : "Abrir cadastro do produto"}
                               >
-                                <span className="inline-flex items-center gap-2">
-                                  {p.name}
-                                  {pending && (
+                                <span className="inline-flex items-center gap-2 flex-wrap">
+                                  <span className={sold ? "line-through text-muted-foreground" : ""}>{p.name}</span>
+                                  {sold && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-emerald-300 dark:border-emerald-800 bg-emerald-100/70 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400">
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      Vendido
+                                    </span>
+                                  )}
+                                  {pending && !sold && (
                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-amber-300 dark:border-amber-800 bg-amber-100/70 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">
                                       <AlertTriangle className="h-3 w-3" />
                                       Cadastrar
