@@ -397,15 +397,26 @@ export function StockList() {
     return /(smart|celular|iphone|aparelho|tablet|smartwatch|watch)/.test(c);
   };
 
-  // Mapa de IMEIs duplicados entre todos os produtos carregados
+  // Helper: pega o IMEI principal de várias fontes possíveis (coluna, metadata, has_imei flag)
+  const getPrimaryImei = (p: any): string => {
+    const md = (p && typeof p.metadata === "object" && p.metadata) || {};
+    const candidate =
+      p?.imei ||
+      md.imei ||
+      md.IMEI ||
+      md.imei1 ||
+      md.imei_1 ||
+      "";
+    return String(candidate || "").trim();
+  };
+
+  // Mapa de IMEIs duplicados (apenas IMEI principal — IMEI 2 é informação adicional)
   const duplicateImeis = useMemo(() => {
     const counts = new Map<string, number>();
     for (const p of localProducts) {
-      for (const v of [p.imei, p.imei2]) {
-        const k = String(v || "").trim();
-        if (!k) continue;
-        counts.set(k, (counts.get(k) ?? 0) + 1);
-      }
+      const k = getPrimaryImei(p);
+      if (!k) continue;
+      counts.set(k, (counts.get(k) ?? 0) + 1);
     }
     const dups = new Set<string>();
     counts.forEach((n, k) => n > 1 && dups.add(k));
@@ -413,11 +424,12 @@ export function StockList() {
   }, [localProducts]);
 
   const productImeiIssue = (p: any): "missing" | "duplicate" | null => {
-    const imeis = [p.imei, p.imei2].map((v) => String(v || "").trim()).filter(Boolean);
-    if (imeis.some((i) => duplicateImeis.has(i))) return "duplicate";
-    if (isPhoneCategory(p.category) && imeis.length === 0) return "missing";
+    const primary = getPrimaryImei(p);
+    if (primary && duplicateImeis.has(primary)) return "duplicate";
+    if (isPhoneCategory(p.category) && !primary) return "missing";
     return null;
   };
+
 
   const daysInStock = (created: string | null) => {
     if (!created) return 0;
@@ -947,7 +959,7 @@ export function StockList() {
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-foreground/80 whitespace-nowrap">
                       <div className="inline-flex items-center gap-1.5">
-                        <span>{product.imei || "—"}</span>
+                        <span>{getPrimaryImei(product) || "—"}</span>
                         {(() => {
                           const issue = productImeiIssue(product);
                           if (issue === "duplicate")
