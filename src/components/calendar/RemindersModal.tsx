@@ -203,16 +203,23 @@ export function RemindersModal({
       id: r.id,
       title: r.title,
       amount: r.amount != null ? String(r.amount) : "",
-      day_of_month: String(r.day_of_month),
+      frequency: (r.frequency as Frequency) || "monthly",
+      day_of_month: r.day_of_month ? String(r.day_of_month) : String(today.getDate()),
+      days_of_week: r.days_of_week || [],
       notes: r.notes || "",
     });
   };
 
   if (!open) return null;
 
-  const pendingToday = items.filter(
-    (r) => r.day_of_month === today.getDate() && !compByReminder.has(r.id),
-  );
+  const todayDow = today.getDay();
+  const pendingToday = items.filter((r) => {
+    const due =
+      r.frequency === "weekly"
+        ? (r.days_of_week || []).includes(todayDow)
+        : r.day_of_month === today.getDate();
+    return due && !compByReminder.has(r.id);
+  });
 
   return (
     <div
