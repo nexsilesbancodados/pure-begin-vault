@@ -214,8 +214,27 @@ function Dashboard() {
                 >
                   <OriginDonut />
                 </Suspense>
-                <Suspense
-                  fallback={
+              {/* Widgets por cargo */}
+              {(role === "admin" || role === "vendedor") && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <SellerRanking limit={5} scopeToMe={role === "vendedor"} />
+                  <TodayTasksWidget />
+                </div>
+              )}
+              {role === "financeiro" && (
+                <div className="grid grid-cols-1 gap-6">
+                  <TodayTasksWidget />
+                </div>
+              )}
+              {role === "tecnico" && (
+                <div className="grid grid-cols-1 gap-6">
+                  <TodayTasksWidget />
+                </div>
+              )}
+              {role === "admin" && <StoresComparison />}
+
+              <Suspense
+
                     <div className="h-[200px] rounded-2xl bg-card border border-border animate-pulse" />
                   }
                 >
