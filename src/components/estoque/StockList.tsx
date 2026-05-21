@@ -23,6 +23,8 @@ import {
   X,
   Tags,
   BarChart3,
+  AlertCircle,
+  Copy,
 } from "lucide-react";
 import { ProductForm } from "./ProductForm";
 import { ImportModal } from "@/components/import/ImportModal";
@@ -387,6 +389,35 @@ export function StockList() {
   const [onlyCurrent, setOnlyCurrent] = useState(true);
   const [onlyNfe, setOnlyNfe] = useState(false);
   const [advType, setAdvType] = useState("");
+  const [imeiFilter, setImeiFilter] = useState<"all" | "missing" | "duplicate">("all");
+
+  // Categorias que exigem IMEI
+  const isPhoneCategory = (cat?: string | null) => {
+    const c = String(cat || "").toLowerCase();
+    return /(smart|celular|iphone|aparelho|tablet|smartwatch|watch)/.test(c);
+  };
+
+  // Mapa de IMEIs duplicados entre todos os produtos carregados
+  const duplicateImeis = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of localProducts) {
+      for (const v of [p.imei, p.imei2]) {
+        const k = String(v || "").trim();
+        if (!k) continue;
+        counts.set(k, (counts.get(k) ?? 0) + 1);
+      }
+    }
+    const dups = new Set<string>();
+    counts.forEach((n, k) => n > 1 && dups.add(k));
+    return dups;
+  }, [localProducts]);
+
+  const productImeiIssue = (p: any): "missing" | "duplicate" | null => {
+    const imeis = [p.imei, p.imei2].map((v) => String(v || "").trim()).filter(Boolean);
+    if (imeis.some((i) => duplicateImeis.has(i))) return "duplicate";
+    if (isPhoneCategory(p.category) && imeis.length === 0) return "missing";
+    return null;
+  };
 
   const daysInStock = (created: string | null) => {
     if (!created) return 0;
@@ -430,9 +461,14 @@ export function StockList() {
       const available = (p.stock || 0) > 0;
       if (colFilters.availability === "available" && !available) return false;
       if (colFilters.availability === "out" && available) return false;
+      if (imeiFilter !== "all") {
+        const issue = productImeiIssue(p);
+        if (imeiFilter === "missing" && issue !== "missing") return false;
+        if (imeiFilter === "duplicate" && issue !== "duplicate") return false;
+      }
       return true;
     });
-  }, [filteredProducts, colFilters, onlyCurrent, onlyNfe, advType]);
+  }, [filteredProducts, colFilters, onlyCurrent, onlyNfe, advType, imeiFilter, duplicateImeis]);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -450,6 +486,7 @@ export function StockList() {
     setOnlyCurrent(true);
     setOnlyNfe(false);
     setAdvType("");
+    setImeiFilter("all");
   };
 
   const fmtBRL = (v: number) =>
@@ -574,6 +611,20 @@ export function StockList() {
               <SelectItem value="Tablets">Tablets</SelectItem>
               <SelectItem value="Acessórios">Acessórios</SelectItem>
               <SelectItem value="Serviços">Serviços</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={imeiFilter} onValueChange={(v) => setImeiFilter(v as any)}>
+            <SelectTrigger className="h-9 w-[170px] rounded-lg bg-muted border-border text-sm font-semibold">
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4 text-primary" />
+                <SelectValue placeholder="IMEI" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">IMEI: todos</SelectItem>
+              <SelectItem value="missing">Sem IMEI (aparelhos)</SelectItem>
+              <SelectItem value="duplicate">IMEI duplicado</SelectItem>
             </SelectContent>
           </Select>
 
@@ -895,7 +946,31 @@ export function StockList() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-foreground/80 whitespace-nowrap">
-                      {product.imei || "—"}
+                      <div className="inline-flex items-center gap-1.5">
+                        <span>{product.imei || "—"}</span>
+                        {(() => {
+                          const issue = productImeiIssue(product);
+                          if (issue === "duplicate")
+                            return (
+                              <span
+                                title="IMEI duplicado em outro produto"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-destructive/10 text-destructive border border-destructive/30"
+                              >
+                                <Copy className="h-2.5 w-2.5" /> duplicado
+                              </span>
+                            );
+                          if (issue === "missing")
+                            return (
+                              <span
+                                title="Aparelho sem IMEI cadastrado — clique no produto para preencher"
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30"
+                              >
+                                <AlertCircle className="h-2.5 w-2.5" /> sem IMEI
+                              </span>
+                            );
+                          return null;
+                        })()}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right text-sm font-semibold text-foreground tabular-nums whitespace-nowrap">
                       {fmtBRL(product.price)}
