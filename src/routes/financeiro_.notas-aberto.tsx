@@ -1865,8 +1865,10 @@ function NotasAbertoPage() {
                               </TableCell>
                             </TableRow>
                           )}
-                          {detailNota.items.map((p) => (
-                            <TableRow key={p.id} className="hover:bg-muted/30">
+                          {detailNota.items.map((p) => {
+                            const pending = isPendingItem(p);
+                            return (
+                            <TableRow key={p.id} className={"hover:bg-muted/30 " + (pending ? "bg-amber-50/40 dark:bg-amber-950/20" : "")}>
                               <TableCell
                                 className="font-medium text-primary cursor-pointer hover:underline"
                                 onClick={async () => {
@@ -1881,9 +1883,17 @@ function NotasAbertoPage() {
                                     setEditingProduct(p);
                                   }
                                 }}
-                                title="Abrir cadastro do produto"
+                                title={pending ? "Produto não cadastrado — clique para cadastrar" : "Abrir cadastro do produto"}
                               >
-                                {p.name}
+                                <span className="inline-flex items-center gap-2">
+                                  {p.name}
+                                  {pending && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold border border-amber-300 dark:border-amber-800 bg-amber-100/70 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      Cadastrar
+                                    </span>
+                                  )}
+                                </span>
                               </TableCell>
                               <TableCell className="text-muted-foreground font-mono text-xs">
                                 {p.imei ?? "—"}
