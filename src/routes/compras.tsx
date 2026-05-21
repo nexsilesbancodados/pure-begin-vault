@@ -394,6 +394,8 @@ function NewQuotationModal({
   const [breakdown, setBreakdown] = useState<Record<string, PriceBreakdown[]>>(() => ({
     [items[0].id]: [emptyBreakdown(), emptyBreakdown(), emptyBreakdown()],
   }));
+  const [notes, setNotes] = useState("");
+  const [markup, setMarkup] = useState<number>(30); // % padrão sugerido
 
   const addItem = () => {
     const id = newId();
