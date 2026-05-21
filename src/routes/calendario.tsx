@@ -57,6 +57,7 @@ function CalendarPage() {
   const [selected, setSelected] = useState<Date>(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [kanbanOpen, setKanbanOpen] = useState(false);
+  const [remindersOpen, setRemindersOpen] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", priority: "medium" });
 
 
