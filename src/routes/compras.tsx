@@ -39,6 +39,8 @@ import {
   Sparkles,
   Copy,
   TrendingUp,
+  ClipboardPaste,
+  Wand2,
 } from "lucide-react";
 import { useOrg } from "@/lib/useOrg";
 import { toast } from "sonner";
@@ -373,6 +375,37 @@ function computeBestSupplier(q: Quotation) {
   return best;
 }
 
+// ===== Helpers de importação (parser de listas coladas) =====
+const normalize = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const parseLine = (raw: string): { name: string; value: number } | null => {
+  const line = raw.trim();
+  if (!line) return null;
+  const matches = Array.from(line.matchAll(/(\d{1,3}(?:[.\s]\d{3})+(?:,\d+)?|\d+(?:[.,]\d+)?)/g));
+  if (matches.length === 0) return { name: line, value: 0 };
+  const last = matches[matches.length - 1];
+  const raw2 = last[0];
+  let num: number;
+  if (raw2.includes(",")) num = Number(raw2.replace(/\./g, "").replace(",", "."));
+  else if (/\d{1,3}(\.\d{3})+$/.test(raw2)) num = Number(raw2.replace(/\./g, ""));
+  else num = Number(raw2);
+  const idx = last.index ?? 0;
+  const name = (line.slice(0, idx) + line.slice(idx + raw2.length))
+    .replace(/[-–—|:R\$]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return { name: name || line, value: Number.isFinite(num) ? num : 0 };
+};
+
+
+
 
 function NewQuotationModal({
   onClose,
@@ -397,6 +430,69 @@ function NewQuotationModal({
   }));
   const [notes, setNotes] = useState("");
   const [markup, setMarkup] = useState<number>(30); // % padrão sugerido
+  const [importOpen, setImportOpen] = useState(false);
+  const [importProducts, setImportProducts] = useState("");
+  const [importSup, setImportSup] = useState<string[]>(["", "", ""]);
+
+  const applyImport = () => {
+    // 1) Parse lista de produtos -> nome + qtd (último número = qtd, default 1)
+    const prodLines = importProducts
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (prodLines.length === 0) {
+      toast.error("Cole a lista de produtos");
+      return;
+    }
+    const parsedProducts = prodLines
+      .map((l) => {
+        const p = parseLine(l);
+        if (!p) return null;
+        const qty = p.value > 0 && p.value < 10000 ? Math.round(p.value) : 1;
+        return { name: p.name, qty };
+      })
+      .filter(Boolean) as { name: string; qty: number }[];
+
+    // 2) Parse cada lista de fornecedor -> map normalizado nome->preço + array em ordem
+    const supParsed = importSup.map((txt) => {
+      const lines = txt
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const arr = lines.map((l) => parseLine(l)).filter(Boolean) as {
+        name: string;
+        value: number;
+      }[];
+      const map = new Map<string, number>();
+      arr.forEach((it) => {
+        if (it.name) map.set(normalize(it.name), it.value);
+      });
+      return { arr, map };
+    });
+
+    // 3) Constrói items e breakdown casando por nome; fallback por ordem
+    const newItems: QuotationItem[] = [];
+    const newBreakdown: Record<string, PriceBreakdown[]> = {};
+    parsedProducts.forEach((prod, idx) => {
+      const id = newId();
+      newItems.push({ id, name: prod.name, quantity: prod.qty, salePrice: 0 });
+      const norm = normalize(prod.name);
+      const costs = supParsed.map((sp) => {
+        const byName = sp.map.get(norm);
+        if (byName != null && byName > 0) return byName;
+        // fallback: mesma posição
+        const byIdx = sp.arr[idx]?.value;
+        return byIdx && byIdx > 0 ? byIdx : 0;
+      });
+      newBreakdown[id] = costs.map((c) => ({ cost: c, frete1: 0, frete2: 0 }));
+    });
+
+    setItems(newItems);
+    setBreakdown(newBreakdown);
+    setImportOpen(false);
+    toast.success(`${newItems.length} produto(s) importado(s) — confira os valores.`);
+  };
+
 
   const addItem = () => {
     const id = newId();
@@ -622,7 +718,19 @@ function NewQuotationModal({
             <div className="text-xs text-muted-foreground max-w-xs">
               Calcula o preço de venda de cada item a partir do <b>menor custo</b> + markup.
             </div>
+            <div className="ml-auto">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setImportOpen(true)}
+                className="gap-1"
+                title="Cole listas de produtos e preços dos 3 fornecedores"
+              >
+                <ClipboardPaste className="h-3.5 w-3.5" /> Importar listas
+              </Button>
+            </div>
           </div>
+
 
           <div className="border rounded-xl overflow-hidden">
             <div className="overflow-x-auto max-h-[55vh] divide-y divide-border">
@@ -1043,9 +1151,67 @@ function NewQuotationModal({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Sub-dialog: Importar listas */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-w-4xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-5 w-5 text-primary" /> Importar listas
+            </DialogTitle>
+            <DialogDescription>
+              Cole abaixo a lista de produtos e as 3 listas de preços (uma por fornecedor). O
+              sistema casa os itens pelo nome — se não achar, usa a ordem das linhas. Aceita
+              formatos como <code>iPhone 15 Pro 256 — 7.500,00</code> ou{" "}
+              <code>iPhone 15 Pro 256 7500</code>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <Label className="text-xs font-bold">
+                Lista de produtos (1 por linha — opcional: quantidade ao final)
+              </Label>
+              <Textarea
+                value={importProducts}
+                onChange={(e) => setImportProducts(e.target.value)}
+                placeholder={"iPhone 15 Pro Max 256 2\niPhone 14 128\nGalaxy S24 Ultra 1"}
+                rows={6}
+                className="font-mono text-xs"
+              />
+            </div>
+            {[0, 1, 2].map((i) => (
+              <div key={i}>
+                <Label className="text-xs font-bold">
+                  Preços {supplierNames[i] || `Fornecedor ${i + 1}`} (nome e preço por linha)
+                </Label>
+                <Textarea
+                  value={importSup[i]}
+                  onChange={(e) =>
+                    setImportSup((p) => p.map((v, j) => (j === i ? e.target.value : v)))
+                  }
+                  placeholder={"iPhone 15 Pro Max 256 — 7500,00\niPhone 14 128 — 4200,00"}
+                  rows={8}
+                  className="font-mono text-xs"
+                />
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setImportOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={applyImport} className="gap-1">
+              <Sparkles className="h-4 w-4" /> Gerar cotação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
+
 
 function QuotationDetailModal({
   quotation,
