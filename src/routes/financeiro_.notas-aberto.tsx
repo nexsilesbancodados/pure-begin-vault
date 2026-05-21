@@ -1798,8 +1798,8 @@ function NotasAbertoPage() {
                             <TableRow key={p.id} className="hover:bg-muted/30">
                               <TableCell
                                 className="font-medium text-primary cursor-pointer hover:underline"
-                                onClick={() => setViewingProduct(p)}
-                                title="Ver detalhes do produto"
+                                onClick={() => setEditingProduct(p)}
+                                title="Abrir cadastro do produto"
                               >
                                 {p.name}
                               </TableCell>
