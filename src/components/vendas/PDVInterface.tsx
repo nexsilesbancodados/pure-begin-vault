@@ -1867,7 +1867,10 @@ export function PDVInterface() {
             <div className="px-6 pt-5 pb-2 space-y-2">
               <Button
                 className="w-full gap-2 h-12 font-bold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md"
-                onClick={() => handlePrintReceipt()}
+                onClick={() => {
+                  if (!lastSaleId) return toast.error("Venda não identificada");
+                  window.open(`/recibo/${lastSaleId}?auto=1`, "_blank");
+                }}
               >
                 <Printer className="h-4 w-4" /> Imprimir Recibo
               </Button>
@@ -1925,24 +1928,26 @@ export function PDVInterface() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-[380px]" align="end">
-                  <DropdownMenuItem
-                    className="cursor-pointer py-3 font-semibold"
-                    onClick={() => handlePrintWarranty("seminovo")}
-                  >
-                    iPhone Seminovo (7 meses de garantia)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer py-3 font-semibold"
-                    onClick={() => handlePrintWarranty("lacrado")}
-                  >
-                    iPhone Lacrado (1 ano de garantia)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer py-3 font-semibold"
-                    onClick={() => handlePrintWarranty("android")}
-                  >
-                    Aparelho Android (1 ano de garantia)
-                  </DropdownMenuItem>
+                  {(["seminovo", "lacrado", "android"] as WarrantyType[]).map((t) => (
+                    <DropdownMenuItem
+                      key={t}
+                      className="cursor-pointer py-3 font-semibold"
+                      onClick={async () => {
+                        if (!lastSaleId || !orgId) return toast.error("Venda não identificada");
+                        try {
+                          await openWarrantyPrintWindow(lastSaleId, orgId, t);
+                        } catch (e: any) {
+                          toast.error(e?.message || "Falha ao gerar termo");
+                        }
+                      }}
+                    >
+                      {t === "seminovo"
+                        ? "iPhone Seminovo (7 meses de garantia)"
+                        : t === "lacrado"
+                          ? "iPhone Lacrado (1 ano de garantia)"
+                          : "Aparelho Android (1 ano de garantia)"}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
