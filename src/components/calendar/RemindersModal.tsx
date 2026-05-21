@@ -472,13 +472,26 @@ export async function checkRemindersDueToday(params: {
   const year = today.getFullYear();
   const month = today.getMonth() + 1;
   const day = today.getDate();
+  const dow = today.getDay();
   const { data: rs } = await supabase
     .from("recurring_reminders" as never)
-    .select("id,title,amount,day_of_month")
+    .select("id,title,amount,day_of_month,days_of_week,frequency")
     .eq("organization_id", params.organizationId)
-    .eq("active", true)
-    .eq("day_of_month", day);
-  const reminders = ((rs as unknown) as { id: string; title: string; amount: number | null }[]) || [];
+    .eq("active", true);
+  const all =
+    ((rs as unknown) as {
+      id: string;
+      title: string;
+      amount: number | null;
+      day_of_month: number | null;
+      days_of_week: number[] | null;
+      frequency: string;
+    }[]) || [];
+  const reminders = all.filter((r) =>
+    r.frequency === "weekly"
+      ? (r.days_of_week || []).includes(dow)
+      : r.day_of_month === day,
+  );
   if (reminders.length === 0) {
     if (typeof window !== "undefined") localStorage.setItem(key, "1");
     return;
