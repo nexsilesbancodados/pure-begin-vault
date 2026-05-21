@@ -62,13 +62,23 @@ export function RemindersModal({
     id: "" as string | "",
     title: "",
     amount: "",
+    frequency: "monthly" as Frequency,
     day_of_month: String(today.getDate()),
+    days_of_week: [] as number[],
     notes: "",
   });
   const editing = !!form.id;
 
   const reset = () =>
-    setForm({ id: "", title: "", amount: "", day_of_month: String(today.getDate()), notes: "" });
+    setForm({
+      id: "",
+      title: "",
+      amount: "",
+      frequency: "monthly",
+      day_of_month: String(today.getDate()),
+      days_of_week: [],
+      notes: "",
+    });
 
   const load = async () => {
     if (!orgId) return;
@@ -103,16 +113,35 @@ export function RemindersModal({
     return m;
   }, [comps]);
 
+  const toggleDow = (d: number) =>
+    setForm((f) => ({
+      ...f,
+      days_of_week: f.days_of_week.includes(d)
+        ? f.days_of_week.filter((x) => x !== d)
+        : [...f.days_of_week, d].sort(),
+    }));
+
   const save = async () => {
     if (!user?.id || !orgId) return;
-    const day = Math.max(1, Math.min(31, Number(form.day_of_month) || 0));
-    if (!form.title.trim() || !day) return toast.error("Preencha título e dia");
+    if (!form.title.trim()) return toast.error("Informe o título");
+    let day_of_month: number | null = null;
+    let days_of_week: number[] = [];
+    if (form.frequency === "monthly") {
+      const day = Math.max(1, Math.min(31, Number(form.day_of_month) || 0));
+      if (!day) return toast.error("Informe o dia do mês");
+      day_of_month = day;
+    } else {
+      if (form.days_of_week.length === 0) return toast.error("Selecione ao menos 1 dia da semana");
+      days_of_week = form.days_of_week;
+    }
     const payload = {
       organization_id: orgId,
       user_id: user.id,
       title: form.title.trim(),
       amount: form.amount ? Number(form.amount) : null,
-      day_of_month: day,
+      frequency: form.frequency,
+      day_of_month,
+      days_of_week,
       notes: form.notes || null,
     };
     if (editing) {
