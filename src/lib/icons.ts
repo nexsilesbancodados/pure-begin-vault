@@ -41,6 +41,7 @@ import {
   Settings,
   Shield,
   ShoppingBag,
+  ShoppingCart,
   Sparkles,
   Star,
   Store,
