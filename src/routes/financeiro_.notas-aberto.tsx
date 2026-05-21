@@ -905,6 +905,68 @@ function NotasAbertoPage() {
 
   const getPendingCount = (n: Nota) => n.items.filter(isPendingItem).length;
 
+  // Marca quais produtos da nota em detalhe já foram vendidos (PDV/importação).
+  const [soldProductIds, setSoldProductIds] = useState<Set<string>>(new Set());
+  const [soldImeis, setSoldImeis] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!detailId || !orgId) {
+      setSoldProductIds(new Set());
+      setSoldImeis(new Set());
+      return;
+    }
+    const nota = notas.find((n) => n.id === detailId);
+    if (!nota) return;
+    let active = true;
+    (async () => {
+      const ids = nota.items
+        .map((p) => p.id)
+        .filter((id) => id && !id.startsWith("__")) as string[];
+      const imeis = nota.items
+        .map((p) => p.imei ?? getImeiFromMetadata(p.metadata))
+        .filter(Boolean) as string[];
+      const soldIds = new Set<string>();
+      const soldIm = new Set<string>();
+      try {
+        if (ids.length) {
+          const { data } = await supabase
+            .from("sale_items")
+            .select("product_id, imei")
+            .eq("organization_id", orgId)
+            .in("product_id", ids);
+          (data ?? []).forEach((r: { product_id?: string | null; imei?: string | null }) => {
+            if (r.product_id) soldIds.add(r.product_id);
+            if (r.imei) soldIm.add(String(r.imei));
+          });
+        }
+        if (imeis.length) {
+          const { data } = await supabase
+            .from("sale_items")
+            .select("imei")
+            .eq("organization_id", orgId)
+            .in("imei", imeis);
+          (data ?? []).forEach((r: { imei?: string | null }) => {
+            if (r.imei) soldIm.add(String(r.imei));
+          });
+        }
+      } catch {
+        // silencioso
+      }
+      if (!active) return;
+      setSoldProductIds(soldIds);
+      setSoldImeis(soldIm);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [detailId, orgId, notas]);
+
+  const isSoldItem = (p: Product) => {
+    if (!p.id || p.id.startsWith("__")) return false;
+    if (soldProductIds.has(p.id)) return true;
+    const imei = p.imei ?? getImeiFromMetadata(p.metadata);
+    return !!imei && soldImeis.has(String(imei));
+  };
+
   const filtered = products.filter((p) => {
     if (!search) return true;
     const s = search.toLowerCase();
