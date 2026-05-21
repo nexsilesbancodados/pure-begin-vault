@@ -460,6 +460,7 @@ function NotasAbertoPage() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [orgProductIds, setOrgProductIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [listSearch, setListSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "overdue" | "paid">("all");
