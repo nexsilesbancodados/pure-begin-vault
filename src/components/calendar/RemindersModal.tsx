@@ -6,16 +6,29 @@ import { Bell, Plus, Trash2, Check, CheckCircle2, Pencil, X, CalendarDays } from
 import { toast } from "sonner";
 import { notify } from "@/lib/notify";
 
+type Frequency = "monthly" | "weekly";
 type Reminder = {
   id: string;
   organization_id: string;
   user_id: string;
   title: string;
   amount: number | null;
-  day_of_month: number;
+  day_of_month: number | null;
+  days_of_week: number[] | null;
+  frequency: Frequency;
   notes: string | null;
   active: boolean;
 };
+
+const WEEKDAYS = [
+  { v: 0, l: "Dom" },
+  { v: 1, l: "Seg" },
+  { v: 2, l: "Ter" },
+  { v: 3, l: "Qua" },
+  { v: 4, l: "Qui" },
+  { v: 5, l: "Sex" },
+  { v: 6, l: "Sáb" },
+];
 
 type Completion = {
   id: string;
