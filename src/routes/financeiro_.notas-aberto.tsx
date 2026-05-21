@@ -1945,6 +1945,13 @@ function NotasAbertoPage() {
         product={editingProduct}
         onSave={handleSaveProduct}
       />
+      <ProductDetailsModal
+        open={!!viewingProduct}
+        onOpenChange={(o) => !o && setViewingProduct(null)}
+        productId={viewingProduct?.id ?? null}
+        fallback={viewingProduct as unknown as Record<string, unknown> | null}
+        onEdit={() => setEditingProduct(viewingProduct)}
+      />
       <SalesNoteModal
         open={salesOpen}
         onOpenChange={setSalesOpen}
