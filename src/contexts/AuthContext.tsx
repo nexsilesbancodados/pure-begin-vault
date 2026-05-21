@@ -201,7 +201,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Login aceito, mas a sessão não foi criada.");
     }
 
-    await refreshAuthenticatedState(activeSession);
+    // Não chama refreshAuthenticatedState aqui — onAuthStateChange("SIGNED_IN")
+    // dispara em seguida e atualiza o estado sem competir com este fluxo.
     return { session: activeSession, user: activeSession.user };
   };
 
