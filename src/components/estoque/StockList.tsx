@@ -23,6 +23,8 @@ import {
   X,
   Tags,
   BarChart3,
+  AlertCircle,
+  Copy,
 } from "lucide-react";
 import { ProductForm } from "./ProductForm";
 import { ImportModal } from "@/components/import/ImportModal";
