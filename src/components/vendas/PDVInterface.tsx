@@ -1732,18 +1732,33 @@ export function PDVInterface() {
                 <div className="space-y-2">
                   {filteredCustomers.length > 0 ? (
                     filteredCustomers.map((customer) => (
-                      <button
+                      <div
                         key={customer.id}
-                        onClick={() => {
-                          setSelectedCustomer({ id: customer.id, name: customer.full_name });
-                          setIsCustomerModalOpen(false);
-                          toast.info(`Cliente ${customer.full_name} vinculado.`);
-                        }}
-                        className="w-full text-left p-3 hover:bg-muted rounded-lg border border-transparent hover:border-border transition flex items-center justify-between group"
+                        className="w-full flex items-center gap-1 p-1 rounded-lg border border-transparent hover:border-border hover:bg-muted transition group"
                       >
-                        <div className="font-medium">{customer.full_name}</div>
-                        <Plus className="h-4 w-4 opacity-0 group-hover:opacity-100 transition" />
-                      </button>
+                        <button
+                          onClick={() => {
+                            setSelectedCustomer({ id: customer.id, name: customer.full_name });
+                            setIsCustomerModalOpen(false);
+                            toast.info(`Cliente ${customer.full_name} vinculado.`);
+                          }}
+                          className="flex-1 text-left px-2 py-2 flex items-center justify-between gap-2"
+                        >
+                          <div className="font-medium truncate">{customer.full_name}</div>
+                          <Plus className="h-4 w-4 opacity-0 group-hover:opacity-60 transition shrink-0" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Editar cadastro do cliente"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditCustomer(customer.id);
+                          }}
+                          className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-background border border-transparent hover:border-border transition"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </button>
+                      </div>
                     ))
                   ) : (
                     <div className="text-center py-4 text-muted-foreground text-sm">
@@ -1756,6 +1771,8 @@ export function PDVInterface() {
                 variant="secondary"
                 className="w-full gap-2"
                 onClick={() => {
+                  setEditingCustomerId(null);
+                  resetCustomerForm();
                   setIsNewCustomerModalOpen(true);
                   setNewCustomerName(customerSearch);
                 }}
