@@ -148,8 +148,8 @@ export function StockList() {
         acc.totalValue += price * stock;
         acc.totalCost += cost * stock;
         if (stock <= min && stock > 0) acc.lowStock++;
-        if (stock === 0) acc.outOfStock++;
-        acc.totalItems++;
+        if (stock <= 0) acc.outOfStock++;
+        if (stock > 0) acc.totalItems++;
         return acc;
       },
       { totalValue: 0, totalCost: 0, lowStock: 0, outOfStock: 0, totalItems: 0 },
