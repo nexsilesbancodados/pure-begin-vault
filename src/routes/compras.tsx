@@ -535,6 +535,7 @@ function NewQuotationModal({
       status: "aberta",
       createdAt: new Date().toISOString(),
       items: validItems,
+      notes: notes.trim() || undefined,
       suppliers: validNames.map((name, idx) => ({
         id: newId(),
         supplier: name,
