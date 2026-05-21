@@ -50,7 +50,6 @@ import { toast } from "sonner";
 import { ProductForm } from "@/components/estoque/ProductForm";
 import { SupplierPicker } from "@/components/estoque/SupplierPicker";
 import { SalesNoteModal } from "@/components/financeiro/SalesNoteModal";
-import { ProductDetailsModal } from "@/components/financeiro/ProductDetailsModal";
 
 export const Route = createFileRoute("/financeiro_/notas-aberto")({
   head: () => ({
@@ -477,7 +476,6 @@ function NotasAbertoPage() {
   const [addingToNotaId, setAddingToNotaId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [kindTab, setKindTab] = useState<"compra" | "venda">("compra");
   const [salesOpen, setSalesOpen] = useState(false);
   const detailNota = notas.find((n) => n.id === detailId) ?? null;
@@ -1798,8 +1796,19 @@ function NotasAbertoPage() {
                             <TableRow key={p.id} className="hover:bg-muted/30">
                               <TableCell
                                 className="font-medium text-primary cursor-pointer hover:underline"
-                                onClick={() => setViewingProduct(p)}
-                                title="Ver detalhes do produto"
+                                onClick={async () => {
+                                  try {
+                                    const { data } = await supabase
+                                      .from("products")
+                                      .select("*")
+                                      .eq("id", p.id)
+                                      .maybeSingle();
+                                    setEditingProduct(((data as Product) ?? p));
+                                  } catch {
+                                    setEditingProduct(p);
+                                  }
+                                }}
+                                title="Abrir cadastro do produto"
                               >
                                 {p.name}
                               </TableCell>
@@ -1944,13 +1953,6 @@ function NotasAbertoPage() {
         onOpenChange={(o) => !o && setEditingProduct(null)}
         product={editingProduct}
         onSave={handleSaveProduct}
-      />
-      <ProductDetailsModal
-        open={!!viewingProduct}
-        onOpenChange={(o) => !o && setViewingProduct(null)}
-        productId={viewingProduct?.id ?? null}
-        fallback={viewingProduct as unknown as Record<string, unknown> | null}
-        onEdit={() => setEditingProduct(viewingProduct)}
       />
       <SalesNoteModal
         open={salesOpen}
