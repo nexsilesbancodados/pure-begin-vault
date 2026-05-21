@@ -854,6 +854,57 @@ function NotasAbertoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, orgId]);
 
+  // Carrega o conjunto de IDs de produtos da loja atual para detectar
+  // itens importados de lojas parceiras que ainda precisam ser cadastrados.
+  useEffect(() => {
+    if (!orgId) {
+      setOrgProductIds(new Set());
+      return;
+    }
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("products")
+          .select("id")
+          .eq("organization_id", orgId);
+        if (!active) return;
+        const ids = new Set<string>(
+          ((data ?? []) as Array<{ id: string }>).map((r) => r.id),
+        );
+        setOrgProductIds(ids);
+      } catch {
+        if (active) setOrgProductIds(new Set());
+      }
+    })();
+    const ch = supabase
+      .channel(`org-products-${orgId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products", filter: `organization_id=eq.${orgId}` },
+        (payload) => {
+          setOrgProductIds((prev) => {
+            const next = new Set(prev);
+            const newRow = payload.new as { id?: string } | null;
+            const oldRow = payload.old as { id?: string } | null;
+            if (payload.eventType === "DELETE" && oldRow?.id) next.delete(oldRow.id);
+            else if (newRow?.id) next.add(newRow.id);
+            return next;
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      active = false;
+      void supabase.removeChannel(ch);
+    };
+  }, [orgId, notas.length]);
+
+  const isPendingItem = (p: Product) =>
+    !!p.id && !p.id.startsWith("__") && !orgProductIds.has(p.id);
+
+  const getPendingCount = (n: Nota) => n.items.filter(isPendingItem).length;
+
   const filtered = products.filter((p) => {
     if (!search) return true;
     const s = search.toLowerCase();
