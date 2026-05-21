@@ -1318,6 +1318,7 @@ function NotasAbertoPage() {
                           (new Date(n.prazoPagamento).getTime() - today.getTime()) / 86400000,
                         )
                       : null;
+                    const pendingCount = getPendingCount(n);
                     return (
                       <Card
                         key={n.id}
@@ -1330,6 +1331,14 @@ function NotasAbertoPage() {
                             n.paga ? "bg-emerald-500" : isOverdue ? "bg-rose-500" : "bg-primary"
                           }`}
                         />
+                        {pendingCount > 0 && (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">
+                              Nota importada · {pendingCount} produto(s) p/ cadastrar
+                            </span>
+                          </div>
+                        )}
 
                         <div className="p-4 space-y-3">
                           {/* Header */}
