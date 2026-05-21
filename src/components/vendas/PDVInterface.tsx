@@ -1174,23 +1174,13 @@ export function PDVInterface() {
         storeInfo: storeConfig,
       };
 
-      // Auto-criar Nota de Venda (prazo 7 dias) quando o cliente é da AtacadoCell
+      // Auto-criar Nota de Venda sempre que houver Prazo 7D (qualquer cliente)
       try {
-        const customerInList = selectedCustomer
-          ? customersList.find((c) => c.id === selectedCustomer.id)
-          : null;
-        const nameLc = (selectedCustomer?.name || "").toLowerCase();
-        const isAtacadoCell =
-          customerInList?.partner === "atacadocell" ||
-          nameLc.includes("atacadocell") ||
-          nameLc.includes("atacado cell");
-
         if (
           !editingSaleId &&
           prazoN > 0 &&
           saleId &&
           selectedCustomer &&
-          isAtacadoCell &&
           orgId &&
           user?.id
         ) {
@@ -1242,21 +1232,25 @@ export function PDVInterface() {
                 updated_by: user.id,
               } as never);
             if (!noteErr) {
-              toast.success(`Nota de venda ${nextNumber} criada para AtacadoCell.`, {
-                description: `Prazo: ${dueDate.toLocaleDateString("pt-BR")}`,
+              toast.success(`Nota de venda ${nextNumber} criada`, {
+                description: `${selectedCustomer.name} · Prazo: ${dueDate.toLocaleDateString("pt-BR")}`,
               });
               break;
             }
             if ((noteErr as any).code !== "23505") {
-              console.warn("Falha ao criar nota AtacadoCell:", noteErr);
+              console.warn("Falha ao criar nota de venda:", noteErr);
+              toast.error("Falha ao criar nota de venda", {
+                description: (noteErr as any).message || "Verifique permissões.",
+              });
               break;
             }
             nextNumber += 1;
           }
         }
       } catch (e) {
-        console.warn("Erro ao gerar nota AtacadoCell:", e);
+        console.warn("Erro ao gerar nota de venda:", e);
       }
+
 
       // Espelhar venda em loja parceira (Premier Castanhal / AlfaTech Curuçá)
       // quando a venda é feita pela Atacado Cell para um cliente do grupo.
