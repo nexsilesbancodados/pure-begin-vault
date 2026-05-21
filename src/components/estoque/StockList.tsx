@@ -1112,20 +1112,30 @@ export function StockList() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            onClick={(e) => e.stopPropagation()}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-white transition shadow-sm ${
-                              available
-                                ? "bg-emerald-500 hover:bg-emerald-600"
-                                : "bg-slate-400 hover:bg-slate-500"
-                            }`}
-                          >
-                            {available ? "Disponível para venda" : "Esgotado"}
-                            <ArrowUpDown className="h-3 w-3 opacity-80" />
-                          </button>
-                        </DropdownMenuTrigger>
+                      {(() => {
+                        const dispo = product.metadata?.disponibilidade as string | undefined;
+                        const label = dispo || (available ? "Disponível para venda" : "Esgotado");
+                        const cls =
+                          label === "Disponível para venda"
+                            ? "bg-emerald-500 hover:bg-emerald-600"
+                            : label === "Reservado"
+                              ? "bg-sky-500 hover:bg-sky-600"
+                              : label === "Em conserto"
+                                ? "bg-amber-500 hover:bg-amber-600"
+                                : label === "Indisponível"
+                                  ? "bg-slate-500 hover:bg-slate-600"
+                                  : "bg-rose-500 hover:bg-rose-600";
+                        return (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-white transition shadow-sm ${cls}`}
+                              >
+                                {label}
+                                <ArrowUpDown className="h-3 w-3 opacity-80" />
+                              </button>
+                            </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={async (e) => {
