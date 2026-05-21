@@ -718,7 +718,19 @@ function NewQuotationModal({
             <div className="text-xs text-muted-foreground max-w-xs">
               Calcula o preço de venda de cada item a partir do <b>menor custo</b> + markup.
             </div>
+            <div className="ml-auto">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setImportOpen(true)}
+                className="gap-1"
+                title="Cole listas de produtos e preços dos 3 fornecedores"
+              >
+                <ClipboardPaste className="h-3.5 w-3.5" /> Importar listas
+              </Button>
+            </div>
           </div>
+
 
           <div className="border rounded-xl overflow-hidden">
             <div className="overflow-x-auto max-h-[55vh] divide-y divide-border">
