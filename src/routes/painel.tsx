@@ -158,15 +158,20 @@ function Dashboard() {
       <div className="flex-1 flex flex-col min-w-0">
         <Topbar
           title={`Olá, ${displayName}! 👋`}
-          subtitle="Aqui está o resumo do seu negócio hoje."
+          subtitle={roleSubtitle[role]}
           toggleSidebar={() => setSidebarOpen(true)}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
-          <HeroHeader userName={displayName} />
+          <HeroHeader userName={displayName} status={roleSubtitle[role]} />
+
+          <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary">
+            {ROLE_LABEL[role]}
+          </div>
 
           <QuickActions />
 
-          <LowStockAlert />
+          {(role === "admin" || role === "tecnico") && <LowStockAlert />}
+
 
           <div className="flex flex-col xl:flex-row gap-4 sm:gap-6">
             <div className="flex-1 flex flex-col gap-6 min-w-0">
