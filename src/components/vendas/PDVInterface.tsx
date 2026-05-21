@@ -2432,7 +2432,8 @@ export function PDVInterface() {
                 {allProducts
                   .filter(
                     (p) =>
-                      activeCategory === "all" ||
+                      (p.stock || 0) > 0 &&
+                      (activeCategory === "all" ||
                       (activeCategory === "phones" &&
                         ["Smartphones", "Celulares", "Aparelhos"].some((c) =>
                           p.category.includes(c),
@@ -2442,7 +2443,7 @@ export function PDVInterface() {
                           p.category.includes(c),
                         )) ||
                       (activeCategory === "services" &&
-                        ["Serviços", "Mão de Obra"].some((c) => p.category.includes(c))),
+                        ["Serviços", "Mão de Obra"].some((c) => p.category.includes(c)))),
                   )
                   .slice(0, 30)
                   .map((product) => (
