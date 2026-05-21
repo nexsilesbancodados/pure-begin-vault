@@ -611,8 +611,8 @@ function NewQuotationModal({
                           const bd = r.sups[i] ?? emptyBreakdown();
                           const isBest = r.bestIdx === i && r.bestUnit > 0;
                           return (
-                            <>
-                              <td key={`c${i}`} className="px-1 py-2 border-l border-border">
+                            <Fragment key={`row-${it.id}-${i}`}>
+                              <td className="px-1 py-2 border-l border-border">
                                 <Input
                                   type="number"
                                   step="0.01"
@@ -625,7 +625,7 @@ function NewQuotationModal({
                                   className="h-9 text-right"
                                 />
                               </td>
-                              <td key={`f1${i}`} className="px-1 py-2">
+                              <td className="px-1 py-2">
                                 <Input
                                   type="number"
                                   step="0.01"
@@ -638,7 +638,7 @@ function NewQuotationModal({
                                   className="h-9 text-right"
                                 />
                               </td>
-                              <td key={`f2${i}`} className="px-1 py-2">
+                              <td className="px-1 py-2">
                                 <Input
                                   type="number"
                                   step="0.01"
@@ -652,7 +652,6 @@ function NewQuotationModal({
                                 />
                               </td>
                               <td
-                                key={`t${i}`}
                                 className={
                                   "px-2 py-2 text-right font-bold tabular-nums " +
                                   (isBest
@@ -662,7 +661,8 @@ function NewQuotationModal({
                               >
                                 {r.unitTotals[i] > 0 ? `R$ ${fmt(r.unitTotals[i])}` : "—"}
                               </td>
-                            </>
+                            </Fragment>
+
                           );
                         })}
                         <td className="px-1 py-2 border-l border-border bg-emerald-500/5">
