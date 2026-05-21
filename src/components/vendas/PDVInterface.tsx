@@ -1169,6 +1169,90 @@ export function PDVInterface() {
         storeInfo: storeConfig,
       };
 
+      // Auto-criar Nota de Venda (prazo 7 dias) quando o cliente é da AtacadoCell
+      try {
+        const customerInList = selectedCustomer
+          ? customersList.find((c) => c.id === selectedCustomer.id)
+          : null;
+        const nameLc = (selectedCustomer?.name || "").toLowerCase();
+        const isAtacadoCell =
+          customerInList?.partner === "atacadocell" ||
+          nameLc.includes("atacadocell") ||
+          nameLc.includes("atacado cell");
+
+        if (
+          !editingSaleId &&
+          prazoN > 0 &&
+          saleId &&
+          selectedCustomer &&
+          isAtacadoCell &&
+          orgId &&
+          user?.id
+        ) {
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + 7);
+          const dataVenda = new Date().toISOString().slice(0, 10);
+          const prazoIso = dueDate.toISOString().slice(0, 10);
+          const noteItems = cart.map((it) => ({
+            id: it.id,
+            name: it.name,
+            organization_id: orgId,
+            sku: (it as any).sku,
+            imei: (it as any).imei,
+            price: it.price,
+            cost_price: (it as any).cost_price ?? 0,
+            stock_quantity: null,
+            metadata: {
+              sale_id: saleId,
+              quantity: it.quantity,
+              line_total: it.price * it.quantity,
+            },
+          }));
+
+          const { data: latest } = await supabase
+            .from("purchase_notes" as never)
+            .select("note_number")
+            .eq("organization_id", orgId)
+            .order("note_number", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          let nextNumber = Number((latest as any)?.note_number ?? 0) + 1;
+
+          for (let i = 0; i < 5; i++) {
+            const { error: noteErr } = await supabase
+              .from("purchase_notes" as never)
+              .insert({
+                organization_id: orgId,
+                note_number: nextNumber,
+                kind: "venda",
+                customer_name: selectedCustomer.name,
+                fornecedor: selectedCustomer.name,
+                sale_ids: [saleId],
+                items: noteItems,
+                total: prazoN,
+                data_compra: dataVenda,
+                prazo_pagamento: prazoIso,
+                paga: false,
+                created_by: user.id,
+                updated_by: user.id,
+              } as never);
+            if (!noteErr) {
+              toast.success(`Nota de venda ${nextNumber} criada para AtacadoCell.`, {
+                description: `Prazo: ${dueDate.toLocaleDateString("pt-BR")}`,
+              });
+              break;
+            }
+            if ((noteErr as any).code !== "23505") {
+              console.warn("Falha ao criar nota AtacadoCell:", noteErr);
+              break;
+            }
+            nextNumber += 1;
+          }
+        }
+      } catch (e) {
+        console.warn("Erro ao gerar nota AtacadoCell:", e);
+      }
+
       toast.success(
         editingSaleId ? "Venda atualizada com sucesso!" : "Venda finalizada com sucesso!",
         {
