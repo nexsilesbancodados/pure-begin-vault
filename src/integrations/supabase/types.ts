@@ -3330,6 +3330,7 @@ export type Database = {
       }
     }
     Functions: {
+      _exec_sql: { Args: { _q: string }; Returns: undefined }
       accept_organization_invite: { Args: { _token: string }; Returns: string }
       checkout_sale: { Args: { _payload: Json }; Returns: string }
       clear_demo_data: { Args: never; Returns: Json }
@@ -3339,6 +3340,18 @@ export type Database = {
         Returns: Json
       }
       create_organization_for_user: { Args: { _name: string }; Returns: string }
+      create_partner_purchase_note: {
+        Args: {
+          _customer_name: string
+          _items: Json
+          _partner_key: string
+          _prazo_dias?: number
+          _sale_id: string
+          _source_org_id: string
+          _total: number
+        }
+        Returns: Json
+      }
       delete_my_account: { Args: never; Returns: undefined }
       dispatch_no_reply_24h: { Args: never; Returns: undefined }
       ensure_default_funnel_stages: {
