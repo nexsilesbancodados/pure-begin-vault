@@ -555,18 +555,18 @@ function NewQuotationModal({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-[1200px] w-[95vw] p-0">
+      <DialogContent className="max-w-[1280px] w-[97vw] p-0">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5 text-primary" /> Nova Cotação de Compra
           </DialogTitle>
           <DialogDescription>
             Compare 3 fornecedores lado a lado — Custo + Frete 1 + Frete 2 = Total. Informe o
-            preço de venda para visualizar o lucro automaticamente.
+            preço de venda (ou aplique um markup %) para visualizar o lucro automaticamente.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-6 space-y-5 max-h-[70vh] overflow-auto">
+        <div className="px-6 space-y-5 max-h-[72vh] overflow-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>Título da cotação</Label>
@@ -579,7 +579,12 @@ function NewQuotationModal({
             <div className="grid grid-cols-3 gap-2">
               {supplierNames.map((n, i) => (
                 <div key={i}>
-                  <Label className="text-xs">Fornecedor {i + 1}</Label>
+                  <Label className="text-xs flex items-center gap-1">
+                    Fornecedor {i + 1}
+                    {bestSupplierIdx === i && supplierTotals[i] > 0 && (
+                      <Trophy className="h-3 w-3 text-amber-500" />
+                    )}
+                  </Label>
                   <Input
                     value={n}
                     onChange={(e) => updateSupplierName(i, e.target.value)}
@@ -590,30 +595,70 @@ function NewQuotationModal({
             </div>
           </div>
 
+          {/* Toolbar: markup global */}
+          <div className="flex flex-wrap items-end gap-3 p-3 rounded-xl border bg-gradient-to-r from-primary/5 via-card to-emerald-500/5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <div>
+                <Label className="text-xs">Markup global (%)</Label>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={markup}
+                      onChange={(e) => setMarkup(Number(e.target.value) || 0)}
+                      className="h-9 w-28 pr-8 text-right"
+                    />
+                    <Percent className="h-3.5 w-3.5 absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                  <Button size="sm" onClick={applyMarkup} className="gap-1">
+                    <TrendingUp className="h-3.5 w-3.5" /> Aplicar em todos
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground max-w-xs">
+              Calcula o preço de venda de cada item a partir do <b>menor custo</b> + markup.
+            </div>
+          </div>
+
           <div className="border rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[50vh]">
               <table className="w-full text-sm">
-                <thead className="bg-muted/60">
+                <thead className="bg-muted/60 sticky top-0 z-20">
                   <tr className="text-left">
                     <th className="px-3 py-2 sticky left-0 bg-muted/60 z-10 min-w-[220px]">
                       Produto
                     </th>
                     <th className="px-2 py-2 w-20 text-center">Qtd.</th>
-                    {supplierNames.map((n, i) => (
-                      <th
-                        key={i}
-                        colSpan={4}
-                        className="px-2 py-2 text-center border-l border-border bg-primary/5"
-                      >
-                        <div className="flex items-center justify-center gap-1 font-bold">
-                          <Building2 className="h-3.5 w-3.5" /> {n || `Fornecedor ${i + 1}`}
-                        </div>
-                      </th>
-                    ))}
+                    {supplierNames.map((n, i) => {
+                      const isBestSup = bestSupplierIdx === i && supplierTotals[i] > 0;
+                      return (
+                        <th
+                          key={i}
+                          colSpan={4}
+                          className={
+                            "px-2 py-2 text-center border-l border-border " +
+                            (isBestSup ? "bg-amber-500/15" : "bg-primary/5")
+                          }
+                        >
+                          <div className="flex items-center justify-center gap-1 font-bold">
+                            {isBestSup ? (
+                              <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                            ) : (
+                              <Building2 className="h-3.5 w-3.5" />
+                            )}
+                            {n || `Fornecedor ${i + 1}`}
+                          </div>
+                        </th>
+                      );
+                    })}
                     <th className="px-2 py-2 text-center border-l border-border bg-emerald-500/10 min-w-[110px]">
                       Venda
                     </th>
-                    <th className="px-2 py-2 text-center border-l border-border bg-emerald-500/10 min-w-[110px]">
+                    <th className="px-2 py-2 text-center border-l border-border bg-emerald-500/10 min-w-[120px]">
                       Lucro
                     </th>
                   </tr>
@@ -633,16 +678,19 @@ function NewQuotationModal({
                       </Fragment>
                     ))}
                     <th className="px-1.5 py-1.5 border-l border-border text-center">unit.</th>
-                    <th className="px-1.5 py-1.5 text-center">total</th>
+                    <th className="px-1.5 py-1.5 text-center">unit. / margem</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((it) => {
+                  {items.map((it, rowIdx) => {
                     const r = computeRow(it);
                     return (
-                      <tr key={it.id} className="border-t align-middle">
+                      <tr key={it.id} className="border-t align-middle hover:bg-muted/20">
                         <td className="px-3 py-2 sticky left-0 bg-card z-10">
                           <div className="flex items-center gap-1">
+                            <span className="text-[10px] font-bold text-muted-foreground w-5 text-center">
+                              {rowIdx + 1}
+                            </span>
                             <Input
                               value={it.name}
                               onChange={(e) => updateItem(it.id, { name: e.target.value })}
@@ -655,6 +703,7 @@ function NewQuotationModal({
                                 variant="ghost"
                                 onClick={() => removeItem(it.id)}
                                 className="h-9 w-9 shrink-0"
+                                title="Remover item"
                               >
                                 <Trash2 className="h-4 w-4 text-rose-600" />
                               </Button>
@@ -680,17 +729,29 @@ function NewQuotationModal({
                           return (
                             <Fragment key={`row-${it.id}-${i}`}>
                               <td className="px-1 py-2 border-l border-border">
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  min={0}
-                                  value={bd.cost || ""}
-                                  onChange={(e) =>
-                                    updateBreakdown(it.id, i, "cost", e.target.value)
-                                  }
-                                  placeholder="0,00"
-                                  className="h-9 text-right"
-                                />
+                                <div className="relative">
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min={0}
+                                    value={bd.cost || ""}
+                                    onChange={(e) =>
+                                      updateBreakdown(it.id, i, "cost", e.target.value)
+                                    }
+                                    placeholder="0,00"
+                                    className="h-9 text-right pr-7"
+                                  />
+                                  {bd.cost > 0 && (
+                                    <button
+                                      type="button"
+                                      title="Copiar custo para os outros fornecedores"
+                                      onClick={() => copyCostToAll(it.id, i)}
+                                      className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-1 py-2">
                                 <Input
@@ -720,16 +781,26 @@ function NewQuotationModal({
                               </td>
                               <td
                                 className={
-                                  "px-2 py-2 text-right font-bold tabular-nums " +
+                                  "px-2 py-2 text-right font-bold tabular-nums whitespace-nowrap " +
                                   (isBest
-                                    ? "text-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/30"
+                                    ? "text-emerald-700 bg-emerald-50/70 dark:bg-emerald-950/30"
                                     : "")
                                 }
                               >
-                                {r.unitTotals[i] > 0 ? `R$ ${fmt(r.unitTotals[i])}` : "—"}
+                                {r.unitTotals[i] > 0 ? (
+                                  <div className="flex flex-col items-end">
+                                    <span>R$ {fmt(r.unitTotals[i])}</span>
+                                    {isBest && (
+                                      <span className="text-[10px] font-semibold text-emerald-600 inline-flex items-center gap-0.5">
+                                        <Trophy className="h-2.5 w-2.5" /> melhor
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  "—"
+                                )}
                               </td>
                             </Fragment>
-
                           );
                         })}
                         <td className="px-1 py-2 border-l border-border bg-emerald-500/5">
@@ -745,7 +816,7 @@ function NewQuotationModal({
                             className="h-9 text-right"
                           />
                         </td>
-                        <td className="px-2 py-2 text-right tabular-nums bg-emerald-500/5">
+                        <td className="px-2 py-2 text-right tabular-nums bg-emerald-500/5 whitespace-nowrap">
                           <div
                             className={
                               "font-bold " +
@@ -758,17 +829,74 @@ function NewQuotationModal({
                           >
                             {r.bestUnit > 0 ? `R$ ${fmt(r.profitPerUnit)}` : "—"}
                           </div>
-                          <div className="text-[11px] text-muted-foreground">
-                            tot. R$ {fmt(r.profitTotal)}
+                          <div className="text-[10px] text-muted-foreground flex items-center justify-end gap-1">
+                            <span>tot. R$ {fmt(r.profitTotal)}</span>
+                            {r.marginPct !== 0 && (
+                              <Badge
+                                variant="outline"
+                                className={
+                                  "px-1 py-0 h-4 text-[9px] " +
+                                  (r.marginPct >= 0
+                                    ? "border-emerald-300 text-emerald-700"
+                                    : "border-rose-300 text-rose-700")
+                                }
+                              >
+                                {r.marginPct.toFixed(1)}%
+                              </Badge>
+                            )}
                           </div>
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
+                {/* Subtotais por fornecedor */}
+                <tfoot className="bg-muted/40 border-t-2 border-border sticky bottom-0 z-10">
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="px-3 py-2 text-xs uppercase tracking-wider font-bold text-muted-foreground sticky left-0 bg-muted/40"
+                    >
+                      Subtotal por fornecedor
+                    </td>
+                    {supplierNames.map((_, i) => {
+                      const isBest = bestSupplierIdx === i && supplierTotals[i] > 0;
+                      return (
+                        <td
+                          key={`sub-${i}`}
+                          colSpan={4}
+                          className={
+                            "px-2 py-2 text-right font-black tabular-nums border-l border-border " +
+                            (isBest
+                              ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                              : "")
+                          }
+                        >
+                          {supplierTotals[i] > 0 ? (
+                            <span className="inline-flex items-center gap-1">
+                              {isBest && <Trophy className="h-3.5 w-3.5" />}
+                              R$ {fmt(supplierTotals[i])}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td colSpan={2} className="px-2 py-2 text-right text-xs text-muted-foreground border-l border-border bg-emerald-500/5">
+                      lucro total
+                      <div className={"text-base font-black " + (grand.profit >= 0 ? "text-emerald-600" : "text-rose-600")}>
+                        R$ {fmt(grand.profit)}
+                      </div>
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
-            <div className="border-t bg-muted/30 px-3 py-2 flex justify-end">
+            <div className="border-t bg-muted/30 px-3 py-2 flex justify-between items-center">
+              <div className="text-xs text-muted-foreground">
+                {items.length} {items.length === 1 ? "item" : "itens"} na cotação
+              </div>
               <Button size="sm" variant="outline" onClick={addItem} className="gap-1">
                 <Plus className="h-3.5 w-3.5" /> Adicionar item
               </Button>
@@ -781,6 +909,11 @@ function NewQuotationModal({
                 Custo (melhor)
               </div>
               <div className="text-2xl font-black mt-1 tabular-nums">R$ {fmt(grand.cost)}</div>
+              {bestSupplierIdx >= 0 && (
+                <div className="text-xs text-amber-600 dark:text-amber-400 mt-1 inline-flex items-center gap-1">
+                  <Trophy className="h-3 w-3" /> {supplierNames[bestSupplierIdx]}
+                </div>
+              )}
             </Card>
             <Card className="p-4 bg-gradient-to-br from-primary/10 to-card border-primary/30">
               <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
@@ -814,9 +947,35 @@ function NewQuotationModal({
               )}
             </Card>
           </div>
+
+          {/* Observações */}
+          <div>
+            <Label className="flex items-center gap-1">
+              <FileText className="h-3.5 w-3.5" /> Observações da cotação
+            </Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Ex.: prazo de entrega esperado, condições de pagamento, contatos..."
+              rows={2}
+              className="resize-none"
+            />
+          </div>
         </div>
 
-        <DialogFooter className="px-6 pb-6 pt-3 border-t mt-2">
+        <DialogFooter className="px-6 pb-6 pt-3 border-t mt-2 flex-col sm:flex-row gap-2 sm:gap-3">
+          <div className="text-xs text-muted-foreground mr-auto">
+            {bestSupplierIdx >= 0 ? (
+              <span className="inline-flex items-center gap-1">
+                <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                Melhor fornecedor:{" "}
+                <b className="text-foreground">{supplierNames[bestSupplierIdx]}</b> — R${" "}
+                {fmt(supplierTotals[bestSupplierIdx])}
+              </span>
+            ) : (
+              <span>Preencha os custos para identificar o melhor fornecedor.</span>
+            )}
+          </div>
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
@@ -826,7 +985,6 @@ function NewQuotationModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-
   );
 }
 
