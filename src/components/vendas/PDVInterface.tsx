@@ -1253,6 +1253,65 @@ export function PDVInterface() {
         console.warn("Erro ao gerar nota AtacadoCell:", e);
       }
 
+      // Espelhar venda em loja parceira (Premier Castanhal / AlfaTech Curuçá)
+      // quando a venda é feita pela Atacado Cell para um cliente do grupo.
+      try {
+        const ATACADO_ORG_ID = "e4fd1ef2-7bb1-4c9d-b4de-47aa80ebbf4b";
+        const customerInList = selectedCustomer
+          ? customersList.find((c) => c.id === selectedCustomer.id)
+          : null;
+        const partnerKey = customerInList?.partner;
+        const isPartnerTarget =
+          partnerKey === "premier_castanhal" || partnerKey === "alfatech_curuca";
+
+        if (
+          !editingSaleId &&
+          saleId &&
+          selectedCustomer &&
+          orgId === ATACADO_ORG_ID &&
+          isPartnerTarget
+        ) {
+          const partnerItems = cart.map((it) => ({
+            id: it.id,
+            name: it.name,
+            sku: (it as any).sku,
+            imei: (it as any).imei,
+            price: it.price,
+            cost_price: (it as any).cost_price ?? 0,
+            quantity: it.quantity,
+            line_total: it.price * it.quantity,
+          }));
+          const prazoDias = prazoN > 0 ? 7 : 30;
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc(
+            "create_partner_purchase_note" as never,
+            {
+              _source_org_id: orgId,
+              _partner_key: partnerKey,
+              _customer_name: selectedCustomer.name,
+              _sale_id: saleId,
+              _items: partnerItems as never,
+              _total: total,
+              _prazo_dias: prazoDias,
+            } as never,
+          );
+          if (rpcErr) {
+            console.warn("Falha ao espelhar nota no parceiro:", rpcErr);
+          } else {
+            const partnerLabel =
+              partnerKey === "premier_castanhal" ? "Premier Castanhal" : "AlfaTech Curuçá";
+            toast.success(`Nota espelhada em ${partnerLabel}.`, {
+              description: (rpcRes as any)?.note_number
+                ? `Nota #${(rpcRes as any).note_number}`
+                : undefined,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Erro ao espelhar nota no parceiro:", e);
+      }
+
+
+
       toast.success(
         editingSaleId ? "Venda atualizada com sucesso!" : "Venda finalizada com sucesso!",
         {
