@@ -600,6 +600,14 @@ export function StockList() {
             <Upload className="h-4 w-4" /> Importar
           </button>
 
+          <button
+            onClick={handleExport}
+            className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 text-sm font-semibold border border-border transition"
+          >
+            <FileDown className="h-4 w-4 text-primary" /> Exportar
+          </button>
+
+
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
