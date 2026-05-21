@@ -6,16 +6,29 @@ import { Bell, Plus, Trash2, Check, CheckCircle2, Pencil, X, CalendarDays } from
 import { toast } from "sonner";
 import { notify } from "@/lib/notify";
 
+type Frequency = "monthly" | "weekly";
 type Reminder = {
   id: string;
   organization_id: string;
   user_id: string;
   title: string;
   amount: number | null;
-  day_of_month: number;
+  day_of_month: number | null;
+  days_of_week: number[] | null;
+  frequency: Frequency;
   notes: string | null;
   active: boolean;
 };
+
+const WEEKDAYS = [
+  { v: 0, l: "Dom" },
+  { v: 1, l: "Seg" },
+  { v: 2, l: "Ter" },
+  { v: 3, l: "Qua" },
+  { v: 4, l: "Qui" },
+  { v: 5, l: "Sex" },
+  { v: 6, l: "Sáb" },
+];
 
 type Completion = {
   id: string;
@@ -49,13 +62,23 @@ export function RemindersModal({
     id: "" as string | "",
     title: "",
     amount: "",
+    frequency: "monthly" as Frequency,
     day_of_month: String(today.getDate()),
+    days_of_week: [] as number[],
     notes: "",
   });
   const editing = !!form.id;
 
   const reset = () =>
-    setForm({ id: "", title: "", amount: "", day_of_month: String(today.getDate()), notes: "" });
+    setForm({
+      id: "",
+      title: "",
+      amount: "",
+      frequency: "monthly",
+      day_of_month: String(today.getDate()),
+      days_of_week: [],
+      notes: "",
+    });
 
   const load = async () => {
     if (!orgId) return;
@@ -90,16 +113,35 @@ export function RemindersModal({
     return m;
   }, [comps]);
 
+  const toggleDow = (d: number) =>
+    setForm((f) => ({
+      ...f,
+      days_of_week: f.days_of_week.includes(d)
+        ? f.days_of_week.filter((x) => x !== d)
+        : [...f.days_of_week, d].sort(),
+    }));
+
   const save = async () => {
     if (!user?.id || !orgId) return;
-    const day = Math.max(1, Math.min(31, Number(form.day_of_month) || 0));
-    if (!form.title.trim() || !day) return toast.error("Preencha título e dia");
+    if (!form.title.trim()) return toast.error("Informe o título");
+    let day_of_month: number | null = null;
+    let days_of_week: number[] = [];
+    if (form.frequency === "monthly") {
+      const day = Math.max(1, Math.min(31, Number(form.day_of_month) || 0));
+      if (!day) return toast.error("Informe o dia do mês");
+      day_of_month = day;
+    } else {
+      if (form.days_of_week.length === 0) return toast.error("Selecione ao menos 1 dia da semana");
+      days_of_week = form.days_of_week;
+    }
     const payload = {
       organization_id: orgId,
       user_id: user.id,
       title: form.title.trim(),
       amount: form.amount ? Number(form.amount) : null,
-      day_of_month: day,
+      frequency: form.frequency,
+      day_of_month,
+      days_of_week,
       notes: form.notes || null,
     };
     if (editing) {
@@ -161,16 +203,23 @@ export function RemindersModal({
       id: r.id,
       title: r.title,
       amount: r.amount != null ? String(r.amount) : "",
-      day_of_month: String(r.day_of_month),
+      frequency: (r.frequency as Frequency) || "monthly",
+      day_of_month: r.day_of_month ? String(r.day_of_month) : String(today.getDate()),
+      days_of_week: r.days_of_week || [],
       notes: r.notes || "",
     });
   };
 
   if (!open) return null;
 
-  const pendingToday = items.filter(
-    (r) => r.day_of_month === today.getDate() && !compByReminder.has(r.id),
-  );
+  const todayDow = today.getDay();
+  const pendingToday = items.filter((r) => {
+    const due =
+      r.frequency === "weekly"
+        ? (r.days_of_week || []).includes(todayDow)
+        : r.day_of_month === today.getDate();
+    return due && !compByReminder.has(r.id);
+  });
 
   return (
     <div
@@ -223,21 +272,30 @@ export function RemindersModal({
             <div className="text-[11px] uppercase font-bold text-muted-foreground">
               {editing ? "Editar lembrete" : "Novo lembrete"}
             </div>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded-lg border border-border bg-background p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, frequency: "monthly" })}
+                  className={`h-8 px-3 rounded-md text-xs font-bold ${form.frequency === "monthly" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                >
+                  Mensal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, frequency: "weekly" })}
+                  className={`h-8 px-3 rounded-md text-xs font-bold ${form.frequency === "weekly" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                >
+                  Semanal
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               <input
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder="Ex: Aluguel da loja"
-                className="md:col-span-6 h-10 px-3 rounded-lg border border-border bg-background text-sm"
-              />
-              <input
-                type="number"
-                value={form.day_of_month}
-                onChange={(e) => setForm({ ...form, day_of_month: e.target.value })}
-                placeholder="Dia"
-                min={1}
-                max={31}
-                className="md:col-span-2 h-10 px-3 rounded-lg border border-border bg-background text-sm"
+                className="md:col-span-8 h-10 px-3 rounded-lg border border-border bg-background text-sm"
               />
               <input
                 type="number"
@@ -247,6 +305,36 @@ export function RemindersModal({
                 placeholder="R$ valor (opcional)"
                 className="md:col-span-4 h-10 px-3 rounded-lg border border-border bg-background text-sm"
               />
+              {form.frequency === "monthly" ? (
+                <div className="md:col-span-12 flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-bold">Dia do mês:</span>
+                  <input
+                    type="number"
+                    value={form.day_of_month}
+                    onChange={(e) => setForm({ ...form, day_of_month: e.target.value })}
+                    min={1}
+                    max={31}
+                    className="w-24 h-10 px-3 rounded-lg border border-border bg-background text-sm"
+                  />
+                </div>
+              ) : (
+                <div className="md:col-span-12 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-muted-foreground font-bold mr-1">Dias da semana:</span>
+                  {WEEKDAYS.map((d) => {
+                    const active = form.days_of_week.includes(d.v);
+                    return (
+                      <button
+                        key={d.v}
+                        type="button"
+                        onClick={() => toggleDow(d.v)}
+                        className={`h-8 px-3 rounded-lg text-xs font-bold border ${active ? "bg-primary text-primary-foreground border-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
+                      >
+                        {d.l}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <textarea
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -288,7 +376,13 @@ export function RemindersModal({
               <div className="space-y-2">
                 {items.map((r) => {
                   const done = compByReminder.get(r.id);
-                  const isToday = r.day_of_month === today.getDate();
+                  const isWeekly = r.frequency === "weekly";
+                  const isToday = isWeekly
+                    ? (r.days_of_week || []).includes(todayDow)
+                    : r.day_of_month === today.getDate();
+                  const scheduleLabel = isWeekly
+                    ? (r.days_of_week || []).map((d) => WEEKDAYS[d]?.l).filter(Boolean).join(", ") || "—"
+                    : `Dia ${r.day_of_month}`;
                   return (
                     <div
                       key={r.id}
@@ -320,7 +414,7 @@ export function RemindersModal({
                           </span>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary inline-flex items-center gap-1">
                             <CalendarDays className="h-3 w-3" />
-                            Dia {r.day_of_month}
+                            {isWeekly ? "Semanal" : "Mensal"} · {scheduleLabel}
                           </span>
                           {r.amount != null && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-foreground/10">
@@ -378,13 +472,26 @@ export async function checkRemindersDueToday(params: {
   const year = today.getFullYear();
   const month = today.getMonth() + 1;
   const day = today.getDate();
+  const dow = today.getDay();
   const { data: rs } = await supabase
     .from("recurring_reminders" as never)
-    .select("id,title,amount,day_of_month")
+    .select("id,title,amount,day_of_month,days_of_week,frequency")
     .eq("organization_id", params.organizationId)
-    .eq("active", true)
-    .eq("day_of_month", day);
-  const reminders = ((rs as unknown) as { id: string; title: string; amount: number | null }[]) || [];
+    .eq("active", true);
+  const all =
+    ((rs as unknown) as {
+      id: string;
+      title: string;
+      amount: number | null;
+      day_of_month: number | null;
+      days_of_week: number[] | null;
+      frequency: string;
+    }[]) || [];
+  const reminders = all.filter((r) =>
+    r.frequency === "weekly"
+      ? (r.days_of_week || []).includes(dow)
+      : r.day_of_month === day,
+  );
   if (reminders.length === 0) {
     if (typeof window !== "undefined") localStorage.setItem(key, "1");
     return;
