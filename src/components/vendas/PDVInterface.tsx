@@ -1343,36 +1343,50 @@ export function PDVInterface() {
     const notesPayload = JSON.stringify(extras);
     setIsCreatingCustomer(true);
     try {
-      const { data, error } = await supabase
-        .from("customers")
-        .insert({
-          user_id: user.id,
-          organization_id: orgId,
-          name: nome,
-          phone: f.telefone || newCustomerPhone || null,
-          email: f.email || null,
-          document: f.cpf_cnpj || null,
-          address: enderecoCompleto || null,
-          city: f.cidade || null,
-          state: f.estado || null,
-          notes: notesPayload,
-        })
-        .select()
-        .single();
+      const payload = {
+        name: nome,
+        phone: f.telefone || newCustomerPhone || null,
+        email: f.email || null,
+        document: f.cpf_cnpj || null,
+        address: enderecoCompleto || null,
+        city: f.cidade || null,
+        state: f.estado || null,
+        notes: notesPayload,
+      };
+      let data: any;
+      if (editingCustomerId) {
+        const res = await supabase
+          .from("customers")
+          .update(payload)
+          .eq("id", editingCustomerId)
+          .eq("organization_id", orgId)
+          .select()
+          .single();
+        if (res.error) throw res.error;
+        data = res.data;
+        toast.success("Cliente atualizado com sucesso!");
+      } else {
+        const res = await supabase
+          .from("customers")
+          .insert({ ...payload, user_id: user.id, organization_id: orgId })
+          .select()
+          .single();
+        if (res.error) throw res.error;
+        data = res.data;
+        toast.success("Cliente cadastrado com sucesso!");
+      }
 
-      if (error) throw error;
-
-      toast.success("Cliente cadastrado com sucesso!");
       setSelectedCustomer({ id: data.id, name: data.name });
       setIsNewCustomerModalOpen(false);
       setIsCustomerModalOpen(false);
       resetCustomerForm();
+      setEditingCustomerId(null);
       setNewCustomerName("");
       setNewCustomerPhone("");
       fetchCustomers();
     } catch (error: any) {
-      console.error("Erro ao criar cliente:", error);
-      toast.error("Erro ao cadastrar cliente.");
+      console.error("Erro ao salvar cliente:", error);
+      toast.error("Erro ao salvar cliente.");
     } finally {
       setIsCreatingCustomer(false);
     }
