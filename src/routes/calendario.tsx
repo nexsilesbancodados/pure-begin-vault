@@ -168,6 +168,13 @@ function CalendarPage() {
                 <h2 className="font-display font-bold text-xl capitalize">{monthLabel}</h2>
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={() => setRemindersOpen(true)}
+                    className="h-9 px-3 rounded-lg border border-border text-xs font-bold inline-flex items-center gap-1.5 hover:bg-muted text-primary"
+                    title="Lembretes recorrentes (aluguel, contas mensais...)"
+                  >
+                    <Bell className="h-4 w-4" /> Lembretes
+                  </button>
+                  <button
                     onClick={() =>
                       setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))
                     }
