@@ -872,15 +872,15 @@ function QuotationDetailModal({
               <TableBody>
                 {q.items.map((it) => {
                   const prices = q.suppliers
-                    .map((s) => s.prices[it.id])
-                    .filter((v): v is number => v != null && v > 0);
+                    .map((s) => unitTotal(s.prices[it.id]))
+                    .filter((v) => v > 0);
                   const minUnit = prices.length ? Math.min(...prices) : null;
                   return (
                     <TableRow key={it.id}>
                       <TableCell className="font-medium">{it.name}</TableCell>
                       <TableCell className="text-center">{it.quantity}</TableCell>
                       {q.suppliers.map((s) => {
-                        const v = s.prices[it.id];
+                        const v = unitTotal(s.prices[it.id]);
                         const isMin = minUnit != null && v === minUnit;
                         return (
                           <TableCell key={s.id} className="text-right">
@@ -888,7 +888,7 @@ function QuotationDetailModal({
                               type="number"
                               step="0.01"
                               min={0}
-                              value={v ?? ""}
+                              value={v || ""}
                               onChange={(e) => updatePrice(s.id, it.id, e.target.value)}
                               className={
                                 "h-9 text-right " +
@@ -903,6 +903,7 @@ function QuotationDetailModal({
                       })}
                     </TableRow>
                   );
+
                 })}
               </TableBody>
             </Table>
