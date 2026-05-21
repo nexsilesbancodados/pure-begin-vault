@@ -342,10 +342,16 @@ function StatusBadge({ status }: { status: QuotationStatus }) {
 
 function computeSupplierTotal(q: Quotation, s: SupplierQuote) {
   return q.items.reduce((sum, it) => {
-    const unit = s.prices[it.id];
-    if (unit == null) return sum;
-    return sum + Number(unit) * (Number(it.quantity) || 0);
+    const unit = unitTotal(s.prices[it.id]);
+    return sum + unit * (Number(it.quantity) || 0);
   }, 0);
+}
+
+function computeSupplierRevenue(q: Quotation) {
+  return q.items.reduce(
+    (sum, it) => sum + (Number(it.salePrice) || 0) * (Number(it.quantity) || 0),
+    0,
+  );
 }
 
 function computeBestSupplier(q: Quotation) {
@@ -360,6 +366,7 @@ function computeBestSupplier(q: Quotation) {
   }
   return best;
 }
+
 
 function NewQuotationModal({
   onClose,
