@@ -133,6 +133,7 @@ export function PDVInterface() {
     profissao: "",
     genero: "",
     origem: "",
+    empresa_parceira: "",
     telefone: "",
     telefone_alt: "",
     telefone_extra: "",
@@ -193,6 +194,7 @@ export function PDVInterface() {
       profissao: "",
       genero: "",
       origem: "",
+      empresa_parceira: "",
       telefone: "",
       telefone_alt: "",
       telefone_extra: "",
@@ -1287,6 +1289,7 @@ export function PDVInterface() {
         profissao: extras.profissao || "",
         genero: extras.genero || "",
         origem: extras.origem || "",
+        empresa_parceira: extras.empresa_parceira || "",
         telefone: data.phone || "",
         telefone_alt: extras.telefone_alt || "",
         telefone_extra: extras.telefone_extra || "",
@@ -1333,6 +1336,7 @@ export function PDVInterface() {
       profissao: f.profissao || undefined,
       genero: f.genero || undefined,
       origem: f.origem || undefined,
+      empresa_parceira: f.empresa_parceira || undefined,
       telefone_alt: f.telefone_alt || undefined,
       telefone_extra: f.telefone_extra || undefined,
       instagram: f.instagram || undefined,
@@ -1969,7 +1973,7 @@ export function PDVInterface() {
                           <option value="outro">Outro</option>
                         </select>
                       </div>
-                      <div className="md:col-span-12 space-y-1.5">
+                      <div className="md:col-span-6 space-y-1.5">
                         <Label className="text-xs font-medium">Origem do cliente</Label>
                         <select
                           value={customerForm.origem}
@@ -1982,7 +1986,25 @@ export function PDVInterface() {
                           <option value="google">Google</option>
                           <option value="whatsapp">WhatsApp</option>
                           <option value="loja">Loja física</option>
+                          <option value="empresa_parceira">Empresa parceira</option>
                           <option value="outro">Outro</option>
+                        </select>
+                      </div>
+                      <div className="md:col-span-6 space-y-1.5">
+                        <Label className="text-xs font-medium flex items-center gap-1.5">
+                          <Building2 className="h-3.5 w-3.5 text-primary" />
+                          Empresa parceira
+                          <span className="text-[10px] font-normal text-muted-foreground">(grupo de negócios)</span>
+                        </Label>
+                        <select
+                          value={customerForm.empresa_parceira}
+                          onChange={(e) => updateCustomerField("empresa_parceira", e.target.value)}
+                          className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                        >
+                          <option value="">Nenhuma / cliente externo</option>
+                          <option value="atacadocell">AtacadoCell</option>
+                          <option value="premier_castanhal">Premier Castanhal</option>
+                          <option value="alfatech_curuca">Alfatech Curuçá</option>
                         </select>
                       </div>
                     </div>
