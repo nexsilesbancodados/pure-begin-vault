@@ -53,6 +53,7 @@ function CalendarPage() {
   const { orgId } = useOrg();
   const [cursor, setCursor] = useState(new Date());
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [reminderDays, setReminderDays] = useState<Map<number, { count: number; titles: string[] }>>(new Map());
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Date>(new Date());
   const [modalOpen, setModalOpen] = useState(false);
@@ -79,8 +80,25 @@ function CalendarPage() {
   }, [user?.id, cursor]);
 
   useEffect(() => {
-    if (user?.id && orgId) void checkRemindersDueToday({ userId: user.id, organizationId: orgId });
-  }, [user?.id, orgId]);
+    if (!user?.id || !orgId) return;
+    void checkRemindersDueToday({ userId: user.id, organizationId: orgId });
+    (async () => {
+      const { data } = await supabase
+        .from("recurring_reminders" as any)
+        .select("title, day_of_month, active")
+        .eq("organization_id", orgId)
+        .eq("active", true);
+      const map = new Map<number, { count: number; titles: string[] }>();
+      ((data as any[]) || []).forEach((r) => {
+        const k = Number(r.day_of_month);
+        const cur = map.get(k) || { count: 0, titles: [] };
+        cur.count += 1;
+        cur.titles.push(r.title);
+        map.set(k, cur);
+      });
+      setReminderDays(map);
+    })();
+  }, [user?.id, orgId, remindersOpen]);
 
 
   const days = useMemo(() => {
@@ -231,11 +249,22 @@ function CalendarPage() {
                           <div className={`text-xs font-bold ${isToday ? "h-6 w-6 grid place-items-center rounded-full bg-primary text-primary-foreground" : ""}`}>
                             {d.getDate()}
                           </div>
-                          {list.length > 0 && (
-                            <span className="text-[9px] font-bold px-1.5 rounded-full bg-primary/15 text-primary">
-                              {list.length}
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {reminderDays.get(d.getDate()) && (
+                              <span
+                                title={reminderDays.get(d.getDate())!.titles.join(" • ")}
+                                className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                              >
+                                <Bell className="h-2.5 w-2.5" />
+                                {reminderDays.get(d.getDate())!.count}
+                              </span>
+                            )}
+                            {list.length > 0 && (
+                              <span className="text-[9px] font-bold px-1.5 rounded-full bg-primary/15 text-primary">
+                                {list.length}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="mt-0.5 space-y-0.5">
                           {list.slice(0, 2).map((t) => (

@@ -2423,6 +2423,86 @@ export type Database = {
           },
         ]
       }
+      recurring_reminders: {
+        Row: {
+          active: boolean
+          amount: number | null
+          created_at: string
+          day_of_month: number
+          id: string
+          notes: string | null
+          organization_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number | null
+          created_at?: string
+          day_of_month: number
+          id?: string
+          notes?: string | null
+          organization_id: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number | null
+          created_at?: string
+          day_of_month?: number
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reminder_completions: {
+        Row: {
+          completed_at: string
+          completed_by: string
+          completed_by_name: string | null
+          id: string
+          month: number
+          organization_id: string
+          reminder_id: string
+          year: number
+        }
+        Insert: {
+          completed_at?: string
+          completed_by: string
+          completed_by_name?: string | null
+          id?: string
+          month: number
+          organization_id: string
+          reminder_id: string
+          year: number
+        }
+        Update: {
+          completed_at?: string
+          completed_by?: string
+          completed_by_name?: string | null
+          id?: string
+          month?: number
+          organization_id?: string
+          reminder_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_completions_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_reminders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           created_at: string
