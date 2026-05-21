@@ -58,6 +58,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
+import { openWarrantyPrintWindow, type WarrantyType } from "@/lib/warranty-print";
 import {
   Dialog,
   DialogContent,
