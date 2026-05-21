@@ -153,6 +153,7 @@ export function PDVInterface() {
     v: (typeof customerForm)[K],
   ) => setCustomerForm((p) => ({ ...p, [k]: v }));
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
   const [isLookingUpCep, setIsLookingUpCep] = useState(false);
 
   const lookupCep = async (rawCep: string) => {
@@ -1251,6 +1252,64 @@ export function PDVInterface() {
     }
   };
 
+  const openEditCustomer = async (customerId: string) => {
+    if (!orgId) return;
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("id", customerId)
+        .eq("organization_id", orgId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error("Cliente não encontrado.");
+        return;
+      }
+      let extras: any = {};
+      try {
+        extras = data.notes ? JSON.parse(data.notes as any) : {};
+      } catch {
+        extras = { observacoes: data.notes || "" };
+      }
+      const addrParts = String(data.address || "").split(",").map((s) => s.trim());
+      const rua = addrParts[0] || "";
+      const numeroPart = addrParts.find((p) => /^n[ºo]\s*/i.test(p)) || "";
+      const numero = numeroPart.replace(/^n[ºo]\s*/i, "");
+      const bairro = addrParts[2] || "";
+      const complemento = addrParts.slice(3).join(", ");
+      setCustomerForm({
+        categoria: extras.categoria || "cliente",
+        tipo_pessoa: extras.tipo_pessoa || "fisica",
+        cpf_cnpj: data.document || "",
+        nome: data.name || "",
+        data_nascimento: extras.data_nascimento || "",
+        profissao: extras.profissao || "",
+        genero: extras.genero || "",
+        origem: extras.origem || "",
+        telefone: data.phone || "",
+        telefone_alt: extras.telefone_alt || "",
+        telefone_extra: extras.telefone_extra || "",
+        email: data.email || "",
+        instagram: extras.instagram || "",
+        cep: extras.cep || "",
+        rua,
+        numero,
+        bairro,
+        cidade: data.city || "",
+        estado: data.state || "",
+        complemento,
+        observacoes: extras.observacoes || "",
+        tags: extras.tags || "",
+      });
+      setEditingCustomerId(customerId);
+      setIsNewCustomerModalOpen(true);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao carregar cliente.");
+    }
+  };
+
   const handleCreateCustomer = async () => {
     if (!user?.id || !orgId) return;
     const f = customerForm;
@@ -1284,36 +1343,50 @@ export function PDVInterface() {
     const notesPayload = JSON.stringify(extras);
     setIsCreatingCustomer(true);
     try {
-      const { data, error } = await supabase
-        .from("customers")
-        .insert({
-          user_id: user.id,
-          organization_id: orgId,
-          name: nome,
-          phone: f.telefone || newCustomerPhone || null,
-          email: f.email || null,
-          document: f.cpf_cnpj || null,
-          address: enderecoCompleto || null,
-          city: f.cidade || null,
-          state: f.estado || null,
-          notes: notesPayload,
-        })
-        .select()
-        .single();
+      const payload = {
+        name: nome,
+        phone: f.telefone || newCustomerPhone || null,
+        email: f.email || null,
+        document: f.cpf_cnpj || null,
+        address: enderecoCompleto || null,
+        city: f.cidade || null,
+        state: f.estado || null,
+        notes: notesPayload,
+      };
+      let data: any;
+      if (editingCustomerId) {
+        const res = await supabase
+          .from("customers")
+          .update(payload)
+          .eq("id", editingCustomerId)
+          .eq("organization_id", orgId)
+          .select()
+          .single();
+        if (res.error) throw res.error;
+        data = res.data;
+        toast.success("Cliente atualizado com sucesso!");
+      } else {
+        const res = await supabase
+          .from("customers")
+          .insert({ ...payload, user_id: user.id, organization_id: orgId })
+          .select()
+          .single();
+        if (res.error) throw res.error;
+        data = res.data;
+        toast.success("Cliente cadastrado com sucesso!");
+      }
 
-      if (error) throw error;
-
-      toast.success("Cliente cadastrado com sucesso!");
       setSelectedCustomer({ id: data.id, name: data.name });
       setIsNewCustomerModalOpen(false);
       setIsCustomerModalOpen(false);
       resetCustomerForm();
+      setEditingCustomerId(null);
       setNewCustomerName("");
       setNewCustomerPhone("");
       fetchCustomers();
     } catch (error: any) {
-      console.error("Erro ao criar cliente:", error);
-      toast.error("Erro ao cadastrar cliente.");
+      console.error("Erro ao salvar cliente:", error);
+      toast.error("Erro ao salvar cliente.");
     } finally {
       setIsCreatingCustomer(false);
     }
@@ -1659,18 +1732,33 @@ export function PDVInterface() {
                 <div className="space-y-2">
                   {filteredCustomers.length > 0 ? (
                     filteredCustomers.map((customer) => (
-                      <button
+                      <div
                         key={customer.id}
-                        onClick={() => {
-                          setSelectedCustomer({ id: customer.id, name: customer.full_name });
-                          setIsCustomerModalOpen(false);
-                          toast.info(`Cliente ${customer.full_name} vinculado.`);
-                        }}
-                        className="w-full text-left p-3 hover:bg-muted rounded-lg border border-transparent hover:border-border transition flex items-center justify-between group"
+                        className="w-full flex items-center gap-1 p-1 rounded-lg border border-transparent hover:border-border hover:bg-muted transition group"
                       >
-                        <div className="font-medium">{customer.full_name}</div>
-                        <Plus className="h-4 w-4 opacity-0 group-hover:opacity-100 transition" />
-                      </button>
+                        <button
+                          onClick={() => {
+                            setSelectedCustomer({ id: customer.id, name: customer.full_name });
+                            setIsCustomerModalOpen(false);
+                            toast.info(`Cliente ${customer.full_name} vinculado.`);
+                          }}
+                          className="flex-1 text-left px-2 py-2 flex items-center justify-between gap-2"
+                        >
+                          <div className="font-medium truncate">{customer.full_name}</div>
+                          <Plus className="h-4 w-4 opacity-0 group-hover:opacity-60 transition shrink-0" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Editar cadastro do cliente"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditCustomer(customer.id);
+                          }}
+                          className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-background border border-transparent hover:border-border transition"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </button>
+                      </div>
                     ))
                   ) : (
                     <div className="text-center py-4 text-muted-foreground text-sm">
@@ -1683,6 +1771,8 @@ export function PDVInterface() {
                 variant="secondary"
                 className="w-full gap-2"
                 onClick={() => {
+                  setEditingCustomerId(null);
+                  resetCustomerForm();
                   setIsNewCustomerModalOpen(true);
                   setNewCustomerName(customerSearch);
                 }}
