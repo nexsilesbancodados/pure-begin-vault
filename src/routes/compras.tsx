@@ -50,21 +50,26 @@ export const Route = createFileRoute("/compras")({
 
 type QuotationStatus = "aberta" | "fechada" | "cancelada";
 
+export interface PriceBreakdown {
+  cost: number;
+  frete1: number;
+  frete2: number;
+}
+
 interface QuotationItem {
   id: string;
   name: string;
   quantity: number;
+  salePrice?: number;
   notes?: string;
 }
 
 interface SupplierQuote {
   id: string;
   supplier: string;
-  // chave: itemId -> preço unitário (number ou null se não cotou)
-  prices: Record<string, number | null>;
-  // observações por fornecedor
+  // chave: itemId -> número (legado) ou breakdown {cost, frete1, frete2}
+  prices: Record<string, number | PriceBreakdown | null>;
   notes?: string;
-  // prazo de entrega em dias
   leadTimeDays?: number;
 }
 
@@ -77,6 +82,21 @@ interface Quotation {
   suppliers: SupplierQuote[];
   winnerSupplierId?: string | null;
 }
+
+const emptyBreakdown = (): PriceBreakdown => ({ cost: 0, frete1: 0, frete2: 0 });
+
+const unitTotal = (p: number | PriceBreakdown | null | undefined): number => {
+  if (p == null) return 0;
+  if (typeof p === "number") return p;
+  return (Number(p.cost) || 0) + (Number(p.frete1) || 0) + (Number(p.frete2) || 0);
+};
+
+const asBreakdown = (p: number | PriceBreakdown | null | undefined): PriceBreakdown => {
+  if (p == null) return emptyBreakdown();
+  if (typeof p === "number") return { cost: p, frete1: 0, frete2: 0 };
+  return { cost: p.cost || 0, frete1: p.frete1 || 0, frete2: p.frete2 || 0 };
+};
+
 
 const storageKey = (orgId: string) => `purchase_quotations_${orgId}`;
 
