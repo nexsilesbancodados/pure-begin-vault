@@ -1252,6 +1252,64 @@ export function PDVInterface() {
     }
   };
 
+  const openEditCustomer = async (customerId: string) => {
+    if (!orgId) return;
+    try {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("id", customerId)
+        .eq("organization_id", orgId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error("Cliente não encontrado.");
+        return;
+      }
+      let extras: any = {};
+      try {
+        extras = data.notes ? JSON.parse(data.notes as any) : {};
+      } catch {
+        extras = { observacoes: data.notes || "" };
+      }
+      const addrParts = String(data.address || "").split(",").map((s) => s.trim());
+      const rua = addrParts[0] || "";
+      const numeroPart = addrParts.find((p) => /^n[ºo]\s*/i.test(p)) || "";
+      const numero = numeroPart.replace(/^n[ºo]\s*/i, "");
+      const bairro = addrParts[2] || "";
+      const complemento = addrParts.slice(3).join(", ");
+      setCustomerForm({
+        categoria: extras.categoria || "cliente",
+        tipo_pessoa: extras.tipo_pessoa || "fisica",
+        cpf_cnpj: data.document || "",
+        nome: data.name || "",
+        data_nascimento: extras.data_nascimento || "",
+        profissao: extras.profissao || "",
+        genero: extras.genero || "",
+        origem: extras.origem || "",
+        telefone: data.phone || "",
+        telefone_alt: extras.telefone_alt || "",
+        telefone_extra: extras.telefone_extra || "",
+        email: data.email || "",
+        instagram: extras.instagram || "",
+        cep: extras.cep || "",
+        rua,
+        numero,
+        bairro,
+        cidade: data.city || "",
+        estado: data.state || "",
+        complemento,
+        observacoes: extras.observacoes || "",
+        tags: extras.tags || "",
+      });
+      setEditingCustomerId(customerId);
+      setIsNewCustomerModalOpen(true);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao carregar cliente.");
+    }
+  };
+
   const handleCreateCustomer = async () => {
     if (!user?.id || !orgId) return;
     const f = customerForm;
