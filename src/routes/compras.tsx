@@ -86,6 +86,7 @@ interface Quotation {
   items: QuotationItem[];
   suppliers: SupplierQuote[];
   winnerSupplierId?: string | null;
+  notes?: string;
 }
 
 const emptyBreakdown = (): PriceBreakdown => ({ cost: 0, frete1: 0, frete2: 0 });
