@@ -612,7 +612,7 @@ export function StockList() {
 
           <ExportMenu
             filename="estoque-atual"
-            rows={filteredProducts}
+            rows={filteredProducts.filter((p: any) => (p.stock ?? p.stock_quantity ?? 0) > 0)}
             cols={[
               { key: "name", label: "Nome" },
               { key: "sku", label: "SKU" },
