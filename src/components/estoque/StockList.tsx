@@ -614,6 +614,20 @@ export function StockList() {
             </SelectContent>
           </Select>
 
+          <Select value={imeiFilter} onValueChange={(v) => setImeiFilter(v as any)}>
+            <SelectTrigger className="h-9 w-[170px] rounded-lg bg-muted border-border text-sm font-semibold">
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4 text-primary" />
+                <SelectValue placeholder="IMEI" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">IMEI: todos</SelectItem>
+              <SelectItem value="missing">Sem IMEI (aparelhos)</SelectItem>
+              <SelectItem value="duplicate">IMEI duplicado</SelectItem>
+            </SelectContent>
+          </Select>
+
           <button
             onClick={clearFilters}
             className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-sm font-semibold transition"
