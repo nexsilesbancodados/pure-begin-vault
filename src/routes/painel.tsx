@@ -214,6 +214,15 @@ function Dashboard() {
                 >
                   <OriginDonut />
                 </Suspense>
+                <Suspense
+                  fallback={
+                    <div className="h-[200px] rounded-2xl bg-card border border-border animate-pulse" />
+                  }
+                >
+                  <ChannelMini />
+                </Suspense>
+              </div>
+
               {/* Widgets por cargo */}
               {(role === "admin" || role === "vendedor") && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -221,26 +230,9 @@ function Dashboard() {
                   <TodayTasksWidget />
                 </div>
               )}
-              {role === "financeiro" && (
-                <div className="grid grid-cols-1 gap-6">
-                  <TodayTasksWidget />
-                </div>
-              )}
-              {role === "tecnico" && (
-                <div className="grid grid-cols-1 gap-6">
-                  <TodayTasksWidget />
-                </div>
-              )}
+              {(role === "financeiro" || role === "tecnico") && <TodayTasksWidget />}
               {role === "admin" && <StoresComparison />}
 
-              <Suspense
-
-                    <div className="h-[200px] rounded-2xl bg-card border border-border animate-pulse" />
-                  }
-                >
-                  <ChannelMini />
-                </Suspense>
-              </div>
 
               <Suspense
                 fallback={
