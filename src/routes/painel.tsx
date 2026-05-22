@@ -171,6 +171,10 @@ function Dashboard() {
 
           <QuickActions />
 
+          <div className="mb-6">
+            <DailyDashboard />
+          </div>
+
           {(role === "admin" || role === "tecnico") && <LowStockAlert />}
 
 
