@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
 import { cn } from "@/lib/utils";
+import { readCache, writeCache } from "@/lib/sessionCache";
 
 type Period = "month" | "7d" | "30d" | "90d";
 
