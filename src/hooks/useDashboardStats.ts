@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, subDays } from "date-fns";
+import { readCache, writeCache } from "@/lib/sessionCache";
 
 export type Period = "today" | "week" | "month" | "last30";
 
