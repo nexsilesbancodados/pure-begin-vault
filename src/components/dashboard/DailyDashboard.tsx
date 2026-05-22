@@ -33,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { readCache, writeCache } from "@/lib/sessionCache";
 
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -124,9 +125,17 @@ export function DailyDashboard() {
   useEffect(() => {
     if (!orgId) return;
     let cancel = false;
+    const cacheKey = `daily-dash:${orgId}:${period}`;
+
+    // Hidrata instantaneamente do cache persistente (sessionStorage)
+    const cached = readCache<Stats>(cacheKey, 2 * 60_000);
+    if (cached) {
+      setS(cached);
+      setLoading(false);
+    }
 
     const load = async () => {
-      setLoading(true);
+      if (!cached) setLoading(true);
       const { start, end } = getRange(period);
       const prev = getPrevRange(period);
       const monthStart = startOfMonth(new Date()).toISOString();
@@ -234,7 +243,7 @@ export function DailyDashboard() {
         .reduce((a: number, e: any) => a + (Number(e.amount) || 0), 0);
 
       if (cancel) return;
-      setS({
+      const next: Stats = {
         revenue,
         count,
         profit,
@@ -248,27 +257,41 @@ export function DailyDashboard() {
         prevRevenue,
         prevCount,
         prevProfit,
-      });
+      };
+      setS(next);
+      writeCache(cacheKey, next);
       setLoading(false);
     };
 
     load();
+
+    // Debounce realtime: agrupa rajadas em uma única recarga (1.5s)
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        load();
+      }, 1500);
+    };
+
     const ch = supabase
       .channel(`daily-dashboard-${orgId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sales_orders", filter: `organization_id=eq.${orgId}` },
-        load,
+        schedule,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "accounts_payable", filter: `organization_id=eq.${orgId}` },
-        load,
+        schedule,
       )
       .subscribe();
 
     return () => {
       cancel = true;
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(ch);
     };
   }, [orgId, period]);

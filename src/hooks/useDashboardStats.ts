@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/lib/useOrg";
 import { startOfDay, endOfDay, startOfWeek, startOfMonth, subDays } from "date-fns";
+import { readCache, writeCache } from "@/lib/sessionCache";
 
 export type Period = "today" | "week" | "month" | "last30";
 
@@ -36,11 +37,18 @@ export function useDashboardStats(period: Period = "today") {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
 
-    const scopeKey = orgId;
-    // Serve cache imediatamente, atualiza em background
+    const scopeKey = `${orgId}:${period}`;
+    // Cache em memória + sessionStorage (sobrevive a reloads)
     if (cacheRef.current[scopeKey]) {
       setStats(cacheRef.current[scopeKey]);
       setLoading(false);
+    } else {
+      const persisted = readCache<typeof stats>(`dash-stats:${scopeKey}`, 3 * 60_000);
+      if (persisted) {
+        cacheRef.current[scopeKey] = persisted;
+        setStats(persisted);
+        setLoading(false);
+      }
     }
 
     try {
@@ -153,6 +161,7 @@ export function useDashboardStats(period: Period = "today") {
       };
 
       cacheRef.current[scopeKey] = next;
+      writeCache(`dash-stats:${scopeKey}`, next);
       setStats(next);
     } catch (error) {
       console.error("Erro dashboard stats hook:", error);
