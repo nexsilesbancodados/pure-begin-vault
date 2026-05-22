@@ -20,6 +20,7 @@ import { useDashboardRole, ROLE_LABEL } from "@/lib/userRole";
 import { SellerRanking } from "@/components/dashboard/SellerRanking";
 import { StoresComparison } from "@/components/dashboard/StoresComparison";
 import { TodayTasksWidget } from "@/components/dashboard/TodayTasksWidget";
+import { DailyDashboard } from "@/components/dashboard/DailyDashboard";
 import {
   DropdownMenu,
   DropdownMenuContent,
