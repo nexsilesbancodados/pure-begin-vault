@@ -508,13 +508,40 @@ export function GoalProgress({
 
   const dayOfMonth = new Date().getDate();
   const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+  const daysLeft = Math.max(0, daysInMonth - dayOfMonth);
   const expectedPct = Math.round((dayOfMonth / daysInMonth) * 100);
   const onTrack = pct >= expectedPct;
+  const paceNeeded = Math.ceil(remaining / Math.max(1, daysLeft || 1));
+  const dailyAvg = effectiveUnits / Math.max(1, dayOfMonth);
+  const goalAchieved = pct >= 100;
+
+  // Tone per status
+  const tone = goalAchieved
+    ? {
+        ring: "text-emerald-500",
+        chip: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/20",
+        label: "Concluída",
+        accent: "from-emerald-500 to-emerald-600",
+      }
+    : onTrack
+      ? {
+          ring: "text-primary",
+          chip: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/15",
+          label: "No ritmo",
+          accent: "from-primary to-primary/70",
+        }
+      : {
+          ring: "text-amber-500",
+          chip: "bg-amber-500/15 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/20",
+          label: "Atrasado",
+          accent: "from-amber-500 to-amber-600",
+        };
 
   // SVG ring logic
   const radius = 56;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (pct / 100) * circumference;
+  const expectedOffset = circumference - (Math.min(100, expectedPct) / 100) * circumference;
 
   return (
     <>
@@ -523,45 +550,58 @@ export function GoalProgress({
           setEditGoals({ ...goals, baseline: baseline.value });
           setIsModalOpen(true);
         }}
-        className="rounded-2xl bg-card border border-border p-5 shadow-card relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group"
+        className="rounded-2xl bg-card border border-border/60 p-5 shadow-sm relative overflow-hidden cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all group"
       >
-        <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full opacity-10 blur-2xl bg-gradient-primary" />
-        <div className="flex items-center justify-between mb-4 relative">
-          <div>
-            <h3 className="text-[15px] font-semibold flex items-center gap-2">
-              <Target className="h-4 w-4 text-primary" />
-              Meta do Mês
-            </h3>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              {dayOfMonth} de {daysInMonth} dias decorridos
-            </p>
+        {/* decorative bg */}
+        <div className="absolute -top-16 -right-16 h-40 w-40 rounded-full opacity-[0.08] blur-3xl bg-gradient-to-br from-primary to-primary/30" />
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-60" />
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 mb-4 relative">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${tone.accent} grid place-items-center shadow-md shadow-primary/20 shrink-0`}>
+              <Target className="h-4 w-4 text-white" strokeWidth={2.5} />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-[15px] font-bold tracking-tight truncate">Meta do Mês</h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                <span>{dayOfMonth}/{daysInMonth} dias</span>
+                <span className="text-muted-foreground/40">•</span>
+                <span>{daysLeft} restantes</span>
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-[10px] font-semibold px-2 py-1 rounded-full ${onTrack ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}
-            >
-              {onTrack ? "No ritmo" : "Atrasado"}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${tone.chip}`}>
+              {tone.label}
             </span>
             <Edit2 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
 
+        {/* Ring + stats */}
         <div className="flex items-center gap-4 relative min-w-0">
-          <div className="relative h-[110px] w-[110px] shrink-0">
+          <div className="relative h-[120px] w-[120px] shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 140 140">
+              <circle cx="70" cy="70" r={radius} stroke="var(--color-muted)" strokeWidth="10" fill="none" />
+              {/* expected pace marker */}
               <circle
                 cx="70"
                 cy="70"
                 r={radius}
-                stroke="var(--color-muted)"
-                strokeWidth="10"
+                stroke="var(--color-muted-foreground)"
+                strokeOpacity={0.35}
+                strokeWidth="2"
                 fill="none"
+                strokeDasharray={`2 ${circumference}`}
+                strokeDashoffset={expectedOffset}
               />
               <circle
                 cx="70"
                 cy="70"
                 r={radius}
-                stroke="var(--color-primary)"
+                className={tone.ring}
+                stroke="currentColor"
                 strokeWidth="10"
                 fill="none"
                 strokeLinecap="round"
@@ -572,17 +612,22 @@ export function GoalProgress({
             </svg>
             <div className="absolute inset-0 grid place-items-center text-center">
               <div>
-                <div className="text-[28px] font-black font-display tracking-tight text-primary leading-none">
+                <div className={`text-[30px] font-black font-display tracking-tight leading-none ${tone.ring}`}>
                   {pct}%
+                </div>
+                <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                  esperado {expectedPct}%
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex-1 min-w-0 space-y-3">
+          <div className="flex-1 min-w-0 space-y-2.5">
             <div>
               <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
-                <span>Aparelhos vendidos</span>
+                <span className="flex items-center gap-1">
+                  <Package className="h-3 w-3" /> Aparelhos vendidos
+                </span>
                 {canEdit && (
                   <button
                     type="button"
@@ -601,25 +646,48 @@ export function GoalProgress({
                       setBaseline(next);
                       toast.success(`Base atualizada: ${n} aparelhos`);
                     }}
-                    className="text-[10px] font-bold text-primary hover:underline"
+                    className="text-[10px] font-bold text-primary hover:underline inline-flex items-center gap-0.5"
                   >
-                    Editar
+                    <Edit2 className="h-2.5 w-2.5" /> Editar
                   </button>
                 )}
               </div>
-              <div className="text-lg font-bold font-display truncate">
-                {effectiveUnits}{" "}
-                <span className="text-muted-foreground text-sm font-medium">
-                  / {goals.monthly} un.
-                </span>
+              <div className="text-xl font-black font-display truncate leading-tight mt-0.5">
+                {effectiveUnits}
+                <span className="text-muted-foreground text-sm font-medium"> / {goals.monthly}</span>
               </div>
             </div>
-            <div className="pt-2 border-t border-border">
-              <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Package className="h-3 w-3" /> Faltam para meta
+
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
+              <div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Faltam</div>
+                <div className="text-[13px] font-bold text-foreground truncate">{remaining} un.</div>
               </div>
-              <div className="text-[13px] font-semibold text-primary truncate">{remaining} un.</div>
+              <div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Ritmo/dia</div>
+                <div className={`text-[13px] font-bold truncate ${paceNeeded > Math.max(1, Math.ceil(dailyAvg)) * 1.5 ? "text-amber-600 dark:text-amber-400" : "text-primary"}`}>
+                  {paceNeeded} un.
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Projection bar */}
+        <div className="mt-4 p-2.5 rounded-xl bg-muted/40 border border-border/40 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground min-w-0">
+            <Rocket className="h-3 w-3 text-primary shrink-0" />
+            <span className="truncate">Projeção final</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[12px] font-bold">
+            <span className={projection >= goals.monthly ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}>
+              {projection} un.
+            </span>
+            {projection >= goals.monthly ? (
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+            ) : (
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
           </div>
         </div>
 
@@ -632,33 +700,48 @@ export function GoalProgress({
             weeklyBaseline.weekIdx === currentIdx ? weeklyBaseline.value : 0;
           const currentUnits = autoUnits + baseUnits;
           const currentPct = Math.min(100, Math.round((currentUnits / weeklyGoal) * 100));
-          // smaller ring
           const wRadius = 32;
           const wCirc = 2 * Math.PI * wRadius;
           const wOffset = wCirc - (currentPct / 100) * wCirc;
           const remainingW = Math.max(0, weeklyGoal - currentUnits);
+          const maxWeek = Math.max(weeklyGoal, ...weekly.map((w) => w.units), 1);
           return (
-            <div className="mt-5 pt-4 border-t border-border relative">
+            <div className="mt-4 pt-4 border-t border-border/60 relative">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                <div className="text-[11px] font-bold text-foreground/80 flex items-center gap-1.5">
                   <Activity className="h-3 w-3 text-primary" />
                   Meta semanal
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary ring-1 ring-primary/15">
                   Semana {currentIdx + 1}/{weekly.length}
                 </span>
               </div>
+
+              {/* Weekly mini bars */}
+              <div className="flex items-end gap-1.5 h-10 mb-3 px-0.5">
+                {weekly.map((w, i) => {
+                  const h = Math.max(6, Math.round((w.units / maxWeek) * 100));
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                      <div className="w-full flex-1 flex items-end">
+                        <div
+                          className={`w-full rounded-t-md transition-all ${w.isCurrent ? "bg-primary" : w.units >= weeklyGoal ? "bg-emerald-500/70" : "bg-muted-foreground/30"}`}
+                          style={{ height: `${h}%` }}
+                          title={`${w.label}: ${w.units} un.`}
+                        />
+                      </div>
+                      <span className={`text-[9px] font-bold ${w.isCurrent ? "text-primary" : "text-muted-foreground"}`}>
+                        {w.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
               <div className="flex items-center gap-3 min-w-0">
                 <div className="relative h-[76px] w-[76px] shrink-0">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-                    <circle
-                      cx="40"
-                      cy="40"
-                      r={wRadius}
-                      stroke="var(--color-muted)"
-                      strokeWidth="7"
-                      fill="none"
-                    />
+                    <circle cx="40" cy="40" r={wRadius} stroke="var(--color-muted)" strokeWidth="7" fill="none" />
                     <circle
                       cx="40"
                       cy="40"
@@ -678,7 +761,7 @@ export function GoalProgress({
                     </div>
                   </div>
                 </div>
-                <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex-1 min-w-0 space-y-1.5">
                   <div>
                     <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
                       <span>Aparelhos da semana</span>
@@ -693,38 +776,30 @@ export function GoalProgress({
                             );
                             if (raw === null) return;
                             const n = Math.max(0, Number(raw) || 0);
-                            // Salva como offset relativo às vendas automáticas já contabilizadas
                             const offset = Math.max(0, n - autoUnits);
                             const next = { value: offset, weekIdx: currentIdx };
                             if (weeklyBaselineKey) {
-                              window.localStorage.setItem(
-                                weeklyBaselineKey,
-                                JSON.stringify(next),
-                              );
+                              window.localStorage.setItem(weeklyBaselineKey, JSON.stringify(next));
                             }
                             setWeeklyBaseline(next);
                             toast.success(`Semana atualizada: ${n} aparelhos`);
                           }}
-                          className="text-[10px] font-bold text-primary hover:underline"
+                          className="text-[10px] font-bold text-primary hover:underline inline-flex items-center gap-0.5"
                         >
-                          Editar
+                          <Edit2 className="h-2.5 w-2.5" /> Editar
                         </button>
                       )}
                     </div>
-                    <div className="text-base font-bold font-display truncate">
-                      {currentUnits}{" "}
-                      <span className="text-muted-foreground text-xs font-medium">
-                        / {weeklyGoal} un.
-                      </span>
+                    <div className="text-base font-black font-display truncate leading-tight">
+                      {currentUnits}
+                      <span className="text-muted-foreground text-xs font-medium"> / {weeklyGoal} un.</span>
                     </div>
                   </div>
-                  <div className="pt-1.5 border-t border-border/70">
-                    <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <Package className="h-3 w-3" /> Faltam na semana
+                  <div className="pt-1.5 border-t border-border/60 flex items-center justify-between gap-2">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold flex items-center gap-1">
+                      <Package className="h-3 w-3" /> Faltam
                     </div>
-                    <div className="text-[12px] font-semibold text-primary truncate">
-                      {remainingW} un.
-                    </div>
+                    <div className="text-[12px] font-bold text-primary truncate">{remainingW} un.</div>
                   </div>
                 </div>
               </div>
@@ -732,6 +807,7 @@ export function GoalProgress({
           );
         })()}
       </div>
+
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[680px] p-0 overflow-hidden rounded-3xl border-none shadow-2xl">
