@@ -125,9 +125,17 @@ export function DailyDashboard() {
   useEffect(() => {
     if (!orgId) return;
     let cancel = false;
+    const cacheKey = `daily-dash:${orgId}:${period}`;
+
+    // Hidrata instantaneamente do cache persistente (sessionStorage)
+    const cached = readCache<Stats>(cacheKey, 2 * 60_000);
+    if (cached) {
+      setS(cached);
+      setLoading(false);
+    }
 
     const load = async () => {
-      setLoading(true);
+      if (!cached) setLoading(true);
       const { start, end } = getRange(period);
       const prev = getPrevRange(period);
       const monthStart = startOfMonth(new Date()).toISOString();
