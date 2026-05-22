@@ -243,7 +243,7 @@ export function DailyDashboard() {
         .reduce((a: number, e: any) => a + (Number(e.amount) || 0), 0);
 
       if (cancel) return;
-      setS({
+      const next: Stats = {
         revenue,
         count,
         profit,
@@ -257,27 +257,41 @@ export function DailyDashboard() {
         prevRevenue,
         prevCount,
         prevProfit,
-      });
+      };
+      setS(next);
+      writeCache(cacheKey, next);
       setLoading(false);
     };
 
     load();
+
+    // Debounce realtime: agrupa rajadas em uma única recarga (1.5s)
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        load();
+      }, 1500);
+    };
+
     const ch = supabase
       .channel(`daily-dashboard-${orgId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sales_orders", filter: `organization_id=eq.${orgId}` },
-        load,
+        schedule,
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "accounts_payable", filter: `organization_id=eq.${orgId}` },
-        load,
+        schedule,
       )
       .subscribe();
 
     return () => {
       cancel = true;
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(ch);
     };
   }, [orgId, period]);
