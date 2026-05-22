@@ -43,22 +43,42 @@ export function SalesChart({ embedded = false }: SalesChartProps) {
       return;
     }
     let cancelled = false;
+    const cacheKey = `sales-chart:${orgId}:${period}`;
+    const cached = readCache<typeof sales>(cacheKey, 2 * 60_000);
+    if (cached) {
+      setSales(cached);
+      setLoading(false);
+    }
     (async () => {
-      setLoading(true);
+      if (!cached) setLoading(true);
+      // Buscar apenas o intervalo necessário (period atual + período anterior para comparar)
+      const now = new Date();
+      let sinceDate: Date;
+      if (period === "month") {
+        sinceDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      } else {
+        const ndays = period === "7d" ? 7 : period === "30d" ? 30 : 90;
+        sinceDate = new Date();
+        sinceDate.setDate(sinceDate.getDate() - ndays * 2);
+        sinceDate.setHours(0, 0, 0, 0);
+      }
       const { data } = await supabase
         .from("sales_orders")
         .select("total_amount, created_at, channel")
         .in("status", ["completed", "concluded"])
         .in("channel", ["pdv", "import"])
-        .eq("organization_id", orgId);
+        .eq("organization_id", orgId)
+        .gte("created_at", sinceDate.toISOString());
       if (cancelled) return;
-      setSales((data as any) ?? []);
+      const rows = (data as any) ?? [];
+      setSales(rows);
+      writeCache(cacheKey, rows);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user?.id, orgId]);
+  }, [user?.id, orgId, period]);
 
   const { chartData, total, prevTotal, growthPct, avgPerDay, peak } = useMemo(() => {
     const now = new Date();
