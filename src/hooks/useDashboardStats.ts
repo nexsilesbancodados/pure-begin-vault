@@ -37,11 +37,18 @@ export function useDashboardStats(period: Period = "today") {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
 
-    const scopeKey = orgId;
-    // Serve cache imediatamente, atualiza em background
+    const scopeKey = `${orgId}:${period}`;
+    // Cache em memória + sessionStorage (sobrevive a reloads)
     if (cacheRef.current[scopeKey]) {
       setStats(cacheRef.current[scopeKey]);
       setLoading(false);
+    } else {
+      const persisted = readCache<typeof stats>(`dash-stats:${scopeKey}`, 3 * 60_000);
+      if (persisted) {
+        cacheRef.current[scopeKey] = persisted;
+        setStats(persisted);
+        setLoading(false);
+      }
     }
 
     try {
