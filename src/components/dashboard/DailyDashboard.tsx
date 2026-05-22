@@ -158,19 +158,43 @@ export function DailyDashboard() {
       if (saleIds.length) {
         const { data: items } = await (supabase as any)
           .from("sale_items")
-          .select("sale_id, quantity, unit_price, unit_cost, total")
+          .select("sale_id, product_id, quantity, unit_price, unit_cost, total")
           .in("sale_id", saleIds)
           .eq("organization_id", orgId);
-        for (const it of (items || []) as any[]) {
+
+        const rows = (items || []) as any[];
+        // Fallback: quando unit_cost vier nulo/zero, buscar cost_price do produto
+        const missingCostIds = Array.from(
+          new Set(
+            rows
+              .filter((it) => !Number(it.unit_cost) && it.product_id)
+              .map((it) => it.product_id as string),
+          ),
+        );
+        const costMap: Record<string, number> = {};
+        if (missingCostIds.length) {
+          const { data: prods } = await (supabase as any)
+            .from("products")
+            .select("id, cost_price")
+            .in("id", missingCostIds)
+            .eq("organization_id", orgId);
+          for (const p of (prods || []) as any[]) {
+            costMap[p.id] = Number(p.cost_price) || 0;
+          }
+        }
+
+        for (const it of rows) {
           const qty = Number(it.quantity) || 0;
           const sale = Number(it.total) || qty * (Number(it.unit_price) || 0);
-          const cost = qty * (Number(it.unit_cost) || 0);
+          const unitCost = Number(it.unit_cost) || costMap[it.product_id] || 0;
+          const cost = qty * unitCost;
           const cur = itemsByOrder[it.sale_id] || { sale: 0, cost: 0 };
           cur.sale += sale;
           cur.cost += cost;
           itemsByOrder[it.sale_id] = cur;
         }
       }
+
 
       let revenue = 0,
         count = 0,
