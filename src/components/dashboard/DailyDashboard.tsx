@@ -119,13 +119,13 @@ export function DailyDashboard() {
       if (saleIds.length) {
         const { data: items } = await (supabase as any)
           .from("sale_items")
-          .select("sale_id, quantity, unit_price, cost_price")
+          .select("sale_id, quantity, unit_price, unit_cost, total")
           .in("sale_id", saleIds)
           .eq("organization_id", orgId);
         for (const it of (items || []) as any[]) {
           const qty = Number(it.quantity) || 0;
-          const sale = qty * (Number(it.unit_price) || 0);
-          const cost = qty * (Number(it.cost_price) || 0);
+          const sale = Number(it.total) || qty * (Number(it.unit_price) || 0);
+          const cost = qty * (Number(it.unit_cost) || 0);
           const cur = itemsByOrder[it.sale_id] || { sale: 0, cost: 0 };
           cur.sale += sale;
           cur.cost += cost;
