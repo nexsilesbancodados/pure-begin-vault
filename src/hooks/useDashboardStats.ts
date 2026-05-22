@@ -161,6 +161,7 @@ export function useDashboardStats(period: Period = "today") {
       };
 
       cacheRef.current[scopeKey] = next;
+      writeCache(`dash-stats:${scopeKey}`, next);
       setStats(next);
     } catch (error) {
       console.error("Erro dashboard stats hook:", error);
