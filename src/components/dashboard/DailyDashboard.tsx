@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   startOfDay,
   endOfDay,
