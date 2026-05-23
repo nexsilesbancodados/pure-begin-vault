@@ -318,52 +318,63 @@ export function DailyDashboard() {
   };
 
   const cards: Card[] = useMemo(
-    () => [
-      {
-        label: "Faturamento",
-        value: `R$ ${brl(s.revenue)}`,
-        projection: `Mês: R$ ${brl(s.monthRevenue)}`,
-        icon: Banknote,
-        tone: "emerald",
-        delta: delta(s.revenue, s.prevRevenue),
-      },
-      {
-        label: "Vendas",
-        value: String(s.count),
-        projection: `Mês: ${s.monthCount}`,
-        icon: ShoppingBasket,
-        tone: "sky",
-        delta: delta(s.count, s.prevCount),
-      },
-      {
-        label: "Lucro",
-        value: `R$ ${brl(s.profit)}`,
-        projection: `Mês: R$ ${brl(s.monthProfit)}`,
-        icon: Target,
-        tone: "violet",
-        delta: delta(s.profit, s.prevProfit),
-      },
-      {
-        label: "Ticket médio",
-        value: `R$ ${brl(s.ticket)}`,
-        icon: Receipt,
-        tone: "amber",
-      },
-      {
-        label: "Margem de lucro",
-        value: `${s.profitPct.toFixed(1)}%`,
-        icon: Percent,
-        tone: "emerald",
-      },
-      {
-        label: "Lucro médio / venda",
-        value: `R$ ${brl(s.avgProfit)}`,
-        icon: Activity,
-        tone: "sky",
-      },
-    ],
+    () => {
+      const all: Card[] = [
+        {
+          label: "Faturamento",
+          value: `R$ ${brl(s.revenue)}`,
+          projection: `Mês: R$ ${brl(s.monthRevenue)}`,
+          icon: Banknote,
+          tone: "emerald",
+          delta: delta(s.revenue, s.prevRevenue),
+        },
+        {
+          label: "Vendas",
+          value: String(s.count),
+          projection: `Mês: ${s.monthCount}`,
+          icon: ShoppingBasket,
+          tone: "sky",
+          delta: delta(s.count, s.prevCount),
+        },
+        ...(canFinance
+          ? [
+              {
+                label: "Lucro",
+                value: `R$ ${brl(s.profit)}`,
+                projection: `Mês: R$ ${brl(s.monthProfit)}`,
+                icon: Target,
+                tone: "violet",
+                delta: delta(s.profit, s.prevProfit),
+              } as Card,
+            ]
+          : []),
+        {
+          label: "Ticket médio",
+          value: `R$ ${brl(s.ticket)}`,
+          icon: Receipt,
+          tone: "amber",
+        },
+        ...(canFinance
+          ? ([
+              {
+                label: "Margem de lucro",
+                value: `${s.profitPct.toFixed(1)}%`,
+                icon: Percent,
+                tone: "emerald",
+              },
+              {
+                label: "Lucro médio / venda",
+                value: `R$ ${brl(s.avgProfit)}`,
+                icon: Activity,
+                tone: "sky",
+              },
+            ] as Card[])
+          : []),
+      ];
+      return all;
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s],
+    [s, canFinance],
   );
 
   const toneClasses: Record<Card["tone"], string> = {
