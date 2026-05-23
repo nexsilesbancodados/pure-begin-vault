@@ -534,6 +534,8 @@ export function DailyDashboard() {
           <Wallet className="absolute -right-2 -bottom-2 h-20 w-20 opacity-15" strokeWidth={1.5} />
         </div>
       </div>
+      </>
+      )}
     </section>
   );
 }
