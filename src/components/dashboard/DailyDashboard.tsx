@@ -483,6 +483,8 @@ export function DailyDashboard() {
         })}
       </div>
 
+      {canFinance && (
+      <>
       <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-6 mb-3">
         Entradas e saídas
       </h4>
