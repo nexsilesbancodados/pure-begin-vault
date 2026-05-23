@@ -119,8 +119,31 @@ function getPrevRange(p: Period) {
 
 export function DailyDashboard() {
   const { orgId } = useOrg();
-  const { permissions } = useAuth();
-  const canFinance = permissions?.financeiro !== false;
+  const { permissions, profile, user, loading: authLoading } = useAuth();
+  const canFinance = useMemo(() => {
+    if (authLoading) return false;
+    const role = String(profile?.role ?? "").toLowerCase();
+    const email = (user?.email ?? "").toLowerCase();
+    const isPrivileged =
+      role === "super_admin" ||
+      role === "owner" ||
+      email === "alfatech791@gmail.com" ||
+      email === "contato@focussdev.art";
+    if (isPrivileged) return true;
+    const profileAllowed = (profile as any)?.allowed_menu;
+    const metaAllowed = (user?.user_metadata as { allowed_menu?: string[] | null } | undefined)?.allowed_menu;
+    const allowed = Array.isArray(profileAllowed) && profileAllowed.length > 0 ? profileAllowed : metaAllowed;
+    if (Array.isArray(allowed) && allowed.length > 0) {
+      const norm = new Set(allowed.map((v: string) => String(v).toLowerCase().trim()));
+      return (
+        norm.has("financeiro") ||
+        norm.has("notas em aberto") ||
+        norm.has("dre gerencial") ||
+        norm.has("fluxo de caixa")
+      );
+    }
+    return permissions?.financeiro === true;
+  }, [authLoading, permissions, profile, user]);
   const [period, setPeriod] = useState<Period>("today");
   const [s, setS] = useState<Stats>(EMPTY);
   const [loading, setLoading] = useState(true);
