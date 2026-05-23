@@ -119,6 +119,8 @@ function getPrevRange(p: Period) {
 
 export function DailyDashboard() {
   const { orgId } = useOrg();
+  const { permissions } = useAuth();
+  const canFinance = permissions?.financeiro !== false;
   const [period, setPeriod] = useState<Period>("today");
   const [s, setS] = useState<Stats>(EMPTY);
   const [loading, setLoading] = useState(true);
