@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   startOfDay,
   endOfDay,
@@ -118,6 +119,8 @@ function getPrevRange(p: Period) {
 
 export function DailyDashboard() {
   const { orgId } = useOrg();
+  const { permissions } = useAuth();
+  const canFinance = permissions?.financeiro !== false;
   const [period, setPeriod] = useState<Period>("today");
   const [s, setS] = useState<Stats>(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -315,52 +318,63 @@ export function DailyDashboard() {
   };
 
   const cards: Card[] = useMemo(
-    () => [
-      {
-        label: "Faturamento",
-        value: `R$ ${brl(s.revenue)}`,
-        projection: `Mês: R$ ${brl(s.monthRevenue)}`,
-        icon: Banknote,
-        tone: "emerald",
-        delta: delta(s.revenue, s.prevRevenue),
-      },
-      {
-        label: "Vendas",
-        value: String(s.count),
-        projection: `Mês: ${s.monthCount}`,
-        icon: ShoppingBasket,
-        tone: "sky",
-        delta: delta(s.count, s.prevCount),
-      },
-      {
-        label: "Lucro",
-        value: `R$ ${brl(s.profit)}`,
-        projection: `Mês: R$ ${brl(s.monthProfit)}`,
-        icon: Target,
-        tone: "violet",
-        delta: delta(s.profit, s.prevProfit),
-      },
-      {
-        label: "Ticket médio",
-        value: `R$ ${brl(s.ticket)}`,
-        icon: Receipt,
-        tone: "amber",
-      },
-      {
-        label: "Margem de lucro",
-        value: `${s.profitPct.toFixed(1)}%`,
-        icon: Percent,
-        tone: "emerald",
-      },
-      {
-        label: "Lucro médio / venda",
-        value: `R$ ${brl(s.avgProfit)}`,
-        icon: Activity,
-        tone: "sky",
-      },
-    ],
+    () => {
+      const all: Card[] = [
+        {
+          label: "Faturamento",
+          value: `R$ ${brl(s.revenue)}`,
+          projection: `Mês: R$ ${brl(s.monthRevenue)}`,
+          icon: Banknote,
+          tone: "emerald",
+          delta: delta(s.revenue, s.prevRevenue),
+        },
+        {
+          label: "Vendas",
+          value: String(s.count),
+          projection: `Mês: ${s.monthCount}`,
+          icon: ShoppingBasket,
+          tone: "sky",
+          delta: delta(s.count, s.prevCount),
+        },
+        ...(canFinance
+          ? [
+              {
+                label: "Lucro",
+                value: `R$ ${brl(s.profit)}`,
+                projection: `Mês: R$ ${brl(s.monthProfit)}`,
+                icon: Target,
+                tone: "violet",
+                delta: delta(s.profit, s.prevProfit),
+              } as Card,
+            ]
+          : []),
+        {
+          label: "Ticket médio",
+          value: `R$ ${brl(s.ticket)}`,
+          icon: Receipt,
+          tone: "amber",
+        },
+        ...(canFinance
+          ? ([
+              {
+                label: "Margem de lucro",
+                value: `${s.profitPct.toFixed(1)}%`,
+                icon: Percent,
+                tone: "emerald",
+              },
+              {
+                label: "Lucro médio / venda",
+                value: `R$ ${brl(s.avgProfit)}`,
+                icon: Activity,
+                tone: "sky",
+              },
+            ] as Card[])
+          : []),
+      ];
+      return all;
+    },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s],
+    [s, canFinance],
   );
 
   const toneClasses: Record<Card["tone"], string> = {
@@ -469,6 +483,8 @@ export function DailyDashboard() {
         })}
       </div>
 
+      {canFinance && (
+      <>
       <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mt-6 mb-3">
         Entradas e saídas
       </h4>
@@ -518,6 +534,8 @@ export function DailyDashboard() {
           <Wallet className="absolute -right-2 -bottom-2 h-20 w-20 opacity-15" strokeWidth={1.5} />
         </div>
       </div>
+      </>
+      )}
     </section>
   );
 }
