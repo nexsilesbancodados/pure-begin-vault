@@ -151,18 +151,27 @@ export function ExpenseForm({
       setLoadingPeople(true);
       
       // Load both customers and suppliers to have a broad "Person" list
-      const [customersRes, suppliersRes] = await Promise.all([
-        supabase.from("customers").select("id, name, email").eq("organization_id", orgId).limit(50),
-        supabase.from("suppliers").select("id, name, email").eq("organization_id", orgId).limit(50)
-      ]);
+      try {
+        const [customersRes, suppliersRes] = await Promise.all([
+          supabase.from("customers").select("id, name, email").eq("organization_id", orgId).limit(50),
+          supabase.from("suppliers").select("id, name, email").eq("organization_id", orgId).limit(50)
+        ]);
 
-      const combined = [
-        ...(customersRes.data || []).map(c => ({ ...c, type: 'cliente' })),
-        ...(suppliersRes.data || []).map(s => ({ ...s, type: 'fornecedor' }))
-      ].sort((a, b) => a.name.localeCompare(b.name));
+        const combined = [
+          ...((customersRes.data || []) as any[])
+            .filter((c) => c && c.name)
+            .map((c) => ({ ...c, type: 'cliente' as const })),
+          ...((suppliersRes.data || []) as any[])
+            .filter((s) => s && s.name)
+            .map((s) => ({ ...s, type: 'fornecedor' as const })),
+        ].sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
-      setPeople(combined);
-      setLoadingPeople(false);
+        setPeople(combined);
+      } catch (err) {
+        console.error("[ExpenseForm] loadPeople failed", err);
+      } finally {
+        setLoadingPeople(false);
+      }
     }
     loadPeople();
   }, [orgId, open]);
@@ -408,18 +417,22 @@ export function ExpenseForm({
                                 <div className="p-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
                                   <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
                                 </div>
-                              ) : people.filter(p => 
-                                p.name.toLowerCase().includes(searchPerson.toLowerCase()) || 
-                                p.email?.toLowerCase().includes(searchPerson.toLowerCase())
-                              ).length === 0 ? (
+                              ) : people.filter((p) => {
+                                const q = (searchPerson || "").toLowerCase();
+                                const name = (p?.name || "").toLowerCase();
+                                const email = (p?.email || "").toLowerCase();
+                                return name.includes(q) || email.includes(q);
+                              }).length === 0 ? (
                                 <div className="p-4 text-center text-xs text-muted-foreground">
                                   Nenhuma pessoa encontrada
                                 </div>
                               ) : (
-                                people.filter(p => 
-                                  p.name.toLowerCase().includes(searchPerson.toLowerCase()) || 
-                                  p.email?.toLowerCase().includes(searchPerson.toLowerCase())
-                                ).map((p) => (
+                                people.filter((p) => {
+                                  const q = (searchPerson || "").toLowerCase();
+                                  const name = (p?.name || "").toLowerCase();
+                                  const email = (p?.email || "").toLowerCase();
+                                  return name.includes(q) || email.includes(q);
+                                }).map((p) => (
                                   <button
                                     key={`${p.type}-${p.id}`}
                                     type="button"
