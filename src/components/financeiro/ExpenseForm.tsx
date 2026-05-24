@@ -417,18 +417,22 @@ export function ExpenseForm({
                                 <div className="p-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
                                   <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
                                 </div>
-                              ) : people.filter(p => 
-                                p.name.toLowerCase().includes(searchPerson.toLowerCase()) || 
-                                p.email?.toLowerCase().includes(searchPerson.toLowerCase())
-                              ).length === 0 ? (
+                              ) : people.filter((p) => {
+                                const q = (searchPerson || "").toLowerCase();
+                                const name = (p?.name || "").toLowerCase();
+                                const email = (p?.email || "").toLowerCase();
+                                return name.includes(q) || email.includes(q);
+                              }).length === 0 ? (
                                 <div className="p-4 text-center text-xs text-muted-foreground">
                                   Nenhuma pessoa encontrada
                                 </div>
                               ) : (
-                                people.filter(p => 
-                                  p.name.toLowerCase().includes(searchPerson.toLowerCase()) || 
-                                  p.email?.toLowerCase().includes(searchPerson.toLowerCase())
-                                ).map((p) => (
+                                people.filter((p) => {
+                                  const q = (searchPerson || "").toLowerCase();
+                                  const name = (p?.name || "").toLowerCase();
+                                  const email = (p?.email || "").toLowerCase();
+                                  return name.includes(q) || email.includes(q);
+                                }).map((p) => (
                                   <button
                                     key={`${p.type}-${p.id}`}
                                     type="button"
