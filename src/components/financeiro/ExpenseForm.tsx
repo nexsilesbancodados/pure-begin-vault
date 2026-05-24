@@ -1,10 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Loader2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Loader2,
   DollarSign,
   CheckCircle2,
   ArrowLeftRight,
@@ -30,14 +27,19 @@ import {
   FileText,
   Info,
   Users,
+  Upload,
+  Calendar,
+  Tag,
+  CreditCard,
+  Hash,
+  User as UserIcon,
+  File as FileIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SupplierPicker } from "@/components/estoque/SupplierPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Package, User as UserIcon, Upload, File as FileIcon, Calendar, Tag, CreditCard, Hash } from "lucide-react";
 import { toast } from "sonner";
 
 interface ExpenseFormProps {
