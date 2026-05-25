@@ -31,7 +31,7 @@ function pick(row: any, keys: string[]) {
 export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notepad = true }: Props<T>) {
   const [open, setOpen] = useState(false);
   const [notepadOpen, setNotepadOpen] = useState(false);
-  const [mode, setMode] = useState<"retail" | "wholesale">("retail");
+  const [mode, setMode] = useState<"retail" | "wholesale" | "cost">("retail");
   const [orgName, setOrgName] = useState<string>("");
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
@@ -49,19 +49,26 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notep
 
   const generated = useMemo(() => {
     const isWholesale = mode === "wholesale";
-    const title = isWholesale ? "Lista Atacado" : "Disponível";
+    const isCost = mode === "cost";
+    const title = isCost ? "Lista Custo" : isWholesale ? "Lista Atacado" : "Disponível";
     const header = `📋 ${orgName || "Estoque"} — ${title}\n${new Date().toLocaleDateString("pt-BR")}\n${"─".repeat(28)}\n`;
+    let totalCost = 0;
     const lines = rows.map((r: any) => {
       const model = pick(r, ["name", "model", "product_name", "title"]);
       const gb = pick(r, ["capacity", "storage", "gb"]);
       const color = pick(r, ["color", "cor"]);
       const rawPrice = Number(pick(r, ["price", "sale_price", "preco"])) || 0;
-      const finalPrice = isWholesale && rawPrice > 0 ? rawPrice + 350 : rawPrice;
+      const rawCost = Number(pick(r, ["cost_price", "cost", "custo", "purchase_price"])) || 0;
+      const finalPrice = isCost ? rawCost : isWholesale && rawPrice > 0 ? rawPrice + 350 : rawPrice;
+      if (isCost) totalCost += rawCost;
       const price = fmtBRL(finalPrice);
       const parts = [model, gb && `${gb}`, color].filter(Boolean).join(" ");
       return price ? `• ${parts} — ${price}` : `• ${parts}`;
     });
-    return header + lines.join("\n") + `\n${"─".repeat(28)}\nTotal: ${rows.length} ${rows.length === 1 ? "item" : "itens"}`;
+    const footer = isCost
+      ? `\n${"─".repeat(28)}\nTotal de itens: ${rows.length}\nCusto total: ${fmtBRL(totalCost)}`
+      : `\n${"─".repeat(28)}\nTotal: ${rows.length} ${rows.length === 1 ? "item" : "itens"}`;
+    return header + lines.join("\n") + footer;
   }, [rows, orgName, mode]);
 
   useEffect(() => {
@@ -77,6 +84,7 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notep
       ? [
           { id: "notepad", label: "Bloco de Notas", icon: NotebookPen, fn: () => { setMode("retail"); setNotepadOpen(true); } },
           { id: "wholesale", label: "Lista Atacado (+R$ 350)", icon: NotebookPen, fn: () => { setMode("wholesale"); setNotepadOpen(true); } },
+          { id: "cost", label: "Bloco de Notas Custo", icon: NotebookPen, fn: () => { setMode("cost"); setNotepadOpen(true); } },
         ]
       : []),
   ];
@@ -137,7 +145,7 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notep
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div className="flex items-center gap-2">
                 <NotebookPen className="h-5 w-5 text-primary" />
-                <h3 className="font-bold text-base">{mode === "wholesale" ? "Lista Atacado (+R$ 350)" : "Bloco de Notas"}</h3>
+                <h3 className="font-bold text-base">{mode === "wholesale" ? "Lista Atacado (+R$ 350)" : mode === "cost" ? "Bloco de Notas Custo" : "Bloco de Notas"}</h3>
               </div>
               <button onClick={() => setNotepadOpen(false)} className="p-1 hover:bg-muted rounded-lg">
                 <X className="h-4 w-4" />
