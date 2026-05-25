@@ -401,7 +401,14 @@ export function ExpenseForm({
                     autoFocus
                     className="h-10"
                     placeholder="Ex: Aluguel do escritório"
+                    list="expense-title-suggestions"
+                    autoComplete="off"
                   />
+                  <datalist id="expense-title-suggestions">
+                    {previousTitles.map((t) => (
+                      <option key={t} value={t} />
+                    ))}
+                  </datalist>
                 </Field>
                 <Field required label="Tipo de financeiro">
                   <div className="h-10 rounded-md border border-input bg-muted/60 px-3 flex items-center text-sm">
