@@ -31,7 +31,7 @@ function pick(row: any, keys: string[]) {
 export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notepad = true }: Props<T>) {
   const [open, setOpen] = useState(false);
   const [notepadOpen, setNotepadOpen] = useState(false);
-  const [mode, setMode] = useState<"retail" | "wholesale">("retail");
+  const [mode, setMode] = useState<"retail" | "wholesale" | "cost">("retail");
   const [orgName, setOrgName] = useState<string>("");
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
