@@ -179,6 +179,34 @@ export function ExpenseForm({
     loadPeople();
   }, [orgId, open]);
 
+  // Load distinct previously used titles for autocomplete
+  useEffect(() => {
+    async function loadTitles() {
+      if (!orgId || !open) return;
+      try {
+        const { data } = await supabase
+          .from("accounts_payable")
+          .select("description")
+          .eq("organization_id", orgId)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        const seen = new Set<string>();
+        const titles: string[] = [];
+        for (const row of ((data || []) as any[])) {
+          const t = String(row?.description ?? "").trim();
+          if (t && !seen.has(t.toLowerCase())) {
+            seen.add(t.toLowerCase());
+            titles.push(t);
+          }
+        }
+        setPreviousTitles(titles);
+      } catch (err) {
+        console.error("[ExpenseForm] loadTitles failed", err);
+      }
+    }
+    loadTitles();
+  }, [orgId, open]);
+
   useEffect(() => {
     if (!open) return;
     if (expense) {
