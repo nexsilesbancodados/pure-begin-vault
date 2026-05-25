@@ -35,6 +35,27 @@ export function setHomeScreenForEmail(email: string, screen: string) {
   }
 }
 
+export function getHomeRoute(screen?: string | null): string {
+  const normalized = typeof screen === "string" ? screen.trim() : "";
+  return (normalized && HOME_SCREEN_ROUTES[normalized]) || "/painel";
+}
+
+export function getHomeScreenFromUser(user?: {
+  user_metadata?: Record<string, unknown> | null;
+  app_metadata?: Record<string, unknown> | null;
+} | null): string | null {
+  const metadataSources = [user?.user_metadata, user?.app_metadata];
+
+  for (const metadata of metadataSources) {
+    const screen = metadata?.tela_inicial;
+    if (typeof screen === "string" && screen.trim()) {
+      return screen.trim();
+    }
+  }
+
+  return null;
+}
+
 export function getHomeRouteForEmail(email?: string | null): string {
   if (!email) return "/painel";
   const key = email.trim().toLowerCase();
@@ -59,5 +80,5 @@ export function getHomeRouteForEmail(email?: string | null): string {
       /* ignore */
     }
   }
-  return (screen && HOME_SCREEN_ROUTES[screen]) || "/painel";
+  return getHomeRoute(screen);
 }
