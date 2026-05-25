@@ -143,7 +143,8 @@ function Login() {
         "@/lib/homeScreen"
       );
       const { data: authUserData } = await supabase.auth.getUser();
-      const target = getHomeRoute(getHomeScreenFromUser(authUserData.user)) || getHomeRouteForEmail(cleanEmail);
+      const homeScreen = getHomeScreenFromUser(authUserData.user);
+      const target = homeScreen ? getHomeRoute(homeScreen) : getHomeRouteForEmail(cleanEmail);
       navigate({ to: target, replace: true });
     } catch (err: unknown) {
       showLoginError(readableAuthError(err instanceof Error ? err.message : undefined));
