@@ -84,6 +84,7 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notep
       ? [
           { id: "notepad", label: "Bloco de Notas", icon: NotebookPen, fn: () => { setMode("retail"); setNotepadOpen(true); } },
           { id: "wholesale", label: "Lista Atacado (+R$ 350)", icon: NotebookPen, fn: () => { setMode("wholesale"); setNotepadOpen(true); } },
+          { id: "cost", label: "Bloco de Notas Custo", icon: NotebookPen, fn: () => { setMode("cost"); setNotepadOpen(true); } },
         ]
       : []),
   ];
