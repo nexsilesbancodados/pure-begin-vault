@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     }
     const callerId = callerData.user.id;
 
-    const { email, password, nome, organization_id, organization_ids, role, invite_id, allowed_menu } =
+    const { email, password, nome, organization_id, organization_ids, role, invite_id, allowed_menu, tela_inicial } =
       await req.json();
     const normalizedEmail = String(email || "").trim().toLowerCase();
 
@@ -157,18 +157,22 @@ Deno.serve(async (req) => {
     };
     await admin.from("profiles").upsert(profilePayload, { onConflict: "id" });
 
-    // Persiste allowed_menu no user_metadata do auth (não há coluna dedicada em profiles).
-    if (Array.isArray(allowed_menu)) {
-      const normalizedMenu = allowed_menu.length ? allowed_menu : null;
+    // Persiste preferências de acesso no user_metadata do auth.
+    if (Array.isArray(allowed_menu) || typeof tela_inicial === "string") {
+      const normalizedMenu = Array.isArray(allowed_menu) && allowed_menu.length ? allowed_menu : null;
+      const normalizedHomeScreen = typeof tela_inicial === "string" && tela_inicial.trim()
+        ? tela_inicial.trim()
+        : null;
       try {
         await admin.auth.admin.updateUserById(userId!, {
           user_metadata: {
             full_name: nome || normalizedEmail,
             allowed_menu: normalizedMenu,
+            tela_inicial: normalizedHomeScreen,
           },
         });
       } catch (metaErr) {
-        console.error("Falha ao salvar allowed_menu em user_metadata", metaErr);
+        console.error("Falha ao salvar preferências em user_metadata", metaErr);
       }
     }
 

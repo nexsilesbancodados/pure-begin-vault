@@ -139,8 +139,12 @@ function Login() {
       if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
       else localStorage.removeItem("conecta:lastEmail");
 
-      const { getHomeRouteForEmail } = await import("@/lib/homeScreen");
-      const target = getHomeRouteForEmail(cleanEmail);
+      const { getHomeRoute, getHomeRouteForEmail, getHomeScreenFromUser } = await import(
+        "@/lib/homeScreen"
+      );
+      const { data: authUserData } = await supabase.auth.getUser();
+      const homeScreen = getHomeScreenFromUser(authUserData.user);
+      const target = homeScreen ? getHomeRoute(homeScreen) : getHomeRouteForEmail(cleanEmail);
       navigate({ to: target, replace: true });
     } catch (err: unknown) {
       showLoginError(readableAuthError(err instanceof Error ? err.message : undefined));
