@@ -120,6 +120,7 @@ export function ExpenseForm({
   const [newCategoryOpen, setNewCategoryOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
   const [files, setFiles] = useState<{ id: string; name: string; size: number; type: string }[]>([]);
+  const [previousTitles, setPreviousTitles] = useState<string[]>([]);
 
   const todayISO = () => new Date().toISOString().split("T")[0];
   const cashboxDefault = `Caixa do dia ${new Date().toLocaleDateString("pt-BR")} - Sistema`;
