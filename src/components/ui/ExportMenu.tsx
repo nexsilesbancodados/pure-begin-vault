@@ -49,19 +49,26 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notep
 
   const generated = useMemo(() => {
     const isWholesale = mode === "wholesale";
-    const title = isWholesale ? "Lista Atacado" : "Disponível";
+    const isCost = mode === "cost";
+    const title = isCost ? "Lista Custo" : isWholesale ? "Lista Atacado" : "Disponível";
     const header = `📋 ${orgName || "Estoque"} — ${title}\n${new Date().toLocaleDateString("pt-BR")}\n${"─".repeat(28)}\n`;
+    let totalCost = 0;
     const lines = rows.map((r: any) => {
       const model = pick(r, ["name", "model", "product_name", "title"]);
       const gb = pick(r, ["capacity", "storage", "gb"]);
       const color = pick(r, ["color", "cor"]);
       const rawPrice = Number(pick(r, ["price", "sale_price", "preco"])) || 0;
-      const finalPrice = isWholesale && rawPrice > 0 ? rawPrice + 350 : rawPrice;
+      const rawCost = Number(pick(r, ["cost_price", "cost", "custo", "purchase_price"])) || 0;
+      const finalPrice = isCost ? rawCost : isWholesale && rawPrice > 0 ? rawPrice + 350 : rawPrice;
+      if (isCost) totalCost += rawCost;
       const price = fmtBRL(finalPrice);
       const parts = [model, gb && `${gb}`, color].filter(Boolean).join(" ");
       return price ? `• ${parts} — ${price}` : `• ${parts}`;
     });
-    return header + lines.join("\n") + `\n${"─".repeat(28)}\nTotal: ${rows.length} ${rows.length === 1 ? "item" : "itens"}`;
+    const footer = isCost
+      ? `\n${"─".repeat(28)}\nTotal de itens: ${rows.length}\nCusto total: ${fmtBRL(totalCost)}`
+      : `\n${"─".repeat(28)}\nTotal: ${rows.length} ${rows.length === 1 ? "item" : "itens"}`;
+    return header + lines.join("\n") + footer;
   }, [rows, orgName, mode]);
 
   useEffect(() => {
