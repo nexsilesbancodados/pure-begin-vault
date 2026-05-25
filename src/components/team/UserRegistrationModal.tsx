@@ -251,6 +251,7 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
               role: assignedRole,
               invite_id: inviteId,
               allowed_menu: perfis,
+              tela_inicial: telaInicial,
             },
           },
         );
