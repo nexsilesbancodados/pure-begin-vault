@@ -222,6 +222,7 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
         const existing = JSON.parse(localStorage.getItem(key) || "{}");
         existing[inviteId!] = {
           nome,
+          email: email.trim().toLowerCase(),
           ativo: ativo === "Sim",
           perfis,
           custom_perfis: customPerfis,
