@@ -139,7 +139,9 @@ function Login() {
       if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
       else localStorage.removeItem("conecta:lastEmail");
 
-      navigate({ to: "/painel", replace: true });
+      const { getHomeRouteForEmail } = await import("@/lib/homeScreen");
+      const target = getHomeRouteForEmail(cleanEmail);
+      navigate({ to: target, replace: true });
     } catch (err: unknown) {
       showLoginError(readableAuthError(err instanceof Error ? err.message : undefined));
     }

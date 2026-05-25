@@ -222,6 +222,7 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
         const existing = JSON.parse(localStorage.getItem(key) || "{}");
         existing[inviteId!] = {
           nome,
+          email: email.trim().toLowerCase(),
           ativo: ativo === "Sim",
           perfis,
           custom_perfis: customPerfis,
@@ -230,6 +231,8 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
           lojas,
         };
         localStorage.setItem(key, JSON.stringify(existing));
+        const { setHomeScreenForEmail } = await import("@/lib/homeScreen");
+        setHomeScreenForEmail(email, telaInicial);
       } catch {
         // Dados locais são apenas apoio visual; falha aqui não deve bloquear o cadastro real.
       }
