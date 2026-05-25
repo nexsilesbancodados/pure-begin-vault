@@ -37,7 +37,27 @@ export function setHomeScreenForEmail(email: string, screen: string) {
 
 export function getHomeRouteForEmail(email?: string | null): string {
   if (!email) return "/painel";
+  const key = email.trim().toLowerCase();
   const map = readMap();
-  const screen = map[email.trim().toLowerCase()];
+  let screen = map[key];
+  // Fallback: varre invite_meta_* legados procurando o email
+  if (!screen) {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith("invite_meta_")) continue;
+        const data = JSON.parse(localStorage.getItem(k) || "{}");
+        for (const v of Object.values<any>(data)) {
+          if (v?.tela_inicial && v?.email && String(v.email).toLowerCase() === key) {
+            screen = v.tela_inicial;
+            break;
+          }
+        }
+        if (screen) break;
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   return (screen && HOME_SCREEN_ROUTES[screen]) || "/painel";
 }
