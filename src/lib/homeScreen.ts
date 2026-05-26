@@ -103,12 +103,60 @@ export function getHomeRoute(screen?: string | null): string {
   return (normalized && HOME_SCREEN_ROUTES[normalized]) || "/painel";
 }
 
+export function isMenuAllowed(title: string, allowed?: unknown): boolean {
+  if (!Array.isArray(allowed) || allowed.length === 0) return true;
+  const allowedSet = new Set(
+    allowed
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => normalize(value)),
+  );
+  if (allowedSet.size === 0) return true;
+  if (allowedSet.has(normalize(title))) return true;
+  return (MENU_ALIASES[title] ?? []).some((alias) => allowedSet.has(normalize(alias)));
+}
+
+export function getAllowedMenuFromUser(
+  user?: {
+    email?: string | null;
+    user_metadata?: Record<string, unknown> | null;
+    app_metadata?: Record<string, unknown> | null;
+  } | null,
+): string[] | null {
+  const allowed = user?.user_metadata?.allowed_menu ?? user?.app_metadata?.allowed_menu;
+  return Array.isArray(allowed) ? allowed.filter((value): value is string => typeof value === "string") : null;
+}
+
+export function getHomeRouteForUser(
+  user?: {
+    email?: string | null;
+    user_metadata?: Record<string, unknown> | null;
+    app_metadata?: Record<string, unknown> | null;
+  } | null,
+  fallbackEmail?: string | null,
+): string {
+  const forced = getForcedHomeScreen(user, fallbackEmail);
+  if (forced) return getHomeRoute(forced);
+
+  const selectedScreen = getHomeScreenFromUser(user) ?? undefined;
+  const allowedMenu = getAllowedMenuFromUser(user);
+  if (selectedScreen && isMenuAllowed(selectedScreen, allowedMenu)) {
+    return getHomeRoute(selectedScreen);
+  }
+
+  const fallbackScreen = FALLBACK_HOME_BY_MENU.find((screen) => isMenuAllowed(screen, allowedMenu));
+  if (fallbackScreen) return getHomeRoute(fallbackScreen);
+
+  return getHomeRouteForEmail(fallbackEmail ?? user?.email ?? null);
+}
+
 export function getHomeScreenFromUser(
   user?: {
+    email?: string | null;
     user_metadata?: Record<string, unknown> | null;
     app_metadata?: Record<string, unknown> | null;
   } | null,
 ): string | null {
+  if (isForcedLegacyUser(user)) return getForcedHomeScreen(user) ?? null;
   const metadataSources = [user?.user_metadata, user?.app_metadata];
 
   for (const metadata of metadataSources) {
