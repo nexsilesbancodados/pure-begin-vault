@@ -123,7 +123,16 @@ export function getAllowedMenuFromUser(
   } | null,
 ): string[] | null {
   const allowed = user?.user_metadata?.allowed_menu ?? user?.app_metadata?.allowed_menu;
-  return Array.isArray(allowed) ? allowed.filter((value): value is string => typeof value === "string") : null;
+  const items = Array.isArray(allowed)
+    ? allowed.filter((value): value is string => typeof value === "string")
+    : null;
+  if (!isForcedLegacyUser(user)) return items;
+
+  const corrected = (items ?? []).filter((item) => normalize(item) !== normalize("Dashboard"));
+  if (!corrected.some((item) => normalize(item) === normalize("Vendas & PDV"))) {
+    corrected.push("Vendas & PDV");
+  }
+  return corrected;
 }
 
 export function getHomeRouteForUser(
