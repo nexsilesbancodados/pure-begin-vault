@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImport } from "@/contexts/ImportContext";
 import { sidebarItems } from "@/lib/mock";
 import { cn } from "@/lib/utils";
+import { isMenuAllowed } from "@/lib/homeScreen";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SortableSidebarItem } from "./SortableSidebarItem";
 
@@ -48,32 +49,8 @@ export function AppSidebar({
     const profileAllowed = (profile as any)?.allowed_menu;
     const metaAllowed = (user?.user_metadata as { allowed_menu?: string[] | null } | undefined)?.allowed_menu;
     const allowed = Array.isArray(profileAllowed) && profileAllowed.length > 0 ? profileAllowed : metaAllowed;
-    const normalize = (value: string) => value.toLowerCase().trim();
-    // Mapeamento sidebar-title -> rótulos equivalentes vindos do cadastro.
-    // Um item do menu lateral é considerado permitido se QUALQUER um dos seus apelidos
-    // (ou o próprio título) estiver presente em allowed_menu.
-    const aliases: Record<string, string[]> = {
-      "Sistema": ["Sistema / Parametrização", "Parametrização"],
-      "Parametrização": ["Sistema / Parametrização", "Sistema"],
-      "Integrações externas": ["Integrações"],
-      "Cupons Fiscais": ["Notas Fiscais"],
-      "Notas": ["Notas em Aberto", "Notas Fiscais"],
-      "Notas Fiscais": ["Notas em Aberto"],
-      "Config. (Pix/PIN/Comissão)": ["Loja", "Configurações da Loja"],
-      "Minhas Lojas": ["Loja"],
-      "Programa de Afiliados": ["Afiliados"],
-      "Central de Ajuda": ["Ajuda"],
-      "Dashboard": ["Tela inicial", "Painel inicial"],
-    };
-    const allowedSet =
-      !isPrivileged && Array.isArray(allowed) && allowed.length > 0
-        ? new Set(allowed.map(normalize))
-        : null;
-    const isAllowed = (title: string) => {
-      if (!allowedSet) return true;
-      if (allowedSet.has(normalize(title))) return true;
-      return (aliases[title] ?? []).some((alias) => allowedSet.has(normalize(alias)));
-    };
+    const hasRestrictedMenu = !isPrivileged && Array.isArray(allowed) && allowed.length > 0;
+    const isAllowed = (title: string) => !hasRestrictedMenu || isMenuAllowed(title, allowed);
 
     // Primeiro passe: filtra itens (e filhos) por permissão.
     const visibleItems: any[] = [];
@@ -85,7 +62,7 @@ export function AppSidebar({
       if (item.roleRestriction === "super_admin" && profile?.role !== "super_admin") continue;
 
       const hasChildren = Array.isArray(item.children) && item.children.length > 0;
-      const filteredChildren = hasChildren && allowedSet
+      const filteredChildren = hasChildren && hasRestrictedMenu
         ? item.children.filter((c: any) => isAllowed(String(c.title)))
         : item.children;
 
@@ -93,7 +70,7 @@ export function AppSidebar({
       const anyChildAllowed = Array.isArray(filteredChildren) && filteredChildren.length > 0;
 
       // Quando existe restrição: parent só aparece se ele OU pelo menos um filho for permitido.
-      if (allowedSet && !parentAllowed && !anyChildAllowed) continue;
+      if (hasRestrictedMenu && !parentAllowed && !anyChildAllowed) continue;
 
       const next: any = { ...item, children: filteredChildren };
       if (item.url === "/importacao") {
