@@ -1,6 +1,6 @@
 // Mapeia a "Tela inicial após login" escolhida no cadastro do usuário
-// para a rota correspondente. Persistido em localStorage por email para que
-// o redirecionamento aconteça sem depender do banco.
+// para a rota correspondente. A fonte principal é o user_metadata do Supabase;
+// o localStorage fica apenas como compatibilidade para cadastros antigos.
 
 const KEY = "user_home_screen_by_email";
 
@@ -14,7 +14,12 @@ export const HOME_SCREEN_ROUTES: Record<string, string> = {
   "CRM": "/crm",
 };
 
+const LEGACY_HOME_SCREEN_BY_EMAIL: Record<string, string> = {
+  "rafael.premier@gmail.com": "PDV",
+};
+
 function readMap(): Record<string, string> {
+  if (typeof window === "undefined" || !window.localStorage) return {};
   try {
     return JSON.parse(localStorage.getItem(KEY) || "{}");
   } catch {
@@ -24,6 +29,7 @@ function readMap(): Record<string, string> {
 
 export function setHomeScreenForEmail(email: string, screen: string) {
   if (!email) return;
+  if (typeof window === "undefined" || !window.localStorage) return;
   try {
     const map = readMap();
     const key = email.trim().toLowerCase();
@@ -60,9 +66,9 @@ export function getHomeRouteForEmail(email?: string | null): string {
   if (!email) return "/painel";
   const key = email.trim().toLowerCase();
   const map = readMap();
-  let screen = map[key];
+  let screen = map[key] ?? LEGACY_HOME_SCREEN_BY_EMAIL[key];
   // Fallback: varre invite_meta_* legados procurando o email
-  if (!screen) {
+  if (!screen && typeof window !== "undefined" && window.localStorage) {
     try {
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
