@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Calendar, ChevronDown } from "lucide-react";
+import { getAllowedMenuFromUser, getHomeRouteForUser, isMenuAllowed } from "@/lib/homeScreen";
 
 // Lazy load secondary components to improve initial paint
 const SalesChart = lazy(() =>
@@ -70,7 +71,10 @@ export const Route = createFileRoute("/painel")({
 });
 
 function Dashboard() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const allowedMenu = getAllowedMenuFromUser(user);
+  const dashboardAllowed = !Array.isArray(allowedMenu) || allowedMenu.length === 0 || isMenuAllowed("Dashboard", allowedMenu);
   const displayName =
     profile?.nome ||
     (user?.user_metadata as { display_name?: string; full_name?: string; nome?: string } | undefined)?.display_name ||
@@ -82,6 +86,19 @@ function Dashboard() {
   const [period] = useState<Period>("today");
   const { stats, loading, refresh } = useDashboardStats(period);
   const role = useDashboardRole();
+
+  useEffect(() => {
+    if (authLoading || dashboardAllowed) return;
+    navigate({ to: getHomeRouteForUser(user), replace: true });
+  }, [authLoading, dashboardAllowed, navigate, user]);
+
+  if (!authLoading && !dashboardAllowed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background text-sm text-muted-foreground">
+        Redirecionando para sua tela inicial...
+      </div>
+    );
+  }
 
   const KPI_TODAY_SALES = {
     label: "Vendas de hoje",
