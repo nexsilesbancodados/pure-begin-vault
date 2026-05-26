@@ -13,7 +13,7 @@ import { HeroHeader } from "@/components/dashboard/HeroHeader";
 import { LowStockAlert } from "@/components/dashboard/LowStockAlert";
 import { GoalProgress } from "@/components/dashboard/GoalProgress";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
-import { useState, Suspense, lazy } from "react";
+import { useEffect, useState, Suspense, lazy } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDashboardStats, type Period } from "@/hooks/useDashboardStats";
 import { useDashboardRole, ROLE_LABEL } from "@/lib/userRole";
