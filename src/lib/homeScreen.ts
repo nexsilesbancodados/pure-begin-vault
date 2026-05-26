@@ -18,6 +18,63 @@ const LEGACY_HOME_SCREEN_BY_EMAIL: Record<string, string> = {
   "rafael.premier@gmail.com": "PDV",
 };
 
+const MENU_ALIASES: Record<string, string[]> = {
+  "Painel Inicial": ["Dashboard", "Painel inicial", "Tela inicial"],
+  Dashboard: ["Painel Inicial", "Tela inicial"],
+  Vendas: ["Vendas & PDV", "Vendas"],
+  PDV: ["Vendas & PDV", "Frente de Caixa (PDV)", "PDV"],
+  Estoque: ["Estoque", "Estoque Atual"],
+  "Ordens de Serviço": ["Serviços & OS", "Dashboard OS", "Nova Ordem"],
+  Financeiro: ["Financeiro", "Notas em Aberto", "DRE Gerencial"],
+  CRM: ["CRM", "Atendimento & CRM"],
+  Sistema: ["Sistema / Parametrização", "Parametrização"],
+  Parametrização: ["Sistema / Parametrização", "Sistema"],
+  "Integrações externas": ["Integrações"],
+  "Cupons Fiscais": ["Notas Fiscais"],
+  Notas: ["Notas em Aberto", "Notas Fiscais"],
+  "Notas Fiscais": ["Notas em Aberto"],
+  "Config. (Pix/PIN/Comissão)": ["Loja", "Configurações da Loja"],
+  "Minhas Lojas": ["Loja"],
+  "Programa de Afiliados": ["Afiliados"],
+  "Central de Ajuda": ["Ajuda"],
+};
+
+const FALLBACK_HOME_BY_MENU = [
+  "PDV",
+  "Vendas",
+  "Estoque",
+  "Ordens de Serviço",
+  "Financeiro",
+  "CRM",
+  "Painel Inicial",
+];
+
+function normalize(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function normalizeEmail(email?: string | null) {
+  return typeof email === "string" ? email.trim().toLowerCase() : "";
+}
+
+function getEmailFromUser(user?: { email?: string | null } | null) {
+  return normalizeEmail(user?.email);
+}
+
+function isForcedLegacyUser(user?: { email?: string | null } | null, email?: string | null) {
+  const key = getEmailFromUser(user) || normalizeEmail(email);
+  return !!key && !!LEGACY_HOME_SCREEN_BY_EMAIL[key];
+}
+
+function getForcedHomeScreen(user?: { email?: string | null } | null, email?: string | null) {
+  const key = getEmailFromUser(user) || normalizeEmail(email);
+  return key ? LEGACY_HOME_SCREEN_BY_EMAIL[key] : undefined;
+}
+
 function readMap(): Record<string, string> {
   if (typeof window === "undefined" || !window.localStorage) return {};
   try {
