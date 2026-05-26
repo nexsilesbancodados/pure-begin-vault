@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserOrgs } from "@/lib/useUserOrgs";
+import { useServerFn } from "@tanstack/react-start";
+import { saveTeamUserAccess } from "@/lib/team-user.functions";
 import { toast } from "sonner";
 
 interface EditInitial {
@@ -98,6 +100,7 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
   const { orgId, userId } = useOrg();
   const { user } = useAuth();
   const { orgs } = useUserOrgs();
+  const saveTeamUserAccessFn = useServerFn(saveTeamUserAccess);
   const isEdit = !!initial?.id;
 
   const [ativo, setAtivo] = useState("Sim");
@@ -239,25 +242,19 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
 
       // Cria/atualiza a conta real e sincroniza as lojas selecionadas.
       if (isEdit || senha) {
-        const { data: teamUserData, error: teamUserError } = await supabase.functions.invoke(
-          "create-team-user",
-          {
-            body: {
-              email: email.trim(),
-              password: senha,
-              nome: nome.trim(),
-              organization_id: lojas[0],
-              organization_ids: lojas,
-              role: assignedRole,
-              invite_id: inviteId,
-              allowed_menu: perfis,
-              tela_inicial: telaInicial,
-            },
+        await saveTeamUserAccessFn({
+          data: {
+            email: email.trim(),
+            password: senha,
+            nome: nome.trim(),
+            organization_id: lojas[0],
+            organization_ids: lojas,
+            role: assignedRole,
+            invite_id: inviteId,
+            allowed_menu: perfis,
+            tela_inicial: telaInicial,
           },
-        );
-        if (teamUserError || teamUserData?.error) {
-          throw new Error(teamUserData?.error || teamUserError?.message || "Falha ao salvar acesso");
-        }
+        });
         toast.success("Usuário atualizado! As lojas selecionadas já aparecem no login dele.");
       } else {
         const { data: inv } = await supabase
