@@ -152,8 +152,10 @@ export function getHomeRouteForUser(
     return getHomeRoute(selectedScreen);
   }
 
-  const fallbackScreen = FALLBACK_HOME_BY_MENU.find((screen) => isMenuAllowed(screen, allowedMenu));
-  if (fallbackScreen) return getHomeRoute(fallbackScreen);
+  if (Array.isArray(allowedMenu) && allowedMenu.length > 0) {
+    const fallbackScreen = FALLBACK_HOME_BY_MENU.find((screen) => isMenuAllowed(screen, allowedMenu));
+    if (fallbackScreen) return getHomeRoute(fallbackScreen);
+  }
 
   return getHomeRouteForEmail(fallbackEmail ?? user?.email ?? null);
 }
