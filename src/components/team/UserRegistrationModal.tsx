@@ -66,14 +66,7 @@ const DEFAULT_PROFILES = [
 ];
 
 const QUICK_PROFILES: Record<string, string[]> = {
-  "Gerente Comercial": [
-    "Dashboard",
-    "Relatórios",
-    "CRM",
-    "Vendas & PDV",
-    "Clientes",
-    "Estoque",
-  ],
+  "Gerente Comercial": ["Dashboard", "Relatórios", "CRM", "Vendas & PDV", "Clientes", "Estoque"],
   "Administrativo-Financeiro": [
     "Dashboard",
     "Financeiro",
@@ -154,7 +147,12 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
     const selected = `${quickProfile} ${perfis.join(" ")}`.toLowerCase();
     if (selected.includes("gerente")) return "admin";
     if (selected.includes("administrativo") || selected.includes("financeiro")) return "financeiro";
-    if (selected.includes("técnico") || selected.includes("tecnico") || selected.includes("ordem de serviço")) return "employee";
+    if (
+      selected.includes("técnico") ||
+      selected.includes("tecnico") ||
+      selected.includes("ordem de serviço")
+    )
+      return "employee";
     if (selected.includes("vendedor") || selected.includes("venda")) return "vendedor";
     return "employee";
   };
@@ -296,7 +294,10 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
       <DialogContent className="sm:max-w-[820px] max-h-[92vh] overflow-hidden p-0 gap-0 flex flex-col">
         {/* Hero header */}
         <DialogHeader className="relative px-6 pt-6 pb-5 border-b bg-gradient-to-br from-primary/15 via-primary/5 to-transparent">
-          <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-primary/20 blur-3xl pointer-events-none" aria-hidden />
+          <div
+            className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-primary/20 blur-3xl pointer-events-none"
+            aria-hidden
+          />
           <div className="relative flex items-center gap-4">
             <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground font-black grid place-items-center text-lg shadow-lg shadow-primary/25 shrink-0">
               {initials}
@@ -345,7 +346,11 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="Nome completo" required>
-                <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Ana Souza" />
+                <Input
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder="Ex.: Ana Souza"
+                />
               </Field>
               <Field label="E-mail de acesso" required>
                 <Input
@@ -420,7 +425,9 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
                   Perfis de acesso
                 </h4>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {perfisCount === 0 ? "Nenhum perfil selecionado" : `${perfisCount} perfil${perfisCount > 1 ? "s" : ""} selecionado${perfisCount > 1 ? "s" : ""}`}
+                  {perfisCount === 0
+                    ? "Nenhum perfil selecionado"
+                    : `${perfisCount} perfil${perfisCount > 1 ? "s" : ""} selecionado${perfisCount > 1 ? "s" : ""}`}
                 </p>
               </div>
             </header>
@@ -543,16 +550,15 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
                   Lojas vinculadas
                 </h4>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {lojas.length} de {orgs.length} loja{orgs.length === 1 ? "" : "s"} selecionada{lojas.length === 1 ? "" : "s"}
+                  {lojas.length} de {orgs.length} loja{orgs.length === 1 ? "" : "s"} selecionada
+                  {lojas.length === 1 ? "" : "s"}
                 </p>
               </div>
               {orgs.length > 1 && (
                 <button
                   type="button"
                   onClick={() =>
-                    setLojas(
-                      lojas.length === orgs.length ? [] : orgs.map((o) => o.organization_id),
-                    )
+                    setLojas(lojas.length === orgs.length ? [] : orgs.map((o) => o.organization_id))
                   }
                   className="text-xs font-bold text-primary hover:underline"
                 >
@@ -594,7 +600,12 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
 
         {/* Sticky footer */}
         <div className="px-6 py-4 border-t bg-card flex items-center justify-between gap-2 shadow-[0_-4px_12px_-8px_rgba(0,0,0,0.1)]">
-          <Button type="button" variant="ghost" onClick={limpar} className="gap-2 text-muted-foreground">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={limpar}
+            className="gap-2 text-muted-foreground"
+          >
             <Eraser className="h-4 w-4" />
             Limpar
           </Button>
@@ -602,7 +613,11 @@ export function UserRegistrationModal({ open, onOpenChange, onCreated, initial }
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button onClick={salvar} disabled={saving} className="gap-2 min-w-[140px] shadow-md shadow-primary/20">
+            <Button
+              onClick={salvar}
+              disabled={saving}
+              className="gap-2 min-w-[140px] shadow-md shadow-primary/20"
+            >
               <Save className="h-4 w-4" />
               {saving ? "Salvando..." : isEdit ? "Salvar alterações" : "Cadastrar usuário"}
             </Button>
