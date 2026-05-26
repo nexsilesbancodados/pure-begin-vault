@@ -10,6 +10,8 @@ const SaveTeamUserAccessSchema = z.object({
   organization_ids: z.array(z.string().uuid()).min(1).max(50).optional(),
   role: z.string().min(1).max(80).default("employee"),
   invite_id: z.string().uuid().optional(),
+  allowed_menu: z.array(z.string().min(1).max(120)).max(80).optional(),
+  tela_inicial: z.string().min(1).max(120).optional().or(z.literal("")),
 });
 
 export const saveTeamUserAccess = createServerFn({ method: "POST" })
@@ -51,6 +53,7 @@ export const saveTeamUserAccess = createServerFn({ method: "POST" })
     const email = data.email.trim().toLowerCase();
     const password = data.password?.trim() || undefined;
     let targetUserId: string | null = null;
+    let currentUserMetadata: Record<string, unknown> = {};
 
     for (let page = 1; page <= 10 && !targetUserId; page += 1) {
       const { data: usersPage, error: listError } = await supabaseAdmin.auth.admin.listUsers({
@@ -58,7 +61,9 @@ export const saveTeamUserAccess = createServerFn({ method: "POST" })
         perPage: 1000,
       });
       if (listError) throw new Error(listError.message);
-      targetUserId = usersPage.users.find((u) => u.email?.toLowerCase() === email)?.id ?? null;
+      const existingUser = usersPage.users.find((u) => u.email?.toLowerCase() === email) ?? null;
+      targetUserId = existingUser?.id ?? null;
+      currentUserMetadata = (existingUser?.user_metadata ?? {}) as Record<string, unknown>;
       if (usersPage.users.length < 1000) break;
     }
 
@@ -68,7 +73,11 @@ export const saveTeamUserAccess = createServerFn({ method: "POST" })
         email,
         password,
         email_confirm: true,
-        user_metadata: { full_name: data.nome || email },
+        user_metadata: {
+          full_name: data.nome || email,
+          allowed_menu: data.allowed_menu?.length ? data.allowed_menu : null,
+          tela_inicial: data.tela_inicial?.trim() || null,
+        },
       });
       if (createError) throw new Error(createError.message);
       targetUserId = created.user.id;
@@ -79,6 +88,16 @@ export const saveTeamUserAccess = createServerFn({ method: "POST" })
       );
       if (updatePasswordError) throw new Error(updatePasswordError.message);
     }
+
+    const { error: metadataError } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+      user_metadata: {
+        ...currentUserMetadata,
+        full_name: data.nome || currentUserMetadata.full_name || email,
+        allowed_menu: data.allowed_menu?.length ? data.allowed_menu : null,
+        tela_inicial: data.tela_inicial?.trim() || null,
+      },
+    });
+    if (metadataError) throw new Error(metadataError.message);
 
     const role = data.role || "employee";
     const { error: profileError } = await supabaseAdmin.from("profiles").upsert(
