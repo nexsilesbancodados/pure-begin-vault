@@ -18,6 +18,63 @@ const LEGACY_HOME_SCREEN_BY_EMAIL: Record<string, string> = {
   "rafael.premier@gmail.com": "PDV",
 };
 
+const MENU_ALIASES: Record<string, string[]> = {
+  "Painel Inicial": ["Dashboard", "Painel inicial", "Tela inicial"],
+  Dashboard: ["Painel Inicial", "Tela inicial"],
+  Vendas: ["Vendas & PDV", "Vendas"],
+  PDV: ["Vendas & PDV", "Frente de Caixa (PDV)", "PDV"],
+  Estoque: ["Estoque", "Estoque Atual"],
+  "Ordens de Serviço": ["Serviços & OS", "Dashboard OS", "Nova Ordem"],
+  Financeiro: ["Financeiro", "Notas em Aberto", "DRE Gerencial"],
+  CRM: ["CRM", "Atendimento & CRM"],
+  Sistema: ["Sistema / Parametrização", "Parametrização"],
+  Parametrização: ["Sistema / Parametrização", "Sistema"],
+  "Integrações externas": ["Integrações"],
+  "Cupons Fiscais": ["Notas Fiscais"],
+  Notas: ["Notas em Aberto", "Notas Fiscais"],
+  "Notas Fiscais": ["Notas em Aberto"],
+  "Config. (Pix/PIN/Comissão)": ["Loja", "Configurações da Loja"],
+  "Minhas Lojas": ["Loja"],
+  "Programa de Afiliados": ["Afiliados"],
+  "Central de Ajuda": ["Ajuda"],
+};
+
+const FALLBACK_HOME_BY_MENU = [
+  "PDV",
+  "Vendas",
+  "Estoque",
+  "Ordens de Serviço",
+  "Financeiro",
+  "CRM",
+  "Painel Inicial",
+];
+
+function normalize(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function normalizeEmail(email?: string | null) {
+  return typeof email === "string" ? email.trim().toLowerCase() : "";
+}
+
+function getEmailFromUser(user?: { email?: string | null } | null) {
+  return normalizeEmail(user?.email);
+}
+
+function isForcedLegacyUser(user?: { email?: string | null } | null, email?: string | null) {
+  const key = getEmailFromUser(user) || normalizeEmail(email);
+  return !!key && !!LEGACY_HOME_SCREEN_BY_EMAIL[key];
+}
+
+function getForcedHomeScreen(user?: { email?: string | null } | null, email?: string | null) {
+  const key = getEmailFromUser(user) || normalizeEmail(email);
+  return key ? LEGACY_HOME_SCREEN_BY_EMAIL[key] : undefined;
+}
+
 function readMap(): Record<string, string> {
   if (typeof window === "undefined" || !window.localStorage) return {};
   try {
@@ -46,12 +103,71 @@ export function getHomeRoute(screen?: string | null): string {
   return (normalized && HOME_SCREEN_ROUTES[normalized]) || "/painel";
 }
 
+export function isMenuAllowed(title: string, allowed?: unknown): boolean {
+  if (!Array.isArray(allowed) || allowed.length === 0) return true;
+  const allowedSet = new Set(
+    allowed
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => normalize(value)),
+  );
+  if (allowedSet.size === 0) return true;
+  if (allowedSet.has(normalize(title))) return true;
+  return (MENU_ALIASES[title] ?? []).some((alias) => allowedSet.has(normalize(alias)));
+}
+
+export function getAllowedMenuFromUser(
+  user?: {
+    email?: string | null;
+    user_metadata?: Record<string, unknown> | null;
+    app_metadata?: Record<string, unknown> | null;
+  } | null,
+): string[] | null {
+  const allowed = user?.user_metadata?.allowed_menu ?? user?.app_metadata?.allowed_menu;
+  const items = Array.isArray(allowed)
+    ? allowed.filter((value): value is string => typeof value === "string")
+    : null;
+  if (!isForcedLegacyUser(user)) return items;
+
+  const corrected = (items ?? []).filter((item) => normalize(item) !== normalize("Dashboard"));
+  if (!corrected.some((item) => normalize(item) === normalize("Vendas & PDV"))) {
+    corrected.push("Vendas & PDV");
+  }
+  return corrected;
+}
+
+export function getHomeRouteForUser(
+  user?: {
+    email?: string | null;
+    user_metadata?: Record<string, unknown> | null;
+    app_metadata?: Record<string, unknown> | null;
+  } | null,
+  fallbackEmail?: string | null,
+): string {
+  const forced = getForcedHomeScreen(user, fallbackEmail);
+  if (forced) return getHomeRoute(forced);
+
+  const selectedScreen = getHomeScreenFromUser(user) ?? undefined;
+  const allowedMenu = getAllowedMenuFromUser(user);
+  if (selectedScreen && isMenuAllowed(selectedScreen, allowedMenu)) {
+    return getHomeRoute(selectedScreen);
+  }
+
+  if (Array.isArray(allowedMenu) && allowedMenu.length > 0) {
+    const fallbackScreen = FALLBACK_HOME_BY_MENU.find((screen) => isMenuAllowed(screen, allowedMenu));
+    if (fallbackScreen) return getHomeRoute(fallbackScreen);
+  }
+
+  return getHomeRouteForEmail(fallbackEmail ?? user?.email ?? null);
+}
+
 export function getHomeScreenFromUser(
   user?: {
+    email?: string | null;
     user_metadata?: Record<string, unknown> | null;
     app_metadata?: Record<string, unknown> | null;
   } | null,
 ): string | null {
+  if (isForcedLegacyUser(user)) return getForcedHomeScreen(user) ?? null;
   const metadataSources = [user?.user_metadata, user?.app_metadata];
 
   for (const metadata of metadataSources) {
