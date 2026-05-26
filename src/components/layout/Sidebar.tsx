@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useImport } from "@/contexts/ImportContext";
 import { sidebarItems } from "@/lib/mock";
 import { cn } from "@/lib/utils";
-import { isMenuAllowed } from "@/lib/homeScreen";
+import { getAllowedMenuFromUser, isMenuAllowed } from "@/lib/homeScreen";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SortableSidebarItem } from "./SortableSidebarItem";
 
@@ -47,7 +47,7 @@ export function AppSidebar({
                         user?.email === "alfatech791@gmail.com" || 
                         user?.email === "contato@focussdev.art";
     const profileAllowed = (profile as any)?.allowed_menu;
-    const metaAllowed = (user?.user_metadata as { allowed_menu?: string[] | null } | undefined)?.allowed_menu;
+    const metaAllowed = getAllowedMenuFromUser(user);
     const allowed = Array.isArray(profileAllowed) && profileAllowed.length > 0 ? profileAllowed : metaAllowed;
     const hasRestrictedMenu = !isPrivileged && Array.isArray(allowed) && allowed.length > 0;
     const isAllowed = (title: string) => !hasRestrictedMenu || isMenuAllowed(title, allowed);
