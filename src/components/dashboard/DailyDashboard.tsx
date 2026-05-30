@@ -154,7 +154,7 @@ export function DailyDashboard() {
   useEffect(() => {
     if (!orgId) return;
     let cancel = false;
-    const cacheKey = `daily-dash:${orgId}:${period}`;
+    const cacheKey = `daily-dash:v2:${orgId}:${period}`;
 
     // Hidrata instantaneamente do cache persistente (sessionStorage)
     const cached = readCache<Stats>(cacheKey, 2 * 60_000);
@@ -247,7 +247,8 @@ export function DailyDashboard() {
       for (const o of sales as any[]) {
         const amount = Number(o.total_amount) || 0;
         const agg = itemsByOrder[o.id];
-        const p = agg ? agg.sale - agg.cost : 0;
+        const itemCost = agg?.cost ?? 0;
+        const p = amount - itemCost;
         const d = new Date(o.created_at);
         const inMonth = d.toISOString() >= monthStart && d.toISOString() <= monthEnd;
         if (inMonth) {
