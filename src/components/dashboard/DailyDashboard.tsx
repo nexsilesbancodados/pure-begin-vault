@@ -322,6 +322,10 @@ export function DailyDashboard() {
         prevProfit,
       };
       setS(next);
+      const items = Object.values(productAgg)
+        .map((p) => ({ ...p, profit: p.sale - p.cost }))
+        .sort((a, b) => b.profit - a.profit);
+      setProfitItems(items);
       writeCache(cacheKey, next);
       setLoading(false);
     };
