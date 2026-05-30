@@ -586,8 +586,9 @@ function CustomersPage() {
           </div>
 
           {/* Toolbar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="relative flex-1 md:max-w-md">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 flex-1">
+              <div className="relative flex-1 md:max-w-md">
               <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 placeholder="Buscar por nome, email ou telefone..."
@@ -595,6 +596,23 @@ function CustomersPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              </div>
+              <div className="flex gap-1 rounded-xl border border-border bg-card p-1 overflow-x-auto">
+                {filterOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setContactFilter(option.value)}
+                    className={cn(
+                      "h-8 shrink-0 rounded-lg px-3 text-xs font-bold transition-colors",
+                      contactFilter === option.value
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    {option.label} <span className="tabular-nums opacity-80">{option.count}</span>
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
