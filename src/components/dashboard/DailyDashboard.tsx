@@ -35,6 +35,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { readCache, writeCache } from "@/lib/sessionCache";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -342,10 +349,13 @@ export function DailyDashboard() {
     icon: typeof Banknote;
     tone: "emerald" | "sky" | "violet" | "amber" | "rose" | "slate";
     delta?: { pct: number; up: boolean } | null;
+    description: string;
+    details: { label: string; value: string }[];
   };
 
   const cards: Card[] = useMemo(
     () => {
+      const periodLbl = PERIOD_LABEL[period];
       const all: Card[] = [
         {
           label: "Faturamento",
@@ -354,6 +364,13 @@ export function DailyDashboard() {
           icon: Banknote,
           tone: "emerald",
           delta: delta(s.revenue, s.prevRevenue),
+          description: `Soma do valor total das vendas concluídas (PDV e importadas) no período "${periodLbl}".`,
+          details: [
+            { label: "Faturamento no período", value: `R$ ${brl(s.revenue)}` },
+            { label: "Faturamento no mês", value: `R$ ${brl(s.monthRevenue)}` },
+            { label: "Período anterior", value: `R$ ${brl(s.prevRevenue)}` },
+            { label: "Vendas no período", value: String(s.count) },
+          ],
         },
         {
           label: "Vendas",
@@ -362,6 +379,13 @@ export function DailyDashboard() {
           icon: ShoppingBasket,
           tone: "sky",
           delta: delta(s.count, s.prevCount),
+          description: `Quantidade de pedidos concluídos no período "${periodLbl}".`,
+          details: [
+            { label: "Vendas no período", value: String(s.count) },
+            { label: "Vendas no mês", value: String(s.monthCount) },
+            { label: "Período anterior", value: String(s.prevCount) },
+            { label: "Ticket médio", value: `R$ ${brl(s.ticket)}` },
+          ],
         },
         ...(canFinance
           ? [
@@ -372,6 +396,13 @@ export function DailyDashboard() {
                 icon: Target,
                 tone: "violet",
                 delta: delta(s.profit, s.prevProfit),
+                description: `Lucro bruto: faturamento menos custo dos produtos vendidos no período "${periodLbl}".`,
+                details: [
+                  { label: "Lucro no período", value: `R$ ${brl(s.profit)}` },
+                  { label: "Lucro no mês", value: `R$ ${brl(s.monthProfit)}` },
+                  { label: "Período anterior", value: `R$ ${brl(s.prevProfit)}` },
+                  { label: "Margem", value: `${s.profitPct.toFixed(1)}%` },
+                ],
               } as Card,
             ]
           : []),
@@ -380,6 +411,12 @@ export function DailyDashboard() {
           value: `R$ ${brl(s.ticket)}`,
           icon: Receipt,
           tone: "amber",
+          description: `Valor médio por venda no período "${periodLbl}" (faturamento ÷ nº vendas).`,
+          details: [
+            { label: "Ticket médio", value: `R$ ${brl(s.ticket)}` },
+            { label: "Faturamento", value: `R$ ${brl(s.revenue)}` },
+            { label: "Vendas", value: String(s.count) },
+          ],
         },
         ...(canFinance
           ? ([
@@ -388,12 +425,24 @@ export function DailyDashboard() {
                 value: `${s.profitPct.toFixed(1)}%`,
                 icon: Percent,
                 tone: "emerald",
+                description: `Percentual de lucro sobre o faturamento no período "${periodLbl}".`,
+                details: [
+                  { label: "Margem", value: `${s.profitPct.toFixed(1)}%` },
+                  { label: "Lucro", value: `R$ ${brl(s.profit)}` },
+                  { label: "Faturamento", value: `R$ ${brl(s.revenue)}` },
+                ],
               },
               {
                 label: "Lucro médio / venda",
                 value: `R$ ${brl(s.avgProfit)}`,
                 icon: Activity,
                 tone: "sky",
+                description: `Lucro médio gerado por venda no período "${periodLbl}".`,
+                details: [
+                  { label: "Lucro médio / venda", value: `R$ ${brl(s.avgProfit)}` },
+                  { label: "Lucro total", value: `R$ ${brl(s.profit)}` },
+                  { label: "Vendas", value: String(s.count) },
+                ],
               },
             ] as Card[])
           : []),
@@ -401,8 +450,11 @@ export function DailyDashboard() {
       return all;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s, canFinance],
+    [s, canFinance, period],
   );
+
+  const [openCard, setOpenCard] = useState<Card | null>(null);
+
 
   const toneClasses: Record<Card["tone"], string> = {
     emerald: "from-emerald-500/15 to-emerald-500/5 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20",
@@ -459,10 +511,12 @@ export function DailyDashboard() {
         {cards.map((c) => {
           const Icon = c.icon;
           return (
-            <div
+            <button
+              type="button"
               key={c.label}
+              onClick={() => setOpenCard(c)}
               className={cn(
-                "group relative overflow-hidden rounded-xl p-4 bg-gradient-to-br ring-1 transition-all hover:shadow-lg hover:-translate-y-0.5",
+                "group relative overflow-hidden rounded-xl p-4 bg-gradient-to-br ring-1 transition-all hover:shadow-lg hover:-translate-y-0.5 text-left focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer",
                 "bg-card/70 backdrop-blur",
                 toneClasses[c.tone],
               )}
@@ -505,7 +559,7 @@ export function DailyDashboard() {
                   </span>
                 )}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -563,6 +617,62 @@ export function DailyDashboard() {
       </div>
       </>
       )}
+
+      <Dialog open={!!openCard} onOpenChange={(o) => !o && setOpenCard(null)}>
+        <DialogContent className="sm:max-w-md">
+          {openCard && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "h-8 w-8 rounded-lg grid place-items-center bg-gradient-to-br ring-1",
+                      toneClasses[openCard.tone],
+                    )}
+                  >
+                    <openCard.icon className="h-4 w-4" strokeWidth={2} />
+                  </span>
+                  {openCard.label}
+                </DialogTitle>
+                <DialogDescription>{openCard.description}</DialogDescription>
+              </DialogHeader>
+              <div className="mt-2 space-y-2">
+                <div className="text-3xl font-black tracking-tight">{openCard.value}</div>
+                <div className="text-xs text-muted-foreground">
+                  Período: {PERIOD_LABEL[period]}
+                </div>
+                <div className="mt-3 divide-y divide-border/60 rounded-lg border border-border/60">
+                  {openCard.details.map((d) => (
+                    <div
+                      key={d.label}
+                      className="flex items-center justify-between px-3 py-2 text-sm"
+                    >
+                      <span className="text-muted-foreground">{d.label}</span>
+                      <span className="font-semibold tabular-nums">{d.value}</span>
+                    </div>
+                  ))}
+                </div>
+                {openCard.delta && (
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Variação vs. período anterior:{" "}
+                    <span
+                      className={cn(
+                        "font-bold",
+                        openCard.delta.up
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400",
+                      )}
+                    >
+                      {openCard.delta.up ? "+" : "-"}
+                      {Math.abs(openCard.delta.pct).toFixed(1)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
