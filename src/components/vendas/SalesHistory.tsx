@@ -1477,9 +1477,9 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                           {selectedSale.customers?.name || "Consumidor Final"}
                         </div>
                       </div>
-                      {selectedSale.channel && (
+                      {selectedSale.channel && typeof selectedSale.channel !== "object" && (
                         <Badge variant="outline" className="rounded-full font-bold capitalize">
-                          {selectedSale.channel}
+                          {String(selectedSale.channel)}
                         </Badge>
                       )}
                     </div>
