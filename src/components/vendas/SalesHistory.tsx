@@ -1477,9 +1477,9 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                           {selectedSale.customers?.name || "Consumidor Final"}
                         </div>
                       </div>
-                      {selectedSale.channel && (
+                      {selectedSale.channel && typeof selectedSale.channel !== "object" && (
                         <Badge variant="outline" className="rounded-full font-bold capitalize">
-                          {selectedSale.channel}
+                          {String(selectedSale.channel)}
                         </Badge>
                       )}
                     </div>
@@ -1549,9 +1549,9 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                                       {brl(unit)}
                                     </span>
                                     {it.imei && (
-                                      <span className="font-mono">IMEI: {it.imei}</span>
+                                      <span className="font-mono">IMEI: {String(it.imei)}</span>
                                     )}
-                                    {it.model && <span>{it.model}</span>}
+                                    {it.model && typeof it.model !== "object" && <span>{String(it.model)}</span>}
                                     {Number(it.discount || 0) > 0 && (
                                       <span className="text-success">
                                         - {brl(Number(it.discount))}
