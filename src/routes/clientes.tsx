@@ -68,9 +68,17 @@ function initialsFor(name?: string | null) {
     .map((s) => s[0]?.toUpperCase())
     .join("");
 }
-function customerCode(c: { id?: string | null }) {
+function customerCode(c: { id?: string | null } | null | undefined) {
   const id = String(c?.id ?? "");
-  return id ? `CLI-${id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : "—";
+  if (!id) return "—";
+  // Deterministic 6-digit numeric code from id (FNV-1a)
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < id.length; i++) {
+    hash ^= id.charCodeAt(i);
+    hash = (hash + ((hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24))) >>> 0;
+  }
+  const num = String(hash % 1_000_000).padStart(6, "0");
+  return `#CLI-${num}`;
 }
 
 type ContactFilter = "all" | "whatsapp" | "email" | "incomplete";
