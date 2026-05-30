@@ -88,6 +88,8 @@ function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [contactFilter, setContactFilter] = useState<ContactFilter>("all");
+  const [sortBy, setSortBy] = useState<"name" | "top">("name");
+  const [purchaseStats, setPurchaseStats] = useState<Record<string, { total: number; count: number }>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
