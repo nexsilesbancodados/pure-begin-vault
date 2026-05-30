@@ -698,6 +698,75 @@ export function DailyDashboard() {
                     </span>
                   </div>
                 )}
+
+                {openCard.label === "Lucro" && (
+                  <div className="mt-4">
+                    <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                      Produtos vendidos no período
+                    </div>
+                    {profitItems.length === 0 ? (
+                      <div className="text-sm text-muted-foreground px-3 py-4 rounded-lg border border-dashed border-border/60 text-center">
+                        Nenhum produto vendido no período.
+                      </div>
+                    ) : (
+                      <div className="max-h-72 overflow-auto rounded-lg border border-border/60">
+                        <table className="w-full text-xs">
+                          <thead className="bg-muted/50 text-muted-foreground sticky top-0">
+                            <tr>
+                              <th className="text-left px-2 py-1.5 font-semibold">Produto</th>
+                              <th className="text-right px-2 py-1.5 font-semibold">Qtd</th>
+                              <th className="text-right px-2 py-1.5 font-semibold">Custo</th>
+                              <th className="text-right px-2 py-1.5 font-semibold">Venda</th>
+                              <th className="text-right px-2 py-1.5 font-semibold">Lucro</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/60">
+                            {profitItems.map((p, i) => (
+                              <tr key={i}>
+                                <td className="px-2 py-1.5 truncate max-w-[140px]" title={p.name}>
+                                  {p.name}
+                                  {p.qty > 1 && (
+                                    <span className="text-muted-foreground"> ×{p.qty}</span>
+                                  )}
+                                </td>
+                                <td className="px-2 py-1.5 text-right tabular-nums">{p.qty}</td>
+                                <td className="px-2 py-1.5 text-right tabular-nums">R$ {brl(p.cost)}</td>
+                                <td className="px-2 py-1.5 text-right tabular-nums">R$ {brl(p.sale)}</td>
+                                <td
+                                  className={cn(
+                                    "px-2 py-1.5 text-right tabular-nums font-semibold",
+                                    p.profit >= 0
+                                      ? "text-emerald-600 dark:text-emerald-400"
+                                      : "text-rose-600 dark:text-rose-400",
+                                  )}
+                                >
+                                  R$ {brl(p.profit)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="bg-muted/30 font-bold">
+                            <tr>
+                              <td className="px-2 py-1.5">Total</td>
+                              <td className="px-2 py-1.5 text-right tabular-nums">
+                                {profitItems.reduce((a, b) => a + b.qty, 0)}
+                              </td>
+                              <td className="px-2 py-1.5 text-right tabular-nums">
+                                R$ {brl(profitItems.reduce((a, b) => a + b.cost, 0))}
+                              </td>
+                              <td className="px-2 py-1.5 text-right tabular-nums">
+                                R$ {brl(profitItems.reduce((a, b) => a + b.sale, 0))}
+                              </td>
+                              <td className="px-2 py-1.5 text-right tabular-nums">
+                                R$ {brl(profitItems.reduce((a, b) => a + b.profit, 0))}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           )}
