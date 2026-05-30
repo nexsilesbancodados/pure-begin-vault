@@ -1718,13 +1718,16 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
       </Dialog>
 
       {/* Modal — Cadastro do produto vendido */}
-      <ProductForm
-        open={!!productDetail?.product}
-        onOpenChange={(o: boolean) => {
-          if (!o) setProductDetail(null);
-        }}
-        product={productDetail?.product || undefined}
-      />
+      {productDetail?.product ? (
+        <ProductForm
+          key={productDetail.product.id}
+          open={true}
+          onOpenChange={(o: boolean) => {
+            if (!o) setProductDetail(null);
+          }}
+          product={productDetail.product}
+        />
+      ) : null}
 
 
 
