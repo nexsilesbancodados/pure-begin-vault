@@ -68,6 +68,10 @@ function initialsFor(name?: string | null) {
     .map((s) => s[0]?.toUpperCase())
     .join("");
 }
+function customerCode(c: { id?: string | null }) {
+  const id = String(c?.id ?? "");
+  return id ? `CLI-${id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : "—";
+}
 
 type ContactFilter = "all" | "whatsapp" | "email" | "incomplete";
 
@@ -394,7 +398,14 @@ function CustomersPage() {
               >
                 {initialsFor(viewingCustomer?.name)}
               </div>
-              <span>{viewingCustomer?.name}</span>
+              <div className="flex flex-col min-w-0">
+                <span className="truncate">{viewingCustomer?.name}</span>
+                {viewingCustomer && (
+                  <span className="text-[10px] font-mono font-bold text-muted-foreground tracking-wider">
+                    {customerCode(viewingCustomer)}
+                  </span>
+                )}
+              </div>
             </DialogTitle>
           </DialogHeader>
           {viewingCustomer && (
@@ -1008,15 +1019,23 @@ function CustomersPage() {
                                     </span>
                                   )}
                                 </div>
-                                {customer.created_at && (
-                                  <div className="text-[10px] text-muted-foreground">
-                                    Desde{" "}
-                                    {new Date(customer.created_at).toLocaleDateString("pt-BR", {
-                                      month: "short",
-                                      year: "numeric",
-                                    })}
-                                  </div>
-                                )}
+                                <div className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                                  <span className="font-mono font-bold text-foreground/70">
+                                    {customerCode(customer)}
+                                  </span>
+                                  {customer.created_at && (
+                                    <>
+                                      <span className="opacity-50">·</span>
+                                      <span>
+                                        Desde{" "}
+                                        {new Date(customer.created_at).toLocaleDateString("pt-BR", {
+                                          month: "short",
+                                          year: "numeric",
+                                        })}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </button>
                           </td>
@@ -1051,7 +1070,7 @@ function CustomersPage() {
                             {customer.document || "—"}
                           </td>
                           <td className="px-5 py-4">
-                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center justify-end gap-1">
                               {customer.phone && (
                                 <a
                                   href={`https://wa.me/55${customer.phone.replace(/\D/g, "")}`}
@@ -1063,6 +1082,13 @@ function CustomersPage() {
                                   <MessageCircle className="h-4 w-4" />
                                 </a>
                               )}
+                              <button
+                                onClick={() => handleOpenModal(customer)}
+                                className="p-2 rounded-lg hover:bg-warning/10 text-warning transition"
+                                title="Editar cadastro"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </button>
                               <button
                                 onClick={() => handleViewHistory(customer)}
                                 className="p-2 rounded-lg hover:bg-primary/10 text-primary transition"
