@@ -1012,15 +1012,23 @@ function CustomersPage() {
                                     </span>
                                   )}
                                 </div>
-                                {customer.created_at && (
-                                  <div className="text-[10px] text-muted-foreground">
-                                    Desde{" "}
-                                    {new Date(customer.created_at).toLocaleDateString("pt-BR", {
-                                      month: "short",
-                                      year: "numeric",
-                                    })}
-                                  </div>
-                                )}
+                                <div className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                                  <span className="font-mono font-bold text-foreground/70">
+                                    {customerCode(customer)}
+                                  </span>
+                                  {customer.created_at && (
+                                    <>
+                                      <span className="opacity-50">·</span>
+                                      <span>
+                                        Desde{" "}
+                                        {new Date(customer.created_at).toLocaleDateString("pt-BR", {
+                                          month: "short",
+                                          year: "numeric",
+                                        })}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </button>
                           </td>
