@@ -1076,6 +1076,13 @@ function CustomersPage() {
                                 </a>
                               )}
                               <button
+                                onClick={() => handleOpenModal(customer)}
+                                className="p-2 rounded-lg hover:bg-warning/10 text-warning transition"
+                                title="Editar cadastro"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </button>
+                              <button
                                 onClick={() => handleViewHistory(customer)}
                                 className="p-2 rounded-lg hover:bg-primary/10 text-primary transition"
                                 title="Histórico"
