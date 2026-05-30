@@ -203,31 +203,41 @@ export function DailyDashboard() {
       const saleIds = sales.map((r: any) => r.id);
 
       const itemsByOrder: Record<string, { sale: number; cost: number }> = {};
+      const saleIdInPeriod = new Set(
+        (sales as any[])
+          .filter((o) => {
+            const d = new Date(o.created_at);
+            return d >= start && d <= end;
+          })
+          .map((o) => o.id),
+      );
+      const productAgg: Record<
+        string,
+        { name: string; qty: number; sale: number; cost: number }
+      > = {};
       if (saleIds.length) {
         const { data: items } = await (supabase as any)
           .from("sale_items")
-          .select("sale_id, product_id, quantity, unit_price, unit_cost, total")
+          .select("sale_id, product_id, product_name, quantity, unit_price, unit_cost, total")
           .in("sale_id", saleIds)
           .eq("organization_id", orgId);
 
         const rows = (items || []) as any[];
         // Fallback: quando unit_cost vier nulo/zero, buscar cost_price do produto
-        const missingCostIds = Array.from(
-          new Set(
-            rows
-              .filter((it) => !Number(it.unit_cost) && it.product_id)
-              .map((it) => it.product_id as string),
-          ),
+        const productIds = Array.from(
+          new Set(rows.map((it) => it.product_id).filter(Boolean) as string[]),
         );
         const costMap: Record<string, number> = {};
-        if (missingCostIds.length) {
+        const nameMap: Record<string, string> = {};
+        if (productIds.length) {
           const { data: prods } = await (supabase as any)
             .from("products")
-            .select("id, cost_price")
-            .in("id", missingCostIds)
+            .select("id, name, cost_price")
+            .in("id", productIds)
             .eq("organization_id", orgId);
           for (const p of (prods || []) as any[]) {
             costMap[p.id] = Number(p.cost_price) || 0;
+            nameMap[p.id] = p.name || "";
           }
         }
 
@@ -240,8 +250,21 @@ export function DailyDashboard() {
           cur.sale += sale;
           cur.cost += cost;
           itemsByOrder[it.sale_id] = cur;
+
+          if (saleIdInPeriod.has(it.sale_id)) {
+            const key = it.product_id || it.product_name || "—";
+            const name =
+              it.product_name || nameMap[it.product_id] || "Produto sem nome";
+            const cur2 = productAgg[key] || { name, qty: 0, sale: 0, cost: 0 };
+            cur2.qty += qty;
+            cur2.sale += sale;
+            cur2.cost += cost;
+            productAgg[key] = cur2;
+          }
         }
       }
+
+
 
 
       let revenue = 0,
