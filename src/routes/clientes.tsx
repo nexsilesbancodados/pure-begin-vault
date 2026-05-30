@@ -99,6 +99,7 @@ function CustomersPage() {
     services: [],
   });
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [viewingCustomer, setViewingCustomer] = useState<any | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
