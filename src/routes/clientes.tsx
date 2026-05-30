@@ -68,6 +68,10 @@ function initialsFor(name?: string | null) {
     .map((s) => s[0]?.toUpperCase())
     .join("");
 }
+function customerCode(c: { id?: string | null }) {
+  const id = String(c?.id ?? "");
+  return id ? `CLI-${id.replace(/-/g, "").slice(0, 6).toUpperCase()}` : "—";
+}
 
 type ContactFilter = "all" | "whatsapp" | "email" | "incomplete";
 
