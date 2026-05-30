@@ -100,6 +100,63 @@ function CustomersPage() {
   });
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [viewingCustomer, setViewingCustomer] = useState<any | null>(null);
+  const [viewingDetails, setViewingDetails] = useState<{
+    devices: Array<{ id: string; name: string; qty: number; total: number; date: string; imei?: string }>;
+    transfers: Array<{ id: string; description: string; amount: number; date: string; method?: string }>;
+    loading: boolean;
+  }>({ devices: [], transfers: [], loading: false });
+
+  useEffect(() => {
+    if (!viewingCustomer?.id || !orgId) return;
+    let cancelled = false;
+    setViewingDetails({ devices: [], transfers: [], loading: true });
+    (async () => {
+      try {
+        const [salesRes, ftRes] = await Promise.all([
+          supabase
+            .from("sales_orders")
+            .select("id, created_at, sale_items(product_name, quantity, total, imei)")
+            .eq("customer_id", viewingCustomer.id)
+            .eq("organization_id", orgId)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("finance_transactions")
+            .select("id, description, amount, transaction_date, payment_method, type")
+            .eq("organization_id", orgId)
+            .or(`description.ilike.%${viewingCustomer.name}%`)
+            .order("transaction_date", { ascending: false })
+            .limit(20),
+        ]);
+        if (cancelled) return;
+        const devices: any[] = [];
+        (salesRes.data || []).forEach((s: any) => {
+          (s.sale_items || []).forEach((it: any, idx: number) => {
+            devices.push({
+              id: `${s.id}-${idx}`,
+              name: it.product_name,
+              qty: Number(it.quantity || 0),
+              total: Number(it.total || 0),
+              date: s.created_at,
+              imei: it.imei,
+            });
+          });
+        });
+        const transfers = (ftRes.data || []).map((t: any) => ({
+          id: t.id,
+          description: t.description || t.type,
+          amount: Number(t.amount || 0),
+          date: t.transaction_date,
+          method: t.payment_method,
+        }));
+        setViewingDetails({ devices, transfers, loading: false });
+      } catch {
+        if (!cancelled) setViewingDetails({ devices: [], transfers: [], loading: false });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [viewingCustomer?.id, orgId]);
 
   const [formData, setFormData] = useState({
     name: "",
