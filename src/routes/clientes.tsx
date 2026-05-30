@@ -398,7 +398,14 @@ function CustomersPage() {
               >
                 {initialsFor(viewingCustomer?.name)}
               </div>
-              <span>{viewingCustomer?.name}</span>
+              <div className="flex flex-col min-w-0">
+                <span className="truncate">{viewingCustomer?.name}</span>
+                {viewingCustomer && (
+                  <span className="text-[10px] font-mono font-bold text-muted-foreground tracking-wider">
+                    {customerCode(viewingCustomer)}
+                  </span>
+                )}
+              </div>
             </DialogTitle>
           </DialogHeader>
           {viewingCustomer && (
