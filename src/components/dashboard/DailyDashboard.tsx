@@ -511,10 +511,12 @@ export function DailyDashboard() {
         {cards.map((c) => {
           const Icon = c.icon;
           return (
-            <div
+            <button
+              type="button"
               key={c.label}
+              onClick={() => setOpenCard(c)}
               className={cn(
-                "group relative overflow-hidden rounded-xl p-4 bg-gradient-to-br ring-1 transition-all hover:shadow-lg hover:-translate-y-0.5",
+                "group relative overflow-hidden rounded-xl p-4 bg-gradient-to-br ring-1 transition-all hover:shadow-lg hover:-translate-y-0.5 text-left focus:outline-none focus:ring-2 focus:ring-primary/40 cursor-pointer",
                 "bg-card/70 backdrop-blur",
                 toneClasses[c.tone],
               )}
