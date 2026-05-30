@@ -99,6 +99,7 @@ function CustomersPage() {
     services: [],
   });
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [viewingCustomer, setViewingCustomer] = useState<any | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -289,6 +290,86 @@ function CustomersPage() {
 
   return (
     <div className="min-h-screen flex w-full bg-background">
+      <Dialog open={!!viewingCustomer} onOpenChange={(o) => !o && setViewingCustomer(null)}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "h-12 w-12 rounded-full bg-gradient-to-br text-white grid place-items-center font-black text-sm shrink-0",
+                  avatarGradient(viewingCustomer?.name ?? ""),
+                )}
+              >
+                {initialsFor(viewingCustomer?.name)}
+              </div>
+              <span>{viewingCustomer?.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {viewingCustomer && (
+            <div className="space-y-3 py-2 text-sm">
+              {[
+                { icon: Phone, label: "WhatsApp / Telefone", value: viewingCustomer.phone },
+                { icon: Mail, label: "E-mail", value: viewingCustomer.email },
+                { icon: Users, label: "CPF / CNPJ", value: viewingCustomer.document },
+                {
+                  icon: MapPin,
+                  label: "Endereço",
+                  value: [viewingCustomer.address, viewingCustomer.city, viewingCustomer.state]
+                    .filter(Boolean)
+                    .join(", "),
+                },
+              ].map((f) => (
+                <div
+                  key={f.label}
+                  className="flex items-start gap-3 p-3 rounded-xl border border-border bg-muted/30"
+                >
+                  <f.icon className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                      {f.label}
+                    </div>
+                    <div className="font-semibold text-foreground break-words">
+                      {f.value || "—"}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {viewingCustomer.created_at && (
+                <div className="text-xs text-muted-foreground text-center pt-2">
+                  Cliente desde{" "}
+                  {new Date(viewingCustomer.created_at).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const c = viewingCustomer;
+                setViewingCustomer(null);
+                if (c) handleViewHistory(c);
+              }}
+            >
+              <History className="h-4 w-4 mr-2" /> Histórico
+            </Button>
+            <Button
+              onClick={() => {
+                const c = viewingCustomer;
+                setViewingCustomer(null);
+                if (c) handleOpenModal(c);
+              }}
+            >
+              <Edit3 className="h-4 w-4 mr-2" /> Editar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -716,7 +797,11 @@ function CustomersPage() {
                           className="group hover:bg-muted/40 transition-colors"
                         >
                           <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setViewingCustomer(customer)}
+                              className="flex items-center gap-3 text-left w-full hover:opacity-90 transition"
+                            >
                               <div
                                 className={cn(
                                   "h-10 w-10 rounded-full bg-gradient-to-br text-white grid place-items-center font-black text-xs shadow-sm shrink-0",
@@ -744,7 +829,7 @@ function CustomersPage() {
                                   </div>
                                 )}
                               </div>
-                            </div>
+                            </button>
                           </td>
                           <td className="px-5 py-4">
                             <div className="space-y-1">
