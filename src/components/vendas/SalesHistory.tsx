@@ -1720,7 +1720,7 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
       {/* Modal — Cadastro do produto vendido */}
       <ProductForm
         open={!!productDetail?.product}
-        onOpenChange={(o) => {
+        onOpenChange={(o: boolean) => {
           if (!o) setProductDetail(null);
         }}
         product={productDetail?.product || undefined}
