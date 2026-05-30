@@ -194,6 +194,30 @@ function CustomersPage() {
     fetchCustomers();
   }, [fetchCustomers]);
 
+  useEffect(() => {
+    if (!orgId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("sales_orders")
+        .select("customer_id, total_amount")
+        .eq("organization_id", orgId)
+        .not("customer_id", "is", null);
+      if (cancelled) return;
+      const agg: Record<string, { total: number; count: number }> = {};
+      (data || []).forEach((s: any) => {
+        const id = s.customer_id as string;
+        if (!agg[id]) agg[id] = { total: 0, count: 0 };
+        agg[id].total += Number(s.total_amount || 0);
+        agg[id].count += 1;
+      });
+      setPurchaseStats(agg);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId, customers.length]);
+
   const handleOpenModal = (customer?: any) => {
     if (customer) {
       setEditingCustomer(customer);
