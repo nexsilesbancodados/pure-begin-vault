@@ -355,6 +355,7 @@ export function DailyDashboard() {
 
   const cards: Card[] = useMemo(
     () => {
+      const periodLbl = PERIOD_LABEL[period];
       const all: Card[] = [
         {
           label: "Faturamento",
@@ -363,6 +364,13 @@ export function DailyDashboard() {
           icon: Banknote,
           tone: "emerald",
           delta: delta(s.revenue, s.prevRevenue),
+          description: `Soma do valor total das vendas concluídas (PDV e importadas) no período "${periodLbl}".`,
+          details: [
+            { label: "Faturamento no período", value: `R$ ${brl(s.revenue)}` },
+            { label: "Faturamento no mês", value: `R$ ${brl(s.monthRevenue)}` },
+            { label: "Período anterior", value: `R$ ${brl(s.prevRevenue)}` },
+            { label: "Vendas no período", value: String(s.count) },
+          ],
         },
         {
           label: "Vendas",
@@ -371,6 +379,13 @@ export function DailyDashboard() {
           icon: ShoppingBasket,
           tone: "sky",
           delta: delta(s.count, s.prevCount),
+          description: `Quantidade de pedidos concluídos no período "${periodLbl}".`,
+          details: [
+            { label: "Vendas no período", value: String(s.count) },
+            { label: "Vendas no mês", value: String(s.monthCount) },
+            { label: "Período anterior", value: String(s.prevCount) },
+            { label: "Ticket médio", value: `R$ ${brl(s.ticket)}` },
+          ],
         },
         ...(canFinance
           ? [
@@ -381,6 +396,13 @@ export function DailyDashboard() {
                 icon: Target,
                 tone: "violet",
                 delta: delta(s.profit, s.prevProfit),
+                description: `Lucro bruto: faturamento menos custo dos produtos vendidos no período "${periodLbl}".`,
+                details: [
+                  { label: "Lucro no período", value: `R$ ${brl(s.profit)}` },
+                  { label: "Lucro no mês", value: `R$ ${brl(s.monthProfit)}` },
+                  { label: "Período anterior", value: `R$ ${brl(s.prevProfit)}` },
+                  { label: "Margem", value: `${s.profitPct.toFixed(1)}%` },
+                ],
               } as Card,
             ]
           : []),
@@ -389,6 +411,12 @@ export function DailyDashboard() {
           value: `R$ ${brl(s.ticket)}`,
           icon: Receipt,
           tone: "amber",
+          description: `Valor médio por venda no período "${periodLbl}" (faturamento ÷ nº vendas).`,
+          details: [
+            { label: "Ticket médio", value: `R$ ${brl(s.ticket)}` },
+            { label: "Faturamento", value: `R$ ${brl(s.revenue)}` },
+            { label: "Vendas", value: String(s.count) },
+          ],
         },
         ...(canFinance
           ? ([
@@ -397,12 +425,24 @@ export function DailyDashboard() {
                 value: `${s.profitPct.toFixed(1)}%`,
                 icon: Percent,
                 tone: "emerald",
+                description: `Percentual de lucro sobre o faturamento no período "${periodLbl}".`,
+                details: [
+                  { label: "Margem", value: `${s.profitPct.toFixed(1)}%` },
+                  { label: "Lucro", value: `R$ ${brl(s.profit)}` },
+                  { label: "Faturamento", value: `R$ ${brl(s.revenue)}` },
+                ],
               },
               {
                 label: "Lucro médio / venda",
                 value: `R$ ${brl(s.avgProfit)}`,
                 icon: Activity,
                 tone: "sky",
+                description: `Lucro médio gerado por venda no período "${periodLbl}".`,
+                details: [
+                  { label: "Lucro médio / venda", value: `R$ ${brl(s.avgProfit)}` },
+                  { label: "Lucro total", value: `R$ ${brl(s.profit)}` },
+                  { label: "Vendas", value: String(s.count) },
+                ],
               },
             ] as Card[])
           : []),
@@ -410,8 +450,11 @@ export function DailyDashboard() {
       return all;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [s, canFinance],
+    [s, canFinance, period],
   );
+
+  const [openCard, setOpenCard] = useState<Card | null>(null);
+
 
   const toneClasses: Record<Card["tone"], string> = {
     emerald: "from-emerald-500/15 to-emerald-500/5 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20",
