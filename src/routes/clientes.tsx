@@ -88,6 +88,8 @@ function CustomersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [contactFilter, setContactFilter] = useState<ContactFilter>("all");
+  const [sortBy, setSortBy] = useState<"name" | "top">("name");
+  const [purchaseStats, setPurchaseStats] = useState<Record<string, { total: number; count: number }>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -192,6 +194,30 @@ function CustomersPage() {
     fetchCustomers();
   }, [fetchCustomers]);
 
+  useEffect(() => {
+    if (!orgId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("sales_orders")
+        .select("customer_id, total_amount")
+        .eq("organization_id", orgId)
+        .not("customer_id", "is", null);
+      if (cancelled) return;
+      const agg: Record<string, { total: number; count: number }> = {};
+      (data || []).forEach((s: any) => {
+        const id = s.customer_id as string;
+        if (!agg[id]) agg[id] = { total: 0, count: 0 };
+        agg[id].total += Number(s.total_amount || 0);
+        agg[id].count += 1;
+      });
+      setPurchaseStats(agg);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId, customers.length]);
+
   const handleOpenModal = (customer?: any) => {
     if (customer) {
       setEditingCustomer(customer);
@@ -271,7 +297,7 @@ function CustomersPage() {
 
   const filteredCustomers = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    return customers.filter((c) => {
+    const list = customers.filter((c) => {
       const name = String(c.name ?? "").toLowerCase();
       const email = String(c.email ?? "").toLowerCase();
       const phone = String(c.phone ?? "");
@@ -285,7 +311,16 @@ function CustomersPage() {
         (contactFilter === "incomplete" && (!c.phone || !c.email));
       return matchesSearch && matchesFilter;
     });
-  }, [customers, searchTerm, contactFilter]);
+    if (sortBy === "top") {
+      return [...list].sort((a, b) => {
+        const ta = purchaseStats[a.id]?.total ?? 0;
+        const tb = purchaseStats[b.id]?.total ?? 0;
+        if (tb !== ta) return tb - ta;
+        return (purchaseStats[b.id]?.count ?? 0) - (purchaseStats[a.id]?.count ?? 0);
+      });
+    }
+    return list;
+  }, [customers, searchTerm, contactFilter, sortBy, purchaseStats]);
 
   const stats = useMemo(() => {
     const now = Date.now();
@@ -818,6 +853,31 @@ function CustomersPage() {
                   </button>
                 ))}
               </div>
+              <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
+                <button
+                  onClick={() => setSortBy("name")}
+                  className={cn(
+                    "h-8 shrink-0 rounded-lg px-3 text-xs font-bold transition-colors",
+                    sortBy === "name"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  A–Z
+                </button>
+                <button
+                  onClick={() => setSortBy("top")}
+                  className={cn(
+                    "h-8 shrink-0 rounded-lg px-3 text-xs font-bold transition-colors flex items-center gap-1",
+                    sortBy === "top"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                  title="Quem mais comprou"
+                >
+                  <Sparkles className="h-3 w-3" /> Top compradores
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -935,11 +995,16 @@ function CustomersPage() {
                                 {initialsFor(customer.name)}
                               </div>
                               <div className="min-w-0">
-                                <div className="font-bold text-sm flex items-center gap-2">
+                                <div className="font-bold text-sm flex items-center gap-2 flex-wrap">
                                   <span className="truncate">{customer.name}</span>
                                   {isNew && (
                                     <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-success/10 text-success ring-1 ring-inset ring-success/20">
                                       Novo
+                                    </span>
+                                  )}
+                                  {purchaseStats[customer.id]?.count > 0 && (
+                                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 tabular-nums">
+                                      R$ {purchaseStats[customer.id].total.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} · {purchaseStats[customer.id].count}x
                                     </span>
                                   )}
                                 </div>
