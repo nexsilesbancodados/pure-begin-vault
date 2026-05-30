@@ -157,6 +157,9 @@ export function DailyDashboard() {
   const [period, setPeriod] = useState<Period>("today");
   const [s, setS] = useState<Stats>(EMPTY);
   const [loading, setLoading] = useState(true);
+  const [profitItems, setProfitItems] = useState<
+    Array<{ name: string; qty: number; sale: number; cost: number; profit: number }>
+  >([]);
 
   useEffect(() => {
     if (!orgId) return;
