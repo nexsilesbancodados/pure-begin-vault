@@ -69,6 +69,8 @@ function initialsFor(name?: string | null) {
     .join("");
 }
 
+type ContactFilter = "all" | "whatsapp" | "email" | "incomplete";
+
 export const Route = createFileRoute("/clientes")({
   head: () => ({
     meta: [
@@ -85,6 +87,7 @@ function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [contactFilter, setContactFilter] = useState<ContactFilter>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -208,12 +211,23 @@ function CustomersPage() {
     }
   };
 
-  const filteredCustomers = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.phone && c.phone.includes(searchTerm)),
-  );
+  const filteredCustomers = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return customers.filter((c) => {
+      const name = String(c.name ?? "").toLowerCase();
+      const email = String(c.email ?? "").toLowerCase();
+      const phone = String(c.phone ?? "");
+      const document = String(c.document ?? "").toLowerCase();
+      const matchesSearch =
+        !term || name.includes(term) || email.includes(term) || phone.includes(term) || document.includes(term);
+      const matchesFilter =
+        contactFilter === "all" ||
+        (contactFilter === "whatsapp" && !!c.phone) ||
+        (contactFilter === "email" && !!c.email) ||
+        (contactFilter === "incomplete" && (!c.phone || !c.email));
+      return matchesSearch && matchesFilter;
+    });
+  }, [customers, searchTerm, contactFilter]);
 
   const stats = useMemo(() => {
     const now = Date.now();
@@ -261,6 +275,17 @@ function CustomersPage() {
     fetchCustomerHistory(customer.id);
     setIsHistoryOpen(true);
   };
+
+  const filterOptions: Array<{ value: ContactFilter; label: string; count: number }> = [
+    { value: "all", label: "Todos", count: customers.length },
+    { value: "whatsapp", label: "WhatsApp", count: stats.withWhatsapp },
+    { value: "email", label: "E-mail", count: stats.withEmail },
+    {
+      value: "incomplete",
+      label: "Incompletos",
+      count: customers.filter((c) => !c.phone || !c.email).length,
+    },
+  ];
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -561,8 +586,9 @@ function CustomersPage() {
           </div>
 
           {/* Toolbar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div className="relative flex-1 md:max-w-md">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 flex-1">
+              <div className="relative flex-1 md:max-w-md">
               <Search className="h-4 w-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 placeholder="Buscar por nome, email ou telefone..."
@@ -570,6 +596,23 @@ function CustomersPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              </div>
+              <div className="flex gap-1 rounded-xl border border-border bg-card p-1 overflow-x-auto">
+                {filterOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setContactFilter(option.value)}
+                    className={cn(
+                      "h-8 shrink-0 rounded-lg px-3 text-xs font-bold transition-colors",
+                      contactFilter === option.value
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    {option.label} <span className="tabular-nums opacity-80">{option.count}</span>
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
