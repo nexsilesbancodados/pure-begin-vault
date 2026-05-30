@@ -391,6 +391,73 @@ function CustomersPage() {
                   </div>
                 </div>
               ))}
+
+              <div className="space-y-2">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Wrench className="h-3 w-3" /> Aparelhos comprados
+                </div>
+                {viewingDetails.loading ? (
+                  <div className="text-xs text-muted-foreground italic px-3 py-2">Carregando...</div>
+                ) : viewingDetails.devices.length === 0 ? (
+                  <div className="text-xs text-muted-foreground italic px-3 py-2">
+                    Nenhum aparelho comprado.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {viewingDetails.devices.map((d) => (
+                      <div
+                        key={d.id}
+                        className="text-xs p-2.5 rounded-lg border border-border bg-muted/30 flex justify-between gap-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold truncate">{d.name}</div>
+                          <div className="text-muted-foreground text-[10px]">
+                            {new Date(d.date).toLocaleDateString("pt-BR")} · Qtd {d.qty}
+                            {d.imei ? ` · IMEI ${d.imei}` : ""}
+                          </div>
+                        </div>
+                        <div className="font-black shrink-0">
+                          R$ {d.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-2">
+                  <DollarSign className="h-3 w-3" /> Transferências / Pagamentos
+                </div>
+                {viewingDetails.loading ? (
+                  <div className="text-xs text-muted-foreground italic px-3 py-2">Carregando...</div>
+                ) : viewingDetails.transfers.length === 0 ? (
+                  <div className="text-xs text-muted-foreground italic px-3 py-2">
+                    Nenhuma transferência registrada.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {viewingDetails.transfers.map((t) => (
+                      <div
+                        key={t.id}
+                        className="text-xs p-2.5 rounded-lg border border-border bg-muted/30 flex justify-between gap-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold truncate">{t.description}</div>
+                          <div className="text-muted-foreground text-[10px]">
+                            {new Date(t.date).toLocaleDateString("pt-BR")}
+                            {t.method ? ` · ${t.method}` : ""}
+                          </div>
+                        </div>
+                        <div className="font-black shrink-0">
+                          R$ {t.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {viewingCustomer.created_at && (
                 <div className="text-xs text-muted-foreground text-center pt-2">
                   Cliente desde{" "}
