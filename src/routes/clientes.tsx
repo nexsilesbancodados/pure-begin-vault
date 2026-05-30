@@ -126,6 +126,9 @@ function CustomersPage() {
     setViewingDetails({ devices: [], transfers: [], loading: true });
     (async () => {
       try {
+        const safeName = String(viewingCustomer?.name ?? "")
+          .replace(/[%_,()*]/g, " ")
+          .trim();
         const [salesRes, ftRes] = await Promise.all([
           supabase
             .from("sales_orders")
@@ -133,34 +136,36 @@ function CustomersPage() {
             .eq("customer_id", viewingCustomer.id)
             .eq("organization_id", orgId)
             .order("created_at", { ascending: false }),
-          supabase
-            .from("finance_transactions")
-            .select("id, description, amount, transaction_date, payment_method, type")
-            .eq("organization_id", orgId)
-            .or(`description.ilike.%${viewingCustomer.name}%`)
-            .order("transaction_date", { ascending: false })
-            .limit(20),
+          safeName
+            ? supabase
+                .from("finance_transactions")
+                .select("id, description, amount, transaction_date, payment_method, type")
+                .eq("organization_id", orgId)
+                .ilike("description", `%${safeName}%`)
+                .order("transaction_date", { ascending: false })
+                .limit(20)
+            : Promise.resolve({ data: [] as any[] }),
         ]);
         if (cancelled) return;
         const devices: any[] = [];
-        (salesRes.data || []).forEach((s: any) => {
-          (s.sale_items || []).forEach((it: any, idx: number) => {
+        (salesRes?.data ?? []).forEach((s: any) => {
+          (s?.sale_items ?? []).forEach((it: any, idx: number) => {
             devices.push({
               id: `${s.id}-${idx}`,
-              name: it.product_name,
-              qty: Number(it.quantity || 0),
-              total: Number(it.total || 0),
-              date: s.created_at,
-              imei: it.imei,
+              name: it?.product_name ?? "Item",
+              qty: Number(it?.quantity ?? 0),
+              total: Number(it?.total ?? 0),
+              date: s?.created_at ?? new Date().toISOString(),
+              imei: it?.imei ?? undefined,
             });
           });
         });
-        const transfers = (ftRes.data || []).map((t: any) => ({
-          id: t.id,
-          description: t.description || t.type,
-          amount: Number(t.amount || 0),
-          date: t.transaction_date,
-          method: t.payment_method,
+        const transfers = (ftRes?.data ?? []).map((t: any) => ({
+          id: t?.id,
+          description: t?.description || t?.type || "—",
+          amount: Number(t?.amount ?? 0),
+          date: t?.transaction_date ?? new Date().toISOString(),
+          method: t?.payment_method ?? undefined,
         }));
         setViewingDetails({ devices, transfers, loading: false });
       } catch {
@@ -170,7 +175,7 @@ function CustomersPage() {
     return () => {
       cancelled = true;
     };
-  }, [viewingCustomer?.id, orgId]);
+  }, [viewingCustomer?.id, viewingCustomer?.name, orgId]);
 
   const [formData, setFormData] = useState({
     name: "",
