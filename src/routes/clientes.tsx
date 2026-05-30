@@ -995,11 +995,16 @@ function CustomersPage() {
                                 {initialsFor(customer.name)}
                               </div>
                               <div className="min-w-0">
-                                <div className="font-bold text-sm flex items-center gap-2">
+                                <div className="font-bold text-sm flex items-center gap-2 flex-wrap">
                                   <span className="truncate">{customer.name}</span>
                                   {isNew && (
                                     <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-success/10 text-success ring-1 ring-inset ring-success/20">
                                       Novo
+                                    </span>
+                                  )}
+                                  {purchaseStats[customer.id]?.count > 0 && (
+                                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/10 text-primary ring-1 ring-inset ring-primary/20 tabular-nums">
+                                      R$ {purchaseStats[customer.id].total.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} · {purchaseStats[customer.id].count}x
                                     </span>
                                   )}
                                 </div>
