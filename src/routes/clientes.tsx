@@ -297,7 +297,7 @@ function CustomersPage() {
 
   const filteredCustomers = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    return customers.filter((c) => {
+    const list = customers.filter((c) => {
       const name = String(c.name ?? "").toLowerCase();
       const email = String(c.email ?? "").toLowerCase();
       const phone = String(c.phone ?? "");
@@ -311,7 +311,16 @@ function CustomersPage() {
         (contactFilter === "incomplete" && (!c.phone || !c.email));
       return matchesSearch && matchesFilter;
     });
-  }, [customers, searchTerm, contactFilter]);
+    if (sortBy === "top") {
+      return [...list].sort((a, b) => {
+        const ta = purchaseStats[a.id]?.total ?? 0;
+        const tb = purchaseStats[b.id]?.total ?? 0;
+        if (tb !== ta) return tb - ta;
+        return (purchaseStats[b.id]?.count ?? 0) - (purchaseStats[a.id]?.count ?? 0);
+      });
+    }
+    return list;
+  }, [customers, searchTerm, contactFilter, sortBy, purchaseStats]);
 
   const stats = useMemo(() => {
     const now = Date.now();
