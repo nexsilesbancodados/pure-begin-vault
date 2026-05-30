@@ -100,6 +100,63 @@ function CustomersPage() {
   });
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [viewingCustomer, setViewingCustomer] = useState<any | null>(null);
+  const [viewingDetails, setViewingDetails] = useState<{
+    devices: Array<{ id: string; name: string; qty: number; total: number; date: string; imei?: string }>;
+    transfers: Array<{ id: string; description: string; amount: number; date: string; method?: string }>;
+    loading: boolean;
+  }>({ devices: [], transfers: [], loading: false });
+
+  useEffect(() => {
+    if (!viewingCustomer?.id || !orgId) return;
+    let cancelled = false;
+    setViewingDetails({ devices: [], transfers: [], loading: true });
+    (async () => {
+      try {
+        const [salesRes, ftRes] = await Promise.all([
+          supabase
+            .from("sales_orders")
+            .select("id, created_at, sale_items(product_name, quantity, total, imei)")
+            .eq("customer_id", viewingCustomer.id)
+            .eq("organization_id", orgId)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("finance_transactions")
+            .select("id, description, amount, transaction_date, payment_method, type")
+            .eq("organization_id", orgId)
+            .or(`description.ilike.%${viewingCustomer.name}%`)
+            .order("transaction_date", { ascending: false })
+            .limit(20),
+        ]);
+        if (cancelled) return;
+        const devices: any[] = [];
+        (salesRes.data || []).forEach((s: any) => {
+          (s.sale_items || []).forEach((it: any, idx: number) => {
+            devices.push({
+              id: `${s.id}-${idx}`,
+              name: it.product_name,
+              qty: Number(it.quantity || 0),
+              total: Number(it.total || 0),
+              date: s.created_at,
+              imei: it.imei,
+            });
+          });
+        });
+        const transfers = (ftRes.data || []).map((t: any) => ({
+          id: t.id,
+          description: t.description || t.type,
+          amount: Number(t.amount || 0),
+          date: t.transaction_date,
+          method: t.payment_method,
+        }));
+        setViewingDetails({ devices, transfers, loading: false });
+      } catch {
+        if (!cancelled) setViewingDetails({ devices: [], transfers: [], loading: false });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [viewingCustomer?.id, orgId]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -334,6 +391,73 @@ function CustomersPage() {
                   </div>
                 </div>
               ))}
+
+              <div className="space-y-2">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Wrench className="h-3 w-3" /> Aparelhos comprados
+                </div>
+                {viewingDetails.loading ? (
+                  <div className="text-xs text-muted-foreground italic px-3 py-2">Carregando...</div>
+                ) : viewingDetails.devices.length === 0 ? (
+                  <div className="text-xs text-muted-foreground italic px-3 py-2">
+                    Nenhum aparelho comprado.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {viewingDetails.devices.map((d) => (
+                      <div
+                        key={d.id}
+                        className="text-xs p-2.5 rounded-lg border border-border bg-muted/30 flex justify-between gap-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold truncate">{d.name}</div>
+                          <div className="text-muted-foreground text-[10px]">
+                            {new Date(d.date).toLocaleDateString("pt-BR")} · Qtd {d.qty}
+                            {d.imei ? ` · IMEI ${d.imei}` : ""}
+                          </div>
+                        </div>
+                        <div className="font-black shrink-0">
+                          R$ {d.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-2">
+                  <DollarSign className="h-3 w-3" /> Transferências / Pagamentos
+                </div>
+                {viewingDetails.loading ? (
+                  <div className="text-xs text-muted-foreground italic px-3 py-2">Carregando...</div>
+                ) : viewingDetails.transfers.length === 0 ? (
+                  <div className="text-xs text-muted-foreground italic px-3 py-2">
+                    Nenhuma transferência registrada.
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {viewingDetails.transfers.map((t) => (
+                      <div
+                        key={t.id}
+                        className="text-xs p-2.5 rounded-lg border border-border bg-muted/30 flex justify-between gap-2"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-bold truncate">{t.description}</div>
+                          <div className="text-muted-foreground text-[10px]">
+                            {new Date(t.date).toLocaleDateString("pt-BR")}
+                            {t.method ? ` · ${t.method}` : ""}
+                          </div>
+                        </div>
+                        <div className="font-black shrink-0">
+                          R$ {t.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {viewingCustomer.created_at && (
                 <div className="text-xs text-muted-foreground text-center pt-2">
                   Cliente desde{" "}
