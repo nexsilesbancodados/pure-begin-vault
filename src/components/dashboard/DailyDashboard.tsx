@@ -559,7 +559,7 @@ export function DailyDashboard() {
                   </span>
                 )}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
