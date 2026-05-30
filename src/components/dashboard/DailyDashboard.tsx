@@ -617,6 +617,62 @@ export function DailyDashboard() {
       </div>
       </>
       )}
+
+      <Dialog open={!!openCard} onOpenChange={(o) => !o && setOpenCard(null)}>
+        <DialogContent className="sm:max-w-md">
+          {openCard && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "h-8 w-8 rounded-lg grid place-items-center bg-gradient-to-br ring-1",
+                      toneClasses[openCard.tone],
+                    )}
+                  >
+                    <openCard.icon className="h-4 w-4" strokeWidth={2} />
+                  </span>
+                  {openCard.label}
+                </DialogTitle>
+                <DialogDescription>{openCard.description}</DialogDescription>
+              </DialogHeader>
+              <div className="mt-2 space-y-2">
+                <div className="text-3xl font-black tracking-tight">{openCard.value}</div>
+                <div className="text-xs text-muted-foreground">
+                  Período: {PERIOD_LABEL[period]}
+                </div>
+                <div className="mt-3 divide-y divide-border/60 rounded-lg border border-border/60">
+                  {openCard.details.map((d) => (
+                    <div
+                      key={d.label}
+                      className="flex items-center justify-between px-3 py-2 text-sm"
+                    >
+                      <span className="text-muted-foreground">{d.label}</span>
+                      <span className="font-semibold tabular-nums">{d.value}</span>
+                    </div>
+                  ))}
+                </div>
+                {openCard.delta && (
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Variação vs. período anterior:{" "}
+                    <span
+                      className={cn(
+                        "font-bold",
+                        openCard.delta.up
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400",
+                      )}
+                    >
+                      {openCard.delta.up ? "+" : "-"}
+                      {Math.abs(openCard.delta.pct).toFixed(1)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
