@@ -69,6 +69,8 @@ function initialsFor(name?: string | null) {
     .join("");
 }
 
+type ContactFilter = "all" | "whatsapp" | "email" | "incomplete";
+
 export const Route = createFileRoute("/clientes")({
   head: () => ({
     meta: [
@@ -85,6 +87,7 @@ function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [contactFilter, setContactFilter] = useState<ContactFilter>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -208,12 +211,23 @@ function CustomersPage() {
     }
   };
 
-  const filteredCustomers = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (c.email && c.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.phone && c.phone.includes(searchTerm)),
-  );
+  const filteredCustomers = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    return customers.filter((c) => {
+      const name = String(c.name ?? "").toLowerCase();
+      const email = String(c.email ?? "").toLowerCase();
+      const phone = String(c.phone ?? "");
+      const document = String(c.document ?? "").toLowerCase();
+      const matchesSearch =
+        !term || name.includes(term) || email.includes(term) || phone.includes(term) || document.includes(term);
+      const matchesFilter =
+        contactFilter === "all" ||
+        (contactFilter === "whatsapp" && !!c.phone) ||
+        (contactFilter === "email" && !!c.email) ||
+        (contactFilter === "incomplete" && (!c.phone || !c.email));
+      return matchesSearch && matchesFilter;
+    });
+  }, [customers, searchTerm, contactFilter]);
 
   const stats = useMemo(() => {
     const now = Date.now();
@@ -261,6 +275,17 @@ function CustomersPage() {
     fetchCustomerHistory(customer.id);
     setIsHistoryOpen(true);
   };
+
+  const filterOptions: Array<{ value: ContactFilter; label: string; count: number }> = [
+    { value: "all", label: "Todos", count: customers.length },
+    { value: "whatsapp", label: "WhatsApp", count: stats.withWhatsapp },
+    { value: "email", label: "E-mail", count: stats.withEmail },
+    {
+      value: "incomplete",
+      label: "Incompletos",
+      count: customers.filter((c) => !c.phone || !c.email).length,
+    },
+  ];
 
   return (
     <div className="min-h-screen flex w-full bg-background">
