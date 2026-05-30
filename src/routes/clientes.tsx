@@ -853,6 +853,31 @@ function CustomersPage() {
                   </button>
                 ))}
               </div>
+              <div className="flex gap-1 rounded-xl border border-border bg-card p-1">
+                <button
+                  onClick={() => setSortBy("name")}
+                  className={cn(
+                    "h-8 shrink-0 rounded-lg px-3 text-xs font-bold transition-colors",
+                    sortBy === "name"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  A–Z
+                </button>
+                <button
+                  onClick={() => setSortBy("top")}
+                  className={cn(
+                    "h-8 shrink-0 rounded-lg px-3 text-xs font-bold transition-colors flex items-center gap-1",
+                    sortBy === "top"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                  title="Quem mais comprou"
+                >
+                  <Sparkles className="h-3 w-3" /> Top compradores
+                </button>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
