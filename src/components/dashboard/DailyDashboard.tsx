@@ -349,6 +349,8 @@ export function DailyDashboard() {
     icon: typeof Banknote;
     tone: "emerald" | "sky" | "violet" | "amber" | "rose" | "slate";
     delta?: { pct: number; up: boolean } | null;
+    description: string;
+    details: { label: string; value: string }[];
   };
 
   const cards: Card[] = useMemo(
