@@ -717,7 +717,11 @@ function CustomersPage() {
                           className="group hover:bg-muted/40 transition-colors"
                         >
                           <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setViewingCustomer(customer)}
+                              className="flex items-center gap-3 text-left w-full hover:opacity-90 transition"
+                            >
                               <div
                                 className={cn(
                                   "h-10 w-10 rounded-full bg-gradient-to-br text-white grid place-items-center font-black text-xs shadow-sm shrink-0",
@@ -745,7 +749,7 @@ function CustomersPage() {
                                   </div>
                                 )}
                               </div>
-                            </div>
+                            </button>
                           </td>
                           <td className="px-5 py-4">
                             <div className="space-y-1">
