@@ -40,6 +40,9 @@ const brl = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 type Period = "today" | "week" | "month" | "last7";
+const COMPLETED_SALE_STATUSES = ["completed", "concluded", "paid"];
+const DASHBOARD_SALE_CHANNELS = ["pdv", "import"];
+
 const PERIOD_LABEL: Record<Period, string> = {
   today: "Hoje",
   week: "Esta semana",
@@ -172,8 +175,10 @@ export function DailyDashboard() {
       const [salesRes, expensesRes] = await Promise.all([
         supabase
           .from("sales_orders")
-          .select("id, total_amount, created_at, status")
+          .select("id, total_amount, created_at, status, channel")
           .eq("organization_id", orgId)
+          .in("status", COMPLETED_SALE_STATUSES)
+          .in("channel", DASHBOARD_SALE_CHANNELS)
           .gte("created_at", overallStart)
           .lte("created_at", overallEnd),
         (supabase as any)
@@ -184,9 +189,7 @@ export function DailyDashboard() {
           .lte("paid_at", end.toISOString()),
       ]);
 
-      const sales = (salesRes.data || []).filter(
-        (r: any) => r.status !== "cancelled" && r.status !== "canceled",
-      );
+      const sales = salesRes.data || [];
       const saleIds = sales.map((r: any) => r.id);
 
       const itemsByOrder: Record<string, { sale: number; cost: number }> = {};
