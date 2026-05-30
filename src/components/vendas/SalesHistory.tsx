@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toProductCode } from "@/lib/product-code";
 import { buildReceiptItemDescription } from "@/lib/receipt-format";
+import { ProductForm } from "@/components/estoque/ProductForm";
 import {
   Search,
   Filter,
