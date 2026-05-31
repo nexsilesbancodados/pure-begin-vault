@@ -87,7 +87,34 @@ function ReciboPage() {
           setError(res.status === 404 ? "Recibo não encontrado" : "Erro ao carregar");
           return;
         }
-        setData(await res.json());
+        const json = (await res.json()) as Receipt & { sale: { organization_id?: string } };
+        // Overlay extras (CNPJ/endereço) salvos localmente por loja
+        try {
+          if (typeof window !== "undefined") {
+            const allKeys = Object.keys(localStorage).filter((k) =>
+              k.startsWith("store-details:"),
+            );
+            // tenta achar qualquer entrada salva; preferimos a única, caso exista
+            const extras = allKeys
+              .map((k) => {
+                try {
+                  return JSON.parse(localStorage.getItem(k) || "{}");
+                } catch {
+                  return {};
+                }
+              })
+              .find((e: any) => e && (e.cnpj || e.address));
+            if (extras) {
+              json.org = {
+                ...(json.org || {}),
+                cnpj: json.org?.cnpj || extras.cnpj || null,
+                address: json.org?.address || extras.address || null,
+                phone: json.org?.phone || extras.phone || null,
+              };
+            }
+          }
+        } catch {}
+        setData(json);
       } catch {
         setError("Erro de conexão");
       } finally {
@@ -95,6 +122,7 @@ function ReciboPage() {
       }
     })();
   }, [id]);
+
 
   useEffect(() => {
     if (!data) return;
