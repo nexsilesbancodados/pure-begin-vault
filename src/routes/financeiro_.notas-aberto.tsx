@@ -1279,19 +1279,29 @@ function NotasAbertoPage() {
                   tone: "danger",
                 },
                 { icon: CheckCircle2, label: "Pagas", value: pagas.length.toString(), tone: "ok" },
-                kindTab === "compra"
-                  ? {
-                      icon: ShoppingCart,
-                      label: "Custo total",
-                      value: `R$ ${totalCusto.toFixed(2)}`,
-                      tone: "primary",
-                    }
-                  : {
-                      icon: Package,
-                      label: "Aparelhos vendidos",
-                      value: totalAparelhos.toString(),
-                      tone: "primary",
-                    },
+                ...(kindTab === "compra"
+                  ? [
+                      {
+                        icon: ShoppingCart,
+                        label: "Custo total",
+                        value: `R$ ${totalCusto.toFixed(2)}`,
+                        tone: "primary",
+                      },
+                    ]
+                  : [
+                      {
+                        icon: Package,
+                        label: "Aparelhos vendidos",
+                        value: totalAparelhos.toString(),
+                        tone: "primary",
+                      },
+                      {
+                        icon: FileText,
+                        label: "Valor total das vendas",
+                        value: `R$ ${scoped.reduce((s, n) => s + Number(n.total ?? 0), 0).toFixed(2)}`,
+                        tone: "ok",
+                      },
+                    ]),
               ];
               const toneClass = (t: string) =>
                 t === "warn"
