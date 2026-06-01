@@ -7,39 +7,52 @@ import { useOrg } from "@/lib/useOrg";
 
 type DataPoint = { day: string; whats: number; insta: number };
 
-const Row = ({ label, value, color, dataKey, gradId, data }: any) => (
-  <div className="flex items-center gap-3 py-2.5">
-    <div
-      className="h-10 w-10 rounded-xl grid place-items-center shrink-0"
-      style={{ background: `color-mix(in oklab, ${color} 15%, transparent)` }}
-    >
-      <span className="text-base">{label === "WhatsApp" ? "💬" : "📷"}</span>
+const Row = (props: any = {}) => {
+  const {
+    label = "",
+    value = 0,
+    color = "var(--color-primary)",
+    dataKey = "whats",
+    gradId = "g",
+    data = [],
+  } = props || {};
+  const safeData = Array.isArray(data) ? data : [];
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <div
+        className="h-10 w-10 rounded-xl grid place-items-center shrink-0"
+        style={{ background: `color-mix(in oklab, ${color} 15%, transparent)` }}
+      >
+        <span className="text-base">{label === "WhatsApp" ? "💬" : "📷"}</span>
+      </div>
+      <div className="min-w-0">
+        <div className="text-[13px] font-medium leading-tight">{label}</div>
+        <div className="text-[11px] text-muted-foreground">{value} mensagens (7d)</div>
+      </div>
+      <div className="ml-auto h-10 w-24">
+        {safeData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={safeData}>
+              <defs>
+                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey={dataKey}
+                stroke={color}
+                strokeWidth={2}
+                fill={`url(#${gradId})`}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : null}
+      </div>
     </div>
-    <div className="min-w-0">
-      <div className="text-[13px] font-medium leading-tight">{label}</div>
-      <div className="text-[11px] text-muted-foreground">{value} mensagens (7d)</div>
-    </div>
-    <div className="ml-auto h-10 w-24">
-      <ResponsiveContainer>
-        <AreaChart data={data}>
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-              <stop offset="100%" stopColor={color} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <Area
-            type="monotone"
-            dataKey={dataKey}
-            stroke={color}
-            strokeWidth={2}
-            fill={`url(#${gradId})`}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  </div>
-);
+  );
+};
 
 export function ChannelMini() {
   const { orgId } = useOrg();
