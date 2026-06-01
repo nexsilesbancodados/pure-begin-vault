@@ -1533,10 +1533,18 @@ function NotasAbertoPage() {
                           {/* Total */}
                           <div className="pt-3 border-t flex items-end justify-between">
                             <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
-                              Total
+                              {n.kind === "venda" ? "Total da venda" : "Total"}
                             </span>
                             <span className="text-lg font-bold tracking-tight">
-                              R$ {n.total.toFixed(2)}
+                              R$ {(n.kind === "venda"
+                                ? (Array.isArray(n.items)
+                                    ? n.items.reduce(
+                                        (s, p) => s + Number(p?.price ?? p?.cost_price ?? 0),
+                                        0,
+                                      )
+                                    : Number(n.total ?? 0))
+                                : Number(n.total ?? 0)
+                              ).toFixed(2)}
                             </span>
                           </div>
                         </div>
