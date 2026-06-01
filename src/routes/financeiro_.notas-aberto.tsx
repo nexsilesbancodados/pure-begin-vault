@@ -1230,7 +1230,34 @@ function NotasAbertoPage() {
                 return new Date(n.prazoPagamento) < today;
               });
               const valorVencido = vencidas.reduce((s, n) => s + n.total, 0);
-              const kpis = [
+              const totalCusto = scoped.reduce(
+                (s, n) =>
+                  s +
+                  (Array.isArray(n.items)
+                    ? n.items.reduce(
+                        (acc, p) => acc + Number(p?.cost_price ?? p?.price ?? 0),
+                        0,
+                      )
+                    : 0),
+                0,
+              );
+              const totalAparelhos = scoped.reduce(
+                (s, n) =>
+                  s +
+                  (Array.isArray(n.items)
+                    ? n.items.filter(
+                        (p) => p && p.id && !String(p.id).startsWith("__"),
+                      ).length
+                    : 0),
+                0,
+              );
+              const kpis: Array<{
+                icon: typeof FileText;
+                label: string;
+                value: string;
+                sub?: string;
+                tone: string;
+              }> = [
                 {
                   icon: FileText,
                   label: "Total de notas",
@@ -1252,6 +1279,19 @@ function NotasAbertoPage() {
                   tone: "danger",
                 },
                 { icon: CheckCircle2, label: "Pagas", value: pagas.length.toString(), tone: "ok" },
+                kindTab === "compra"
+                  ? {
+                      icon: ShoppingCart,
+                      label: "Custo total",
+                      value: `R$ ${totalCusto.toFixed(2)}`,
+                      tone: "primary",
+                    }
+                  : {
+                      icon: Package,
+                      label: "Aparelhos vendidos",
+                      value: totalAparelhos.toString(),
+                      tone: "primary",
+                    },
               ];
               const toneClass = (t: string) =>
                 t === "warn"
@@ -1262,7 +1302,7 @@ function NotasAbertoPage() {
                       ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
                       : "bg-primary/10 text-primary";
               return (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                   {kpis.map((k) => (
                     <Card
                       key={k.label}
