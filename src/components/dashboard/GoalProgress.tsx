@@ -258,9 +258,14 @@ export function GoalProgress({
         start.setMonth(0, 1);
         start.setHours(0, 0, 0, 0);
         break;
+      case "custom": {
+        const s = customStart ? new Date(`${customStart}T00:00:00`) : start;
+        const e = customEnd ? new Date(`${customEnd}T23:59:59.999`) : end;
+        return { start: s, end: e };
+      }
     }
     return { start, end };
-  }, [period]);
+  }, [period, customStart, customEnd]);
 
   const fetchStats = useCallback(async () => {
     if (!user?.id || !orgId) return;
