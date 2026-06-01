@@ -851,8 +851,8 @@ export function GoalProgress({
                       value={period}
                       onValueChange={(v) =>
                         setPeriod(
-                          ["month", "last_month", "last30", "year"].includes(v)
-                            ? (v as "month" | "last_month" | "last30" | "year")
+                          ["month", "last_month", "last30", "year", "custom"].includes(v)
+                            ? (v as "month" | "last_month" | "last30" | "year" | "custom")
                             : "month",
                         )
                       }
@@ -865,8 +865,28 @@ export function GoalProgress({
                         <SelectItem value="last_month">Mês passado</SelectItem>
                         <SelectItem value="last30">Últimos 30 dias</SelectItem>
                         <SelectItem value="year">Este ano</SelectItem>
+                        <SelectItem value="custom">Personalizado</SelectItem>
                       </SelectContent>
                     </Select>
+                    {period === "custom" && (
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type="date"
+                          value={customStart}
+                          max={customEnd || undefined}
+                          onChange={(e) => setCustomStart(e.target.value)}
+                          className="h-9 w-[140px] rounded-xl text-xs font-bold"
+                        />
+                        <span className="text-xs text-muted-foreground font-bold">→</span>
+                        <Input
+                          type="date"
+                          value={customEnd}
+                          min={customStart || undefined}
+                          onChange={(e) => setCustomEnd(e.target.value)}
+                          className="h-9 w-[140px] rounded-xl text-xs font-bold"
+                        />
+                      </div>
+                    )}
                     <Button
                       size="sm"
                       onClick={() => {
