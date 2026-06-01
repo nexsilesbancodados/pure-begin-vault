@@ -139,7 +139,13 @@ export function GoalProgress({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "settings">("overview");
   const [isLoading, setIsLoading] = useState(false);
-  const [period, setPeriod] = useState<"month" | "last_month" | "last30" | "year">("month");
+  const [period, setPeriod] = useState<"month" | "last_month" | "last30" | "year" | "custom">("month");
+  const todayStr = new Date().toISOString().split("T")[0];
+  const monthStartStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    .toISOString()
+    .split("T")[0];
+  const [customStart, setCustomStart] = useState<string>(monthStartStr);
+  const [customEnd, setCustomEnd] = useState<string>(todayStr);
   const initialGoalState = {
     daily: 0,
     weekly: 0,
