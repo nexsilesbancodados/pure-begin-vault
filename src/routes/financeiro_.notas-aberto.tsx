@@ -1279,19 +1279,29 @@ function NotasAbertoPage() {
                   tone: "danger",
                 },
                 { icon: CheckCircle2, label: "Pagas", value: pagas.length.toString(), tone: "ok" },
-                kindTab === "compra"
-                  ? {
-                      icon: ShoppingCart,
-                      label: "Custo total",
-                      value: `R$ ${totalCusto.toFixed(2)}`,
-                      tone: "primary",
-                    }
-                  : {
-                      icon: Package,
-                      label: "Aparelhos vendidos",
-                      value: totalAparelhos.toString(),
-                      tone: "primary",
-                    },
+                ...(kindTab === "compra"
+                  ? [
+                      {
+                        icon: ShoppingCart,
+                        label: "Custo total",
+                        value: `R$ ${totalCusto.toFixed(2)}`,
+                        tone: "primary",
+                      },
+                    ]
+                  : [
+                      {
+                        icon: Package,
+                        label: "Aparelhos vendidos",
+                        value: totalAparelhos.toString(),
+                        tone: "primary",
+                      },
+                      {
+                        icon: FileText,
+                        label: "Valor total das vendas",
+                        value: `R$ ${scoped.reduce((s, n) => s + Number(n.total ?? 0), 0).toFixed(2)}`,
+                        tone: "ok",
+                      },
+                    ]),
               ];
               const toneClass = (t: string) =>
                 t === "warn"
@@ -1302,7 +1312,7 @@ function NotasAbertoPage() {
                       ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
                       : "bg-primary/10 text-primary";
               return (
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
                   {kpis.map((k) => (
                     <Card
                       key={k.label}
