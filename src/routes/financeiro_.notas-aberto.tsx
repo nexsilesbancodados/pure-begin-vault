@@ -1312,7 +1312,7 @@ function NotasAbertoPage() {
                       ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
                       : "bg-primary/10 text-primary";
               return (
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
                   {kpis.map((k) => (
                     <Card
                       key={k.label}
