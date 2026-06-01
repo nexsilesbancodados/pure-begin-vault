@@ -139,7 +139,13 @@ export function GoalProgress({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "settings">("overview");
   const [isLoading, setIsLoading] = useState(false);
-  const [period, setPeriod] = useState<"month" | "last_month" | "last30" | "year">("month");
+  const [period, setPeriod] = useState<"month" | "last_month" | "last30" | "year" | "custom">("month");
+  const todayStr = new Date().toISOString().split("T")[0];
+  const monthStartStr = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    .toISOString()
+    .split("T")[0];
+  const [customStart, setCustomStart] = useState<string>(monthStartStr);
+  const [customEnd, setCustomEnd] = useState<string>(todayStr);
   const initialGoalState = {
     daily: 0,
     weekly: 0,
@@ -252,9 +258,14 @@ export function GoalProgress({
         start.setMonth(0, 1);
         start.setHours(0, 0, 0, 0);
         break;
+      case "custom": {
+        const s = customStart ? new Date(`${customStart}T00:00:00`) : start;
+        const e = customEnd ? new Date(`${customEnd}T23:59:59.999`) : end;
+        return { start: s, end: e };
+      }
     }
     return { start, end };
-  }, [period]);
+  }, [period, customStart, customEnd]);
 
   const fetchStats = useCallback(async () => {
     if (!user?.id || !orgId) return;
@@ -840,8 +851,8 @@ export function GoalProgress({
                       value={period}
                       onValueChange={(v) =>
                         setPeriod(
-                          ["month", "last_month", "last30", "year"].includes(v)
-                            ? (v as "month" | "last_month" | "last30" | "year")
+                          ["month", "last_month", "last30", "year", "custom"].includes(v)
+                            ? (v as "month" | "last_month" | "last30" | "year" | "custom")
                             : "month",
                         )
                       }
@@ -854,8 +865,28 @@ export function GoalProgress({
                         <SelectItem value="last_month">Mês passado</SelectItem>
                         <SelectItem value="last30">Últimos 30 dias</SelectItem>
                         <SelectItem value="year">Este ano</SelectItem>
+                        <SelectItem value="custom">Personalizado</SelectItem>
                       </SelectContent>
                     </Select>
+                    {period === "custom" && (
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          type="date"
+                          value={customStart}
+                          max={customEnd || undefined}
+                          onChange={(e) => setCustomStart(e.target.value)}
+                          className="h-9 w-[140px] rounded-xl text-xs font-bold"
+                        />
+                        <span className="text-xs text-muted-foreground font-bold">→</span>
+                        <Input
+                          type="date"
+                          value={customEnd}
+                          min={customStart || undefined}
+                          onChange={(e) => setCustomEnd(e.target.value)}
+                          className="h-9 w-[140px] rounded-xl text-xs font-bold"
+                        />
+                      </div>
+                    )}
                     <Button
                       size="sm"
                       onClick={() => {
