@@ -270,9 +270,12 @@ export function GoalProgress({
   const fetchStats = useCallback(async () => {
     if (!user?.id || !orgId) return;
     const { start, end } = getPeriodRange();
-    // Quando admin define um baseline, conta apenas vendas após esse momento
+    // Quando admin define um baseline > 0, conta apenas vendas após esse momento
+    // (evita dupla contagem). Se baseline=0, conta todas as vendas do período.
     const effectiveStart =
-      baseline.at && new Date(baseline.at) > start ? new Date(baseline.at) : start;
+      baseline.value > 0 && baseline.at && new Date(baseline.at) > start
+        ? new Date(baseline.at)
+        : start;
     const { data: sales, error: salesError } = await supabase
       .from("sales_orders")
       .select("id")
