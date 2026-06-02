@@ -235,16 +235,52 @@ export function AppSidebar({
         </div>
 
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
-          {filteredItems.map((item: any) => (
-            <SortableSidebarItem
-              key={item.url || item.title}
-              item={item}
-              isSmall={isSmall}
-              flyout={flyout}
-              setFlyout={setFlyout}
-            />
-          ))}
+        {!isSmall && (
+          <div className="px-3 pt-3 pb-1">
+            <div className="relative">
+              <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-sidebar-foreground/40" />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar no menu…"
+                aria-label="Buscar no menu"
+                className="w-full h-8 pl-7 pr-8 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/40 text-[12.5px] placeholder:text-sidebar-foreground/40 focus:outline-none focus:ring-2 focus:ring-sidebar-primary/40 focus:bg-sidebar-accent/60 transition"
+              />
+              {query ? (
+                <button
+                  onClick={() => setQuery("")}
+                  aria-label="Limpar busca"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded text-sidebar-foreground/50 hover:text-foreground hover:bg-sidebar-accent"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : (
+                <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-sidebar-foreground/40 bg-sidebar-border/40 px-1.5 py-0.5 rounded">
+                  /
+                </kbd>
+              )}
+            </div>
+          </div>
+        )}
+
+        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto custom-scrollbar">
+          {searchedItems.length === 0 && !!query && !isSmall ? (
+            <div className="text-center py-8 text-xs text-sidebar-foreground/50">
+              Nenhum item encontrado para
+              <div className="font-bold text-foreground mt-1">"{query}"</div>
+            </div>
+          ) : (
+            searchedItems.map((item: any) => (
+              <SortableSidebarItem
+                key={item.url || item.title}
+                item={item}
+                isSmall={isSmall}
+                flyout={flyout}
+                setFlyout={setFlyout}
+              />
+            ))
+          )}
         </nav>
 
         <div className="px-3 pb-3 mt-auto shrink-0">
@@ -254,10 +290,45 @@ export function AppSidebar({
               isSmall ? "items-center" : "",
             )}
           >
+            {isSmall ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-white text-[12px] font-bold shadow-glow">
+                    {initials || "U"}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <div className="text-xs font-bold">{displayName}</div>
+                  {user?.email && (
+                    <div className="text-[10px] text-muted-foreground">{user.email}</div>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-sidebar-accent/50 transition">
+                <div className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-white text-[12px] font-bold shadow-glow shrink-0">
+                  {initials || "U"}
+                </div>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <div className="text-[13px] font-bold text-foreground truncate">
+                    {displayName}
+                  </div>
+                  {roleLabel && (
+                    <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/50 truncate">
+                      {roleLabel}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <button
               onClick={logout}
               aria-label="Sair da conta"
-              className="h-10 w-full flex items-center gap-3 px-3 py-2 rounded-lg text-destructive/70 hover:bg-destructive/10 transition"
+              className={cn(
+                "h-10 flex items-center gap-3 px-3 py-2 rounded-lg text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition",
+                isSmall ? "w-10 justify-center" : "w-full",
+              )}
             >
               <LogOut className="h-4 w-4" />
               {!isSmall && <span className="text-sm font-bold">Sair</span>}
