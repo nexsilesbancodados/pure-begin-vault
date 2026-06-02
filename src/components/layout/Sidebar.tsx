@@ -40,6 +40,22 @@ export function AppSidebar({
     return () => window.removeEventListener("force-sidebar-collapse", handleForceCollapse);
   }, []);
 
+  // Keyboard shortcut "/" to focus sidebar search
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if (e.key === "/") {
+        e.preventDefault();
+        if (isCollapsed) setIsCollapsed(false);
+        setTimeout(() => searchRef.current?.focus(), 50);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isCollapsed]);
+
   const { activeCount } = useImport();
 
   const filteredItems = useMemo(() => {
