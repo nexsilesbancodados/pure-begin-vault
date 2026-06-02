@@ -30,25 +30,23 @@ const Row = (props: any = {}) => {
         <div className="text-[11px] text-muted-foreground">{value} mensagens (7d)</div>
       </div>
       <div className="ml-auto h-10 w-24">
-        {safeData.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={safeData}>
-              <defs>
-                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <Area
-                type="monotone"
-                dataKey={dataKey}
-                stroke={color}
-                strokeWidth={2}
-                fill={`url(#${gradId})`}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : null}
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={safeData.length > 0 ? safeData : [{ day: "", whats: 0, insta: 0 }]}>
+            <defs>
+              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <Area
+              type="monotone"
+              dataKey={dataKey}
+              stroke={color}
+              strokeWidth={2}
+              fill={`url(#${gradId})`}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

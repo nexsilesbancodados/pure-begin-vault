@@ -193,7 +193,7 @@ export function DailyDashboard() {
           .lte("created_at", overallEnd),
         (supabase as any)
           .from("accounts_payable")
-          .select("amount, paid_at, status")
+          .select("amount, paid_at, status, category, description, import_job_id")
           .eq("organization_id", orgId)
           .gte("paid_at", start.toISOString())
           .lte("paid_at", end.toISOString()),
@@ -301,8 +301,11 @@ export function DailyDashboard() {
         }
       }
 
+      const COMPRA_RE = /compra|aparelho|estoque|fornecedor|mercadoria|produto/i;
       const expenses = ((expensesRes as any).data || [])
         .filter((e: any) => e.status === "paid" || e.paid_at)
+        .filter((e: any) => !COMPRA_RE.test(`${e.category || ""} ${e.description || ""}`))
+        .filter((e: any) => !e.import_job_id)
         .reduce((a: number, e: any) => a + (Number(e.amount) || 0), 0);
 
       if (cancel) return;
