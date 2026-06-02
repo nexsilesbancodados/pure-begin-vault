@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { iconMap, LogOut, PanelLeftClose, PanelLeftOpen, Sparkles, X } from "@/lib/icons";
-import { useState, useEffect, useMemo } from "react";
+import { iconMap, LogOut, PanelLeftClose, PanelLeftOpen, Search, Sparkles, X } from "@/lib/icons";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImport } from "@/contexts/ImportContext";
 import { sidebarItems } from "@/lib/mock";
