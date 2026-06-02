@@ -119,11 +119,55 @@ export function AppSidebar({
   const isDrawerOpen = !!open;
   const isSmall = !isDrawerOpen && (isCollapsed || !!flyout || isForcedCollapsed);
 
+  // Filtragem por busca (apenas quando expandido)
+  const searchedItems = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || isSmall) return filteredItems;
+    const out: any[] = [];
+    for (const item of filteredItems) {
+      if (item.type === "header") {
+        out.push(item);
+        continue;
+      }
+      const parentHit = String(item.title || "").toLowerCase().includes(q);
+      const children = Array.isArray(item.children) ? item.children : [];
+      const childrenHit = children.filter((c: any) =>
+        String(c.title || "").toLowerCase().includes(q),
+      );
+      if (parentHit) {
+        out.push(item);
+      } else if (childrenHit.length) {
+        out.push({ ...item, children: childrenHit });
+      }
+    }
+    // Remove headers órfãos
+    return out.filter((it, i) => {
+      if (it.type !== "header") return true;
+      const next = out[i + 1];
+      return next && next.type !== "header";
+    });
+  }, [filteredItems, query, isSmall]);
+
   // Auto-fecha o drawer mobile ao navegar.
   useEffect(() => {
     if (isDrawerOpen) setOpen?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
+
+  // Iniciais do usuário para avatar
+  const displayName =
+    (profile as any)?.display_name ||
+    (profile as any)?.nome ||
+    user?.email?.split("@")[0] ||
+    "Usuário";
+  const initials = String(displayName)
+    .split(/\s+/)
+    .map((s: string) => s[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const roleLabel = String((profile as any)?.role ?? "").replace(/_/g, " ");
 
   return (
     <TooltipProvider delayDuration={0}>
