@@ -1060,9 +1060,17 @@ function NotasAbertoPage() {
                     >
                       <Filter className="h-4 w-4" />
                       Filtros
-                      {(statusFilter !== "all" || supplierFilter.length > 0) && (
+                      {(statusFilter !== "all" ||
+                        supplierFilter.length > 0 ||
+                        dueDateFrom ||
+                        dueDateTo ||
+                        minValue ||
+                        maxValue) && (
                         <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
-                          {(statusFilter !== "all" ? 1 : 0) + supplierFilter.length}
+                          {(statusFilter !== "all" ? 1 : 0) +
+                            supplierFilter.length +
+                            (dueDateFrom || dueDateTo ? 1 : 0) +
+                            (minValue || maxValue ? 1 : 0)}
                         </span>
                       )}
                     </Button>
@@ -1070,11 +1078,20 @@ function NotasAbertoPage() {
                   <PopoverContent className="w-80 p-0" align="end">
                     <div className="p-3 border-b flex items-center justify-between">
                       <div className="font-semibold text-sm">Filtrar notas</div>
-                      {(statusFilter !== "all" || supplierFilter.length > 0) && (
+                      {(statusFilter !== "all" ||
+                        supplierFilter.length > 0 ||
+                        dueDateFrom ||
+                        dueDateTo ||
+                        minValue ||
+                        maxValue) && (
                         <button
                           onClick={() => {
                             setStatusFilter("all");
                             setSupplierFilter([]);
+                            setDueDateFrom("");
+                            setDueDateTo("");
+                            setMinValue("");
+                            setMaxValue("");
                           }}
                           className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                         >
