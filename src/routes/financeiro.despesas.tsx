@@ -26,7 +26,14 @@ import {
   ShoppingCart,
   Wallet,
   CalendarRange,
+  Info,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ExpenseForm } from "@/components/financeiro/ExpenseForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
