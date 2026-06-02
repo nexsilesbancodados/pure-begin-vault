@@ -465,6 +465,10 @@ function NotasAbertoPage() {
   const [listSearch, setListSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "overdue" | "paid">("all");
   const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
+  const [dueDateFrom, setDueDateFrom] = useState<string>("");
+  const [dueDateTo, setDueDateTo] = useState<string>("");
+  const [minValue, setMinValue] = useState<string>("");
+  const [maxValue, setMaxValue] = useState<string>("");
   const comprovanteInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingComprovante, setUploadingComprovante] = useState(false);
   const [previewComprovanteUrl, setPreviewComprovanteUrl] = useState<string | null>(null);
