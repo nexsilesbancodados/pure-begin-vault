@@ -1181,6 +1181,64 @@ function NotasAbertoPage() {
                           );
                         })()}
                       </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                          Data de vencimento
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">De</Label>
+                            <Input
+                              type="date"
+                              value={dueDateFrom}
+                              onChange={(e) => setDueDateFrom(e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Até</Label>
+                            <Input
+                              type="date"
+                              value={dueDateTo}
+                              onChange={(e) => setDueDateTo(e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                          Valor da nota (R$)
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Mínimo</Label>
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              step="0.01"
+                              value={minValue}
+                              onChange={(e) => setMinValue(e.target.value)}
+                              placeholder="0,00"
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Máximo</Label>
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              step="0.01"
+                              value={maxValue}
+                              onChange={(e) => setMaxValue(e.target.value)}
+                              placeholder="0,00"
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </PopoverContent>
                 </Popover>
