@@ -68,6 +68,8 @@ type Expense = {
   paid_at: string | null;
   status: string | null;
   notes: string | null;
+  user_id: string | null;
+  created_at: string | null;
 };
 
 type StatusFilter = "all" | "pending" | "paid" | "overdue";
