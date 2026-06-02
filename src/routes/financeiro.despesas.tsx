@@ -26,7 +26,14 @@ import {
   ShoppingCart,
   Wallet,
   CalendarRange,
+  Info,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ExpenseForm } from "@/components/financeiro/ExpenseForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,6 +68,8 @@ type Expense = {
   paid_at: string | null;
   status: string | null;
   notes: string | null;
+  user_id: string | null;
+  created_at: string | null;
 };
 
 type StatusFilter = "all" | "pending" | "paid" | "overdue";
@@ -76,6 +85,7 @@ function DespesasPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [items, setItems] = useState<Expense[]>([]);
+  const [userMap, setUserMap] = useState<Record<string, { name: string; email: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -110,22 +120,37 @@ function DespesasPage() {
     }
   };
 
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { orgId } = useOrg();
+  const role = String(profile?.role ?? "").toLowerCase();
+  const isMaster = ["super_admin", "owner", "admin"].includes(role);
 
   const load = async () => {
     if (!orgId) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("accounts_payable")
-      .select("id, description, amount, category, due_date, paid_at, status, notes")
+      .select("id, description, amount, category, due_date, paid_at, status, notes, user_id, created_at")
       .eq("organization_id", orgId)
       .order("due_date", { ascending: false, nullsFirst: false });
     if (error) {
       console.error(error);
       toast.error("Erro ao carregar despesas");
     } else {
-      setItems((data as Expense[]) || []);
+      const list = (data as Expense[]) || [];
+      setItems(list);
+      const ids = Array.from(new Set(list.map((e) => e.user_id).filter(Boolean) as string[]));
+      if (ids.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, display_name, email")
+          .in("id", ids);
+        const map: Record<string, { name: string; email: string | null }> = {};
+        ((profs as any[]) || []).forEach((p) => {
+          map[p.id] = { name: p.display_name || p.email || "Usuário", email: p.email ?? null };
+        });
+        setUserMap(map);
+      }
     }
     setLoading(false);
   };
@@ -553,6 +578,37 @@ function DespesasPage() {
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
+                              {isMaster && (
+                                <TooltipProvider delayDuration={100}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
+                                        title="Registro"
+                                      >
+                                        <Info className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="left" className="text-xs">
+                                      <div className="font-bold">
+                                        {e.user_id ? (userMap[e.user_id]?.name || "Usuário") : "—"}
+                                      </div>
+                                      {e.user_id && userMap[e.user_id]?.email && (
+                                        <div className="text-muted-foreground">
+                                          {userMap[e.user_id]?.email}
+                                        </div>
+                                      )}
+                                      <div className="text-muted-foreground mt-1">
+                                        {e.created_at
+                                          ? new Date(e.created_at).toLocaleString("pt-BR")
+                                          : "Data desconhecida"}
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
                             </div>
                           </td>
                         </tr>
