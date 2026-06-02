@@ -551,11 +551,27 @@ export function GoalProgress({
           accent: "from-amber-500 to-amber-600",
         };
 
-  // SVG ring logic
-  const radius = 56;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (pct / 100) * circumference;
-  const expectedOffset = circumference - (Math.min(100, expectedPct) / 100) * circumference;
+  const projectionPct = Math.min(
+    150,
+    Math.round((projection / Math.max(1, goals.monthly)) * 100),
+  );
+
+  // Weekly mini-strip data
+  const fallbackWeekly =
+    weekly.length > 0
+      ? Math.max(1, Math.round((goals.monthly || 0) / weekly.length))
+      : Math.max(1, Math.round((goals.monthly || 0) / 4));
+  const weeklyGoal = goals.weekly && goals.weekly > 0 ? goals.weekly : fallbackWeekly;
+  const currentWeekIdx = weekly.findIndex((w) => w.isCurrent);
+  const currentWeekAuto = currentWeekIdx >= 0 ? weekly[currentWeekIdx].units : 0;
+  const currentWeekBase =
+    weeklyBaseline.weekIdx === currentWeekIdx ? weeklyBaseline.value : 0;
+  const currentWeekUnits = currentWeekAuto + currentWeekBase;
+  const currentWeekPct = Math.min(
+    100,
+    Math.round((currentWeekUnits / Math.max(1, weeklyGoal)) * 100),
+  );
+  const remainingWeek = Math.max(0, weeklyGoal - currentWeekUnits);
 
   return (
     <>
@@ -564,263 +580,208 @@ export function GoalProgress({
           setEditGoals({ ...goals, baseline: baseline.value });
           setIsModalOpen(true);
         }}
-        className="rounded-2xl bg-card border border-border/60 p-5 shadow-sm relative overflow-hidden cursor-pointer hover:shadow-lg hover:border-primary/30 transition-all group"
+        className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 shadow-sm transition-all cursor-pointer hover:shadow-lg hover:border-primary/40"
       >
-        {/* decorative bg */}
-        <div className="absolute -top-16 -right-16 h-40 w-40 rounded-full opacity-[0.08] blur-3xl bg-gradient-to-br from-primary to-primary/30" />
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-60" />
+        {/* Glow decorativo */}
+        <div className={`absolute -top-24 -right-24 h-56 w-56 rounded-full opacity-[0.10] blur-3xl bg-gradient-to-br ${tone.accent}`} />
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-70" />
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-4 relative">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className={`h-9 w-9 rounded-xl bg-gradient-to-br ${tone.accent} grid place-items-center shadow-md shadow-primary/20 shrink-0`}>
-              <Target className="h-4 w-4 text-white" strokeWidth={2.5} />
+        {/* HEADER */}
+        <div className="relative flex items-start justify-between gap-3 mb-5">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${tone.accent} grid place-items-center shadow-md shadow-primary/20 shrink-0`}>
+              <Target className="h-4.5 w-4.5 text-white" strokeWidth={2.5} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-[15px] font-bold tracking-tight truncate">Meta do Mês</h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                <span>{dayOfMonth}/{daysInMonth} dias</span>
+              <h3 className="text-[15px] font-bold tracking-tight leading-tight truncate">
+                Meta do mês
+              </h3>
+              <p className="mt-0.5 text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <span>Dia {dayOfMonth}/{daysInMonth}</span>
                 <span className="text-muted-foreground/40">•</span>
-                <span>{daysLeft} restantes</span>
+                <span>{daysLeft} dias restantes</span>
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${tone.chip}`}>
+            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${tone.chip}`}>
               {tone.label}
             </span>
-            <Edit2 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Edit2 className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
         </div>
 
-        {/* Ring + stats */}
-        <div className="flex items-center gap-4 relative min-w-0">
-          <div className="relative h-[120px] w-[120px] shrink-0">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 140 140">
-              <circle cx="70" cy="70" r={radius} stroke="var(--color-muted)" strokeWidth="10" fill="none" />
-              {/* expected pace marker */}
-              <circle
-                cx="70"
-                cy="70"
-                r={radius}
-                stroke="var(--color-muted-foreground)"
-                strokeOpacity={0.35}
-                strokeWidth="2"
-                fill="none"
-                strokeDasharray={`2 ${circumference}`}
-                strokeDashoffset={expectedOffset}
-              />
-              <circle
-                cx="70"
-                cy="70"
-                r={radius}
-                className={tone.ring}
-                stroke="currentColor"
-                strokeWidth="10"
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={offset}
-                style={{ transition: "stroke-dashoffset 1s ease-out" }}
-              />
-            </svg>
-            <div className="absolute inset-0 grid place-items-center text-center">
-              <div>
-                <div className={`text-[30px] font-black font-display tracking-tight leading-none ${tone.ring}`}>
-                  {pct}%
-                </div>
-                <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
-                  esperado {expectedPct}%
-                </div>
+        {/* HERO — número grande + barra de progresso */}
+        <div className="relative">
+          <div className="flex items-end justify-between gap-3 mb-2">
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                <Package className="h-3 w-3" /> Aparelhos vendidos
               </div>
-            </div>
-          </div>
-
-          <div className="flex-1 min-w-0 space-y-2.5">
-            <div>
-              <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
-                <span className="flex items-center gap-1">
-                  <Package className="h-3 w-3" /> Aparelhos vendidos
+              <div className="mt-1 flex items-baseline gap-1.5">
+                <span className={`text-4xl font-black font-display tracking-tight leading-none ${tone.ring}`}>
+                  {effectiveUnits}
                 </span>
-                {canEdit && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const raw = window.prompt(
-                        "Quantos aparelhos foram vendidos até agora?",
-                        String(baseline.value),
-                      );
-                      if (raw === null) return;
-                      const n = Math.max(0, Number(raw) || 0);
-                      const next = { value: n, at: new Date().toISOString() };
-                      if (baselineKey) {
-                        window.localStorage.setItem(baselineKey, JSON.stringify(next));
-                      }
-                      setBaseline(next);
-                      toast.success(`Base atualizada: ${n} aparelhos`);
-                    }}
-                    className="text-[10px] font-bold text-primary hover:underline inline-flex items-center gap-0.5"
-                  >
-                    <Edit2 className="h-2.5 w-2.5" /> Editar
-                  </button>
-                )}
-              </div>
-              <div className="text-xl font-black font-display truncate leading-tight mt-0.5">
-                {effectiveUnits}
-                <span className="text-muted-foreground text-sm font-medium"> / {goals.monthly}</span>
+                <span className="text-base font-semibold text-muted-foreground">
+                  / {goals.monthly}
+                </span>
               </div>
             </div>
+            <div className="text-right shrink-0">
+              <div className={`text-3xl font-black font-display tracking-tight leading-none ${tone.ring}`}>
+                {pct}%
+              </div>
+              <div className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mt-1">
+                esp. {expectedPct}%
+              </div>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
-              <div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Faltam</div>
-                <div className="text-[13px] font-bold text-foreground truncate">{remaining} un.</div>
-              </div>
-              <div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Ritmo/dia</div>
-                <div className={`text-[13px] font-bold truncate ${paceNeeded > Math.max(1, Math.ceil(dailyAvg)) * 1.5 ? "text-amber-600 dark:text-amber-400" : "text-primary"}`}>
-                  {paceNeeded} un.
-                </div>
-              </div>
+          {/* Barra de progresso com marcador de ritmo esperado */}
+          <div className="relative h-3 rounded-full bg-muted/60 overflow-hidden ring-1 ring-border/50">
+            <div
+              className={`h-full rounded-full bg-gradient-to-r ${tone.accent} transition-all duration-1000 ease-out`}
+              style={{ width: `${pct}%` }}
+            />
+            {/* Marcador esperado */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 h-4 w-[2px] bg-foreground/60 rounded-full"
+              style={{ left: `calc(${Math.min(100, expectedPct)}% - 1px)` }}
+              title={`Ritmo esperado: ${expectedPct}%`}
+            />
+          </div>
+
+          {canEdit && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const raw = window.prompt(
+                  "Quantos aparelhos foram vendidos até agora?",
+                  String(baseline.value),
+                );
+                if (raw === null) return;
+                const n = Math.max(0, Number(raw) || 0);
+                const next = { value: n, at: new Date().toISOString() };
+                if (baselineKey) {
+                  window.localStorage.setItem(baselineKey, JSON.stringify(next));
+                }
+                setBaseline(next);
+                toast.success(`Base atualizada: ${n} aparelhos`);
+              }}
+              className="mt-2 text-[10px] font-bold text-primary hover:underline inline-flex items-center gap-0.5"
+            >
+              <Edit2 className="h-2.5 w-2.5" /> Editar base
+            </button>
+          )}
+        </div>
+
+        {/* KPI row */}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="rounded-xl bg-muted/40 border border-border/40 px-3 py-2.5">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+              Faltam
+            </div>
+            <div className="mt-1 text-[15px] font-black font-display text-foreground leading-tight">
+              {remaining}
+              <span className="ml-1 text-[10px] font-bold text-muted-foreground">un.</span>
+            </div>
+          </div>
+          <div className="rounded-xl bg-muted/40 border border-border/40 px-3 py-2.5">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+              Ritmo/dia
+            </div>
+            <div
+              className={`mt-1 text-[15px] font-black font-display leading-tight ${
+                paceNeeded > Math.max(1, Math.ceil(dailyAvg)) * 1.5
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-primary"
+              }`}
+            >
+              {paceNeeded}
+              <span className="ml-1 text-[10px] font-bold text-muted-foreground">un.</span>
+            </div>
+          </div>
+          <div className="rounded-xl bg-muted/40 border border-border/40 px-3 py-2.5">
+            <div className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+              <Rocket className="h-2.5 w-2.5" /> Projeção
+            </div>
+            <div
+              className={`mt-1 text-[15px] font-black font-display leading-tight flex items-center gap-1 ${
+                projection >= goals.monthly
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : "text-foreground"
+              }`}
+            >
+              {projection}
+              {projection >= goals.monthly ? (
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              ) : (
+                <span className="text-[10px] font-bold text-muted-foreground">
+                  ({projectionPct}%)
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Projection bar */}
-        <div className="mt-4 p-2.5 rounded-xl bg-muted/40 border border-border/40 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground min-w-0">
-            <Rocket className="h-3 w-3 text-primary shrink-0" />
-            <span className="truncate">Projeção final</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-[12px] font-bold">
-            <span className={projection >= goals.monthly ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}>
-              {projection} un.
-            </span>
-            {projection >= goals.monthly ? (
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-            ) : (
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+        {/* Tira semanal */}
+        {weekly.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-border/60">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="text-[11px] font-bold text-foreground/80 flex items-center gap-1.5">
+                <Activity className="h-3 w-3 text-primary" />
+                Semana {currentWeekIdx >= 0 ? currentWeekIdx + 1 : "-"}/{weekly.length}
+                <span className="text-muted-foreground font-medium ml-1">
+                  · {currentWeekUnits}/{weeklyGoal} un.
+                </span>
+              </div>
+              <span className="text-[10px] font-black text-primary">
+                {currentWeekPct}%
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 h-8">
+              {weekly.map((w, i) => {
+                const wPct = Math.min(100, Math.round((w.units / Math.max(1, weeklyGoal)) * 100));
+                return (
+                  <div
+                    key={i}
+                    className="flex-1 h-full rounded-md bg-muted/60 overflow-hidden relative ring-1 ring-border/40"
+                    title={`${w.label}: ${w.units} un.`}
+                  >
+                    <div
+                      className={`absolute inset-x-0 bottom-0 transition-all ${
+                        w.isCurrent
+                          ? "bg-gradient-to-t from-primary to-primary/70"
+                          : w.units >= weeklyGoal
+                            ? "bg-emerald-500/70"
+                            : "bg-muted-foreground/30"
+                      }`}
+                      style={{ height: `${Math.max(8, wPct)}%` }}
+                    />
+                    <span
+                      className={`absolute inset-0 grid place-items-center text-[9px] font-bold ${
+                        w.isCurrent ? "text-primary-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      {w.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {remainingWeek > 0 && (
+              <div className="mt-2 text-[10px] text-muted-foreground text-center">
+                Faltam <span className="font-bold text-foreground">{remainingWeek} un.</span> para fechar a semana
+              </div>
             )}
           </div>
-        </div>
-
-        {weekly.length > 0 && (() => {
-          const fallbackWeekly = Math.max(1, Math.round((goals.monthly || 0) / weekly.length));
-          const weeklyGoal = goals.weekly && goals.weekly > 0 ? goals.weekly : fallbackWeekly;
-          const currentIdx = weekly.findIndex((w) => w.isCurrent);
-          const autoUnits = currentIdx >= 0 ? weekly[currentIdx].units : 0;
-          const baseUnits =
-            weeklyBaseline.weekIdx === currentIdx ? weeklyBaseline.value : 0;
-          const currentUnits = autoUnits + baseUnits;
-          const currentPct = Math.min(100, Math.round((currentUnits / weeklyGoal) * 100));
-          const wRadius = 32;
-          const wCirc = 2 * Math.PI * wRadius;
-          const wOffset = wCirc - (currentPct / 100) * wCirc;
-          const remainingW = Math.max(0, weeklyGoal - currentUnits);
-          const maxWeek = Math.max(weeklyGoal, ...weekly.map((w) => w.units), 1);
-          return (
-            <div className="mt-4 pt-4 border-t border-border/60 relative">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-[11px] font-bold text-foreground/80 flex items-center gap-1.5">
-                  <Activity className="h-3 w-3 text-primary" />
-                  Meta semanal
-                </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary ring-1 ring-primary/15">
-                  Semana {currentIdx + 1}/{weekly.length}
-                </span>
-              </div>
-
-              {/* Weekly mini bars */}
-              <div className="flex items-end gap-1.5 h-10 mb-3 px-0.5">
-                {weekly.map((w, i) => {
-                  const h = Math.max(6, Math.round((w.units / maxWeek) * 100));
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                      <div className="w-full flex-1 flex items-end">
-                        <div
-                          className={`w-full rounded-t-md transition-all ${w.isCurrent ? "bg-primary" : w.units >= weeklyGoal ? "bg-emerald-500/70" : "bg-muted-foreground/30"}`}
-                          style={{ height: `${h}%` }}
-                          title={`${w.label}: ${w.units} un.`}
-                        />
-                      </div>
-                      <span className={`text-[9px] font-bold ${w.isCurrent ? "text-primary" : "text-muted-foreground"}`}>
-                        {w.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="relative h-[76px] w-[76px] shrink-0">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-                    <circle cx="40" cy="40" r={wRadius} stroke="var(--color-muted)" strokeWidth="7" fill="none" />
-                    <circle
-                      cx="40"
-                      cy="40"
-                      r={wRadius}
-                      stroke="var(--color-primary)"
-                      strokeWidth="7"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeDasharray={wCirc}
-                      strokeDashoffset={wOffset}
-                      style={{ transition: "stroke-dashoffset 1s ease-out" }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 grid place-items-center">
-                    <div className="text-[16px] font-black font-display tracking-tight text-primary leading-none">
-                      {currentPct}%
-                    </div>
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <div>
-                    <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
-                      <span>Aparelhos da semana</span>
-                      {canEdit && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const raw = window.prompt(
-                              "Quantos aparelhos foram vendidos nesta semana?",
-                              String(currentUnits),
-                            );
-                            if (raw === null) return;
-                            const n = Math.max(0, Number(raw) || 0);
-                            const offset = Math.max(0, n - autoUnits);
-                            const next = { value: offset, weekIdx: currentIdx };
-                            if (weeklyBaselineKey) {
-                              window.localStorage.setItem(weeklyBaselineKey, JSON.stringify(next));
-                            }
-                            setWeeklyBaseline(next);
-                            toast.success(`Semana atualizada: ${n} aparelhos`);
-                          }}
-                          className="text-[10px] font-bold text-primary hover:underline inline-flex items-center gap-0.5"
-                        >
-                          <Edit2 className="h-2.5 w-2.5" /> Editar
-                        </button>
-                      )}
-                    </div>
-                    <div className="text-base font-black font-display truncate leading-tight">
-                      {currentUnits}
-                      <span className="text-muted-foreground text-xs font-medium"> / {weeklyGoal} un.</span>
-                    </div>
-                  </div>
-                  <div className="pt-1.5 border-t border-border/60 flex items-center justify-between gap-2">
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold flex items-center gap-1">
-                      <Package className="h-3 w-3" /> Faltam
-                    </div>
-                    <div className="text-[12px] font-bold text-primary truncate">{remainingW} un.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        )}
       </div>
+
+
 
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
