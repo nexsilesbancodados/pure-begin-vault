@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { iconMap, LogOut, PanelLeftClose, PanelLeftOpen, Sparkles, X } from "@/lib/icons";
-import { useState, useEffect, useMemo } from "react";
+import { iconMap, LogOut, PanelLeftClose, PanelLeftOpen, Search, Sparkles, X } from "@/lib/icons";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImport } from "@/contexts/ImportContext";
 import { sidebarItems } from "@/lib/mock";
@@ -21,6 +21,8 @@ export function AppSidebar({
   const [flyout, setFlyout] = useState<any | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isForcedCollapsed, setIsForcedCollapsed] = useState(false);
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setFlyout(null);
@@ -37,6 +39,22 @@ export function AppSidebar({
     window.addEventListener("force-sidebar-collapse", handleForceCollapse);
     return () => window.removeEventListener("force-sidebar-collapse", handleForceCollapse);
   }, []);
+
+  // Keyboard shortcut "/" to focus sidebar search
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
+      if (e.key === "/") {
+        e.preventDefault();
+        if (isCollapsed) setIsCollapsed(false);
+        setTimeout(() => searchRef.current?.focus(), 50);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isCollapsed]);
 
   const { activeCount } = useImport();
 
@@ -101,11 +119,55 @@ export function AppSidebar({
   const isDrawerOpen = !!open;
   const isSmall = !isDrawerOpen && (isCollapsed || !!flyout || isForcedCollapsed);
 
+  // Filtragem por busca (apenas quando expandido)
+  const searchedItems = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || isSmall) return filteredItems;
+    const out: any[] = [];
+    for (const item of filteredItems) {
+      if (item.type === "header") {
+        out.push(item);
+        continue;
+      }
+      const parentHit = String(item.title || "").toLowerCase().includes(q);
+      const children = Array.isArray(item.children) ? item.children : [];
+      const childrenHit = children.filter((c: any) =>
+        String(c.title || "").toLowerCase().includes(q),
+      );
+      if (parentHit) {
+        out.push(item);
+      } else if (childrenHit.length) {
+        out.push({ ...item, children: childrenHit });
+      }
+    }
+    // Remove headers órfãos
+    return out.filter((it, i) => {
+      if (it.type !== "header") return true;
+      const next = out[i + 1];
+      return next && next.type !== "header";
+    });
+  }, [filteredItems, query, isSmall]);
+
   // Auto-fecha o drawer mobile ao navegar.
   useEffect(() => {
     if (isDrawerOpen) setOpen?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
+
+  // Iniciais do usuário para avatar
+  const displayName =
+    (profile as any)?.display_name ||
+    (profile as any)?.nome ||
+    user?.email?.split("@")[0] ||
+    "Usuário";
+  const initials = String(displayName)
+    .split(/\s+/)
+    .map((s: string) => s[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const roleLabel = String((profile as any)?.role ?? "").replace(/_/g, " ");
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -173,16 +235,52 @@ export function AppSidebar({
         </div>
 
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
-          {filteredItems.map((item: any) => (
-            <SortableSidebarItem
-              key={item.url || item.title}
-              item={item}
-              isSmall={isSmall}
-              flyout={flyout}
-              setFlyout={setFlyout}
-            />
-          ))}
+        {!isSmall && (
+          <div className="px-3 pt-3 pb-1">
+            <div className="relative">
+              <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-sidebar-foreground/40" />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar no menu…"
+                aria-label="Buscar no menu"
+                className="w-full h-8 pl-7 pr-8 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/40 text-[12.5px] placeholder:text-sidebar-foreground/40 focus:outline-none focus:ring-2 focus:ring-sidebar-primary/40 focus:bg-sidebar-accent/60 transition"
+              />
+              {query ? (
+                <button
+                  onClick={() => setQuery("")}
+                  aria-label="Limpar busca"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded text-sidebar-foreground/50 hover:text-foreground hover:bg-sidebar-accent"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : (
+                <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-sidebar-foreground/40 bg-sidebar-border/40 px-1.5 py-0.5 rounded">
+                  /
+                </kbd>
+              )}
+            </div>
+          </div>
+        )}
+
+        <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto custom-scrollbar">
+          {searchedItems.length === 0 && !!query && !isSmall ? (
+            <div className="text-center py-8 text-xs text-sidebar-foreground/50">
+              Nenhum item encontrado para
+              <div className="font-bold text-foreground mt-1">"{query}"</div>
+            </div>
+          ) : (
+            searchedItems.map((item: any) => (
+              <SortableSidebarItem
+                key={item.url || item.title}
+                item={item}
+                isSmall={isSmall}
+                flyout={flyout}
+                setFlyout={setFlyout}
+              />
+            ))
+          )}
         </nav>
 
         <div className="px-3 pb-3 mt-auto shrink-0">
@@ -192,10 +290,45 @@ export function AppSidebar({
               isSmall ? "items-center" : "",
             )}
           >
+            {isSmall ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-white text-[12px] font-bold shadow-glow">
+                    {initials || "U"}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <div className="text-xs font-bold">{displayName}</div>
+                  {user?.email && (
+                    <div className="text-[10px] text-muted-foreground">{user.email}</div>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-sidebar-accent/50 transition">
+                <div className="h-9 w-9 rounded-full bg-gradient-primary grid place-items-center text-white text-[12px] font-bold shadow-glow shrink-0">
+                  {initials || "U"}
+                </div>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <div className="text-[13px] font-bold text-foreground truncate">
+                    {displayName}
+                  </div>
+                  {roleLabel && (
+                    <div className="text-[10px] uppercase tracking-wider text-sidebar-foreground/50 truncate">
+                      {roleLabel}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <button
               onClick={logout}
               aria-label="Sair da conta"
-              className="h-10 w-full flex items-center gap-3 px-3 py-2 rounded-lg text-destructive/70 hover:bg-destructive/10 transition"
+              className={cn(
+                "h-10 flex items-center gap-3 px-3 py-2 rounded-lg text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition",
+                isSmall ? "w-10 justify-center" : "w-full",
+              )}
             >
               <LogOut className="h-4 w-4" />
               {!isSmall && <span className="text-sm font-bold">Sair</span>}

@@ -44,7 +44,8 @@ export function ExportMenu<T>({ filename, rows, cols, variant = "outline", notep
       .select("name")
       .eq("id", orgId)
       .maybeSingle()
-      .then(({ data }: any) => setOrgName(data?.name ?? "Minha Loja"));
+      .then((res: any) => setOrgName(res?.data?.name ?? "Minha Loja"))
+      .catch(() => setOrgName("Minha Loja"));
   }, [notepadOpen, orgId]);
 
   const generated = useMemo(() => {
