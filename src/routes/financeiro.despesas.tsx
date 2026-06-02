@@ -531,7 +531,12 @@ function DespesasPage() {
                       return (
                         <tr
                           key={e.id}
-                          className="border-t border-border hover:bg-muted/30 transition-colors"
+                          className={cn(
+                            "border-t border-border transition-colors",
+                            overdue && !paid && "bg-red-500/5 hover:bg-red-500/10",
+                            paid && "opacity-70 hover:bg-muted/30",
+                            !overdue && !paid && "hover:bg-muted/30",
+                          )}
                         >
                           <td className="px-4 py-3 font-medium">{e.description}</td>
                           <td className="px-4 py-3 text-muted-foreground">
