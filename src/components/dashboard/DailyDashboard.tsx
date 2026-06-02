@@ -193,7 +193,7 @@ export function DailyDashboard() {
           .lte("created_at", overallEnd),
         (supabase as any)
           .from("accounts_payable")
-          .select("amount, paid_at, status")
+          .select("amount, paid_at, status, category, description, import_job_id")
           .eq("organization_id", orgId)
           .gte("paid_at", start.toISOString())
           .lte("paid_at", end.toISOString()),
