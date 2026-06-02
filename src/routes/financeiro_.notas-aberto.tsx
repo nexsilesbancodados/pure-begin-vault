@@ -465,6 +465,10 @@ function NotasAbertoPage() {
   const [listSearch, setListSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "overdue" | "paid">("all");
   const [supplierFilter, setSupplierFilter] = useState<string[]>([]);
+  const [dueDateFrom, setDueDateFrom] = useState<string>("");
+  const [dueDateTo, setDueDateTo] = useState<string>("");
+  const [minValue, setMinValue] = useState<string>("");
+  const [maxValue, setMaxValue] = useState<string>("");
   const comprovanteInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadingComprovante, setUploadingComprovante] = useState(false);
   const [previewComprovanteUrl, setPreviewComprovanteUrl] = useState<string | null>(null);
@@ -1056,9 +1060,17 @@ function NotasAbertoPage() {
                     >
                       <Filter className="h-4 w-4" />
                       Filtros
-                      {(statusFilter !== "all" || supplierFilter.length > 0) && (
+                      {(statusFilter !== "all" ||
+                        supplierFilter.length > 0 ||
+                        dueDateFrom ||
+                        dueDateTo ||
+                        minValue ||
+                        maxValue) && (
                         <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
-                          {(statusFilter !== "all" ? 1 : 0) + supplierFilter.length}
+                          {(statusFilter !== "all" ? 1 : 0) +
+                            supplierFilter.length +
+                            (dueDateFrom || dueDateTo ? 1 : 0) +
+                            (minValue || maxValue ? 1 : 0)}
                         </span>
                       )}
                     </Button>
@@ -1066,11 +1078,20 @@ function NotasAbertoPage() {
                   <PopoverContent className="w-80 p-0" align="end">
                     <div className="p-3 border-b flex items-center justify-between">
                       <div className="font-semibold text-sm">Filtrar notas</div>
-                      {(statusFilter !== "all" || supplierFilter.length > 0) && (
+                      {(statusFilter !== "all" ||
+                        supplierFilter.length > 0 ||
+                        dueDateFrom ||
+                        dueDateTo ||
+                        minValue ||
+                        maxValue) && (
                         <button
                           onClick={() => {
                             setStatusFilter("all");
                             setSupplierFilter([]);
+                            setDueDateFrom("");
+                            setDueDateTo("");
+                            setMinValue("");
+                            setMaxValue("");
                           }}
                           className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
                         >
@@ -1159,6 +1180,64 @@ function NotasAbertoPage() {
                             </div>
                           );
                         })()}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                          Data de vencimento
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">De</Label>
+                            <Input
+                              type="date"
+                              value={dueDateFrom}
+                              onChange={(e) => setDueDateFrom(e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Até</Label>
+                            <Input
+                              type="date"
+                              value={dueDateTo}
+                              onChange={(e) => setDueDateTo(e.target.value)}
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                          Valor da nota (R$)
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Mínimo</Label>
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              step="0.01"
+                              value={minValue}
+                              onChange={(e) => setMinValue(e.target.value)}
+                              placeholder="0,00"
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[10px] text-muted-foreground">Máximo</Label>
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              min="0"
+                              step="0.01"
+                              value={maxValue}
+                              onChange={(e) => setMaxValue(e.target.value)}
+                              placeholder="0,00"
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </PopoverContent>
@@ -1402,6 +1481,12 @@ function NotasAbertoPage() {
                 if (statusFilter === "paid" && !n.paga) return false;
                 if (statusFilter === "overdue" && !isOverdue) return false;
                 if (supplierFilter.length > 0 && !supplierFilter.includes(n.fornecedor)) return false;
+                if (dueDateFrom && (!n.prazoPagamento || n.prazoPagamento < dueDateFrom)) return false;
+                if (dueDateTo && (!n.prazoPagamento || n.prazoPagamento > dueDateTo)) return false;
+                const minV = parseFloat(minValue);
+                const maxV = parseFloat(maxValue);
+                if (!Number.isNaN(minV) && Number(n.total) < minV) return false;
+                if (!Number.isNaN(maxV) && Number(n.total) > maxV) return false;
                 if (listSearch) {
                   const s = listSearch.toLowerCase();
                   const who = (n.kind === "venda" ? n.customerName : n.fornecedor) || "";
