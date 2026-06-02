@@ -634,6 +634,7 @@ function DespesasPage() {
         variant="expense"
       />
     </div>
+    </TooltipProvider>
   );
 }
 
