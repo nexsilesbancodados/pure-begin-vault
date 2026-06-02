@@ -85,6 +85,7 @@ function DespesasPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Expense | null>(null);
   const [items, setItems] = useState<Expense[]>([]);
+  const [userMap, setUserMap] = useState<Record<string, { name: string; email: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
