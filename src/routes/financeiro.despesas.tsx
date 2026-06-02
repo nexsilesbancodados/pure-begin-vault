@@ -197,7 +197,10 @@ function DespesasPage() {
   }, [inRange, search, statusFilter, categoryFilter, kindFilter]);
 
   const handleSave = async (data: any) => {
-    if (!user?.id || !orgId) return;
+    if (!user?.id || !orgId) {
+      toast.error("Sessão sem organização");
+      return;
+    }
     try {
       const extras: string[] = [];
       if (data.supplier) extras.push(`Fornecedor: ${data.supplier}`);
@@ -206,8 +209,8 @@ function DespesasPage() {
       if (data.billing_method) extras.push(`Cobrança: ${data.billing_method}`);
       if (data.installment_number) extras.push(`Parcela: ${data.installment_number}`);
       if (data.tags) extras.push(`Tags: ${data.tags}`);
-      if (data.fees) extras.push(`Multa/Juros: ${data.fees}`);
-      if (data.discount) extras.push(`Desconto: ${data.discount}`);
+      if (Number(data.fees) > 0) extras.push(`Multa/Juros: ${data.fees}`);
+      if (Number(data.discount) > 0) extras.push(`Desconto: ${data.discount}`);
       if (Array.isArray(data.payments) && data.payments.length) {
         extras.push(`Pagamentos: ${data.payments.length} lançamento(s)`);
       }
@@ -216,15 +219,32 @@ function DespesasPage() {
       }
       if (data.notes) extras.push(data.notes);
 
-      const payload = {
+      // Resolve supplier_id pelo nome (best-effort)
+      let supplier_id: string | null = null;
+      if (data.supplier && typeof data.supplier === "string") {
+        const { data: sup } = await supabase
+          .from("suppliers")
+          .select("id")
+          .eq("organization_id", orgId)
+          .ilike("name", data.supplier.trim())
+          .maybeSingle();
+        supplier_id = (sup as any)?.id ?? null;
+      }
+
+      const amountNum = Number(data.amount) || 0;
+      const isPaid = data.status === "paid";
+
+      const payload: Record<string, any> = {
         organization_id: orgId,
         user_id: user.id,
-        description: data.description,
-        amount: data.amount,
-        category: data.category,
-        due_date: data.due_date,
-        paid_at: data.payment_date,
-        status: data.status,
+        description: (data.description || "").trim() || "Lançamento",
+        amount: amountNum,
+        category: data.category?.trim() || null,
+        supplier_id,
+        due_date: data.due_date || null,
+        paid_at: isPaid ? new Date().toISOString() : null,
+        paid_amount: isPaid ? amountNum : null,
+        status: data.status || "pending",
         notes: extras.filter(Boolean).join("\n") || null,
       };
 
@@ -244,7 +264,7 @@ function DespesasPage() {
       setEditing(null);
       await load();
     } catch (e: any) {
-      console.error(e);
+      console.error("[despesas] save failed", e);
       toast.error(e?.message || "Erro ao salvar despesa");
     }
   };
