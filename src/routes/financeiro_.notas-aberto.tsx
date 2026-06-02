@@ -1481,6 +1481,12 @@ function NotasAbertoPage() {
                 if (statusFilter === "paid" && !n.paga) return false;
                 if (statusFilter === "overdue" && !isOverdue) return false;
                 if (supplierFilter.length > 0 && !supplierFilter.includes(n.fornecedor)) return false;
+                if (dueDateFrom && (!n.prazoPagamento || n.prazoPagamento < dueDateFrom)) return false;
+                if (dueDateTo && (!n.prazoPagamento || n.prazoPagamento > dueDateTo)) return false;
+                const minV = parseFloat(minValue);
+                const maxV = parseFloat(maxValue);
+                if (!Number.isNaN(minV) && Number(n.total) < minV) return false;
+                if (!Number.isNaN(maxV) && Number(n.total) > maxV) return false;
                 if (listSearch) {
                   const s = listSearch.toLowerCase();
                   const who = (n.kind === "venda" ? n.customerName : n.fornecedor) || "";
