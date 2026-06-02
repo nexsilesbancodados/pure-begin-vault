@@ -330,6 +330,7 @@ function DespesasPage() {
   };
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="min-h-screen bg-background flex">
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
@@ -530,7 +531,12 @@ function DespesasPage() {
                       return (
                         <tr
                           key={e.id}
-                          className="border-t border-border hover:bg-muted/30 transition-colors"
+                          className={cn(
+                            "border-t border-border transition-colors",
+                            overdue && !paid && "bg-red-500/5 hover:bg-red-500/10",
+                            paid && "opacity-70 hover:bg-muted/30",
+                            !overdue && !paid && "hover:bg-muted/30",
+                          )}
                         >
                           <td className="px-4 py-3 font-medium">{e.description}</td>
                           <td className="px-4 py-3 text-muted-foreground">
@@ -578,37 +584,35 @@ function DespesasPage() {
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
-                              <TooltipProvider delayDuration={100}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
-                                      title="Registro"
-                                    >
-                                      <Info className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="left" className="text-xs max-w-[260px]">
-                                    <div className="font-bold">
-                                      {e.user_id
-                                        ? String(userMap[e.user_id]?.name || "Usuário")
-                                        : "—"}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
+                                    aria-label="Registro"
+                                  >
+                                    <Info className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="text-xs max-w-[260px]">
+                                  <div className="font-bold">
+                                    {e.user_id
+                                      ? String(userMap[e.user_id]?.name || "Usuário")
+                                      : "—"}
+                                  </div>
+                                  {e.user_id && userMap[e.user_id]?.email ? (
+                                    <div className="text-muted-foreground">
+                                      {String(userMap[e.user_id]?.email)}
                                     </div>
-                                    {e.user_id && userMap[e.user_id]?.email ? (
-                                      <div className="text-muted-foreground">
-                                        {String(userMap[e.user_id]?.email)}
-                                      </div>
-                                    ) : null}
-                                    <div className="text-muted-foreground mt-1">
-                                      {e.created_at
-                                        ? new Date(e.created_at).toLocaleString("pt-BR")
-                                        : "Data desconhecida"}
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                                  ) : null}
+                                  <div className="text-muted-foreground mt-1">
+                                    {e.created_at
+                                      ? new Date(e.created_at).toLocaleString("pt-BR")
+                                      : "Data desconhecida"}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                           </td>
                         </tr>
@@ -633,6 +637,7 @@ function DespesasPage() {
         variant="expense"
       />
     </div>
+    </TooltipProvider>
   );
 }
 
