@@ -120,22 +120,37 @@ function DespesasPage() {
     }
   };
 
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { orgId } = useOrg();
+  const role = String(profile?.role ?? "").toLowerCase();
+  const isMaster = ["super_admin", "owner", "admin"].includes(role);
 
   const load = async () => {
     if (!orgId) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("accounts_payable")
-      .select("id, description, amount, category, due_date, paid_at, status, notes")
+      .select("id, description, amount, category, due_date, paid_at, status, notes, user_id, created_at")
       .eq("organization_id", orgId)
       .order("due_date", { ascending: false, nullsFirst: false });
     if (error) {
       console.error(error);
       toast.error("Erro ao carregar despesas");
     } else {
-      setItems((data as Expense[]) || []);
+      const list = (data as Expense[]) || [];
+      setItems(list);
+      const ids = Array.from(new Set(list.map((e) => e.user_id).filter(Boolean) as string[]));
+      if (ids.length) {
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, display_name, email")
+          .in("id", ids);
+        const map: Record<string, { name: string; email: string | null }> = {};
+        ((profs as any[]) || []).forEach((p) => {
+          map[p.id] = { name: p.display_name || p.email || "Usuário", email: p.email ?? null };
+        });
+        setUserMap(map);
+      }
     }
     setLoading(false);
   };
