@@ -579,37 +579,35 @@ function DespesasPage() {
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
-                              <TooltipProvider delayDuration={100}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
-                                      title="Registro"
-                                    >
-                                      <Info className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="left" className="text-xs max-w-[260px]">
-                                    <div className="font-bold">
-                                      {e.user_id
-                                        ? String(userMap[e.user_id]?.name || "Usuário")
-                                        : "—"}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
+                                    aria-label="Registro"
+                                  >
+                                    <Info className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="text-xs max-w-[260px]">
+                                  <div className="font-bold">
+                                    {e.user_id
+                                      ? String(userMap[e.user_id]?.name || "Usuário")
+                                      : "—"}
+                                  </div>
+                                  {e.user_id && userMap[e.user_id]?.email ? (
+                                    <div className="text-muted-foreground">
+                                      {String(userMap[e.user_id]?.email)}
                                     </div>
-                                    {e.user_id && userMap[e.user_id]?.email ? (
-                                      <div className="text-muted-foreground">
-                                        {String(userMap[e.user_id]?.email)}
-                                      </div>
-                                    ) : null}
-                                    <div className="text-muted-foreground mt-1">
-                                      {e.created_at
-                                        ? new Date(e.created_at).toLocaleString("pt-BR")
-                                        : "Data desconhecida"}
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
+                                  ) : null}
+                                  <div className="text-muted-foreground mt-1">
+                                    {e.created_at
+                                      ? new Date(e.created_at).toLocaleString("pt-BR")
+                                      : "Data desconhecida"}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
                           </td>
                         </tr>
