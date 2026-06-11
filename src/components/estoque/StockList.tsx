@@ -1309,6 +1309,66 @@ export function StockList() {
           </table>
         </div>
 
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-border">
+          {finalProducts.map((product) => {
+            const days = daysInStock(product.created_at);
+            const available = (product.stock || 0) > 0;
+            const cod = toProductCode({ id: product.id, sku: product.sku });
+            const primaryImei = getPrimaryImei(product);
+            const issue = productImeiIssue(product);
+            return (
+              <button
+                key={product.id}
+                onClick={() => setEditingProduct(product)}
+                className={`w-full text-left p-4 flex gap-3 active:bg-muted/60 transition ${
+                  available ? "bg-emerald-50/40 dark:bg-emerald-950/10" : ""
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-bold truncate">{product.name || "Sem nome"}</p>
+                    <span
+                      className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black ${
+                        available
+                          ? "bg-emerald-500 text-white"
+                          : "bg-destructive text-destructive-foreground"
+                      }`}
+                    >
+                      {available ? `${product.stock || 0} un` : "Esgotado"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                    {[product.brand, product.category, cod].filter(Boolean).join(" · ")}
+                  </p>
+                  {primaryImei && (
+                    <p className="text-[11px] font-mono text-foreground/70 mt-1 truncate">
+                      IMEI: {primaryImei}
+                      {issue === "duplicate" && (
+                        <span className="ml-1 text-destructive font-bold">· duplicado</span>
+                      )}
+                    </p>
+                  )}
+                  {issue === "missing" && (
+                    <p className="text-[11px] font-bold text-amber-600 mt-1">⚠ Aparelho sem IMEI</p>
+                  )}
+                  <div className="flex items-center justify-between mt-2 gap-2">
+                    <span className="text-sm font-black text-primary tabular-nums">
+                      R$ {fmtBRL(product.price)}
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${daysBadge(days)}`}
+                    >
+                      {days}d
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+
         {loading && (
           <div className="p-10 grid place-items-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
