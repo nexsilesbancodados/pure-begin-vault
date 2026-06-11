@@ -156,7 +156,7 @@ function buildInitialForm(product: any) {
     valor_venda_2: md.valor_venda_2 || "",
     valor_venda_3: md.valor_venda_3 || "",
     observacao: product?.description || "",
-    tags: (md.tags || []).join(", "),
+    tags: (Array.isArray(md.tags) ? md.tags : []).join(", "),
     // fornecedor
     tipo_fornecedor: md.tipo_fornecedor || "Fornecedor",
     fornecedor: product?.supplier || "",
@@ -190,7 +190,8 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
   const [openNotas, setOpenNotas] = useState<Array<{ id: string; label: string }>>([]);
   const [customTipos, setCustomTipos] = useState<string[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem("product_custom_tipos") || "[]");
+      const v = JSON.parse(localStorage.getItem("product_custom_tipos") || "[]");
+      return Array.isArray(v) ? v : [];
     } catch {
       return [];
     }
@@ -201,7 +202,8 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
   const [customModelos, setCustomModelos] = useState<string[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem("product_custom_modelos") || "[]");
+      const v = JSON.parse(localStorage.getItem("product_custom_modelos") || "[]");
+      return Array.isArray(v) ? v : [];
     } catch {
       return [];
     }
@@ -212,7 +214,8 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
   const [customCores, setCustomCores] = useState<string[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem("product_custom_cores") || "[]");
+      const v = JSON.parse(localStorage.getItem("product_custom_cores") || "[]");
+      return Array.isArray(v) ? v : [];
     } catch {
       return [];
     }
@@ -240,16 +243,24 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
       });
   }, [open, orgId]);
 
-  const [contasPagar, setContasPagar] = useState<ExtraRow[]>(md.contas_pagar || []);
-  const [custosExtras, setCustosExtras] = useState<ExtraRow[]>(md.custos_extras || []);
-  const [anexos, setAnexos] = useState<{ name: string; url?: string }[]>(md.anexos || []);
+  const [contasPagar, setContasPagar] = useState<ExtraRow[]>(
+    Array.isArray(md.contas_pagar) ? md.contas_pagar : [],
+  );
+  const [custosExtras, setCustosExtras] = useState<ExtraRow[]>(
+    Array.isArray(md.custos_extras) ? md.custos_extras : [],
+  );
+  const [anexos, setAnexos] = useState<{ name: string; url?: string }[]>(
+    Array.isArray(md.anexos) ? md.anexos : [],
+  );
   const [imageUrlInput, setImageUrlInput] = useState<string>(md.image_url || "");
   const [checklist, setChecklist] = useState<{ id: string; item: string; ok: boolean }[]>(
-    md.checklist || [
-      { id: "1", item: "Tela sem riscos", ok: false },
-      { id: "2", item: "Carregador incluso", ok: false },
-      { id: "3", item: "Caixa original", ok: false },
-    ],
+    Array.isArray(md.checklist)
+      ? md.checklist
+      : [
+          { id: "1", item: "Tela sem riscos", ok: false },
+          { id: "2", item: "Carregador incluso", ok: false },
+          { id: "3", item: "Caixa original", ok: false },
+        ],
   );
 
   // Reset all state when opening with a different product (or new)
@@ -270,16 +281,18 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
           ? "Aparelho"
           : "Aparelho";
     setProductType(inferred);
-    setContasPagar(m.contas_pagar || []);
-    setCustosExtras(m.custos_extras || []);
-    setAnexos(m.anexos || []);
+    setContasPagar(Array.isArray(m.contas_pagar) ? m.contas_pagar : []);
+    setCustosExtras(Array.isArray(m.custos_extras) ? m.custos_extras : []);
+    setAnexos(Array.isArray(m.anexos) ? m.anexos : []);
     setImageUrlInput(m.image_url || "");
     setChecklist(
-      m.checklist || [
-        { id: "1", item: "Tela sem riscos", ok: false },
-        { id: "2", item: "Carregador incluso", ok: false },
-        { id: "3", item: "Caixa original", ok: false },
-      ],
+      Array.isArray(m.checklist)
+        ? m.checklist
+        : [
+            { id: "1", item: "Tela sem riscos", ok: false },
+            { id: "2", item: "Carregador incluso", ok: false },
+            { id: "3", item: "Caixa original", ok: false },
+          ],
     );
     setPendingFiles([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
