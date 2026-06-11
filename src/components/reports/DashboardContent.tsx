@@ -464,7 +464,6 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           ],
         );
       case "produto":
-      case "prod-vendidos":
       case "prod-resumo-estoque":
       case "prod-detalhes-estoque":
         return renderKpiGrid(
