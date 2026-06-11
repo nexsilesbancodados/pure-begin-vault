@@ -190,7 +190,8 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
   const [openNotas, setOpenNotas] = useState<Array<{ id: string; label: string }>>([]);
   const [customTipos, setCustomTipos] = useState<string[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem("product_custom_tipos") || "[]");
+      const v = JSON.parse(localStorage.getItem("product_custom_tipos") || "[]");
+      return Array.isArray(v) ? v : [];
     } catch {
       return [];
     }
@@ -201,7 +202,8 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
   const [customModelos, setCustomModelos] = useState<string[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem("product_custom_modelos") || "[]");
+      const v = JSON.parse(localStorage.getItem("product_custom_modelos") || "[]");
+      return Array.isArray(v) ? v : [];
     } catch {
       return [];
     }
@@ -212,7 +214,8 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
   const [customCores, setCustomCores] = useState<string[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem("product_custom_cores") || "[]");
+      const v = JSON.parse(localStorage.getItem("product_custom_cores") || "[]");
+      return Array.isArray(v) ? v : [];
     } catch {
       return [];
     }
