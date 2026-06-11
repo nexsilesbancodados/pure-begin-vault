@@ -589,18 +589,30 @@ export function StockList() {
       </div>
 
       {/* Header card */}
-      <div className="bg-card border border-border rounded-2xl px-5 py-4 flex items-center justify-between gap-4 shadow-sm">
-        <h1 className="text-base font-bold text-foreground tracking-tight">
+      <div className="bg-card border border-border rounded-2xl px-4 sm:px-5 py-3 sm:py-4 grid grid-cols-[minmax(0,1fr)_auto] sm:flex sm:items-center sm:justify-between gap-3 sm:gap-4 shadow-sm">
+        <h1 className="min-w-0 truncate text-sm sm:text-base font-bold text-foreground tracking-tight">
           Listagem de estoque
+          <span className="ml-2 text-xs font-semibold text-muted-foreground">
+            {finalProducts.length} item{finalProducts.length === 1 ? "" : "s"}
+          </span>
         </h1>
-        <div className="relative w-full max-w-xs">
+        <div className="relative col-span-2 sm:col-span-1 w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
-            placeholder="Buscar"
+            placeholder="Buscar nome, SKU, IMEI, EAN..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full h-9 pl-9 pr-9 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 grid place-items-center rounded-md text-muted-foreground hover:bg-muted"
+              aria-label="Limpar busca"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
