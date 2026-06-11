@@ -458,11 +458,24 @@ export function StockList() {
   };
 
   const finalProducts = useMemo(() => {
+    const min = parseFloat(priceMin);
+    const max = parseFloat(priceMax);
     return filteredProducts.filter((p) => {
       if (onlyCurrent && (p.stock || 0) <= 0) return false;
       if (onlyNfe && !p.metadata?.nota_id) return false;
       if (advType && !(p.category || "").toLowerCase().includes(advType.toLowerCase()))
         return false;
+      if (advBrand && !(p.brand || "").toLowerCase().includes(advBrand.toLowerCase()))
+        return false;
+      if (
+        advLocation &&
+        !`${p.location || ""} ${p.metadata?.location || ""}`
+          .toLowerCase()
+          .includes(advLocation.toLowerCase())
+      )
+        return false;
+      if (!Number.isNaN(min) && Number(p.price || 0) < min) return false;
+      if (!Number.isNaN(max) && Number(p.price || 0) > max) return false;
 
       if (colFilters.cod && !String(p.sku || p.id).toLowerCase().includes(colFilters.cod.toLowerCase()))
         return false;
@@ -476,6 +489,7 @@ export function StockList() {
 
       const d = daysInStock(p.created_at);
       if (colFilters.daysMax && d > Number(colFilters.daysMax)) return false;
+      if (stalledOnly && d < 30) return false;
 
       if (colFilters.dateFrom) {
         if (!p.created_at || new Date(p.created_at) < new Date(colFilters.dateFrom)) return false;
@@ -493,7 +507,20 @@ export function StockList() {
       }
       return true;
     });
-  }, [filteredProducts, colFilters, onlyCurrent, onlyNfe, advType, imeiFilter, duplicateImeis]);
+  }, [
+    filteredProducts,
+    colFilters,
+    onlyCurrent,
+    onlyNfe,
+    advType,
+    advBrand,
+    advLocation,
+    priceMin,
+    priceMax,
+    stalledOnly,
+    imeiFilter,
+    duplicateImeis,
+  ]);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -511,6 +538,11 @@ export function StockList() {
     setOnlyCurrent(true);
     setOnlyNfe(false);
     setAdvType("");
+    setAdvBrand("");
+    setAdvLocation("");
+    setPriceMin("");
+    setPriceMax("");
+    setStalledOnly(false);
     setImeiFilter("all");
   };
 
