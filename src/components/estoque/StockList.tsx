@@ -393,11 +393,16 @@ export function StockList() {
     daysMax: "",
     availability: "all", // all | available | out
   });
-  const [advancedOpen, setAdvancedOpen] = useState(true);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [onlyCurrent, setOnlyCurrent] = useState(true);
   const [onlyNfe, setOnlyNfe] = useState(false);
   const [advType, setAdvType] = useState("");
   const [imeiFilter, setImeiFilter] = useState<"all" | "missing" | "duplicate">("all");
+  const [advBrand, setAdvBrand] = useState("");
+  const [advLocation, setAdvLocation] = useState("");
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [stalledOnly, setStalledOnly] = useState(false);
 
   // Categorias que exigem IMEI
   const isPhoneCategory = (cat?: string | null) => {
@@ -453,11 +458,24 @@ export function StockList() {
   };
 
   const finalProducts = useMemo(() => {
+    const min = parseFloat(priceMin);
+    const max = parseFloat(priceMax);
     return filteredProducts.filter((p) => {
       if (onlyCurrent && (p.stock || 0) <= 0) return false;
       if (onlyNfe && !p.metadata?.nota_id) return false;
       if (advType && !(p.category || "").toLowerCase().includes(advType.toLowerCase()))
         return false;
+      if (advBrand && !(p.brand || "").toLowerCase().includes(advBrand.toLowerCase()))
+        return false;
+      if (
+        advLocation &&
+        !`${p.location || ""} ${p.metadata?.location || ""}`
+          .toLowerCase()
+          .includes(advLocation.toLowerCase())
+      )
+        return false;
+      if (!Number.isNaN(min) && Number(p.price || 0) < min) return false;
+      if (!Number.isNaN(max) && Number(p.price || 0) > max) return false;
 
       if (colFilters.cod && !String(p.sku || p.id).toLowerCase().includes(colFilters.cod.toLowerCase()))
         return false;
@@ -471,6 +489,7 @@ export function StockList() {
 
       const d = daysInStock(p.created_at);
       if (colFilters.daysMax && d > Number(colFilters.daysMax)) return false;
+      if (stalledOnly && d < 30) return false;
 
       if (colFilters.dateFrom) {
         if (!p.created_at || new Date(p.created_at) < new Date(colFilters.dateFrom)) return false;
@@ -488,7 +507,20 @@ export function StockList() {
       }
       return true;
     });
-  }, [filteredProducts, colFilters, onlyCurrent, onlyNfe, advType, imeiFilter, duplicateImeis]);
+  }, [
+    filteredProducts,
+    colFilters,
+    onlyCurrent,
+    onlyNfe,
+    advType,
+    advBrand,
+    advLocation,
+    priceMin,
+    priceMax,
+    stalledOnly,
+    imeiFilter,
+    duplicateImeis,
+  ]);
 
   const clearFilters = () => {
     setSearchTerm("");
@@ -506,6 +538,11 @@ export function StockList() {
     setOnlyCurrent(true);
     setOnlyNfe(false);
     setAdvType("");
+    setAdvBrand("");
+    setAdvLocation("");
+    setPriceMin("");
+    setPriceMax("");
+    setStalledOnly(false);
     setImeiFilter("all");
   };
 
@@ -552,18 +589,30 @@ export function StockList() {
       </div>
 
       {/* Header card */}
-      <div className="bg-card border border-border rounded-2xl px-5 py-4 flex items-center justify-between gap-4 shadow-sm">
-        <h1 className="text-base font-bold text-foreground tracking-tight">
+      <div className="bg-card border border-border rounded-2xl px-4 sm:px-5 py-3 sm:py-4 grid grid-cols-[minmax(0,1fr)_auto] sm:flex sm:items-center sm:justify-between gap-3 sm:gap-4 shadow-sm">
+        <h1 className="min-w-0 truncate text-sm sm:text-base font-bold text-foreground tracking-tight">
           Listagem de estoque
+          <span className="ml-2 text-xs font-semibold text-muted-foreground">
+            {finalProducts.length} item{finalProducts.length === 1 ? "" : "s"}
+          </span>
         </h1>
-        <div className="relative w-full max-w-xs">
+        <div className="relative col-span-2 sm:col-span-1 w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
-            placeholder="Buscar"
+            placeholder="Buscar nome, SKU, IMEI, EAN..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full h-9 pl-9 pr-9 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 grid place-items-center rounded-md text-muted-foreground hover:bg-muted"
+              aria-label="Limpar busca"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -672,9 +721,14 @@ export function StockList() {
               (filterCategory !== "all" ? 1 : 0) +
               (imeiFilter !== "all" ? 1 : 0) +
               (viewTab !== "all" ? 1 : 0) +
-              (onlyCurrent ? 1 : 0) +
+              (onlyCurrent ? 0 : 0) +
               (onlyNfe ? 1 : 0) +
               (advType ? 1 : 0) +
+              (advBrand ? 1 : 0) +
+              (advLocation ? 1 : 0) +
+              (priceMin ? 1 : 0) +
+              (priceMax ? 1 : 0) +
+              (stalledOnly ? 1 : 0) +
               (searchTerm ? 1 : 0);
             if (activeCount === 0) return null;
             return (
@@ -733,12 +787,60 @@ export function StockList() {
                 className="mt-1.5 w-full h-9 px-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
+            <div>
+              <Label className="text-xs text-muted-foreground font-semibold">Marca</Label>
+              <input
+                value={advBrand}
+                onChange={(e) => setAdvBrand(e.target.value)}
+                placeholder="Ex: Apple, Samsung..."
+                className="mt-1.5 w-full h-9 px-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground font-semibold">Local / vitrine</Label>
+              <input
+                value={advLocation}
+                onChange={(e) => setAdvLocation(e.target.value)}
+                placeholder="Prateleira, gaveta..."
+                className="mt-1.5 w-full h-9 px-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground font-semibold">Preço de venda</Label>
+              <div className="mt-1.5 flex items-center gap-2">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={priceMin}
+                  onChange={(e) => setPriceMin(e.target.value)}
+                  placeholder="mín R$"
+                  className="w-full h-9 px-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <span className="text-xs text-muted-foreground">a</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={priceMax}
+                  onChange={(e) => setPriceMax(e.target.value)}
+                  placeholder="máx R$"
+                  className="w-full h-9 px-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground font-semibold">
+                Apenas itens parados ≥ 30 dias?
+              </Label>
+              <div className="mt-1.5">
+                <ToggleYesNo value={stalledOnly} onChange={setStalledOnly} />
+              </div>
+            </div>
             <div className="md:col-span-3">
               <button
                 onClick={() => fetchProducts(0, true)}
                 className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold transition shadow-sm"
               >
-                <Search className="h-4 w-4" /> Buscar
+                <Search className="h-4 w-4" /> Recarregar do servidor
               </button>
             </div>
           </div>
@@ -851,9 +953,27 @@ export function StockList() {
               setColFilters((f) => ({ ...f, availability: "out" }));
             },
           },
+          {
+            key: "stalled",
+            label: "Parado ≥30d",
+            value: localProducts.filter(
+              (p) => (p.stock || 0) > 0 && daysInStock(p.created_at) >= 30,
+            ).length,
+            full: "Produtos com estoque acima de 30 dias",
+            icon: Clock,
+            color: "text-orange-600",
+            bg: "bg-orange-500/10",
+            ring: "ring-orange-500/30",
+            border: "border-orange-500/60",
+            apply: () => {
+              setStalledOnly(true);
+              setAdvancedOpen(true);
+              setOnlyCurrent(true);
+            },
+          },
         ];
         return (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
             {tiles.map((k) => {
               const active =
                 (k.key === "out" && (viewTab === "out" || colFilters.availability === "out")) ||
@@ -897,7 +1017,7 @@ export function StockList() {
 
       {/* Table */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-card">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="bg-muted/40 border-b border-border">
@@ -1188,6 +1308,66 @@ export function StockList() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-border">
+          {finalProducts.map((product) => {
+            const days = daysInStock(product.created_at);
+            const available = (product.stock || 0) > 0;
+            const cod = toProductCode({ id: product.id, sku: product.sku });
+            const primaryImei = getPrimaryImei(product);
+            const issue = productImeiIssue(product);
+            return (
+              <button
+                key={product.id}
+                onClick={() => setEditingProduct(product)}
+                className={`w-full text-left p-4 flex gap-3 active:bg-muted/60 transition ${
+                  available ? "bg-emerald-50/40 dark:bg-emerald-950/10" : ""
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-bold truncate">{product.name || "Sem nome"}</p>
+                    <span
+                      className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black ${
+                        available
+                          ? "bg-emerald-500 text-white"
+                          : "bg-destructive text-destructive-foreground"
+                      }`}
+                    >
+                      {available ? `${product.stock || 0} un` : "Esgotado"}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                    {[product.brand, product.category, cod].filter(Boolean).join(" · ")}
+                  </p>
+                  {primaryImei && (
+                    <p className="text-[11px] font-mono text-foreground/70 mt-1 truncate">
+                      IMEI: {primaryImei}
+                      {issue === "duplicate" && (
+                        <span className="ml-1 text-destructive font-bold">· duplicado</span>
+                      )}
+                    </p>
+                  )}
+                  {issue === "missing" && (
+                    <p className="text-[11px] font-bold text-amber-600 mt-1">⚠ Aparelho sem IMEI</p>
+                  )}
+                  <div className="flex items-center justify-between mt-2 gap-2">
+                    <span className="text-sm font-black text-primary tabular-nums">
+                      R$ {fmtBRL(product.price)}
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${daysBadge(days)}`}
+                    >
+                      {days}d
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
 
         {loading && (
           <div className="p-10 grid place-items-center">
