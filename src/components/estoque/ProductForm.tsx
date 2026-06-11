@@ -243,16 +243,24 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
       });
   }, [open, orgId]);
 
-  const [contasPagar, setContasPagar] = useState<ExtraRow[]>(md.contas_pagar || []);
-  const [custosExtras, setCustosExtras] = useState<ExtraRow[]>(md.custos_extras || []);
-  const [anexos, setAnexos] = useState<{ name: string; url?: string }[]>(md.anexos || []);
+  const [contasPagar, setContasPagar] = useState<ExtraRow[]>(
+    Array.isArray(md.contas_pagar) ? md.contas_pagar : [],
+  );
+  const [custosExtras, setCustosExtras] = useState<ExtraRow[]>(
+    Array.isArray(md.custos_extras) ? md.custos_extras : [],
+  );
+  const [anexos, setAnexos] = useState<{ name: string; url?: string }[]>(
+    Array.isArray(md.anexos) ? md.anexos : [],
+  );
   const [imageUrlInput, setImageUrlInput] = useState<string>(md.image_url || "");
   const [checklist, setChecklist] = useState<{ id: string; item: string; ok: boolean }[]>(
-    md.checklist || [
-      { id: "1", item: "Tela sem riscos", ok: false },
-      { id: "2", item: "Carregador incluso", ok: false },
-      { id: "3", item: "Caixa original", ok: false },
-    ],
+    Array.isArray(md.checklist)
+      ? md.checklist
+      : [
+          { id: "1", item: "Tela sem riscos", ok: false },
+          { id: "2", item: "Carregador incluso", ok: false },
+          { id: "3", item: "Caixa original", ok: false },
+        ],
   );
 
   // Reset all state when opening with a different product (or new)
