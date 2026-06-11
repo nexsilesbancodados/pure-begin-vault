@@ -156,7 +156,7 @@ function buildInitialForm(product: any) {
     valor_venda_2: md.valor_venda_2 || "",
     valor_venda_3: md.valor_venda_3 || "",
     observacao: product?.description || "",
-    tags: (md.tags || []).join(", "),
+    tags: (Array.isArray(md.tags) ? md.tags : []).join(", "),
     // fornecedor
     tipo_fornecedor: md.tipo_fornecedor || "Fornecedor",
     fornecedor: product?.supplier || "",
