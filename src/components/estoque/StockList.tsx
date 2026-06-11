@@ -1017,7 +1017,7 @@ export function StockList() {
 
       {/* Table */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-card">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="bg-muted/40 border-b border-border">
