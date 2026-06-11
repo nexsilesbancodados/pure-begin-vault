@@ -953,9 +953,27 @@ export function StockList() {
               setColFilters((f) => ({ ...f, availability: "out" }));
             },
           },
+          {
+            key: "stalled",
+            label: "Parado ≥30d",
+            value: localProducts.filter(
+              (p) => (p.stock || 0) > 0 && daysInStock(p.created_at) >= 30,
+            ).length,
+            full: "Produtos com estoque acima de 30 dias",
+            icon: Clock,
+            color: "text-orange-600",
+            bg: "bg-orange-500/10",
+            ring: "ring-orange-500/30",
+            border: "border-orange-500/60",
+            apply: () => {
+              setStalledOnly(true);
+              setAdvancedOpen(true);
+              setOnlyCurrent(true);
+            },
+          },
         ];
         return (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
             {tiles.map((k) => {
               const active =
                 (k.key === "out" && (viewTab === "out" || colFilters.availability === "out")) ||
