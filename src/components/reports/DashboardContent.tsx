@@ -464,8 +464,9 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
             { label: "Total de vendas", value: String(e.salesCount || 0), tone: "primary" },
           ],
         );
-      case "produto":
       case "prod-resumo-estoque":
+        return <StockSummaryReport />;
+      case "produto":
       case "prod-detalhes-estoque":
         return renderKpiGrid(
           "Estoque & Produtos",
