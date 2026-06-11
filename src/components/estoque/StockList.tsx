@@ -393,11 +393,16 @@ export function StockList() {
     daysMax: "",
     availability: "all", // all | available | out
   });
-  const [advancedOpen, setAdvancedOpen] = useState(true);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [onlyCurrent, setOnlyCurrent] = useState(true);
   const [onlyNfe, setOnlyNfe] = useState(false);
   const [advType, setAdvType] = useState("");
   const [imeiFilter, setImeiFilter] = useState<"all" | "missing" | "duplicate">("all");
+  const [advBrand, setAdvBrand] = useState("");
+  const [advLocation, setAdvLocation] = useState("");
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [stalledOnly, setStalledOnly] = useState(false);
 
   // Categorias que exigem IMEI
   const isPhoneCategory = (cat?: string | null) => {
