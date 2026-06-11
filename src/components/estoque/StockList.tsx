@@ -787,12 +787,60 @@ export function StockList() {
                 className="mt-1.5 w-full h-9 px-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
+            <div>
+              <Label className="text-xs text-muted-foreground font-semibold">Marca</Label>
+              <input
+                value={advBrand}
+                onChange={(e) => setAdvBrand(e.target.value)}
+                placeholder="Ex: Apple, Samsung..."
+                className="mt-1.5 w-full h-9 px-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground font-semibold">Local / vitrine</Label>
+              <input
+                value={advLocation}
+                onChange={(e) => setAdvLocation(e.target.value)}
+                placeholder="Prateleira, gaveta..."
+                className="mt-1.5 w-full h-9 px-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground font-semibold">Preço de venda</Label>
+              <div className="mt-1.5 flex items-center gap-2">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={priceMin}
+                  onChange={(e) => setPriceMin(e.target.value)}
+                  placeholder="mín R$"
+                  className="w-full h-9 px-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <span className="text-xs text-muted-foreground">a</span>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={priceMax}
+                  onChange={(e) => setPriceMax(e.target.value)}
+                  placeholder="máx R$"
+                  className="w-full h-9 px-3 rounded-lg bg-background border border-border text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground font-semibold">
+                Apenas itens parados ≥ 30 dias?
+              </Label>
+              <div className="mt-1.5">
+                <ToggleYesNo value={stalledOnly} onChange={setStalledOnly} />
+              </div>
+            </div>
             <div className="md:col-span-3">
               <button
                 onClick={() => fetchProducts(0, true)}
                 className="inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold transition shadow-sm"
               >
-                <Search className="h-4 w-4" /> Buscar
+                <Search className="h-4 w-4" /> Recarregar do servidor
               </button>
             </div>
           </div>
