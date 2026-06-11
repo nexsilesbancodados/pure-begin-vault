@@ -281,16 +281,18 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
           ? "Aparelho"
           : "Aparelho";
     setProductType(inferred);
-    setContasPagar(m.contas_pagar || []);
-    setCustosExtras(m.custos_extras || []);
-    setAnexos(m.anexos || []);
+    setContasPagar(Array.isArray(m.contas_pagar) ? m.contas_pagar : []);
+    setCustosExtras(Array.isArray(m.custos_extras) ? m.custos_extras : []);
+    setAnexos(Array.isArray(m.anexos) ? m.anexos : []);
     setImageUrlInput(m.image_url || "");
     setChecklist(
-      m.checklist || [
-        { id: "1", item: "Tela sem riscos", ok: false },
-        { id: "2", item: "Carregador incluso", ok: false },
-        { id: "3", item: "Caixa original", ok: false },
-      ],
+      Array.isArray(m.checklist)
+        ? m.checklist
+        : [
+            { id: "1", item: "Tela sem riscos", ok: false },
+            { id: "2", item: "Carregador incluso", ok: false },
+            { id: "3", item: "Caixa original", ok: false },
+          ],
     );
     setPendingFiles([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
