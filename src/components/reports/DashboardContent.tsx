@@ -441,10 +441,12 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         );
       case "vendas-relatorio":
         return <SalesReportTable />;
+      case "prod-vendidos":
+      case "vendas-produtos":
+        return <SoldProductsReport />;
       case "vendas":
       case "vendas-historico":
       case "vendas-projecoes":
-      case "vendas-produtos":
         return renderKpiGrid(
           "Performance de Vendas",
           "Indicadores do mês atual sincronizados com o histórico de vendas.",
