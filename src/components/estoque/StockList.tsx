@@ -721,9 +721,14 @@ export function StockList() {
               (filterCategory !== "all" ? 1 : 0) +
               (imeiFilter !== "all" ? 1 : 0) +
               (viewTab !== "all" ? 1 : 0) +
-              (onlyCurrent ? 1 : 0) +
+              (onlyCurrent ? 0 : 0) +
               (onlyNfe ? 1 : 0) +
               (advType ? 1 : 0) +
+              (advBrand ? 1 : 0) +
+              (advLocation ? 1 : 0) +
+              (priceMin ? 1 : 0) +
+              (priceMax ? 1 : 0) +
+              (stalledOnly ? 1 : 0) +
               (searchTerm ? 1 : 0);
             if (activeCount === 0) return null;
             return (
