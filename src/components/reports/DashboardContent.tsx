@@ -40,6 +40,7 @@ import {
 } from "recharts";
 import { SalesChart } from "@/components/dashboard/SalesChart";
 import { SalesReportTable } from "@/components/reports/SalesReportTable";
+import { SoldProductsReport } from "@/components/reports/SoldProductsReport";
 
 interface ExtraStats {
   despesasOpen: number; despesasOverdue: number; despesasTotal: number; despesasPaid: number;
@@ -440,10 +441,12 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         );
       case "vendas-relatorio":
         return <SalesReportTable />;
+      case "prod-vendidos":
+      case "vendas-produtos":
+        return <SoldProductsReport />;
       case "vendas":
       case "vendas-historico":
       case "vendas-projecoes":
-      case "vendas-produtos":
         return renderKpiGrid(
           "Performance de Vendas",
           "Indicadores do mês atual sincronizados com o histórico de vendas.",
@@ -461,7 +464,6 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
           ],
         );
       case "produto":
-      case "prod-vendidos":
       case "prod-resumo-estoque":
       case "prod-detalhes-estoque":
         return renderKpiGrid(
