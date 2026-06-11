@@ -41,6 +41,7 @@ import {
 import { SalesChart } from "@/components/dashboard/SalesChart";
 import { SalesReportTable } from "@/components/reports/SalesReportTable";
 import { SoldProductsReport } from "@/components/reports/SoldProductsReport";
+import { StockSummaryReport } from "@/components/reports/StockSummaryReport";
 
 interface ExtraStats {
   despesasOpen: number; despesasOverdue: number; despesasTotal: number; despesasPaid: number;
