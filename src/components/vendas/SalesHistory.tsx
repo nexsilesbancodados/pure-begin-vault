@@ -1308,18 +1308,19 @@ th{background:#fafafa;text-align:center;font-weight:bold;}
                               danger: true,
                               label: "Cancelar a venda",
                               onClick: async () => {
-                                if (!confirm("Deseja realmente cancelar esta venda?")) return;
+                                if (!confirm("Cancelar esta venda? O estoque dos itens será devolvido e o lançamento financeiro estornado."))
+                                  return;
                                 try {
-                                  const { error } = await supabase
-                                    .from("sales_orders")
-                                    .update({ status: "canceled" })
-                                    .eq("id", sale.id)
-                                    .eq("organization_id", orgId);
+                                  const { data, error } = await (supabase as any).rpc("cancel_sale", { _sale_id: sale.id });
                                   if (error) throw error;
-                                  toast.success("Venda cancelada!");
+                                  toast.success(
+                                    data?.already_canceled
+                                      ? "Venda já estava cancelada."
+                                      : `Venda cancelada. ${data?.items_restored ?? 0} item(ns) devolvido(s) ao estoque.`,
+                                  );
                                   fetchSales();
-                                } catch {
-                                  toast.error("Erro ao cancelar venda.");
+                                } catch (e: any) {
+                                  toast.error("Erro ao cancelar venda: " + (e?.message ?? ""));
                                 }
                               },
                             },
