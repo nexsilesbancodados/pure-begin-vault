@@ -465,7 +465,7 @@ export function StockList() {
     const min = parseFloat(priceMin);
     const max = parseFloat(priceMax);
     return filteredProducts.filter((p) => {
-      if (onlyCurrent && (p.stock || 0) <= 0) return false;
+      if (onlyCurrent && viewTab !== "out" && viewTab !== "negative" && (p.stock || 0) <= 0) return false;
       if (onlyNfe && !p.metadata?.nota_id) return false;
       if (advType && !(p.category || "").toLowerCase().includes(advType.toLowerCase()))
         return false;
