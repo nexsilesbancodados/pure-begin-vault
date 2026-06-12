@@ -3418,6 +3418,7 @@ export type Database = {
     Functions: {
       _exec_sql: { Args: { _q: string }; Returns: undefined }
       accept_organization_invite: { Args: { _token: string }; Returns: string }
+      cancel_sale: { Args: { _sale_id: string }; Returns: Json }
       checkout_sale: { Args: { _payload: Json }; Returns: string }
       clear_demo_data: { Args: never; Returns: Json }
       create_affiliate_code: { Args: never; Returns: string }
