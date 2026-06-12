@@ -1145,6 +1145,83 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                   />
                 </FieldRow>
               </div>
+
+              {/* Histórico completo de movimentações deste produto */}
+              {product?.id && (
+                <div className="mt-8">
+                  <h3 className="text-sm font-bold mb-3">Histórico de movimentações</h3>
+                  {movLoading ? (
+                    <p className="text-xs text-muted-foreground">Carregando histórico...</p>
+                  ) : movHistory.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Nenhuma movimentação registrada ainda.
+                    </p>
+                  ) : (
+                    <div className="border border-border rounded-lg overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/40">
+                          <tr>
+                            <th className="text-left p-2 font-semibold">Data</th>
+                            <th className="text-left p-2 font-semibold">Tipo</th>
+                            <th className="text-right p-2 font-semibold">Qtd</th>
+                            <th className="text-left p-2 font-semibold">Motivo</th>
+                            <th className="text-left p-2 font-semibold">Referência</th>
+                            <th className="text-left p-2 font-semibold">Observação</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {movHistory.map((m) => {
+                            const isIn = m.movement_type === "in" || m.movement_type === "entrada";
+                            const isCancel = m.reason === "cancelamento_venda" || m.reference_type === "sale_cancel";
+                            const isSale = m.reason === "venda" || m.reference_type === "sale";
+                            let refLabel = "—";
+                            if (m.sale?.sale_number) {
+                              refLabel = `Venda #${m.sale.sale_number}${m.sale.status === "canceled" || m.sale.status === "cancelled" ? " (cancelada)" : ""}`;
+                            } else if (m.reference_type) {
+                              refLabel = m.reference_type;
+                            }
+                            return (
+                              <tr key={m.id} className="border-t border-border">
+                                <td className="p-2 text-muted-foreground whitespace-nowrap">
+                                  {new Date(m.created_at).toLocaleString("pt-BR")}
+                                </td>
+                                <td className="p-2">
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                      isCancel
+                                        ? "bg-warning/15 text-warning"
+                                        : isSale
+                                        ? "bg-destructive/15 text-destructive"
+                                        : isIn
+                                        ? "bg-success/15 text-success"
+                                        : "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    {isCancel
+                                      ? "ESTORNO"
+                                      : isSale
+                                      ? "VENDA"
+                                      : isIn
+                                      ? "ENTRADA"
+                                      : "SAÍDA"}
+                                  </span>
+                                </td>
+                                <td className={`p-2 text-right font-bold ${isIn ? "text-success" : "text-destructive"}`}>
+                                  {isIn ? "+" : "-"}
+                                  {m.quantity}
+                                </td>
+                                <td className="p-2 capitalize">{m.reason ?? "—"}</td>
+                                <td className="p-2">{refLabel}</td>
+                                <td className="p-2 text-muted-foreground">{m.notes ?? ""}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             {/* === CHECKLIST === */}
