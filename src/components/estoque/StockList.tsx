@@ -230,12 +230,16 @@ export function StockList() {
 
       const matchesCategory = filterCategory === "all" || product.category === filterCategory;
 
-      const isLowStock =
-        (product.stock || 0) <= (product.min_stock || 3) && (product.stock || 0) > 0;
-      const isOutOfStock = (product.stock || 0) === 0;
+      const stockVal = Number(product.stock ?? 0);
+      const isLowStock = stockVal <= (product.min_stock || 3) && stockVal > 0;
+      const isOutOfStock = stockVal === 0;
+      const isPositive = stockVal > 0;
+      const isNegative = stockVal < 0;
 
       if (viewTab === "low") return matchesSearch && matchesCategory && isLowStock;
       if (viewTab === "out") return matchesSearch && matchesCategory && isOutOfStock;
+      if (viewTab === "positive") return matchesSearch && matchesCategory && isPositive;
+      if (viewTab === "negative") return matchesSearch && matchesCategory && isNegative;
 
       return matchesSearch && matchesCategory;
     });
