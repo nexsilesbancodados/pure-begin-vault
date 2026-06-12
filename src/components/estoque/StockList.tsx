@@ -230,12 +230,16 @@ export function StockList() {
 
       const matchesCategory = filterCategory === "all" || product.category === filterCategory;
 
-      const isLowStock =
-        (product.stock || 0) <= (product.min_stock || 3) && (product.stock || 0) > 0;
-      const isOutOfStock = (product.stock || 0) === 0;
+      const stockVal = Number(product.stock ?? 0);
+      const isLowStock = stockVal <= (product.min_stock || 3) && stockVal > 0;
+      const isOutOfStock = stockVal === 0;
+      const isPositive = stockVal > 0;
+      const isNegative = stockVal < 0;
 
       if (viewTab === "low") return matchesSearch && matchesCategory && isLowStock;
       if (viewTab === "out") return matchesSearch && matchesCategory && isOutOfStock;
+      if (viewTab === "positive") return matchesSearch && matchesCategory && isPositive;
+      if (viewTab === "negative") return matchesSearch && matchesCategory && isNegative;
 
       return matchesSearch && matchesCategory;
     });
@@ -461,7 +465,7 @@ export function StockList() {
     const min = parseFloat(priceMin);
     const max = parseFloat(priceMax);
     return filteredProducts.filter((p) => {
-      if (onlyCurrent && (p.stock || 0) <= 0) return false;
+      if (onlyCurrent && viewTab !== "out" && viewTab !== "negative" && (p.stock || 0) <= 0) return false;
       if (onlyNfe && !p.metadata?.nota_id) return false;
       if (advType && !(p.category || "").toLowerCase().includes(advType.toLowerCase()))
         return false;
@@ -624,14 +628,28 @@ export function StockList() {
             <DropdownMenuTrigger asChild>
               <button className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 text-sm font-semibold border border-border transition">
                 <Layers className="h-4 w-4 text-primary" />
-                {viewTab === "low" ? "Estoque baixo" : viewTab === "out" ? "Esgotados" : "Estoque geral"}
+                {viewTab === "low"
+                  ? "Estoque baixo"
+                  : viewTab === "out"
+                    ? "Esgotados"
+                    : viewTab === "positive"
+                      ? "Acima de zero"
+                      : viewTab === "negative"
+                        ? "Saldo negativo"
+                        : "Estoque geral"}
                 <ArrowUpDown className="h-3 w-3 opacity-50" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem onClick={() => setViewTab("all")}>Todos</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewTab("positive")}>
+                Acima de zero (&gt; 0)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewTab("negative")}>
+                Saldo negativo (&lt; 0)
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setViewTab("low")}>Estoque baixo</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setViewTab("out")}>Esgotados</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewTab("out")}>Esgotados (= 0)</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
