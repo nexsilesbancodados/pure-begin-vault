@@ -321,6 +321,52 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
+  // Histórico de movimentações do produto
+  type MovRow = {
+    id: string;
+    movement_type: string;
+    quantity: number;
+    reason: string | null;
+    notes: string | null;
+    created_at: string;
+    reference_type: string | null;
+    reference_id: string | null;
+    sale?: { sale_number: number | null; status: string | null; customer_id: string | null } | null;
+  };
+  const [movHistory, setMovHistory] = useState<MovRow[]>([]);
+  const [movLoading, setMovLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !orgId || !product?.id) {
+      setMovHistory([]);
+      return;
+    }
+    setMovLoading(true);
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("stock_movements")
+        .select("id, movement_type, quantity, reason, notes, created_at, reference_type, reference_id, sale:sales_orders!stock_movements_reference_id_fkey(sale_number, status, customer_id)")
+        .eq("organization_id", orgId)
+        .eq("product_id", product.id)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      // Se o join falhar (FK não existe), busca sem o join
+      if (!data) {
+        const { data: plain } = await (supabase as any)
+          .from("stock_movements")
+          .select("id, movement_type, quantity, reason, notes, created_at, reference_type, reference_id")
+          .eq("organization_id", orgId)
+          .eq("product_id", product.id)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        setMovHistory((plain ?? []) as MovRow[]);
+      } else {
+        setMovHistory(data as MovRow[]);
+      }
+      setMovLoading(false);
+    })();
+  }, [open, orgId, product?.id]);
+
   const uploadPendingFiles = async (): Promise<{ name: string; url: string }[]> => {
     if (!pendingFiles.length || !orgId) return [];
     const uploaded: { name: string; url: string }[] = [];
