@@ -474,7 +474,7 @@ function ProductsPage() {
                         <span
                           className={`font-semibold ${product.stock_quantity <= (product.min_stock || 0) ? "text-destructive" : "text-foreground"}`}
                         >
-                          {product.stock_quantity}
+                          {Number(product.stock_quantity) || 0}
                         </span>
                       </span>
                       <button
