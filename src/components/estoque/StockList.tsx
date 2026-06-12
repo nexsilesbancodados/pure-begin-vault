@@ -628,14 +628,28 @@ export function StockList() {
             <DropdownMenuTrigger asChild>
               <button className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-muted hover:bg-muted/70 text-sm font-semibold border border-border transition">
                 <Layers className="h-4 w-4 text-primary" />
-                {viewTab === "low" ? "Estoque baixo" : viewTab === "out" ? "Esgotados" : "Estoque geral"}
+                {viewTab === "low"
+                  ? "Estoque baixo"
+                  : viewTab === "out"
+                    ? "Esgotados"
+                    : viewTab === "positive"
+                      ? "Acima de zero"
+                      : viewTab === "negative"
+                        ? "Saldo negativo"
+                        : "Estoque geral"}
                 <ArrowUpDown className="h-3 w-3 opacity-50" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               <DropdownMenuItem onClick={() => setViewTab("all")}>Todos</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewTab("positive")}>
+                Acima de zero (&gt; 0)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewTab("negative")}>
+                Saldo negativo (&lt; 0)
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setViewTab("low")}>Estoque baixo</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setViewTab("out")}>Esgotados</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setViewTab("out")}>Esgotados (= 0)</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
