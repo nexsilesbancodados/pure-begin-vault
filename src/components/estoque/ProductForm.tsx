@@ -345,24 +345,24 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     (async () => {
       const { data } = await (supabase as any)
         .from("stock_movements")
-        .select("id, movement_type, quantity, reason, notes, created_at, reference_type, reference_id, sale:sales_orders!stock_movements_reference_id_fkey(sale_number, status, customer_id)")
+        .select("id, movement_type, quantity, reason, notes, created_at, reference_type, reference_id")
         .eq("organization_id", orgId)
         .eq("product_id", product.id)
         .order("created_at", { ascending: false })
         .limit(200);
-      // Se o join falhar (FK não existe), busca sem o join
-      if (!data) {
-        const { data: plain } = await (supabase as any)
-          .from("stock_movements")
-          .select("id, movement_type, quantity, reason, notes, created_at, reference_type, reference_id")
-          .eq("organization_id", orgId)
-          .eq("product_id", product.id)
-          .order("created_at", { ascending: false })
-          .limit(200);
-        setMovHistory((plain ?? []) as MovRow[]);
-      } else {
-        setMovHistory(data as MovRow[]);
+      const movs = (data ?? []) as MovRow[];
+      const saleIds = Array.from(
+        new Set(movs.filter((m) => m.reference_id && (m.reference_type === "sale" || m.reference_type === "sale_cancel")).map((m) => m.reference_id as string)),
+      );
+      let salesMap: Record<string, any> = {};
+      if (saleIds.length) {
+        const { data: sales } = await (supabase as any)
+          .from("sales_orders")
+          .select("id, sale_number, status, customer_id")
+          .in("id", saleIds);
+        salesMap = Object.fromEntries((sales ?? []).map((s: any) => [s.id, s]));
       }
+      setMovHistory(movs.map((m) => ({ ...m, sale: m.reference_id ? salesMap[m.reference_id] ?? null : null })));
       setMovLoading(false);
     })();
   }, [open, orgId, product?.id]);
