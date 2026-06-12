@@ -457,11 +457,13 @@ function ProductsPage() {
                   </div>
                   <div className="p-4">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1">
-                      {product.category}
+                      {typeof product.category === "string" ? product.category : ""}
                     </div>
-                    <h3 className="font-bold text-sm mb-1 truncate">{product.name}</h3>
+                    <h3 className="font-bold text-sm mb-1 truncate">
+                      {typeof product.name === "string" ? product.name : "Sem nome"}
+                    </h3>
                     <div className="text-lg font-bold font-display text-foreground">
-                      {(product.price || 0).toLocaleString("pt-BR", {
+                      {(Number(product.price) || 0).toLocaleString("pt-BR", {
                         style: "currency",
                         currency: "BRL",
                       })}
