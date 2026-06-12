@@ -321,6 +321,52 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
 
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
+  // Histórico de movimentações do produto
+  type MovRow = {
+    id: string;
+    movement_type: string;
+    quantity: number;
+    reason: string | null;
+    notes: string | null;
+    created_at: string;
+    reference_type: string | null;
+    reference_id: string | null;
+    sale?: { sale_number: number | null; status: string | null; customer_id: string | null } | null;
+  };
+  const [movHistory, setMovHistory] = useState<MovRow[]>([]);
+  const [movLoading, setMovLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !orgId || !product?.id) {
+      setMovHistory([]);
+      return;
+    }
+    setMovLoading(true);
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("stock_movements")
+        .select("id, movement_type, quantity, reason, notes, created_at, reference_type, reference_id")
+        .eq("organization_id", orgId)
+        .eq("product_id", product.id)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      const movs = (data ?? []) as MovRow[];
+      const saleIds = Array.from(
+        new Set(movs.filter((m) => m.reference_id && (m.reference_type === "sale" || m.reference_type === "sale_cancel")).map((m) => m.reference_id as string)),
+      );
+      let salesMap: Record<string, any> = {};
+      if (saleIds.length) {
+        const { data: sales } = await (supabase as any)
+          .from("sales_orders")
+          .select("id, sale_number, status, customer_id")
+          .in("id", saleIds);
+        salesMap = Object.fromEntries((sales ?? []).map((s: any) => [s.id, s]));
+      }
+      setMovHistory(movs.map((m) => ({ ...m, sale: m.reference_id ? salesMap[m.reference_id] ?? null : null })));
+      setMovLoading(false);
+    })();
+  }, [open, orgId, product?.id]);
+
   const uploadPendingFiles = async (): Promise<{ name: string; url: string }[]> => {
     if (!pendingFiles.length || !orgId) return [];
     const uploaded: { name: string; url: string }[] = [];
@@ -1099,6 +1145,83 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                   />
                 </FieldRow>
               </div>
+
+              {/* Histórico completo de movimentações deste produto */}
+              {product?.id && (
+                <div className="mt-8">
+                  <h3 className="text-sm font-bold mb-3">Histórico de movimentações</h3>
+                  {movLoading ? (
+                    <p className="text-xs text-muted-foreground">Carregando histórico...</p>
+                  ) : movHistory.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      Nenhuma movimentação registrada ainda.
+                    </p>
+                  ) : (
+                    <div className="border border-border rounded-lg overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/40">
+                          <tr>
+                            <th className="text-left p-2 font-semibold">Data</th>
+                            <th className="text-left p-2 font-semibold">Tipo</th>
+                            <th className="text-right p-2 font-semibold">Qtd</th>
+                            <th className="text-left p-2 font-semibold">Motivo</th>
+                            <th className="text-left p-2 font-semibold">Referência</th>
+                            <th className="text-left p-2 font-semibold">Observação</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {movHistory.map((m) => {
+                            const isIn = m.movement_type === "in" || m.movement_type === "entrada";
+                            const isCancel = m.reason === "cancelamento_venda" || m.reference_type === "sale_cancel";
+                            const isSale = m.reason === "venda" || m.reference_type === "sale";
+                            let refLabel = "—";
+                            if (m.sale?.sale_number) {
+                              refLabel = `Venda #${m.sale.sale_number}${m.sale.status === "canceled" || m.sale.status === "cancelled" ? " (cancelada)" : ""}`;
+                            } else if (m.reference_type) {
+                              refLabel = m.reference_type;
+                            }
+                            return (
+                              <tr key={m.id} className="border-t border-border">
+                                <td className="p-2 text-muted-foreground whitespace-nowrap">
+                                  {new Date(m.created_at).toLocaleString("pt-BR")}
+                                </td>
+                                <td className="p-2">
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                      isCancel
+                                        ? "bg-warning/15 text-warning"
+                                        : isSale
+                                        ? "bg-destructive/15 text-destructive"
+                                        : isIn
+                                        ? "bg-success/15 text-success"
+                                        : "bg-muted text-muted-foreground"
+                                    }`}
+                                  >
+                                    {isCancel
+                                      ? "ESTORNO"
+                                      : isSale
+                                      ? "VENDA"
+                                      : isIn
+                                      ? "ENTRADA"
+                                      : "SAÍDA"}
+                                  </span>
+                                </td>
+                                <td className={`p-2 text-right font-bold ${isIn ? "text-success" : "text-destructive"}`}>
+                                  {isIn ? "+" : "-"}
+                                  {m.quantity}
+                                </td>
+                                <td className="p-2 capitalize">{m.reason ?? "—"}</td>
+                                <td className="p-2">{refLabel}</td>
+                                <td className="p-2 text-muted-foreground">{m.notes ?? ""}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             {/* === CHECKLIST === */}
