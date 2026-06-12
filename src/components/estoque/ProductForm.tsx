@@ -1210,13 +1210,69 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
               {/* Histórico completo de movimentações deste produto */}
               {product?.id && (
                 <div className="mt-8">
-                  <h3 className="text-sm font-bold mb-3">Histórico de movimentações</h3>
+                  {/* Cards de resumo */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
+                    <div className="rounded-lg border border-success/30 bg-success/5 p-3">
+                      <div className="text-[10px] font-bold uppercase text-success">Entradas</div>
+                      <div className="text-lg font-bold text-success">+{movStats.entradas}</div>
+                    </div>
+                    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                      <div className="text-[10px] font-bold uppercase text-destructive">Vendas</div>
+                      <div className="text-lg font-bold text-destructive">-{movStats.vendas}</div>
+                    </div>
+                    <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
+                      <div className="text-[10px] font-bold uppercase text-warning">Estornos</div>
+                      <div className="text-lg font-bold text-warning">+{movStats.estornos}</div>
+                    </div>
+                    <div className="rounded-lg border border-muted bg-muted/30 p-3">
+                      <div className="text-[10px] font-bold uppercase text-muted-foreground">Saídas</div>
+                      <div className="text-lg font-bold">-{movStats.saidas}</div>
+                    </div>
+                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+                      <div className="text-[10px] font-bold uppercase text-primary">Saldo</div>
+                      <div className={`text-lg font-bold ${movStats.saldo < 0 ? "text-destructive" : "text-primary"}`}>
+                        {movStats.saldo > 0 ? "+" : ""}{movStats.saldo}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <h3 className="text-sm font-bold">Histórico de movimentações</h3>
+                    <div className="flex gap-1 flex-wrap">
+                      {[
+                        { v: "all", l: "Todas" },
+                        { v: "in", l: "Entradas" },
+                        { v: "sale", l: "Vendas" },
+                        { v: "cancel", l: "Estornos" },
+                        { v: "out", l: "Saídas" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.v}
+                          type="button"
+                          onClick={() => setMovFilter(opt.v as any)}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold border transition ${
+                            movFilter === opt.v
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card border-border hover:bg-muted"
+                          }`}
+                        >
+                          {opt.l}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {movLoading ? (
                     <p className="text-xs text-muted-foreground">Carregando histórico...</p>
-                  ) : movHistory.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      Nenhuma movimentação registrada ainda.
-                    </p>
+                  ) : filteredMov.length === 0 ? (
+                    <div className="border border-dashed border-border rounded-lg p-8 text-center">
+                      <ArrowLeftRight className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                      <p className="text-xs text-muted-foreground">
+                        {(movHistory?.length ?? 0) === 0
+                          ? "Nenhuma movimentação registrada ainda."
+                          : "Nenhuma movimentação corresponde a este filtro."}
+                      </p>
+                    </div>
                   ) : (
                     <div className="border border-border rounded-lg overflow-hidden">
                       <table className="w-full text-xs">
@@ -1226,29 +1282,50 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                             <th className="text-left p-2 font-semibold">Tipo</th>
                             <th className="text-right p-2 font-semibold">Qtd</th>
                             <th className="text-left p-2 font-semibold">Motivo</th>
-                            <th className="text-left p-2 font-semibold">Referência</th>
+                            <th className="text-left p-2 font-semibold">Referência / Cliente</th>
                             <th className="text-left p-2 font-semibold">Observação</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {movHistory.map((m) => {
+                          {filteredMov.map((m) => {
                             const isIn = m.movement_type === "in" || m.movement_type === "entrada";
                             const isCancel = m.reason === "cancelamento_venda" || m.reference_type === "sale_cancel";
                             const isSale = m.reason === "venda" || m.reference_type === "sale";
-                            let refLabel = "—";
+                            const saleCanceled = m.sale?.status === "canceled" || m.sale?.status === "cancelled";
+                            let refLabel: React.ReactNode = "—";
                             if (m.sale?.sale_number) {
-                              refLabel = `Venda #${m.sale.sale_number}${m.sale.status === "canceled" || m.sale.status === "cancelled" ? " (cancelada)" : ""}`;
+                              refLabel = (
+                                <div className="flex flex-col">
+                                  <span className="font-semibold">
+                                    Venda #{m.sale.sale_number}
+                                    {saleCanceled && (
+                                      <span className="ml-1 text-warning">(cancelada)</span>
+                                    )}
+                                  </span>
+                                  {m.sale.customer_name && (
+                                    <span className="text-muted-foreground text-[10px]">
+                                      {m.sale.customer_name}
+                                    </span>
+                                  )}
+                                </div>
+                              );
                             } else if (m.reference_type) {
                               refLabel = m.reference_type;
                             }
+                            const date = new Date(m.created_at);
                             return (
-                              <tr key={m.id} className="border-t border-border">
+                              <tr key={m.id} className="border-t border-border hover:bg-muted/20">
                                 <td className="p-2 text-muted-foreground whitespace-nowrap">
-                                  {new Date(m.created_at).toLocaleString("pt-BR")}
+                                  <div className="font-medium text-foreground">
+                                    {date.toLocaleDateString("pt-BR")}
+                                  </div>
+                                  <div className="text-[10px]">
+                                    {date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                                  </div>
                                 </td>
                                 <td className="p-2">
                                   <span
-                                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
                                       isCancel
                                         ? "bg-warning/15 text-warning"
                                         : isSale
@@ -1259,19 +1336,19 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
                                     }`}
                                   >
                                     {isCancel
-                                      ? "ESTORNO"
+                                      ? "↩ ESTORNO"
                                       : isSale
-                                      ? "VENDA"
+                                      ? "↓ VENDA"
                                       : isIn
-                                      ? "ENTRADA"
-                                      : "SAÍDA"}
+                                      ? "↑ ENTRADA"
+                                      : "↓ SAÍDA"}
                                   </span>
                                 </td>
-                                <td className={`p-2 text-right font-bold ${isIn ? "text-success" : "text-destructive"}`}>
-                                  {isIn ? "+" : "-"}
+                                <td className={`p-2 text-right font-bold ${isIn || isCancel ? "text-success" : "text-destructive"}`}>
+                                  {isIn || isCancel ? "+" : "-"}
                                   {m.quantity}
                                 </td>
-                                <td className="p-2 capitalize">{m.reason ?? "—"}</td>
+                                <td className="p-2 capitalize">{(m.reason ?? "—").replace(/_/g, " ")}</td>
                                 <td className="p-2">{refLabel}</td>
                                 <td className="p-2 text-muted-foreground">{m.notes ?? ""}</td>
                               </tr>
