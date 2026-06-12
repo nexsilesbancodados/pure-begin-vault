@@ -331,10 +331,16 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
     created_at: string;
     reference_type: string | null;
     reference_id: string | null;
-    sale?: { sale_number: number | null; status: string | null; customer_id: string | null } | null;
+    sale?: {
+      sale_number: number | null;
+      status: string | null;
+      customer_id: string | null;
+      customer_name?: string | null;
+    } | null;
   };
   const [movHistory, setMovHistory] = useState<MovRow[]>([]);
   const [movLoading, setMovLoading] = useState(false);
+  const [movFilter, setMovFilter] = useState<"all" | "in" | "out" | "sale" | "cancel">("all");
 
   useEffect(() => {
     if (!open || !orgId || !product?.id) {
@@ -352,7 +358,11 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
         .limit(200);
       const movs = (data ?? []) as MovRow[];
       const saleIds = Array.from(
-        new Set(movs.filter((m) => m.reference_id && (m.reference_type === "sale" || m.reference_type === "sale_cancel")).map((m) => m.reference_id as string)),
+        new Set(
+          movs
+            .filter((m) => m.reference_id && (m.reference_type === "sale" || m.reference_type === "sale_cancel"))
+            .map((m) => m.reference_id as string),
+        ),
       );
       let salesMap: Record<string, any> = {};
       if (saleIds.length) {
@@ -360,12 +370,63 @@ export function ProductForm({ open, onOpenChange, product, onSave }: ProductForm
           .from("sales_orders")
           .select("id, sale_number, status, customer_id")
           .in("id", saleIds);
-        salesMap = Object.fromEntries((sales ?? []).map((s: any) => [s.id, s]));
+        const customerIds = Array.from(
+          new Set((sales ?? []).map((s: any) => s.customer_id).filter(Boolean)),
+        );
+        let customersMap: Record<string, string> = {};
+        if (customerIds.length) {
+          const { data: customers } = await (supabase as any)
+            .from("customers")
+            .select("id, name")
+            .in("id", customerIds);
+          customersMap = Object.fromEntries((customers ?? []).map((c: any) => [c.id, c.name]));
+        }
+        salesMap = Object.fromEntries(
+          (sales ?? []).map((s: any) => [
+            s.id,
+            { ...s, customer_name: s.customer_id ? customersMap[s.customer_id] ?? null : null },
+          ]),
+        );
       }
-      setMovHistory(movs.map((m) => ({ ...m, sale: m.reference_id ? salesMap[m.reference_id] ?? null : null })));
+      setMovHistory(
+        movs.map((m) => ({ ...m, sale: m.reference_id ? salesMap[m.reference_id] ?? null : null })),
+      );
       setMovLoading(false);
     })();
   }, [open, orgId, product?.id]);
+
+  const movStats = useMemo(() => {
+    const list = movHistory ?? [];
+    let entradas = 0;
+    let saidas = 0;
+    let vendas = 0;
+    let estornos = 0;
+    for (const m of list) {
+      const isIn = m.movement_type === "in" || m.movement_type === "entrada";
+      const isCancel = m.reason === "cancelamento_venda" || m.reference_type === "sale_cancel";
+      const isSale = m.reason === "venda" || m.reference_type === "sale";
+      if (isCancel) estornos += m.quantity;
+      else if (isSale) vendas += m.quantity;
+      else if (isIn) entradas += m.quantity;
+      else saidas += m.quantity;
+    }
+    return { entradas, saidas, vendas, estornos, saldo: entradas + estornos - saidas - vendas };
+  }, [movHistory]);
+
+  const filteredMov = useMemo(() => {
+    const list = movHistory ?? [];
+    if (movFilter === "all") return list;
+    return list.filter((m) => {
+      const isIn = m.movement_type === "in" || m.movement_type === "entrada";
+      const isCancel = m.reason === "cancelamento_venda" || m.reference_type === "sale_cancel";
+      const isSale = m.reason === "venda" || m.reference_type === "sale";
+      if (movFilter === "in") return isIn && !isCancel;
+      if (movFilter === "cancel") return isCancel;
+      if (movFilter === "sale") return isSale;
+      if (movFilter === "out") return !isIn && !isSale && !isCancel;
+      return true;
+    });
+  }, [movHistory, movFilter]);
 
   const uploadPendingFiles = async (): Promise<{ name: string; url: string }[]> => {
     if (!pendingFiles.length || !orgId) return [];
