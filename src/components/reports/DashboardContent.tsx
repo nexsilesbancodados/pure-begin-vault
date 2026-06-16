@@ -135,7 +135,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     );
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
         {(visibleStats.length > 0 ? visibleStats : allStats).map((stat, i) => {
           // Decorative sparkline bars (deterministic per index)
           const bars = Array.from({ length: 12 }, (_, k) => 30 + ((i * 7 + k * 11) % 60));
