@@ -25,6 +25,7 @@ import {
   List,
   ChevronDown,
   ChevronRight,
+  Wallet,
   PieChart as PieChartIcon,
 } from "lucide-react";
 import {
@@ -115,6 +116,18 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         text: "text-warning",
         categories: ["visao-geral", "vendas", "financeiro"],
       },
+      {
+        label: "Lucro",
+        value: fmtBRL(extra?.financeMargin ?? 0),
+        trend: {
+          value: (extra?.financeMargin ?? 0) >= 0 ? "Positivo" : "Negativo",
+          isUp: (extra?.financeMargin ?? 0) >= 0,
+        },
+        icon: Wallet,
+        bg: (extra?.financeMargin ?? 0) >= 0 ? "bg-success/10" : "bg-destructive/10",
+        text: (extra?.financeMargin ?? 0) >= 0 ? "text-success" : "text-destructive",
+        categories: ["visao-geral", "financeiro"],
+      },
     ];
 
     const visibleStats = allStats.filter(
@@ -122,7 +135,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     );
 
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8">
         {(visibleStats.length > 0 ? visibleStats : allStats).map((stat, i) => {
           // Decorative sparkline bars (deterministic per index)
           const bars = Array.from({ length: 12 }, (_, k) => 30 + ((i * 7 + k * 11) % 60));
