@@ -64,6 +64,7 @@ interface DashboardContentProps {
   topAgents: any[];
   funnelPercentages: string[];
   loading: boolean;
+  onNavigate?: (id: string) => void;
 }
 
 const fmtBRL = (n: number) =>
