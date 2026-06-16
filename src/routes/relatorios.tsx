@@ -344,6 +344,7 @@ function ReportsPage() {
     salesCount: number; salesToday: number; salesWeek: number; salesMonth: number;
     revenueToday: number; revenueWeek: number;
     financeMargin: number; financeOverdueCount: number;
+    comprasPaid: number; comprasOpen: number; lucroBruto: number;
   };
   const [funnelData, setFunnelData] = useState<FunnelDatum[]>([]);
   const [originData, setOriginData] = useState<OriginDatum[]>([]);
@@ -356,6 +357,7 @@ function ReportsPage() {
     salesCount: 0, salesToday: 0, salesWeek: 0, salesMonth: 0,
     revenueToday: 0, revenueWeek: 0,
     financeMargin: 0, financeOverdueCount: 0,
+    comprasPaid: 0, comprasOpen: 0, lucroBruto: 0,
   });
 
   const fetchReportsData = useCallback(async () => {
