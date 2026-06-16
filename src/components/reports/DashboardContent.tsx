@@ -52,6 +52,7 @@ interface ExtraStats {
   salesCount?: number; salesToday?: number; salesWeek?: number; salesMonth?: number;
   revenueToday?: number; revenueWeek?: number;
   financeMargin?: number; financeOverdueCount?: number;
+  comprasPaid?: number; comprasOpen?: number; lucroBruto?: number;
 }
 
 interface DashboardContentProps {
