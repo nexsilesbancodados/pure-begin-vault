@@ -52,6 +52,7 @@ interface ExtraStats {
   salesCount?: number; salesToday?: number; salesWeek?: number; salesMonth?: number;
   revenueToday?: number; revenueWeek?: number;
   financeMargin?: number; financeOverdueCount?: number;
+  comprasPaid?: number; comprasOpen?: number; lucroBruto?: number;
 }
 
 interface DashboardContentProps {
@@ -117,15 +118,33 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         categories: ["visao-geral", "vendas", "financeiro"],
       },
       {
-        label: "Lucro",
-        value: fmtBRL(extra?.financeMargin ?? 0),
+        label: "Lucro Bruto",
+        value: fmtBRL(extra?.lucroBruto ?? extra?.financeMargin ?? 0),
         trend: {
-          value: (extra?.financeMargin ?? 0) >= 0 ? "Positivo" : "Negativo",
-          isUp: (extra?.financeMargin ?? 0) >= 0,
+          value: (extra?.lucroBruto ?? 0) >= 0 ? "Positivo" : "Negativo",
+          isUp: (extra?.lucroBruto ?? 0) >= 0,
         },
         icon: Wallet,
-        bg: (extra?.financeMargin ?? 0) >= 0 ? "bg-success/10" : "bg-destructive/10",
-        text: (extra?.financeMargin ?? 0) >= 0 ? "text-success" : "text-destructive",
+        bg: (extra?.lucroBruto ?? 0) >= 0 ? "bg-success/10" : "bg-destructive/10",
+        text: (extra?.lucroBruto ?? 0) >= 0 ? "text-success" : "text-destructive",
+        categories: ["visao-geral", "financeiro"],
+      },
+      {
+        label: "Pago em Compras",
+        value: fmtBRL(extra?.comprasPaid ?? 0),
+        trend: { value: "Saída", isUp: false },
+        icon: ShoppingCart,
+        bg: "bg-orange-500/10",
+        text: "text-orange-500",
+        categories: ["visao-geral", "financeiro"],
+      },
+      {
+        label: "Pago em Despesas",
+        value: fmtBRL(extra?.despesasPaid ?? 0),
+        trend: { value: "Saída", isUp: false },
+        icon: ArrowDownRight,
+        bg: "bg-destructive/10",
+        text: "text-destructive",
         categories: ["visao-geral", "financeiro"],
       },
     ];
@@ -410,6 +429,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     salesCount: 0, salesToday: 0, salesWeek: 0, salesMonth: 0,
     revenueToday: 0, revenueWeek: 0,
     financeMargin: 0, financeOverdueCount: 0,
+    comprasPaid: 0, comprasOpen: 0, lucroBruto: 0,
   };
 
   const getContent = () => {

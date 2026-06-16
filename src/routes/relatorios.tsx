@@ -344,6 +344,7 @@ function ReportsPage() {
     salesCount: number; salesToday: number; salesWeek: number; salesMonth: number;
     revenueToday: number; revenueWeek: number;
     financeMargin: number; financeOverdueCount: number;
+    comprasPaid: number; comprasOpen: number; lucroBruto: number;
   };
   const [funnelData, setFunnelData] = useState<FunnelDatum[]>([]);
   const [originData, setOriginData] = useState<OriginDatum[]>([]);
@@ -356,6 +357,7 @@ function ReportsPage() {
     salesCount: 0, salesToday: 0, salesWeek: 0, salesMonth: 0,
     revenueToday: 0, revenueWeek: 0,
     financeMargin: 0, financeOverdueCount: 0,
+    comprasPaid: 0, comprasOpen: 0, lucroBruto: 0,
   });
 
   const fetchReportsData = useCallback(async () => {
@@ -375,7 +377,7 @@ function ReportsPage() {
 
       const filt = <T,>(q: T): T => ((q as any).eq("organization_id", orgId)) as T;
 
-      const [salesRes, leadsRes, stagesRes, pipelineRes, payRes, recRes, txRes, prodRes] = await Promise.all([
+      const [salesRes, leadsRes, stagesRes, pipelineRes, payRes, recRes, txRes, prodRes, comprasRes] = await Promise.all([
         filt(supabase.from("sales_orders").select("total_amount, status, created_at")),
         filt(supabase.from("leads").select("source, status, created_at")),
         filt(supabase.from("funnel_stages").select("name, color, id")).order("order_index"),
@@ -384,6 +386,7 @@ function ReportsPage() {
         filt(supabase.from("accounts_receivable").select("amount, paid_amount, status, due_date")),
         filt(supabase.from("finance_transactions").select("type, amount")),
         filt(supabase.from("products").select("active, stock_quantity, min_stock, cost_price, price")),
+        filt(supabase.from("purchase_notes").select("total, paga, kind")),
       ]);
 
       const sales = (salesRes.data || []) as SaleRow[];
@@ -456,14 +459,22 @@ function ReportsPage() {
         0,
       );
 
+      type ComprasRow = { total: number | null; paga: boolean | null; kind: string | null };
+      const compras = (comprasRes.data || []) as ComprasRow[];
+      const comprasPaid = compras.filter((c) => c.paga === true).reduce((a, c) => a + (Number(c.total) || 0), 0);
+      const comprasOpen = compras.filter((c) => c.paga !== true).reduce((a, c) => a + (Number(c.total) || 0), 0);
+      const receitasPaidVal = sumPaid(recs);
+      const despesasPaidVal = sumPaid(pays);
+      const lucroBruto = receitasPaidVal - despesasPaidVal - comprasPaid;
+
       setExtra({
         despesasOpen: sumPending(pays),
         despesasOverdue: overdue,
         despesasTotal: pays.reduce((a, r) => a + (Number(r.amount) || 0), 0),
-        despesasPaid: sumPaid(pays),
+        despesasPaid: despesasPaidVal,
         receitasOpen: sumPending(recs),
         receitasTotal: recs.reduce((a, r) => a + (Number(r.amount) || 0), 0),
-        receitasPaid: sumPaid(recs),
+        receitasPaid: receitasPaidVal,
         caixaSaldo: caixaIncome - caixaExpense,
         caixaIncome,
         caixaExpense,
@@ -478,8 +489,11 @@ function ReportsPage() {
         salesMonth: currentMonthSales.length,
         revenueToday,
         revenueWeek,
-        financeMargin: (recs.reduce((a, r) => a + (Number(r.paid_amount) || (r.status === "paid" ? Number(r.amount) || 0 : 0)), 0)) - sumPaid(pays),
+        financeMargin: receitasPaidVal - despesasPaidVal,
         financeOverdueCount: pays.filter((r) => r.status !== "paid" && r.due_date && r.due_date < today).length,
+        comprasPaid,
+        comprasOpen,
+        lucroBruto,
       });
 
       setFunnelData(
