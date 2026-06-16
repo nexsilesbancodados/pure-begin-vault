@@ -116,6 +116,18 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
         text: "text-warning",
         categories: ["visao-geral", "vendas", "financeiro"],
       },
+      {
+        label: "Lucro",
+        value: fmtBRL(extra?.financeMargin ?? 0),
+        trend: {
+          value: (extra?.financeMargin ?? 0) >= 0 ? "Positivo" : "Negativo",
+          isUp: (extra?.financeMargin ?? 0) >= 0,
+        },
+        icon: Wallet,
+        bg: (extra?.financeMargin ?? 0) >= 0 ? "bg-success/10" : "bg-destructive/10",
+        text: (extra?.financeMargin ?? 0) >= 0 ? "text-success" : "text-destructive",
+        categories: ["visao-geral", "financeiro"],
+      },
     ];
 
     const visibleStats = allStats.filter(
