@@ -210,9 +210,54 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     );
   };
 
+  const shortcuts: { id: string; label: string; desc: string; icon: any; tone: string }[] = [
+    { id: "fin-dre-gerencial", label: "DRE Gerencial", desc: "Resultado do período", icon: Wallet, tone: "bg-primary/10 text-primary" },
+    { id: "vendas-relatorio", label: "Relatório de Vendas", desc: "Histórico detalhado", icon: ShoppingCart, tone: "bg-success/10 text-success" },
+    { id: "prod-vendidos", label: "Produtos Vendidos", desc: "Mais vendidos", icon: Package, tone: "bg-info/10 text-info" },
+    { id: "prod-resumo-estoque", label: "Resumo de Estoque", desc: "Inventário atual", icon: Archive, tone: "bg-warning/10 text-warning" },
+    { id: "financeiro", label: "Saúde Financeira", desc: "Despesas e receitas", icon: DollarSign, tone: "bg-orange-500/10 text-orange-500" },
+    { id: "clientes-ranking", label: "Top Clientes", desc: "Ranking por receita", icon: Users, tone: "bg-purple-500/10 text-purple-500" },
+    { id: "vendedores", label: "Vendedores", desc: "Performance da equipe", icon: UserCheck, tone: "bg-pink-500/10 text-pink-500" },
+    { id: "clientes-aniversario", label: "Aniversariantes", desc: "Engajamento mensal", icon: Sparkles, tone: "bg-amber-500/10 text-amber-600" },
+  ];
+
+  const renderShortcuts = () => (
+    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h3 className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" /> Atalhos
+          </h3>
+          <p className="text-xs font-bold text-muted-foreground">Acesse rapidamente os relatórios mais usados</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {shortcuts.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => onNavigate?.(s.id)}
+            className="group text-left bg-muted/40 hover:bg-muted border border-border hover:border-primary/40 rounded-xl p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className={`h-9 w-9 rounded-lg flex items-center justify-center mb-3 ${s.tone}`}>
+              <s.icon className="h-4 w-4" />
+            </div>
+            <div className="text-sm font-black text-foreground leading-tight group-hover:text-primary transition-colors">
+              {s.label}
+            </div>
+            <div className="text-[11px] font-bold text-muted-foreground mt-0.5">{s.desc}</div>
+            <div className="mt-2 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+              Abrir <ArrowUpRight className="h-3 w-3" />
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   const renderVisaoGeral = () => (
     <div className="space-y-8 animate-in fade-in duration-500">
       {renderSummaryCards()}
+      {renderShortcuts()}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
