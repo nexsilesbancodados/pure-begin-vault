@@ -371,7 +371,7 @@ function ReportsPage() {
       type LeadRow = { source: string | null; status: string | null; created_at: string | null };
       type StageRow = { id: string; name: string; color: string | null };
       type PipelineRow = { stage_id: string | null };
-      type PayRow = { amount: number | null; paid_amount: number | null; status: string | null; due_date: string | null };
+      type PayRow = { amount: number | null; paid_amount: number | null; status: string | null; due_date: string | null; paid_at: string | null };
       type TxRow = { type: string | null; amount: number | null };
       type ProductRow = { active: boolean | null; stock_quantity: number | null; min_stock: number | null; cost_price: number | null; price: number | null };
 
@@ -382,11 +382,11 @@ function ReportsPage() {
         filt(supabase.from("leads").select("source, status, created_at")),
         filt(supabase.from("funnel_stages").select("name, color, id")).order("order_index"),
         filt(supabase.from("pipeline_leads").select("stage_id")),
-        filt(supabase.from("accounts_payable").select("amount, paid_amount, status, due_date")),
-        filt(supabase.from("accounts_receivable").select("amount, paid_amount, status, due_date")),
+        filt(supabase.from("accounts_payable").select("amount, paid_amount, status, due_date, paid_at")),
+        filt(supabase.from("accounts_receivable").select("amount, paid_amount, status, due_date, paid_at")),
         filt(supabase.from("finance_transactions").select("type, amount")),
         filt(supabase.from("products").select("active, stock_quantity, min_stock, cost_price, price")),
-        filt(supabase.from("purchase_notes").select("total, paga, kind")),
+        filt(supabase.from("purchase_notes").select("total, paga, kind, data_compra")),
       ]);
 
       const sales = (salesRes.data || []) as SaleRow[];
@@ -438,8 +438,11 @@ function ReportsPage() {
       const today = new Date().toISOString().split("T")[0];
       const sumPending = (rows: PayRow[]) =>
         rows.filter((r) => r.status !== "paid").reduce((a, r) => a + (Number(r.amount) || 0), 0);
-      const sumPaid = (rows: PayRow[]) =>
-        rows.reduce((a, r) => a + (Number(r.paid_amount) || (r.status === "paid" ? Number(r.amount) || 0 : 0)), 0);
+      // Apenas valores efetivamente pagos dentro do período selecionado
+      const sumPaidInRange = (rows: PayRow[]) =>
+        rows
+          .filter((r) => r.status === "paid" && inRange(r.paid_at ?? r.due_date))
+          .reduce((a, r) => a + (Number(r.paid_amount) || Number(r.amount) || 0), 0);
       const overdue = pays.filter((r) => r.status !== "paid" && r.due_date && r.due_date < today)
         .reduce((a, r) => a + (Number(r.amount) || 0), 0);
 
@@ -459,12 +462,20 @@ function ReportsPage() {
         0,
       );
 
-      type ComprasRow = { total: number | null; paga: boolean | null; kind: string | null };
+      type ComprasRow = { total: number | null; paga: boolean | null; kind: string | null; data_compra: string | null };
       const compras = (comprasRes.data || []) as ComprasRow[];
-      const comprasPaid = compras.filter((c) => c.paga === true).reduce((a, c) => a + (Number(c.total) || 0), 0);
-      const comprasOpen = compras.filter((c) => c.paga !== true).reduce((a, c) => a + (Number(c.total) || 0), 0);
-      const receitasPaidVal = sumPaid(recs);
-      const despesasPaidVal = sumPaid(pays);
+      // Considera apenas notas de COMPRA (ignora kind='venda') e respeita o período
+      const comprasFiltered = compras.filter(
+        (c) => (c.kind ?? "compra") === "compra" && inRange(c.data_compra),
+      );
+      const comprasPaid = comprasFiltered
+        .filter((c) => c.paga === true)
+        .reduce((a, c) => a + (Number(c.total) || 0), 0);
+      const comprasOpen = comprasFiltered
+        .filter((c) => c.paga !== true)
+        .reduce((a, c) => a + (Number(c.total) || 0), 0);
+      const receitasPaidVal = sumPaidInRange(recs);
+      const despesasPaidVal = sumPaidInRange(pays);
       const lucroBruto = receitasPaidVal - despesasPaidVal - comprasPaid;
 
       setExtra({
