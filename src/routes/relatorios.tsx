@@ -922,6 +922,7 @@ function ReportsPage() {
               topAgents={topAgents}
               funnelPercentages={[]}
               loading={loading}
+              onNavigate={(id) => setActiveCategory(id)}
             />
           </main>
         </div>
