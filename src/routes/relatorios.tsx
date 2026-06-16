@@ -377,7 +377,7 @@ function ReportsPage() {
 
       const filt = <T,>(q: T): T => ((q as any).eq("organization_id", orgId)) as T;
 
-      const [salesRes, leadsRes, stagesRes, pipelineRes, payRes, recRes, txRes, prodRes] = await Promise.all([
+      const [salesRes, leadsRes, stagesRes, pipelineRes, payRes, recRes, txRes, prodRes, comprasRes] = await Promise.all([
         filt(supabase.from("sales_orders").select("total_amount, status, created_at")),
         filt(supabase.from("leads").select("source, status, created_at")),
         filt(supabase.from("funnel_stages").select("name, color, id")).order("order_index"),
@@ -386,6 +386,7 @@ function ReportsPage() {
         filt(supabase.from("accounts_receivable").select("amount, paid_amount, status, due_date")),
         filt(supabase.from("finance_transactions").select("type, amount")),
         filt(supabase.from("products").select("active, stock_quantity, min_stock, cost_price, price")),
+        filt(supabase.from("purchase_notes").select("total, paga, kind")),
       ]);
 
       const sales = (salesRes.data || []) as SaleRow[];
