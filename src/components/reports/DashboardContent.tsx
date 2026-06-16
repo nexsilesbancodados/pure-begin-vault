@@ -79,6 +79,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
   topAgents,
   funnelPercentages,
   loading,
+  onNavigate,
 }) => {
   const renderSummaryCards = () => {
     const allStats = [
