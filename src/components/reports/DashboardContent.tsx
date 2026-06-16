@@ -25,6 +25,7 @@ import {
   List,
   ChevronDown,
   ChevronRight,
+  Wallet,
   PieChart as PieChartIcon,
 } from "lucide-react";
 import {
