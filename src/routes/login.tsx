@@ -48,6 +48,8 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
+type StoreOpt = { id: string; name: string; role: string | null };
+
 function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -59,6 +61,9 @@ function Login() {
   const [error, setError] = useState("");
   const [capsLock, setCapsLock] = useState(false);
   const [shake, setShake] = useState(false);
+  const [stores, setStores] = useState<StoreOpt[]>([]);
+  const [pickingStore, setPickingStore] = useState(false);
+  const [switching, setSwitching] = useState<string | null>(null);
   const emailRef = useRef<HTMLInputElement>(null);
 
   const showLoginError = (message: string) => {
