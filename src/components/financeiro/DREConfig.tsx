@@ -30,6 +30,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { Link } from "@tanstack/react-router";
 import { Export } from "@/lib/exportUniversal";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 const MONTH_NAMES = [
   "Janeiro",
@@ -122,6 +133,7 @@ export function DREConfig() {
   const [loading, setLoading] = useState(true);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [prevTxs, setPrevTxs] = useState<Tx[]>([]);
+  const [yearTxs, setYearTxs] = useState<(Tx & { transaction_date: string })[]>([]);
 
   useEffect(() => {
     if (!orgId) {
@@ -133,6 +145,8 @@ export function DREConfig() {
     const end = new Date(year, month + 1, 1).toISOString();
     const prevStart = new Date(year, month - 1, 1).toISOString();
     const prevEnd = start;
+    const yearStart = new Date(year, 0, 1).toISOString();
+    const yearEnd = new Date(year + 1, 0, 1).toISOString();
     Promise.all([
       (supabase as any)
         .from("finance_transactions")
@@ -148,11 +162,19 @@ export function DREConfig() {
         .gte("transaction_date", prevStart)
         .lt("transaction_date", prevEnd)
         .limit(10000),
-    ]).then(([cur, prev]: any) => {
+      (supabase as any)
+        .from("finance_transactions")
+        .select("type, amount, category, transaction_date")
+        .eq("organization_id", orgId)
+        .gte("transaction_date", yearStart)
+        .lt("transaction_date", yearEnd)
+        .limit(50000),
+    ]).then(([cur, prev, yr]: any) => {
       const norm = (data: any) =>
         (data ?? []).map((t: any) => ({ ...t, amount: Number(t.amount) || 0 }));
       setTxs(norm(cur.data));
       setPrevTxs(norm(prev.data));
+      setYearTxs(norm(yr.data));
       setLoading(false);
     });
   }, [orgId, year, month]);
@@ -180,6 +202,37 @@ export function DREConfig() {
   const margemLiquida = dre.receitaBruta > 0 ? (dre.lucroLiquido / dre.receitaBruta) * 100 : 0;
   const despesasFixas = dre.administrativas + dre.operacionais;
   const breakeven = margemBruta > 0 ? (despesasFixas / (margemBruta / 100)) : 0;
+
+  const monthly = useMemo(() => {
+    const buckets = Array.from({ length: 12 }, (_, i) => ({
+      mes: MONTH_NAMES[i].slice(0, 3),
+      idx: i,
+      receita: 0,
+      despesa: 0,
+      lucro: 0,
+    }));
+    for (const t of yearTxs) {
+      const d = new Date(t.transaction_date);
+      if (d.getFullYear() !== year) continue;
+      const b = buckets[d.getMonth()];
+      if (!b) continue;
+      if (t.type === "income" || t.type === "receita") b.receita += t.amount;
+      else if (t.type === "expense" || t.type === "despesa") b.despesa += t.amount;
+    }
+    buckets.forEach((b) => (b.lucro = b.receita - b.despesa));
+    return buckets;
+  }, [yearTxs, year]);
+
+  const ytd = useMemo(() => {
+    let receita = 0,
+      despesa = 0;
+    for (const b of monthly) {
+      if (b.idx > month) break;
+      receita += b.receita;
+      despesa += b.despesa;
+    }
+    return { receita, despesa, lucro: receita - despesa };
+  }, [monthly, month]);
 
   const exportRows = () =>
     rows.map((r) => ({
@@ -419,6 +472,81 @@ export function DREConfig() {
               </Table>
             </CardContent>
           </Card>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-2 rounded-2xl">
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-black">Evolução do Ano · {year}</CardTitle>
+                <CardDescription>Receita, despesa e lucro mês a mês</CardDescription>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={monthly} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v) =>
+                          Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
+                        }
+                      />
+                      <Tooltip
+                        formatter={(v: any) => BRL(Number(v))}
+                        contentStyle={{ borderRadius: 12, fontSize: 12 }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="receita" name="Receita" fill="hsl(142 71% 45%)" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="despesa" name="Despesa" fill="hsl(0 84% 60%)" radius={[6, 6, 0, 0]} />
+                      <Line
+                        type="monotone"
+                        dataKey="lucro"
+                        name="Lucro"
+                        stroke="hsl(217 91% 60%)"
+                        strokeWidth={3}
+                        dot={{ r: 3 }}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl">
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-black">Acumulado do Ano (YTD)</CardTitle>
+                <CardDescription>Janeiro até {MONTH_NAMES[month]}</CardDescription>
+              </CardHeader>
+              <CardContent className="p-5 space-y-4">
+                <div>
+                  <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    Receita acumulada
+                  </div>
+                  <div className="text-xl font-black text-green-600">{BRL(ytd.receita)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    Despesa acumulada
+                  </div>
+                  <div className="text-xl font-black text-red-600">{BRL(ytd.despesa)}</div>
+                </div>
+                <div className="pt-3 border-t">
+                  <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    Resultado YTD
+                  </div>
+                  <div
+                    className={`text-2xl font-black ${ytd.lucro < 0 ? "text-red-600" : "text-green-600"}`}
+                  >
+                    {BRL(ytd.lucro)}
+                  </div>
+                  <div className="mt-1 text-[10px] font-bold text-muted-foreground/70">
+                    Margem:{" "}
+                    {ytd.receita > 0 ? ((ytd.lucro / ytd.receita) * 100).toFixed(1) : "0.0"}%
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </>
       )}
     </div>
