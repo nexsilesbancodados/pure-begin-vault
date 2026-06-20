@@ -502,24 +502,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
       case "fin-relatorio-vendas-os-2":
       case "fin-formas-pagamento":
       case "fin-formas-pagamento-dia":
-        return renderKpiGrid(
-          "Saúde Financeira",
-          "Sincronizado em tempo real com Despesas, Receitas e Caixa.",
-          [
-            { label: "Despesas em aberto", value: fmtBRL(e.despesasOpen), tone: "warning" },
-            { label: "Despesas vencidas", value: fmtBRL(e.despesasOverdue), tone: "destructive" },
-            { label: "Despesas pagas", value: fmtBRL(e.despesasPaid), tone: "success" },
-            { label: "Total a pagar", value: fmtBRL(e.despesasTotal), tone: "primary" },
-            { label: "Receitas em aberto", value: fmtBRL(e.receitasOpen), tone: "info" },
-            { label: "Receitas recebidas", value: fmtBRL(e.receitasPaid), tone: "success" },
-            { label: "Total a receber", value: fmtBRL(e.receitasTotal), tone: "primary" },
-            { label: "Saldo de caixa", value: fmtBRL(e.caixaSaldo), tone: e.caixaSaldo >= 0 ? "success" : "destructive" },
-            { label: "Margem líquida", value: fmtBRL(e.financeMargin || 0), tone: (e.financeMargin || 0) >= 0 ? "success" : "destructive" },
-            { label: "Contas vencidas (qtd)", value: String(e.financeOverdueCount || 0), tone: "destructive" },
-            { label: "Entradas (caixa)", value: fmtBRL(e.caixaIncome), tone: "success" },
-            { label: "Saídas (caixa)", value: fmtBRL(e.caixaExpense), tone: "warning" },
-          ],
-        );
+        return renderSaudeFinanceira();
       case "vendas-relatorio":
         return <SalesReportTable />;
       case "prod-vendidos":
