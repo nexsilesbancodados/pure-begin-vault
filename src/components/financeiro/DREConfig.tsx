@@ -60,47 +60,101 @@ const MONTH_NAMES = [
 const BRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
-type Tx = { type: string; amount: number; category: string | null };
+type Tx = {
+  id?: string | null;
+  source?: "finance_transactions" | "accounts_payable" | "accounts_receivable";
+  type: string;
+  amount: number;
+  category: string | null;
+  description?: string | null;
+  reference_type?: string | null;
+  reference_id?: string | null;
+  import_job_id?: string | null;
+  transaction_date?: string | null;
+};
+
+const asArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
+const toAmount = (value: unknown) => Math.abs(Number(value) || 0);
+const normalizeText = (value: unknown) =>
+  String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+const isIncomeTx = (t: Tx) => normalizeText(t.type) === "income" || normalizeText(t.type) === "receita";
+const isExpenseTx = (t: Tx) => normalizeText(t.type) === "expense" || normalizeText(t.type) === "despesa";
+const includesAny = (t: Tx, terms: string[]) => {
+  const text = normalizeText(`${t.category ?? ""} ${t.description ?? ""}`);
+  return terms.some((term) => text.includes(normalizeText(term)));
+};
+
+function uniqueDreRows(rows: Tx[]) {
+  const seenRef = new Set<string>();
+  const seenBusiness = new Set<string>();
+
+  return asArray(rows).filter((row) => {
+    if (!row || (!isIncomeTx(row) && !isExpenseTx(row))) return false;
+    const amount = Math.round(toAmount(row.amount) * 100);
+    if (amount <= 0) return false;
+
+    const type = isIncomeTx(row) ? "income" : "expense";
+    const refType = normalizeText(row.reference_type);
+    const refId = String(row.reference_id ?? "").trim();
+    if (refId) {
+      const refKey = `${type}|${refType}|${refId}`;
+      if (seenRef.has(refKey)) return false;
+      seenRef.add(refKey);
+    }
+
+    const dateKey = row.transaction_date ? new Date(row.transaction_date).toISOString().slice(0, 10) : "sem-data";
+    const businessKey = [
+      type,
+      amount,
+      dateKey,
+      normalizeText(row.category),
+      normalizeText(row.description),
+    ].join("|");
+    if (seenBusiness.has(businessKey)) return false;
+    seenBusiness.add(businessKey);
+    return true;
+  });
+}
+
+function classifyExpense(t: Tx) {
+  if (includesAny(t, ["imposto", "tributo", "simples", "darf", "icms", "iss", "pis", "cofins"])) return "impostos";
+  if (includesAny(t, ["custo", "cmv", "cpv", "estoque", "compra", "mercadoria", "produto", "aparelho"])) return "cpv";
+  if (includesAny(t, ["depreciacao", "amortizacao"])) return "depreciacao";
+  if (includesAny(t, ["administrativ", "aluguel", "salario", "salarios", "folha", "energia", "luz", "agua", "internet", "telefone", "contador", "software", "saas", "taxa", "tarifa", "bancaria", "pro-labore"])) return "administrativas";
+  if (includesAny(t, ["operacional", "marketing", "comissao", "comissoes", "frete", "logistica", "transporte", "entrega", "manutencao", "material"])) return "operacionais";
+  return "outras";
+}
 
 function computeDre(txs: Tx[]) {
-  const isIncomeTx = (t: Tx) => t.type === "income" || t.type === "receita";
-  const isExpenseTx = (t: Tx) => t.type === "expense" || t.type === "despesa";
+  const safeTxs = uniqueDreRows(asArray(txs));
+  const receitaBruta = safeTxs.filter(isIncomeTx).reduce((s, t) => s + toAmount(t.amount), 0);
+  const expenseBuckets = {
+    impostos: 0,
+    cpv: 0,
+    operacionais: 0,
+    administrativas: 0,
+    depreciacao: 0,
+    outras: 0,
+  };
 
-  const grupo = (cats: string[], isIncome: boolean) =>
-    txs
-      .filter((t) => {
-        const matchType = isIncome ? isIncomeTx(t) : isExpenseTx(t);
-        if (!matchType) return false;
-        if (cats.length === 0) return true;
-        return cats.some((c) => (t.category ?? "").toLowerCase().includes(c.toLowerCase()));
-      })
-      .reduce((s, t) => s + t.amount, 0);
+  for (const tx of safeTxs.filter(isExpenseTx)) {
+    expenseBuckets[classifyExpense(tx)] += toAmount(tx.amount);
+  }
 
-  const receitaBruta = grupo([], true);
-  const totalDespesas = grupo([], false);
-
-  const impostos = grupo(["imposto"], false);
+  const { impostos, cpv, operacionais, administrativas, depreciacao, outras } = expenseBuckets;
+  const totalDespesas = impostos + cpv + operacionais + administrativas + depreciacao + outras;
   const receitaLiquida = receitaBruta - impostos;
-  const cpv = grupo(["custo", "cmv", "cpv", "estoque", "compra"], false);
   const lucroBruto = receitaLiquida - cpv;
-  const operacionais = grupo(["operacional", "marketing", "comissao", "frete"], false);
-  const administrativas = grupo(
-    ["administrativ", "aluguel", "salario", "luz", "internet", "telefone"],
-    false,
-  );
-  const depreciacao = grupo(["depreciacao", "amortizacao"], false);
-
-  // Despesas sem categoria mapeada — antes eram ignoradas e inflavam o Lucro Líquido.
-  const outras = Math.max(
-    0,
-    totalDespesas - impostos - cpv - operacionais - administrativas - depreciacao,
-  );
-
   const ebitda = lucroBruto - operacionais - administrativas - outras;
-  const lucroLiquido = ebitda - depreciacao;
+  const lucroLiquido = receitaBruta - totalDespesas;
 
   return {
     receitaBruta,
+    totalDespesas,
     impostos,
     receitaLiquida,
     cpv,
