@@ -472,6 +472,81 @@ export function DREConfig() {
               </Table>
             </CardContent>
           </Card>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-2 rounded-2xl">
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-black">Evolução do Ano · {year}</CardTitle>
+                <CardDescription>Receita, despesa e lucro mês a mês</CardDescription>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={monthly} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v) =>
+                          Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
+                        }
+                      />
+                      <Tooltip
+                        formatter={(v: any) => BRL(Number(v))}
+                        contentStyle={{ borderRadius: 12, fontSize: 12 }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                      <Bar dataKey="receita" name="Receita" fill="hsl(142 71% 45%)" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="despesa" name="Despesa" fill="hsl(0 84% 60%)" radius={[6, 6, 0, 0]} />
+                      <Line
+                        type="monotone"
+                        dataKey="lucro"
+                        name="Lucro"
+                        stroke="hsl(217 91% 60%)"
+                        strokeWidth={3}
+                        dot={{ r: 3 }}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl">
+              <CardHeader className="border-b pb-4">
+                <CardTitle className="text-base font-black">Acumulado do Ano (YTD)</CardTitle>
+                <CardDescription>Janeiro até {MONTH_NAMES[month]}</CardDescription>
+              </CardHeader>
+              <CardContent className="p-5 space-y-4">
+                <div>
+                  <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    Receita acumulada
+                  </div>
+                  <div className="text-xl font-black text-green-600">{BRL(ytd.receita)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    Despesa acumulada
+                  </div>
+                  <div className="text-xl font-black text-red-600">{BRL(ytd.despesa)}</div>
+                </div>
+                <div className="pt-3 border-t">
+                  <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    Resultado YTD
+                  </div>
+                  <div
+                    className={`text-2xl font-black ${ytd.lucro < 0 ? "text-red-600" : "text-green-600"}`}
+                  >
+                    {BRL(ytd.lucro)}
+                  </div>
+                  <div className="mt-1 text-[10px] font-bold text-muted-foreground/70">
+                    Margem:{" "}
+                    {ytd.receita > 0 ? ((ytd.lucro / ytd.receita) * 100).toFixed(1) : "0.0"}%
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </>
       )}
     </div>
