@@ -144,12 +144,49 @@ function Login() {
       if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
       else localStorage.removeItem("conecta:lastEmail");
 
-      const { getHomeRouteForUser } = await import("@/lib/homeScreen");
       const { data: authUserData } = await supabase.auth.getUser();
+      const userId = authUserData.user?.id;
+
+      // Busca lojas vinculadas
+      let orgs: StoreOpt[] = [];
+      if (userId) {
+        const { data: uo } = await (supabase as any)
+          .from("user_organizations")
+          .select("organization_id, role, organizations(name)")
+          .eq("user_id", userId);
+        orgs = ((uo as any[]) ?? []).map((r) => ({
+          id: r.organization_id,
+          name: r?.organizations?.name || "Loja",
+          role: r.role ?? null,
+        }));
+      }
+
+      if (orgs.length > 1) {
+        setStores(orgs);
+        setPickingStore(true);
+        setLoading(false);
+        return;
+      }
+
+      const { getHomeRouteForUser } = await import("@/lib/homeScreen");
       const target = getHomeRouteForUser(authUserData.user, cleanEmail);
       navigate({ to: target, replace: true });
     } catch (err: unknown) {
       showLoginError(readableAuthError(err instanceof Error ? err.message : undefined));
+    }
+  };
+
+  const pickStore = async (orgId: string) => {
+    setSwitching(orgId);
+    try {
+      await (supabase as any).rpc("switch_organization", { _org_id: orgId });
+      const { data: authUserData } = await supabase.auth.getUser();
+      const { getHomeRouteForUser } = await import("@/lib/homeScreen");
+      const target = getHomeRouteForUser(authUserData.user, email.trim().toLowerCase());
+      navigate({ to: target, replace: true });
+    } catch (err) {
+      setSwitching(null);
+      setError("Não foi possível selecionar a loja. Tente novamente.");
     }
   };
 
