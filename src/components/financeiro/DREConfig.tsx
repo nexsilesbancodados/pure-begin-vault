@@ -63,12 +63,13 @@ const BRL = (n: number) =>
 type Tx = { type: string; amount: number; category: string | null };
 
 function computeDre(txs: Tx[]) {
+  const isIncomeTx = (t: Tx) => t.type === "income" || t.type === "receita";
+  const isExpenseTx = (t: Tx) => t.type === "expense" || t.type === "despesa";
+
   const grupo = (cats: string[], isIncome: boolean) =>
     txs
       .filter((t) => {
-        const matchType = isIncome
-          ? t.type === "income" || t.type === "receita"
-          : t.type === "expense" || t.type === "despesa";
+        const matchType = isIncome ? isIncomeTx(t) : isExpenseTx(t);
         if (!matchType) return false;
         if (cats.length === 0) return true;
         return cats.some((c) => (t.category ?? "").toLowerCase().includes(c.toLowerCase()));
@@ -76,6 +77,8 @@ function computeDre(txs: Tx[]) {
       .reduce((s, t) => s + t.amount, 0);
 
   const receitaBruta = grupo([], true);
+  const totalDespesas = grupo([], false);
+
   const impostos = grupo(["imposto"], false);
   const receitaLiquida = receitaBruta - impostos;
   const cpv = grupo(["custo", "cmv", "cpv", "estoque", "compra"], false);
@@ -85,9 +88,17 @@ function computeDre(txs: Tx[]) {
     ["administrativ", "aluguel", "salario", "luz", "internet", "telefone"],
     false,
   );
-  const ebitda = lucroBruto - operacionais - administrativas;
   const depreciacao = grupo(["depreciacao", "amortizacao"], false);
+
+  // Despesas sem categoria mapeada — antes eram ignoradas e inflavam o Lucro Líquido.
+  const outras = Math.max(
+    0,
+    totalDespesas - impostos - cpv - operacionais - administrativas - depreciacao,
+  );
+
+  const ebitda = lucroBruto - operacionais - administrativas - outras;
   const lucroLiquido = ebitda - depreciacao;
+
   return {
     receitaBruta,
     impostos,
@@ -96,6 +107,7 @@ function computeDre(txs: Tx[]) {
     lucroBruto,
     operacionais,
     administrativas,
+    outras,
     ebitda,
     depreciacao,
     lucroLiquido,
