@@ -60,47 +60,111 @@ const MONTH_NAMES = [
 const BRL = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 
-type Tx = { type: string; amount: number; category: string | null };
+type Tx = {
+  id?: string | null;
+  source?: "finance_transactions" | "accounts_payable" | "accounts_receivable";
+  type: string;
+  amount: number;
+  category: string | null;
+  description?: string | null;
+  reference_type?: string | null;
+  reference_id?: string | null;
+  import_job_id?: string | null;
+  transaction_date?: string | null;
+};
+
+type SaleRow = {
+  id: string;
+  total_amount: number | string | null;
+  created_at: string | null;
+  sale_items?: { unit_cost: number | string | null; quantity: number | string | null }[] | null;
+};
+
+const asArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
+const toAmount = (value: unknown) => Math.abs(Number(value) || 0);
+const normalizeText = (value: unknown) =>
+  String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+const isIncomeTx = (t: Tx) => normalizeText(t.type) === "income" || normalizeText(t.type) === "receita";
+const isExpenseTx = (t: Tx) => normalizeText(t.type) === "expense" || normalizeText(t.type) === "despesa";
+const includesAny = (t: Tx, terms: string[]) => {
+  const text = normalizeText(`${t.category ?? ""} ${t.description ?? ""}`);
+  return terms.some((term) => text.includes(normalizeText(term)));
+};
+
+function uniqueDreRows(rows: Tx[]) {
+  const seenRef = new Set<string>();
+  const seenBusiness = new Set<string>();
+
+  return asArray(rows).filter((row) => {
+    if (!row || (!isIncomeTx(row) && !isExpenseTx(row))) return false;
+    const amount = Math.round(toAmount(row.amount) * 100);
+    if (amount <= 0) return false;
+
+    const type = isIncomeTx(row) ? "income" : "expense";
+    const refType = normalizeText(row.reference_type);
+    const refId = String(row.reference_id ?? "").trim();
+    if (refId) {
+      const refKey = `${type}|${refType}|${refId}`;
+      if (seenRef.has(refKey)) return false;
+      seenRef.add(refKey);
+    }
+
+    const parsedDate = row.transaction_date ? new Date(row.transaction_date) : null;
+    const dateKey = parsedDate && !Number.isNaN(parsedDate.getTime())
+      ? parsedDate.toISOString().slice(0, 10)
+      : "sem-data";
+    const businessKey = [
+      type,
+      amount,
+      dateKey,
+      normalizeText(row.category),
+      normalizeText(row.description),
+    ].join("|");
+    if (seenBusiness.has(businessKey)) return false;
+    seenBusiness.add(businessKey);
+    return true;
+  });
+}
+
+function classifyExpense(t: Tx) {
+  if (includesAny(t, ["imposto", "tributo", "simples", "darf", "icms", "iss", "pis", "cofins"])) return "impostos";
+  if (includesAny(t, ["custo", "cmv", "cpv", "estoque", "compra", "mercadoria", "produto", "aparelho"])) return "cpv";
+  if (includesAny(t, ["depreciacao", "amortizacao"])) return "depreciacao";
+  if (includesAny(t, ["administrativ", "aluguel", "salario", "salarios", "folha", "energia", "luz", "agua", "internet", "telefone", "contador", "software", "saas", "taxa", "tarifa", "bancaria", "pro-labore"])) return "administrativas";
+  if (includesAny(t, ["operacional", "marketing", "comissao", "comissoes", "frete", "logistica", "transporte", "entrega", "manutencao", "material"])) return "operacionais";
+  return "outras";
+}
 
 function computeDre(txs: Tx[]) {
-  const isIncomeTx = (t: Tx) => t.type === "income" || t.type === "receita";
-  const isExpenseTx = (t: Tx) => t.type === "expense" || t.type === "despesa";
+  const safeTxs = uniqueDreRows(asArray(txs));
+  const receitaBruta = safeTxs.filter(isIncomeTx).reduce((s, t) => s + toAmount(t.amount), 0);
+  const expenseBuckets = {
+    impostos: 0,
+    cpv: 0,
+    operacionais: 0,
+    administrativas: 0,
+    depreciacao: 0,
+    outras: 0,
+  };
 
-  const grupo = (cats: string[], isIncome: boolean) =>
-    txs
-      .filter((t) => {
-        const matchType = isIncome ? isIncomeTx(t) : isExpenseTx(t);
-        if (!matchType) return false;
-        if (cats.length === 0) return true;
-        return cats.some((c) => (t.category ?? "").toLowerCase().includes(c.toLowerCase()));
-      })
-      .reduce((s, t) => s + t.amount, 0);
+  for (const tx of safeTxs.filter(isExpenseTx)) {
+    expenseBuckets[classifyExpense(tx)] += toAmount(tx.amount);
+  }
 
-  const receitaBruta = grupo([], true);
-  const totalDespesas = grupo([], false);
-
-  const impostos = grupo(["imposto"], false);
+  const { impostos, cpv, operacionais, administrativas, depreciacao, outras } = expenseBuckets;
+  const totalDespesas = impostos + cpv + operacionais + administrativas + depreciacao + outras;
   const receitaLiquida = receitaBruta - impostos;
-  const cpv = grupo(["custo", "cmv", "cpv", "estoque", "compra"], false);
   const lucroBruto = receitaLiquida - cpv;
-  const operacionais = grupo(["operacional", "marketing", "comissao", "frete"], false);
-  const administrativas = grupo(
-    ["administrativ", "aluguel", "salario", "luz", "internet", "telefone"],
-    false,
-  );
-  const depreciacao = grupo(["depreciacao", "amortizacao"], false);
-
-  // Despesas sem categoria mapeada — antes eram ignoradas e inflavam o Lucro Líquido.
-  const outras = Math.max(
-    0,
-    totalDespesas - impostos - cpv - operacionais - administrativas - depreciacao,
-  );
-
   const ebitda = lucroBruto - operacionais - administrativas - outras;
-  const lucroLiquido = ebitda - depreciacao;
+  const lucroLiquido = receitaBruta - totalDespesas;
 
   return {
     receitaBruta,
+    totalDespesas,
     impostos,
     receitaLiquida,
     cpv,
@@ -145,7 +209,7 @@ export function DREConfig() {
   const [loading, setLoading] = useState(true);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [prevTxs, setPrevTxs] = useState<Tx[]>([]);
-  const [yearTxs, setYearTxs] = useState<(Tx & { transaction_date: string })[]>([]);
+  const [yearTxs, setYearTxs] = useState<Tx[]>([]);
 
   useEffect(() => {
     if (!orgId) {
@@ -162,31 +226,154 @@ export function DREConfig() {
     Promise.all([
       (supabase as any)
         .from("finance_transactions")
-        .select("type, amount, category")
+        .select("id, type, amount, category, description, reference_type, reference_id, import_job_id, transaction_date")
         .eq("organization_id", orgId)
         .gte("transaction_date", start)
         .lt("transaction_date", end)
         .limit(10000),
       (supabase as any)
         .from("finance_transactions")
-        .select("type, amount, category")
+        .select("id, type, amount, category, description, reference_type, reference_id, import_job_id, transaction_date")
         .eq("organization_id", orgId)
         .gte("transaction_date", prevStart)
         .lt("transaction_date", prevEnd)
         .limit(10000),
       (supabase as any)
         .from("finance_transactions")
-        .select("type, amount, category, transaction_date")
+        .select("id, type, amount, category, description, reference_type, reference_id, import_job_id, transaction_date")
         .eq("organization_id", orgId)
         .gte("transaction_date", yearStart)
         .lt("transaction_date", yearEnd)
         .limit(50000),
-    ]).then(([cur, prev, yr]: any) => {
-      const norm = (data: any) =>
-        (data ?? []).map((t: any) => ({ ...t, amount: Number(t.amount) || 0 }));
-      setTxs(norm(cur.data));
-      setPrevTxs(norm(prev.data));
-      setYearTxs(norm(yr.data));
+      (supabase as any)
+        .from("accounts_payable")
+        .select("id, amount, category, description, paid_at, due_date, created_at, status")
+        .eq("organization_id", orgId)
+        .eq("status", "paid")
+        .gte("paid_at", start)
+        .lt("paid_at", end)
+        .limit(10000),
+      (supabase as any)
+        .from("accounts_payable")
+        .select("id, amount, category, description, paid_at, due_date, created_at, status")
+        .eq("organization_id", orgId)
+        .eq("status", "paid")
+        .gte("paid_at", prevStart)
+        .lt("paid_at", prevEnd)
+        .limit(10000),
+      (supabase as any)
+        .from("accounts_payable")
+        .select("id, amount, category, description, paid_at, due_date, created_at, status")
+        .eq("organization_id", orgId)
+        .eq("status", "paid")
+        .gte("paid_at", yearStart)
+        .lt("paid_at", yearEnd)
+        .limit(50000),
+      (supabase as any)
+        .from("sales_orders")
+        .select("id, total_amount, created_at, sale_items(unit_cost, quantity)")
+        .eq("organization_id", orgId)
+        .in("status", ["completed", "concluded", "paid", "concluído", "pago"])
+        .gte("created_at", yearStart)
+        .lt("created_at", yearEnd)
+        .limit(50000),
+      (supabase as any)
+        .from("accounts_receivable")
+        .select("id, sale_id, amount, description, paid_at, due_date, created_at, status")
+        .eq("organization_id", orgId)
+        .eq("status", "paid")
+        .is("sale_id", null)
+        .gte("paid_at", yearStart)
+        .lt("paid_at", yearEnd)
+        .limit(50000),
+    ]).then(([cur, prev, yr, payCur, payPrev, payYear, salesYear, receivablesYear]: any) => {
+      const normFinance = (data: any): Tx[] =>
+        asArray<any>(data).map((t: any) => ({
+          ...t,
+          source: "finance_transactions",
+          amount: toAmount(t?.amount),
+        }));
+      const normPayable = (data: any): Tx[] =>
+        asArray<any>(data).map((t: any) => ({
+          id: t?.id,
+          source: "accounts_payable",
+          type: "expense",
+          amount: toAmount(t?.amount),
+          category: t?.category ?? null,
+          description: t?.description ?? null,
+          transaction_date: t?.paid_at ?? t?.due_date ?? t?.created_at ?? null,
+        }));
+      const normReceivable = (data: any): Tx[] =>
+        asArray<any>(data).map((t: any) => ({
+          id: t?.id,
+          source: "accounts_receivable",
+          type: "income",
+          amount: toAmount(t?.amount),
+          category: "income",
+          description: t?.description ?? "Receita",
+          reference_type: "receivable",
+          reference_id: t?.id ?? null,
+          transaction_date: t?.paid_at ?? t?.due_date ?? t?.created_at ?? null,
+        }));
+      const mergeDreData = (financeData: any, payableData: any) => {
+        const financeRows = normFinance(financeData);
+        const payableRows = normPayable(payableData);
+        const from = financeData === cur?.data ? new Date(start) : financeData === prev?.data ? new Date(prevStart) : new Date(yearStart);
+        const to = financeData === cur?.data ? new Date(end) : financeData === prev?.data ? new Date(prevEnd) : new Date(yearEnd);
+        const receivableRows = normReceivable(receivablesYear?.data).filter((row) => {
+          const rowDate = row.transaction_date ? new Date(row.transaction_date) : null;
+          return !!rowDate && !Number.isNaN(rowDate.getTime()) && rowDate >= from && rowDate < to;
+        });
+        const saleRows = asArray<SaleRow>(salesYear?.data).filter((sale) => {
+          const saleDate = sale?.created_at ? new Date(sale.created_at) : null;
+          if (!saleDate || Number.isNaN(saleDate.getTime())) return false;
+          return saleDate >= from && saleDate < to;
+        });
+        const saleRevenueRows: Tx[] = saleRows.map((sale) => ({
+          id: sale.id,
+          source: "finance_transactions",
+          type: "income",
+          amount: toAmount(sale.total_amount),
+          category: "sales",
+          description: "Venda",
+          reference_type: "sale",
+          reference_id: sale.id,
+          transaction_date: sale.created_at,
+        }));
+        const saleCostRows: Tx[] = saleRows
+          .map((sale) => ({
+            id: `cost:${sale.id}`,
+            source: "finance_transactions" as const,
+            type: "expense",
+            amount: asArray(sale.sale_items).reduce(
+              (sum, item) => sum + toAmount(item?.unit_cost) * (Number(item?.quantity) || 0),
+              0,
+            ),
+            category: "CPV",
+            description: "Custo dos produtos vendidos",
+            reference_type: "sale_cost",
+            reference_id: sale.id,
+            transaction_date: sale.created_at,
+          }))
+          .filter((row) => row.amount > 0);
+        const financeRowsToUse = financeRows.filter((t) => {
+          if (isIncomeTx(t)) return normalizeText(t.reference_type) !== "sale";
+          if (!isExpenseTx(t)) return false;
+          if (payableRows.length === 0) return true;
+          return normalizeText(t.reference_type) !== "import";
+        });
+        return uniqueDreRows([...financeRowsToUse, ...payableRows, ...receivableRows, ...saleRevenueRows, ...saleCostRows]);
+      };
+
+      setTxs(mergeDreData(cur?.data, payCur?.data));
+      setPrevTxs(mergeDreData(prev?.data, payPrev?.data));
+      setYearTxs(mergeDreData(yr?.data, payYear?.data));
+      setLoading(false);
+    }).catch((error) => {
+      console.error("[DRE] erro ao carregar dados", error);
+      setTxs([]);
+      setPrevTxs([]);
+      setYearTxs([]);
       setLoading(false);
     });
   }, [orgId, year, month]);
@@ -224,13 +411,15 @@ export function DREConfig() {
       despesa: 0,
       lucro: 0,
     }));
-    for (const t of yearTxs) {
+    for (const t of asArray(yearTxs)) {
+      if (!t.transaction_date) continue;
       const d = new Date(t.transaction_date);
+      if (Number.isNaN(d.getTime())) continue;
       if (d.getFullYear() !== year) continue;
       const b = buckets[d.getMonth()];
       if (!b) continue;
-      if (t.type === "income" || t.type === "receita") b.receita += t.amount;
-      else if (t.type === "expense" || t.type === "despesa") b.despesa += t.amount;
+      if (isIncomeTx(t)) b.receita += toAmount(t.amount);
+      else if (isExpenseTx(t)) b.despesa += toAmount(t.amount);
     }
     buckets.forEach((b) => (b.lucro = b.receita - b.despesa));
     return buckets;
