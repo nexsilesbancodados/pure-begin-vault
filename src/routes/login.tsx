@@ -150,19 +150,45 @@ function Login() {
       const { data: authUserData } = await supabase.auth.getUser();
       const userId = authUserData.user?.id;
 
-      // Busca lojas vinculadas
+      // Busca lojas vinculadas (user_organizations + profile.organization_id como fallback)
       let orgs: StoreOpt[] = [];
       if (userId) {
-        const { data: uo } = await (supabase as any)
-          .from("user_organizations")
-          .select("organization_id, role, organizations(name)")
-          .eq("user_id", userId);
-        orgs = ((uo as any[]) ?? []).map((r) => ({
-          id: r.organization_id,
-          name: r?.organizations?.name || "Loja",
-          role: r.role ?? null,
+        const [{ data: uo }, { data: prof }] = await Promise.all([
+          (supabase as any)
+            .from("user_organizations")
+            .select("organization_id, role")
+            .eq("user_id", userId),
+          (supabase as any)
+            .from("profiles")
+            .select("organization_id")
+            .eq("id", userId)
+            .maybeSingle(),
+        ]);
+
+        const map = new Map<string, { role: string | null }>();
+        for (const r of (uo as any[]) ?? []) {
+          map.set(r.organization_id, { role: r.role ?? null });
+        }
+        const profOrg = (prof as any)?.organization_id as string | undefined;
+        if (profOrg && !map.has(profOrg)) map.set(profOrg, { role: null });
+
+        const ids = Array.from(map.keys());
+        let nameMap: Record<string, { name: string | null }> = {};
+        if (ids.length > 0) {
+          try {
+            const res = await fetchOrgSummaries({ data: { orgIds: ids } });
+            nameMap = (res?.organizations ?? {}) as any;
+          } catch (e) {
+            console.warn("getOrgSummaries falhou:", e);
+          }
+        }
+        orgs = ids.map((id) => ({
+          id,
+          name: nameMap[id]?.name || "Loja",
+          role: map.get(id)?.role ?? null,
         }));
       }
+
 
       if (orgs.length > 1) {
         setStores(orgs);
