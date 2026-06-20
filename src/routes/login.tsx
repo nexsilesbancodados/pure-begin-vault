@@ -48,6 +48,8 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
+type StoreOpt = { id: string; name: string; role: string | null };
+
 function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -59,6 +61,9 @@ function Login() {
   const [error, setError] = useState("");
   const [capsLock, setCapsLock] = useState(false);
   const [shake, setShake] = useState(false);
+  const [stores, setStores] = useState<StoreOpt[]>([]);
+  const [pickingStore, setPickingStore] = useState(false);
+  const [switching, setSwitching] = useState<string | null>(null);
   const emailRef = useRef<HTMLInputElement>(null);
 
   const showLoginError = (message: string) => {
@@ -139,12 +144,49 @@ function Login() {
       if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
       else localStorage.removeItem("conecta:lastEmail");
 
-      const { getHomeRouteForUser } = await import("@/lib/homeScreen");
       const { data: authUserData } = await supabase.auth.getUser();
+      const userId = authUserData.user?.id;
+
+      // Busca lojas vinculadas
+      let orgs: StoreOpt[] = [];
+      if (userId) {
+        const { data: uo } = await (supabase as any)
+          .from("user_organizations")
+          .select("organization_id, role, organizations(name)")
+          .eq("user_id", userId);
+        orgs = ((uo as any[]) ?? []).map((r) => ({
+          id: r.organization_id,
+          name: r?.organizations?.name || "Loja",
+          role: r.role ?? null,
+        }));
+      }
+
+      if (orgs.length > 1) {
+        setStores(orgs);
+        setPickingStore(true);
+        setLoading(false);
+        return;
+      }
+
+      const { getHomeRouteForUser } = await import("@/lib/homeScreen");
       const target = getHomeRouteForUser(authUserData.user, cleanEmail);
       navigate({ to: target, replace: true });
     } catch (err: unknown) {
       showLoginError(readableAuthError(err instanceof Error ? err.message : undefined));
+    }
+  };
+
+  const pickStore = async (orgId: string) => {
+    setSwitching(orgId);
+    try {
+      await (supabase as any).rpc("switch_organization", { _org_id: orgId });
+      const { data: authUserData } = await supabase.auth.getUser();
+      const { getHomeRouteForUser } = await import("@/lib/homeScreen");
+      const target = getHomeRouteForUser(authUserData.user, email.trim().toLowerCase());
+      navigate({ to: target, replace: true });
+    } catch (err) {
+      setSwitching(null);
+      setError("Não foi possível selecionar a loja. Tente novamente.");
     }
   };
 
@@ -154,6 +196,54 @@ function Login() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-[1fr_1.05fr] bg-background font-sans">
+      {pickingStore && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-elegant p-6">
+            <h2 className="font-display font-bold text-xl text-foreground mb-1">
+              Escolha a loja
+            </h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Você tem acesso a {stores.length} lojas. Selecione qual deseja entrar agora.
+            </p>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {stores.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => pickStore(s.id)}
+                  disabled={!!switching}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition text-left disabled:opacity-60"
+                >
+                  <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground font-bold shrink-0">
+                    {s.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-sm text-foreground truncate">{s.name}</div>
+                    {s.role && (
+                      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {s.role}
+                      </div>
+                    )}
+                  </div>
+                  {switching === s.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                setPickingStore(false);
+                supabase.auth.signOut();
+              }}
+              className="mt-4 w-full text-xs text-muted-foreground hover:text-foreground"
+            >
+              Cancelar e sair
+            </button>
+          </div>
+        </div>
+      )}
       {/* ============ Left — Form ============ */}
       <div className="relative flex flex-col justify-center px-6 sm:px-12 lg:px-20 py-12 bg-card">
         {/* subtle top accent */}
