@@ -203,6 +203,37 @@ export function DREConfig() {
   const despesasFixas = dre.administrativas + dre.operacionais;
   const breakeven = margemBruta > 0 ? (despesasFixas / (margemBruta / 100)) : 0;
 
+  const monthly = useMemo(() => {
+    const buckets = Array.from({ length: 12 }, (_, i) => ({
+      mes: MONTH_NAMES[i].slice(0, 3),
+      idx: i,
+      receita: 0,
+      despesa: 0,
+      lucro: 0,
+    }));
+    for (const t of yearTxs) {
+      const d = new Date(t.transaction_date);
+      if (d.getFullYear() !== year) continue;
+      const b = buckets[d.getMonth()];
+      if (!b) continue;
+      if (t.type === "income" || t.type === "receita") b.receita += t.amount;
+      else if (t.type === "expense" || t.type === "despesa") b.despesa += t.amount;
+    }
+    buckets.forEach((b) => (b.lucro = b.receita - b.despesa));
+    return buckets;
+  }, [yearTxs, year]);
+
+  const ytd = useMemo(() => {
+    let receita = 0,
+      despesa = 0;
+    for (const b of monthly) {
+      if (b.idx > month) break;
+      receita += b.receita;
+      despesa += b.despesa;
+    }
+    return { receita, despesa, lucro: receita - despesa };
+  }, [monthly, month]);
+
   const exportRows = () =>
     rows.map((r) => ({
       ...r,
