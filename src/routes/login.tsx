@@ -50,7 +50,7 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
-type StoreOpt = { id: string; name: string; role: string | null };
+type StoreOpt = { id: string; name: string; role: string | null; logo: string | null };
 
 function Login() {
   const navigate = useNavigate();
