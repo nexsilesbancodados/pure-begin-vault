@@ -133,6 +133,7 @@ export function DREConfig() {
   const [loading, setLoading] = useState(true);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [prevTxs, setPrevTxs] = useState<Tx[]>([]);
+  const [yearTxs, setYearTxs] = useState<(Tx & { transaction_date: string })[]>([]);
 
   useEffect(() => {
     if (!orgId) {
