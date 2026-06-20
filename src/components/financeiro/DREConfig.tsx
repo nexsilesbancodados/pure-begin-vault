@@ -145,6 +145,8 @@ export function DREConfig() {
     const end = new Date(year, month + 1, 1).toISOString();
     const prevStart = new Date(year, month - 1, 1).toISOString();
     const prevEnd = start;
+    const yearStart = new Date(year, 0, 1).toISOString();
+    const yearEnd = new Date(year + 1, 0, 1).toISOString();
     Promise.all([
       (supabase as any)
         .from("finance_transactions")
@@ -160,11 +162,19 @@ export function DREConfig() {
         .gte("transaction_date", prevStart)
         .lt("transaction_date", prevEnd)
         .limit(10000),
-    ]).then(([cur, prev]: any) => {
+      (supabase as any)
+        .from("finance_transactions")
+        .select("type, amount, category, transaction_date")
+        .eq("organization_id", orgId)
+        .gte("transaction_date", yearStart)
+        .lt("transaction_date", yearEnd)
+        .limit(50000),
+    ]).then(([cur, prev, yr]: any) => {
       const norm = (data: any) =>
         (data ?? []).map((t: any) => ({ ...t, amount: Number(t.amount) || 0 }));
       setTxs(norm(cur.data));
       setPrevTxs(norm(prev.data));
+      setYearTxs(norm(yr.data));
       setLoading(false);
     });
   }, [orgId, year, month]);
