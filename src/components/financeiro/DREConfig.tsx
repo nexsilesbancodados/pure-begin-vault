@@ -199,7 +199,7 @@ export function DREConfig() {
   const [loading, setLoading] = useState(true);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [prevTxs, setPrevTxs] = useState<Tx[]>([]);
-  const [yearTxs, setYearTxs] = useState<(Tx & { transaction_date: string })[]>([]);
+  const [yearTxs, setYearTxs] = useState<Tx[]>([]);
 
   useEffect(() => {
     if (!orgId) {
@@ -216,31 +216,83 @@ export function DREConfig() {
     Promise.all([
       (supabase as any)
         .from("finance_transactions")
-        .select("type, amount, category")
+        .select("id, type, amount, category, description, reference_type, reference_id, import_job_id, transaction_date")
         .eq("organization_id", orgId)
         .gte("transaction_date", start)
         .lt("transaction_date", end)
         .limit(10000),
       (supabase as any)
         .from("finance_transactions")
-        .select("type, amount, category")
+        .select("id, type, amount, category, description, reference_type, reference_id, import_job_id, transaction_date")
         .eq("organization_id", orgId)
         .gte("transaction_date", prevStart)
         .lt("transaction_date", prevEnd)
         .limit(10000),
       (supabase as any)
         .from("finance_transactions")
-        .select("type, amount, category, transaction_date")
+        .select("id, type, amount, category, description, reference_type, reference_id, import_job_id, transaction_date")
         .eq("organization_id", orgId)
         .gte("transaction_date", yearStart)
         .lt("transaction_date", yearEnd)
         .limit(50000),
-    ]).then(([cur, prev, yr]: any) => {
-      const norm = (data: any) =>
-        (data ?? []).map((t: any) => ({ ...t, amount: Number(t.amount) || 0 }));
-      setTxs(norm(cur.data));
-      setPrevTxs(norm(prev.data));
-      setYearTxs(norm(yr.data));
+      (supabase as any)
+        .from("accounts_payable")
+        .select("id, amount, category, description, paid_at, due_date, created_at, status")
+        .eq("organization_id", orgId)
+        .eq("status", "paid")
+        .gte("paid_at", start)
+        .lt("paid_at", end)
+        .limit(10000),
+      (supabase as any)
+        .from("accounts_payable")
+        .select("id, amount, category, description, paid_at, due_date, created_at, status")
+        .eq("organization_id", orgId)
+        .eq("status", "paid")
+        .gte("paid_at", prevStart)
+        .lt("paid_at", prevEnd)
+        .limit(10000),
+      (supabase as any)
+        .from("accounts_payable")
+        .select("id, amount, category, description, paid_at, due_date, created_at, status")
+        .eq("organization_id", orgId)
+        .eq("status", "paid")
+        .gte("paid_at", yearStart)
+        .lt("paid_at", yearEnd)
+        .limit(50000),
+    ]).then(([cur, prev, yr, payCur, payPrev, payYear]: any) => {
+      const normFinance = (data: any): Tx[] =>
+        asArray<any>(data).map((t: any) => ({
+          ...t,
+          source: "finance_transactions",
+          amount: toAmount(t?.amount),
+        }));
+      const normPayable = (data: any): Tx[] =>
+        asArray<any>(data).map((t: any) => ({
+          id: t?.id,
+          source: "accounts_payable",
+          type: "expense",
+          amount: toAmount(t?.amount),
+          category: t?.category ?? null,
+          description: t?.description ?? null,
+          transaction_date: t?.paid_at ?? t?.due_date ?? t?.created_at ?? null,
+        }));
+      const mergeDreData = (financeData: any, payableData: any) => {
+        const financeRows = normFinance(financeData);
+        const hasImportedExpenses = financeRows.some(
+          (t) => isExpenseTx(t) && normalizeText(t.reference_type) === "import",
+        );
+        return uniqueDreRows(hasImportedExpenses ? financeRows : [...financeRows, ...normPayable(payableData)]);
+      };
+
+      setTxs(mergeDreData(cur?.data, payCur?.data));
+      setPrevTxs(mergeDreData(prev?.data, payPrev?.data));
+      setYearTxs(mergeDreData(yr?.data, payYear?.data));
+      setLoading(false);
+    }).catch((error) => {
+      console.error("[DRE] erro ao carregar dados", error);
+      setTxs([]);
+      setPrevTxs([]);
+      setYearTxs([]);
       setLoading(false);
     });
   }, [orgId, year, month]);
