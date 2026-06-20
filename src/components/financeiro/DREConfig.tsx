@@ -277,7 +277,16 @@ export function DREConfig() {
         .gte("created_at", yearStart)
         .lt("created_at", yearEnd)
         .limit(50000),
-    ]).then(([cur, prev, yr, payCur, payPrev, payYear, salesYear]: any) => {
+      (supabase as any)
+        .from("accounts_receivable")
+        .select("id, sale_id, amount, description, paid_at, due_date, created_at, status")
+        .eq("organization_id", orgId)
+        .eq("status", "paid")
+        .is("sale_id", null)
+        .gte("paid_at", yearStart)
+        .lt("paid_at", yearEnd)
+        .limit(50000),
+    ]).then(([cur, prev, yr, payCur, payPrev, payYear, salesYear, receivablesYear]: any) => {
       const normFinance = (data: any): Tx[] =>
         asArray<any>(data).map((t: any) => ({
           ...t,
@@ -294,14 +303,30 @@ export function DREConfig() {
           description: t?.description ?? null,
           transaction_date: t?.paid_at ?? t?.due_date ?? t?.created_at ?? null,
         }));
+      const normReceivable = (data: any): Tx[] =>
+        asArray<any>(data).map((t: any) => ({
+          id: t?.id,
+          source: "accounts_receivable",
+          type: "income",
+          amount: toAmount(t?.amount),
+          category: "income",
+          description: t?.description ?? "Receita",
+          reference_type: "receivable",
+          reference_id: t?.id ?? null,
+          transaction_date: t?.paid_at ?? t?.due_date ?? t?.created_at ?? null,
+        }));
       const mergeDreData = (financeData: any, payableData: any) => {
         const financeRows = normFinance(financeData);
         const payableRows = normPayable(payableData);
+        const from = financeData === cur?.data ? new Date(start) : financeData === prev?.data ? new Date(prevStart) : new Date(yearStart);
+        const to = financeData === cur?.data ? new Date(end) : financeData === prev?.data ? new Date(prevEnd) : new Date(yearEnd);
+        const receivableRows = normReceivable(receivablesYear?.data).filter((row) => {
+          const rowDate = row.transaction_date ? new Date(row.transaction_date) : null;
+          return !!rowDate && !Number.isNaN(rowDate.getTime()) && rowDate >= from && rowDate < to;
+        });
         const saleRows = asArray<SaleRow>(salesYear?.data).filter((sale) => {
           const saleDate = sale?.created_at ? new Date(sale.created_at) : null;
           if (!saleDate || Number.isNaN(saleDate.getTime())) return false;
-          const from = financeData === cur?.data ? new Date(start) : financeData === prev?.data ? new Date(prevStart) : new Date(yearStart);
-          const to = financeData === cur?.data ? new Date(end) : financeData === prev?.data ? new Date(prevEnd) : new Date(yearEnd);
           return saleDate >= from && saleDate < to;
         });
         const saleRevenueRows: Tx[] = saleRows.map((sale) => ({
@@ -337,7 +362,7 @@ export function DREConfig() {
           if (payableRows.length === 0) return true;
           return normalizeText(t.reference_type) !== "import";
         });
-        return uniqueDreRows([...financeRowsToUse, ...payableRows, ...saleRevenueRows, ...saleCostRows]);
+        return uniqueDreRows([...financeRowsToUse, ...payableRows, ...receivableRows, ...saleRevenueRows, ...saleCostRows]);
       };
 
       setTxs(mergeDreData(cur?.data, payCur?.data));
