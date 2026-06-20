@@ -26,8 +26,10 @@ import {
   Star,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { getOrgSummaries } from "@/lib/org-directory.functions";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
