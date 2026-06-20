@@ -173,7 +173,7 @@ function Login() {
         if (profOrg && !map.has(profOrg)) map.set(profOrg, { role: null });
 
         const ids = Array.from(map.keys());
-        let nameMap: Record<string, { name: string | null }> = {};
+        let nameMap: Record<string, { name: string | null; logo_url: string | null }> = {};
         if (ids.length > 0) {
           try {
             const res = await fetchOrgSummaries({ data: { orgIds: ids } });
@@ -186,6 +186,7 @@ function Login() {
           id,
           name: nameMap[id]?.name || "Loja",
           role: map.get(id)?.role ?? null,
+          logo: nameMap[id]?.logo_url ?? null,
         }));
       }
 
