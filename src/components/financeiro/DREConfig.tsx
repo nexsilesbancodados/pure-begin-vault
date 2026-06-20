@@ -30,6 +30,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/lib/useOrg";
 import { Link } from "@tanstack/react-router";
 import { Export } from "@/lib/exportUniversal";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 const MONTH_NAMES = [
   "Janeiro",
