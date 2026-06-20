@@ -479,6 +479,175 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
     comprasPaid: 0, comprasOpen: 0, lucroBruto: 0,
   };
 
+  const renderSaudeFinanceira = () => {
+    const receitasTotalSum = (e.receitasPaid || 0) + (e.receitasOpen || 0);
+    const despesasTotalSum = (e.despesasPaid || 0) + (e.despesasOpen || 0) + (e.despesasOverdue || 0);
+    const lucro = (e.receitasPaid || 0) - (e.despesasPaid || 0);
+    const margemPct = (e.receitasPaid || 0) > 0 ? (lucro / (e.receitasPaid || 1)) * 100 : 0;
+    const recebPct = receitasTotalSum > 0 ? ((e.receitasPaid || 0) / receitasTotalSum) * 100 : 0;
+    const pagPct = despesasTotalSum > 0 ? ((e.despesasPaid || 0) / despesasTotalSum) * 100 : 0;
+    const vencidasPct = despesasTotalSum > 0 ? ((e.despesasOverdue || 0) / despesasTotalSum) * 100 : 0;
+
+    const heroCards = [
+      { label: "Saldo de Caixa", value: fmtBRL(e.caixaSaldo), icon: Wallet, tone: e.caixaSaldo >= 0 ? "success" : "destructive", sub: `Entradas ${fmtBRL(e.caixaIncome)} • Saídas ${fmtBRL(e.caixaExpense)}` },
+      { label: "Lucro do Período", value: fmtBRL(lucro), icon: TrendingUp, tone: lucro >= 0 ? "success" : "destructive", sub: `Margem ${margemPct.toFixed(1)}%` },
+      { label: "A Receber", value: fmtBRL(e.receitasOpen), icon: ArrowUpRight, tone: "info", sub: `${fmtBRL(e.receitasPaid)} recebidos` },
+      { label: "A Pagar", value: fmtBRL((e.despesasOpen || 0) + (e.despesasOverdue || 0)), icon: ArrowDownRight, tone: (e.despesasOverdue || 0) > 0 ? "destructive" : "warning", sub: `${e.financeOverdueCount || 0} vencidas` },
+    ];
+
+    const toneBg: Record<string, string> = {
+      success: "bg-success/10 text-success",
+      destructive: "bg-destructive/10 text-destructive",
+      info: "bg-info/10 text-info",
+      warning: "bg-warning/10 text-warning",
+      primary: "bg-primary/10 text-primary",
+    };
+
+    const insights: { label: string; value: string; tone: "success" | "warning" | "destructive" | "info" | "primary" }[] = [];
+    if ((e.despesasOverdue || 0) > 0) {
+      insights.push({ label: "Atenção: contas vencidas", value: `${fmtBRL(e.despesasOverdue)} em atraso — priorize a quitação`, tone: "destructive" });
+    }
+    if (lucro < 0) {
+      insights.push({ label: "Margem negativa", value: "Despesas pagas superam receitas recebidas no período", tone: "destructive" });
+    } else if (margemPct >= 20) {
+      insights.push({ label: "Margem saudável", value: `Lucratividade de ${margemPct.toFixed(1)}% sobre o recebido`, tone: "success" });
+    }
+    if ((e.receitasOpen || 0) > (e.receitasPaid || 0) && receitasTotalSum > 0) {
+      insights.push({ label: "Inadimplência alta", value: `${(100 - recebPct).toFixed(0)}% das receitas ainda em aberto`, tone: "warning" });
+    }
+    if (e.caixaSaldo < 0) {
+      insights.push({ label: "Caixa negativo", value: "Saídas superaram entradas — revise o fluxo", tone: "destructive" });
+    }
+    if (insights.length === 0) {
+      insights.push({ label: "Tudo em ordem", value: "Sem alertas críticos no período atual", tone: "success" });
+    }
+
+    return (
+      <div className="space-y-8 animate-in fade-in duration-500">
+        <div>
+          <h2 className="text-2xl font-black text-foreground tracking-tight">Saúde Financeira</h2>
+          <p className="text-sm font-bold text-muted-foreground">Sincronizado em tempo real com Despesas, Receitas e Caixa.</p>
+        </div>
+
+        {/* Hero KPIs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {heroCards.map((c, i) => (
+            <div key={i} className="bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${toneBg[c.tone]}`}>
+                  <c.icon className="h-5 w-5" />
+                </div>
+              </div>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{c.label}</p>
+              {loading ? (
+                <div className="h-7 w-24 bg-muted animate-pulse rounded-md" />
+              ) : (
+                <h3 className="text-xl md:text-2xl font-black font-display tracking-tight text-foreground tabular-nums break-all leading-tight">{c.value}</h3>
+              )}
+              <p className="text-[11px] font-bold text-muted-foreground mt-2 truncate" title={c.sub}>{c.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Fluxo Receitas vs Despesas */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-black text-foreground flex items-center gap-2">
+                  <ArrowUpRight className="h-4 w-4 text-success" /> Receitas
+                </h3>
+                <p className="text-xs font-bold text-muted-foreground">Total previsto {fmtBRL(receitasTotalSum)}</p>
+              </div>
+              <span className="text-xs font-black text-success">{recebPct.toFixed(0)}% recebido</span>
+            </div>
+            <div className="h-3 w-full bg-muted rounded-full overflow-hidden mb-4">
+              <div className="h-full bg-success rounded-full transition-all" style={{ width: `${Math.min(recebPct, 100)}%` }} />
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="rounded-xl bg-success/10 p-3">
+                <p className="font-bold text-muted-foreground">Recebido</p>
+                <p className="font-black text-success tabular-nums text-sm">{fmtBRL(e.receitasPaid)}</p>
+              </div>
+              <div className="rounded-xl bg-info/10 p-3">
+                <p className="font-bold text-muted-foreground">Em aberto</p>
+                <p className="font-black text-info tabular-nums text-sm">{fmtBRL(e.receitasOpen)}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-black text-foreground flex items-center gap-2">
+                  <ArrowDownRight className="h-4 w-4 text-destructive" /> Despesas
+                </h3>
+                <p className="text-xs font-bold text-muted-foreground">Total comprometido {fmtBRL(despesasTotalSum)}</p>
+              </div>
+              <span className="text-xs font-black text-destructive">{pagPct.toFixed(0)}% pago</span>
+            </div>
+            <div className="relative h-3 w-full bg-muted rounded-full overflow-hidden mb-4">
+              <div className="absolute inset-y-0 left-0 bg-success" style={{ width: `${Math.min(pagPct, 100)}%` }} />
+              <div className="absolute inset-y-0 bg-destructive" style={{ left: `${Math.min(pagPct, 100)}%`, width: `${Math.min(vencidasPct, 100 - pagPct)}%` }} />
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="rounded-xl bg-success/10 p-3">
+                <p className="font-bold text-muted-foreground">Pagas</p>
+                <p className="font-black text-success tabular-nums text-sm">{fmtBRL(e.despesasPaid)}</p>
+              </div>
+              <div className="rounded-xl bg-warning/10 p-3">
+                <p className="font-bold text-muted-foreground">Em aberto</p>
+                <p className="font-black text-warning tabular-nums text-sm">{fmtBRL(e.despesasOpen)}</p>
+              </div>
+              <div className="rounded-xl bg-destructive/10 p-3">
+                <p className="font-bold text-muted-foreground">Vencidas</p>
+                <p className="font-black text-destructive tabular-nums text-sm">{fmtBRL(e.despesasOverdue)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Insights */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <h3 className="text-base font-black text-foreground mb-4 flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-warning" /> Insights & Alertas
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {insights.map((it, i) => (
+              <div key={i} className={`rounded-xl p-4 border border-border ${toneBg[it.tone]} bg-opacity-50`}>
+                <p className="text-xs font-black uppercase tracking-widest mb-1">{it.label}</p>
+                <p className="text-sm font-bold text-foreground/80">{it.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Detalhamento */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+          <h3 className="text-base font-black text-foreground mb-4">Detalhamento</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div className="rounded-xl bg-muted/40 p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Entradas (caixa)</p>
+              <p className="font-black text-success tabular-nums mt-1">{fmtBRL(e.caixaIncome)}</p>
+            </div>
+            <div className="rounded-xl bg-muted/40 p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Saídas (caixa)</p>
+              <p className="font-black text-warning tabular-nums mt-1">{fmtBRL(e.caixaExpense)}</p>
+            </div>
+            <div className="rounded-xl bg-muted/40 p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Margem líquida</p>
+              <p className={`font-black tabular-nums mt-1 ${(e.financeMargin || 0) >= 0 ? "text-success" : "text-destructive"}`}>{fmtBRL(e.financeMargin || 0)}</p>
+            </div>
+            <div className="rounded-xl bg-muted/40 p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contas vencidas</p>
+              <p className="font-black text-destructive tabular-nums mt-1">{e.financeOverdueCount || 0}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const getContent = () => {
     switch (activeCategory) {
       case "visao-geral":
@@ -502,24 +671,7 @@ export const DashboardContent: React.FC<DashboardContentProps> = ({
       case "fin-relatorio-vendas-os-2":
       case "fin-formas-pagamento":
       case "fin-formas-pagamento-dia":
-        return renderKpiGrid(
-          "Saúde Financeira",
-          "Sincronizado em tempo real com Despesas, Receitas e Caixa.",
-          [
-            { label: "Despesas em aberto", value: fmtBRL(e.despesasOpen), tone: "warning" },
-            { label: "Despesas vencidas", value: fmtBRL(e.despesasOverdue), tone: "destructive" },
-            { label: "Despesas pagas", value: fmtBRL(e.despesasPaid), tone: "success" },
-            { label: "Total a pagar", value: fmtBRL(e.despesasTotal), tone: "primary" },
-            { label: "Receitas em aberto", value: fmtBRL(e.receitasOpen), tone: "info" },
-            { label: "Receitas recebidas", value: fmtBRL(e.receitasPaid), tone: "success" },
-            { label: "Total a receber", value: fmtBRL(e.receitasTotal), tone: "primary" },
-            { label: "Saldo de caixa", value: fmtBRL(e.caixaSaldo), tone: e.caixaSaldo >= 0 ? "success" : "destructive" },
-            { label: "Margem líquida", value: fmtBRL(e.financeMargin || 0), tone: (e.financeMargin || 0) >= 0 ? "success" : "destructive" },
-            { label: "Contas vencidas (qtd)", value: String(e.financeOverdueCount || 0), tone: "destructive" },
-            { label: "Entradas (caixa)", value: fmtBRL(e.caixaIncome), tone: "success" },
-            { label: "Saídas (caixa)", value: fmtBRL(e.caixaExpense), tone: "warning" },
-          ],
-        );
+        return renderSaudeFinanceira();
       case "vendas-relatorio":
         return <SalesReportTable />;
       case "prod-vendidos":
