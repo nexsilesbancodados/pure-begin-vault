@@ -203,6 +203,7 @@ export function DREConfig() {
       { label: "Lucro Bruto", value: dre.lucroBruto, prev: prevDre.lucroBruto, type: "total" },
       { label: "(-) Despesas Operacionais", value: -dre.operacionais, prev: -prevDre.operacionais, type: "expense" },
       { label: "(-) Despesas Administrativas", value: -dre.administrativas, prev: -prevDre.administrativas, type: "expense" },
+      { label: "(-) Outras Despesas", value: -dre.outras, prev: -prevDre.outras, type: "expense" },
       { label: "EBITDA / LAJIDA", value: dre.ebitda, prev: prevDre.ebitda, type: "total" },
       { label: "(-) Depreciação e Amortização", value: -dre.depreciacao, prev: -prevDre.depreciacao, type: "expense" },
       { label: "Lucro Líquido do Exercício", value: dre.lucroLiquido, prev: prevDre.lucroLiquido, type: "final" },
