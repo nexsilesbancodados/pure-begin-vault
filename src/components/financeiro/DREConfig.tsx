@@ -330,13 +330,15 @@ export function DREConfig() {
       despesa: 0,
       lucro: 0,
     }));
-    for (const t of yearTxs) {
+    for (const t of asArray(yearTxs)) {
+      if (!t.transaction_date) continue;
       const d = new Date(t.transaction_date);
+      if (Number.isNaN(d.getTime())) continue;
       if (d.getFullYear() !== year) continue;
       const b = buckets[d.getMonth()];
       if (!b) continue;
-      if (t.type === "income" || t.type === "receita") b.receita += t.amount;
-      else if (t.type === "expense" || t.type === "despesa") b.despesa += t.amount;
+      if (isIncomeTx(t)) b.receita += toAmount(t.amount);
+      else if (isExpenseTx(t)) b.despesa += toAmount(t.amount);
     }
     buckets.forEach((b) => (b.lucro = b.receita - b.despesa));
     return buckets;
