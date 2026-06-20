@@ -67,6 +67,7 @@ function Login() {
   const [pickingStore, setPickingStore] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
   const emailRef = useRef<HTMLInputElement>(null);
+  const fetchOrgSummaries = useServerFn(getOrgSummaries);
 
   const showLoginError = (message: string) => {
     setError(message);
