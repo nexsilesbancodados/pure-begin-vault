@@ -50,7 +50,7 @@ export const Route = createFileRoute("/login")({
   component: Login,
 });
 
-type StoreOpt = { id: string; name: string; role: string | null };
+type StoreOpt = { id: string; name: string; role: string | null; logo: string | null };
 
 function Login() {
   const navigate = useNavigate();
@@ -173,7 +173,7 @@ function Login() {
         if (profOrg && !map.has(profOrg)) map.set(profOrg, { role: null });
 
         const ids = Array.from(map.keys());
-        let nameMap: Record<string, { name: string | null }> = {};
+        let nameMap: Record<string, { name: string | null; logo_url: string | null }> = {};
         if (ids.length > 0) {
           try {
             const res = await fetchOrgSummaries({ data: { orgIds: ids } });
@@ -186,6 +186,7 @@ function Login() {
           id,
           name: nameMap[id]?.name || "Loja",
           role: map.get(id)?.role ?? null,
+          logo: nameMap[id]?.logo_url ?? null,
         }));
       }
 
@@ -226,50 +227,85 @@ function Login() {
   return (
     <div className="min-h-screen grid lg:grid-cols-[1fr_1.05fr] bg-background font-sans">
       {pickingStore && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-elegant p-6">
-            <h2 className="font-display font-bold text-xl text-foreground mb-1">
-              Escolha a loja
-            </h2>
-            <p className="text-sm text-muted-foreground mb-5">
-              Você tem acesso a {stores.length} lojas. Selecione qual deseja entrar agora.
-            </p>
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-              {stores.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => pickStore(s.id)}
-                  disabled={!!switching}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition text-left disabled:opacity-60"
-                >
-                  <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground font-bold shrink-0">
-                    {s.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold text-sm text-foreground truncate">{s.name}</div>
-                    {s.role && (
-                      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
-                        {s.role}
-                      </div>
-                    )}
-                  </div>
-                  {switching === s.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  ) : (
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-              ))}
+        <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-3xl bg-card border border-border shadow-elegant overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Header com gradiente */}
+            <div className="relative px-6 pt-6 pb-5 bg-gradient-primary text-primary-foreground">
+              <div className="absolute inset-0 bg-gradient-mesh opacity-30" />
+              <div className="relative">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur text-[10px] font-bold uppercase tracking-widest mb-2">
+                  <ShieldCheck className="h-3 w-3" /> Acesso multi-loja
+                </div>
+                <h2 className="font-display font-bold text-2xl tracking-tight">
+                  Escolha sua loja
+                </h2>
+                <p className="text-sm text-primary-foreground/80 mt-1">
+                  Você tem acesso a {stores.length} lojas. Selecione com qual deseja continuar.
+                </p>
+              </div>
             </div>
-            <button
-              onClick={() => {
-                setPickingStore(false);
-                supabase.auth.signOut();
-              }}
-              className="mt-4 w-full text-xs text-muted-foreground hover:text-foreground"
-            >
-              Cancelar e sair
-            </button>
+
+            {/* Lista */}
+            <div className="p-4 space-y-2 max-h-[55vh] overflow-y-auto">
+              {stores.map((s) => {
+                const initial = s.name.charAt(0).toUpperCase();
+                const isLoading = switching === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => pickStore(s.id)}
+                    disabled={!!switching}
+                    className="group/store w-full flex items-center gap-4 p-3 rounded-2xl border border-border bg-card hover:border-primary hover:bg-primary/5 hover:shadow-md transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="relative h-14 w-14 rounded-2xl overflow-hidden shrink-0 ring-1 ring-border bg-muted">
+                      {s.logo ? (
+                        <img
+                          src={s.logo}
+                          alt={s.name}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                      ) : null}
+                      {!s.logo && (
+                        <div className="absolute inset-0 grid place-items-center bg-gradient-primary text-primary-foreground font-display font-bold text-xl">
+                          {initial}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-display font-bold text-base text-foreground truncate">
+                        {s.name}
+                      </div>
+                      {s.role && (
+                        <div className="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] uppercase tracking-wider font-bold">
+                          {s.role}
+                        </div>
+                      )}
+                    </div>
+                    {isLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-primary shrink-0" />
+                    ) : (
+                      <ArrowRight className="h-5 w-5 text-muted-foreground group-hover/store:text-primary group-hover/store:translate-x-0.5 transition-all shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-border bg-muted/30">
+              <button
+                onClick={() => {
+                  setPickingStore(false);
+                  supabase.auth.signOut();
+                }}
+                className="w-full text-xs text-muted-foreground hover:text-destructive font-semibold transition-colors"
+              >
+                Cancelar e sair
+              </button>
+            </div>
           </div>
         </div>
       )}
