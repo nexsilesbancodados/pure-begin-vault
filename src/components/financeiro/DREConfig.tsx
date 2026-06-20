@@ -106,7 +106,10 @@ function uniqueDreRows(rows: Tx[]) {
       seenRef.add(refKey);
     }
 
-    const dateKey = row.transaction_date ? new Date(row.transaction_date).toISOString().slice(0, 10) : "sem-data";
+    const parsedDate = row.transaction_date ? new Date(row.transaction_date) : null;
+    const dateKey = parsedDate && !Number.isNaN(parsedDate.getTime())
+      ? parsedDate.toISOString().slice(0, 10)
+      : "sem-data";
     const businessKey = [
       type,
       amount,
@@ -278,10 +281,14 @@ export function DREConfig() {
         }));
       const mergeDreData = (financeData: any, payableData: any) => {
         const financeRows = normFinance(financeData);
-        const hasImportedExpenses = financeRows.some(
-          (t) => isExpenseTx(t) && normalizeText(t.reference_type) === "import",
-        );
-        return uniqueDreRows(hasImportedExpenses ? financeRows : [...financeRows, ...normPayable(payableData)]);
+        const payableRows = normPayable(payableData);
+        const financeRowsToUse = financeRows.filter((t) => {
+          if (isIncomeTx(t)) return true;
+          if (!isExpenseTx(t)) return false;
+          if (payableRows.length === 0) return true;
+          return normalizeText(t.reference_type) !== "import";
+        });
+        return uniqueDreRows([...financeRowsToUse, ...payableRows]);
       };
 
       setTxs(mergeDreData(cur?.data, payCur?.data));
