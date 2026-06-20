@@ -1,5 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { iconMap, LogOut, PanelLeftClose, PanelLeftOpen, Search, Sparkles, X } from "@/lib/icons";
+import { toast } from "sonner";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useImport } from "@/contexts/ImportContext";
@@ -323,7 +324,17 @@ export function AppSidebar({
             )}
 
             <button
-              onClick={logout}
+              onClick={() =>
+                toast("Deseja sair da conta?", {
+                  description: user?.email || displayName,
+                  action: {
+                    label: "Sair",
+                    onClick: () => logout(),
+                  },
+                  cancel: { label: "Cancelar", onClick: () => {} },
+                  duration: 6000,
+                })
+              }
               aria-label="Sair da conta"
               className={cn(
                 "h-10 flex items-center gap-3 px-3 py-2 rounded-lg text-destructive/70 hover:bg-destructive/10 hover:text-destructive transition",
