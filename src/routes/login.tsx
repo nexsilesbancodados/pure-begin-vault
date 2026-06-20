@@ -196,6 +196,54 @@ function Login() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-[1fr_1.05fr] bg-background font-sans">
+      {pickingStore && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-card border border-border shadow-elegant p-6">
+            <h2 className="font-display font-bold text-xl text-foreground mb-1">
+              Escolha a loja
+            </h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Você tem acesso a {stores.length} lojas. Selecione qual deseja entrar agora.
+            </p>
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+              {stores.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => pickStore(s.id)}
+                  disabled={!!switching}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition text-left disabled:opacity-60"
+                >
+                  <div className="h-10 w-10 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground font-bold shrink-0">
+                    {s.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-sm text-foreground truncate">{s.name}</div>
+                    {s.role && (
+                      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {s.role}
+                      </div>
+                    )}
+                  </div>
+                  {switching === s.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => {
+                setPickingStore(false);
+                supabase.auth.signOut();
+              }}
+              className="mt-4 w-full text-xs text-muted-foreground hover:text-foreground"
+            >
+              Cancelar e sair
+            </button>
+          </div>
+        </div>
+      )}
       {/* ============ Left — Form ============ */}
       <div className="relative flex flex-col justify-center px-6 sm:px-12 lg:px-20 py-12 bg-card">
         {/* subtle top accent */}
