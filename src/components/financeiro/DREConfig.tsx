@@ -73,6 +73,13 @@ type Tx = {
   transaction_date?: string | null;
 };
 
+type SaleRow = {
+  id: string;
+  total_amount: number | string | null;
+  created_at: string | null;
+  sale_items?: { unit_cost: number | string | null; quantity: number | string | null }[] | null;
+};
+
 const asArray = <T,>(value: T[] | null | undefined): T[] => (Array.isArray(value) ? value : []);
 const toAmount = (value: unknown) => Math.abs(Number(value) || 0);
 const normalizeText = (value: unknown) =>
@@ -262,7 +269,15 @@ export function DREConfig() {
         .gte("paid_at", yearStart)
         .lt("paid_at", yearEnd)
         .limit(50000),
-    ]).then(([cur, prev, yr, payCur, payPrev, payYear]: any) => {
+      (supabase as any)
+        .from("sales_orders")
+        .select("id, total_amount, created_at, sale_items(unit_cost, quantity)")
+        .eq("organization_id", orgId)
+        .in("status", ["completed", "concluded", "paid", "concluído", "pago"])
+        .gte("created_at", yearStart)
+        .lt("created_at", yearEnd)
+        .limit(50000),
+    ]).then(([cur, prev, yr, payCur, payPrev, payYear, salesYear]: any) => {
       const normFinance = (data: any): Tx[] =>
         asArray<any>(data).map((t: any) => ({
           ...t,
@@ -282,13 +297,47 @@ export function DREConfig() {
       const mergeDreData = (financeData: any, payableData: any) => {
         const financeRows = normFinance(financeData);
         const payableRows = normPayable(payableData);
+        const saleRows = asArray<SaleRow>(salesYear?.data).filter((sale) => {
+          const saleDate = sale?.created_at ? new Date(sale.created_at) : null;
+          if (!saleDate || Number.isNaN(saleDate.getTime())) return false;
+          const from = financeData === cur?.data ? new Date(start) : financeData === prev?.data ? new Date(prevStart) : new Date(yearStart);
+          const to = financeData === cur?.data ? new Date(end) : financeData === prev?.data ? new Date(prevEnd) : new Date(yearEnd);
+          return saleDate >= from && saleDate < to;
+        });
+        const saleRevenueRows: Tx[] = saleRows.map((sale) => ({
+          id: sale.id,
+          source: "finance_transactions",
+          type: "income",
+          amount: toAmount(sale.total_amount),
+          category: "sales",
+          description: "Venda",
+          reference_type: "sale",
+          reference_id: sale.id,
+          transaction_date: sale.created_at,
+        }));
+        const saleCostRows: Tx[] = saleRows
+          .map((sale) => ({
+            id: `cost:${sale.id}`,
+            source: "finance_transactions" as const,
+            type: "expense",
+            amount: asArray(sale.sale_items).reduce(
+              (sum, item) => sum + toAmount(item?.unit_cost) * (Number(item?.quantity) || 0),
+              0,
+            ),
+            category: "CPV",
+            description: "Custo dos produtos vendidos",
+            reference_type: "sale_cost",
+            reference_id: sale.id,
+            transaction_date: sale.created_at,
+          }))
+          .filter((row) => row.amount > 0);
         const financeRowsToUse = financeRows.filter((t) => {
-          if (isIncomeTx(t)) return true;
+          if (isIncomeTx(t)) return normalizeText(t.reference_type) !== "sale";
           if (!isExpenseTx(t)) return false;
           if (payableRows.length === 0) return true;
           return normalizeText(t.reference_type) !== "import";
         });
-        return uniqueDreRows([...financeRowsToUse, ...payableRows]);
+        return uniqueDreRows([...financeRowsToUse, ...payableRows, ...saleRevenueRows, ...saleCostRows]);
       };
 
       setTxs(mergeDreData(cur?.data, payCur?.data));
