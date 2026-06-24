@@ -97,7 +97,20 @@ export function StockList() {
     if (error) {
       toast.error("Erro ao carregar produtos: " + error.message);
     } else {
-      const rows = (data ?? []).map((p: any) => ({ ...p, stock: p.stock_quantity ?? 0 }));
+      const rows = (data ?? []).map((p: any) => {
+        const md = p.metadata || {};
+        return {
+          ...p,
+          stock: p.stock_quantity ?? 0,
+          imei: p.imei ?? md.imei ?? md.IMEI ?? md.imei1 ?? md.imei_1 ?? "",
+          imei2: p.imei2 ?? md.imei2 ?? md.IMEI2 ?? md.imei_2 ?? "",
+          color: p.color ?? md.cor ?? "",
+          capacity: p.capacity ?? md.gb ?? "",
+          battery_health: p.battery_health ?? md.saude_bateria ?? "",
+          observations: p.observations ?? p.description ?? "",
+          location: p.location ?? md.location ?? "",
+        };
+      });
       if (isInitial) {
         setLocalProducts(rows);
       } else {
