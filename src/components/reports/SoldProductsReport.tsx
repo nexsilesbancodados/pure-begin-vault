@@ -159,21 +159,40 @@ export function SoldProductsReport() {
     return out;
   }, [items]);
 
+  // Curva ABC: A = 80% receita, B = próximos 15%, C = últimos 5%
+  const withAbc: Agg[] = useMemo(() => {
+    const sortedByRev = [...aggregated].sort((a, b) => b.revenue - a.revenue);
+    const total = sortedByRev.reduce((s, a) => s + a.revenue, 0) || 1;
+    let acc = 0;
+    for (const a of sortedByRev) {
+      acc += a.revenue;
+      const pct = (acc / total) * 100;
+      a.cumulativePct = pct;
+      a.abcClass = pct <= 80 ? "A" : pct <= 95 ? "B" : "C";
+    }
+    return sortedByRev;
+  }, [aggregated]);
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    const arr = s
-      ? aggregated.filter(
+    let arr = s
+      ? withAbc.filter(
           (a) =>
             a.name.toLowerCase().includes(s) || (a.sku ?? "").toLowerCase().includes(s),
         )
-      : aggregated;
+      : withAbc;
+    if (abcFilter !== "all") arr = arr.filter((a) => a.abcClass === abcFilter);
+    if (marginFilter === "positive") arr = arr.filter((a) => a.margin > 0);
+    else if (marginFilter === "negative") arr = arr.filter((a) => a.margin < 0);
+    else if (marginFilter === "high") arr = arr.filter((a) => a.marginPct >= 30);
     const sorted = [...arr].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1;
       if (sortKey === "name") return a.name.localeCompare(b.name) * dir;
       return (((a[sortKey] as number) - (b[sortKey] as number)) as number) * dir;
     });
     return sorted;
-  }, [aggregated, search, sortKey, sortDir]);
+  }, [withAbc, search, sortKey, sortDir, abcFilter, marginFilter]);
+
 
   const kpis = useMemo(() => {
     const totalQty = aggregated.reduce((a, b) => a + b.qty, 0);
