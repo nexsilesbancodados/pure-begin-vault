@@ -280,7 +280,34 @@ export function AbcCurveConfigDialog({
             </div>
           </div>
 
+          <div>
+            <Label className="text-xs font-black uppercase tracking-widest">Agrupamento</Label>
+            <div className="flex gap-1 mt-2">
+              {([
+                { v: "model", label: "Agrupar por Modelo (padrão)" },
+                { v: "variation", label: "Agrupar por Variação (Modelo + Cor + GB)" },
+              ] as { v: AbcGroupBy; label: string }[]).map((o) => (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => update({ groupBy: o.v })}
+                  className={`px-3 h-8 rounded-lg text-xs font-black transition border flex-1 ${
+                    cfg.groupBy === o.v
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card border-border hover:bg-muted"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              No modo "Modelo", cores diferentes do mesmo modelo (ex.: iPhone 16 128GB Preto/Branco) somam como um único produto.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
+
             <div>
               <Label className="text-xs font-black uppercase tracking-widest">De</Label>
               <Input
