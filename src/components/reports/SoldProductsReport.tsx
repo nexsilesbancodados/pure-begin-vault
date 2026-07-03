@@ -46,7 +46,10 @@ type Agg = {
   orders: number;
   avgPrice: number;
   lastSold: string;
+  abcClass?: "A" | "B" | "C";
+  cumulativePct?: number;
 };
+
 
 const fmtBRL = (n: number) =>
   (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
