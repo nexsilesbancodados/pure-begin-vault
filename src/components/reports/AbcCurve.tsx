@@ -43,9 +43,11 @@ import {
 // ============================================================================
 
 export type AbcCriterion = "revenue" | "profit" | "quantity" | "margin" | "turnover";
+export type AbcGroupBy = "model" | "variation";
 
 export type AbcConfig = {
   criterion: AbcCriterion;
+  groupBy: AbcGroupBy;
   from: string | null; // ISO date
   to: string | null;
   brand: string;
@@ -57,6 +59,7 @@ export type AbcConfig = {
   pctB: number;
   pctC: number;
 };
+
 
 type ProductRef = {
   id: string;
@@ -123,6 +126,7 @@ const defaultConfig = (): AbcConfig => {
   from.setDate(from.getDate() - 29);
   return {
     criterion: "revenue",
+    groupBy: "model",
     from: from.toISOString().slice(0, 10),
     to: to.toISOString().slice(0, 10),
     brand: "",
@@ -135,6 +139,34 @@ const defaultConfig = (): AbcConfig => {
     pctC: 5,
   };
 };
+
+// Remove nomes de cor comuns para agrupar variações do mesmo modelo
+const COLORS_RE =
+  /\b(preto|branco|azul|verde|vermelho|roxo|rosa|amarelo|dourado|prata|cinza|grafite|titan[iî]?o?|titanium|starlight|midnight|deep\s+purple|natural|desert|sierra|space\s+(?:gray|grey|black)|silver|gold|black|white|blue|red|green|pink|yellow|purple|meia[- ]?noite|estelar|creme|bege|ros[eé])\b/gi;
+
+function stripColor(s: string): string {
+  return (s || "")
+    .replace(COLORS_RE, "")
+    .replace(/[-–—]/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s*[,·|/]\s*/g, " ")
+    .trim();
+}
+
+function groupKeyAndName(
+  item: SaleItemRow,
+  p: ProductRef | undefined,
+  mode: AbcGroupBy,
+): { key: string; name: string } {
+  const displayName = item.product_name || p?.name || "Sem nome";
+  if (mode === "variation") {
+    return { key: item.product_id || `name:${displayName}`, name: displayName };
+  }
+  const base = stripColor(p?.model || displayName).toLowerCase();
+  const nice = stripColor(p?.model || displayName).replace(/\s+/g, " ").trim() || displayName;
+  return { key: `model:${base}`, name: nice };
+}
+
 
 function criterionValue(r: Row, c: AbcCriterion): number {
   switch (c) {
