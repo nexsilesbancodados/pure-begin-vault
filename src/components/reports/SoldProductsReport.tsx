@@ -18,6 +18,7 @@ import {
   Trophy,
   BarChart3,
 } from "lucide-react";
+import { AbcCurveConfigDialog, AbcCurveReport, type AbcConfig } from "./AbcCurve";
 
 
 type RangePreset = "today" | "7d" | "30d" | "month" | "year" | "all";
