@@ -767,8 +767,9 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
             Curva ABC — {CRIT_LABEL[config.criterion]}
           </h3>
           <p className="text-xs text-muted-foreground font-bold">
-            {config.from} até {config.to} · A={config.pctA}% · B={config.pctB}% · C={config.pctC}%
+            {config.from} até {config.to} · A={config.pctA}% · B={config.pctB}% · C={config.pctC}% · Agrupamento: {config.groupBy === "model" ? "Modelo" : "Variação"}
           </p>
+
         </div>
         <Button size="sm" variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
           <Download className="h-3.5 w-3.5 mr-1" /> Exportar CSV
