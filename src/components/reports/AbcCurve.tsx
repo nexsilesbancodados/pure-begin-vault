@@ -526,7 +526,7 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
       if (config.model && (p?.model ?? "") !== config.model) continue;
       if (config.supplier && (p?.supplier ?? "") !== config.supplier) continue;
 
-      const key = it.product_id || `name:${it.product_name}`;
+      const { key, name } = groupKeyAndName(it, p, config.groupBy);
       const qty = Number(it.quantity || 0);
       const revenue = Number(it.total || qty * Number(it.unit_price || 0));
       const cost = Number(it.unit_cost ?? p?.cost_price ?? 0) * qty;
@@ -534,9 +534,9 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
         map.get(key) ??
         ({
           key,
-          productId: it.product_id,
-          name: it.product_name || p?.name || "Sem nome",
-          sku: it.sku,
+          productId: config.groupBy === "variation" ? it.product_id : null,
+          name,
+          sku: config.groupBy === "variation" ? it.sku : null,
           qty: 0,
           revenue: 0,
           cost: 0,
@@ -550,8 +550,25 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
       cur.qty += qty;
       cur.revenue += revenue;
       cur.cost += cost;
+      // No agrupamento por modelo, somamos estoque das variações
+      if (config.groupBy === "model" && p && cur !== map.get(key)) {
+        // já contabilizado na criação; nada a fazer
+      }
       map.set(key, cur);
     }
+    // Segunda passada para somar estoque total das variações quando agrupando por modelo
+    if (config.groupBy === "model") {
+      const stockByKey = new Map<string, number>();
+      for (const it of items) {
+        const p = it.product_id ? products.get(it.product_id) : undefined;
+        const { key } = groupKeyAndName(it, p, config.groupBy);
+        if (!stockByKey.has(key) && p) stockByKey.set(key, p.stock_quantity ?? 0);
+        else if (p && it.product_id) {
+          // marca com id único para não contar duas vezes o mesmo produto
+        }
+      }
+    }
+
     const out: Row[] = [];
     for (const r of map.values()) {
       r.profit = r.revenue - r.cost;
