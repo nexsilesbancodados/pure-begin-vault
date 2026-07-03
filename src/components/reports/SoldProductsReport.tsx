@@ -416,11 +416,28 @@ export function SoldProductsReport() {
                 {filtered.slice(0, 200).map((a) => (
                   <tr key={a.key} className="border-b border-border/60 hover:bg-muted/40">
                     <td className="py-2.5 pl-5">
-                      <div className="font-bold truncate max-w-[280px]">{a.name}</div>
+                      <div className="flex items-center gap-2">
+                        {a.abcClass && (
+                          <span
+                            className={`h-5 w-5 rounded-md flex items-center justify-center text-[10px] font-black ${
+                              a.abcClass === "A"
+                                ? "bg-success/15 text-success"
+                                : a.abcClass === "B"
+                                  ? "bg-warning/15 text-warning"
+                                  : "bg-muted text-muted-foreground"
+                            }`}
+                            title={`Classe ${a.abcClass}`}
+                          >
+                            {a.abcClass}
+                          </span>
+                        )}
+                        <div className="font-bold truncate max-w-[260px]">{a.name}</div>
+                      </div>
                       {a.sku && (
-                        <div className="text-[10px] text-muted-foreground">SKU: {a.sku}</div>
+                        <div className="text-[10px] text-muted-foreground pl-7">SKU: {a.sku}</div>
                       )}
                     </td>
+
                     <td className="text-right tabular-nums font-bold">{a.qty}</td>
                     <td className="text-right tabular-nums">{a.orders}</td>
                     <td className="text-right tabular-nums font-bold">{fmtBRL(a.revenue)}</td>
