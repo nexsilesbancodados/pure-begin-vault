@@ -16,7 +16,9 @@ import {
   ArrowUpDown,
   Loader2,
   Trophy,
+  BarChart3,
 } from "lucide-react";
+
 
 type RangePreset = "today" | "7d" | "30d" | "month" | "year" | "all";
 
