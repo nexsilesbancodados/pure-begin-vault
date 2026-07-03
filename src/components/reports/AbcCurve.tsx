@@ -955,9 +955,14 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
           </p>
 
         </div>
-        <Button size="sm" variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
-          <Download className="h-3.5 w-3.5 mr-1" /> Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
+            <Download className="h-3.5 w-3.5 mr-1" /> Exportar CSV
+          </Button>
+          <Button size="sm" onClick={exportPdf} disabled={filtered.length === 0}>
+            <FileText className="h-3.5 w-3.5 mr-1" /> Exportar PDF
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}
