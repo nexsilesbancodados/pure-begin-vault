@@ -93,6 +93,11 @@ export function SoldProductsReport() {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("revenue");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [abcFilter, setAbcFilter] = useState<"all" | "A" | "B" | "C">("all");
+  const [marginFilter, setMarginFilter] = useState<"all" | "positive" | "negative" | "high">("all");
+  const [showAbc, setShowAbc] = useState(false);
+
+
 
   useEffect(() => {
     if (!orgId) return;
