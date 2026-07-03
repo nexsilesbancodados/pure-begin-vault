@@ -16,7 +16,9 @@ import {
   ArrowUpDown,
   Loader2,
   Trophy,
+  BarChart3,
 } from "lucide-react";
+
 
 type RangePreset = "today" | "7d" | "30d" | "month" | "year" | "all";
 
@@ -44,7 +46,10 @@ type Agg = {
   orders: number;
   avgPrice: number;
   lastSold: string;
+  abcClass?: "A" | "B" | "C";
+  cumulativePct?: number;
 };
+
 
 const fmtBRL = (n: number) =>
   (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -88,6 +93,11 @@ export function SoldProductsReport() {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("revenue");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [abcFilter, setAbcFilter] = useState<"all" | "A" | "B" | "C">("all");
+  const [marginFilter, setMarginFilter] = useState<"all" | "positive" | "negative" | "high">("all");
+  const [showAbc, setShowAbc] = useState(false);
+
+
 
   useEffect(() => {
     if (!orgId) return;
@@ -149,21 +159,40 @@ export function SoldProductsReport() {
     return out;
   }, [items]);
 
+  // Curva ABC: A = 80% receita, B = próximos 15%, C = últimos 5%
+  const withAbc: Agg[] = useMemo(() => {
+    const sortedByRev = [...aggregated].sort((a, b) => b.revenue - a.revenue);
+    const total = sortedByRev.reduce((s, a) => s + a.revenue, 0) || 1;
+    let acc = 0;
+    for (const a of sortedByRev) {
+      acc += a.revenue;
+      const pct = (acc / total) * 100;
+      a.cumulativePct = pct;
+      a.abcClass = pct <= 80 ? "A" : pct <= 95 ? "B" : "C";
+    }
+    return sortedByRev;
+  }, [aggregated]);
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
-    const arr = s
-      ? aggregated.filter(
+    let arr = s
+      ? withAbc.filter(
           (a) =>
             a.name.toLowerCase().includes(s) || (a.sku ?? "").toLowerCase().includes(s),
         )
-      : aggregated;
+      : withAbc;
+    if (abcFilter !== "all") arr = arr.filter((a) => a.abcClass === abcFilter);
+    if (marginFilter === "positive") arr = arr.filter((a) => a.margin > 0);
+    else if (marginFilter === "negative") arr = arr.filter((a) => a.margin < 0);
+    else if (marginFilter === "high") arr = arr.filter((a) => a.marginPct >= 30);
     const sorted = [...arr].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1;
       if (sortKey === "name") return a.name.localeCompare(b.name) * dir;
       return (((a[sortKey] as number) - (b[sortKey] as number)) as number) * dir;
     });
     return sorted;
-  }, [aggregated, search, sortKey, sortDir]);
+  }, [withAbc, search, sortKey, sortDir, abcFilter, marginFilter]);
+
 
   const kpis = useMemo(() => {
     const totalQty = aggregated.reduce((a, b) => a + b.qty, 0);
@@ -235,9 +264,17 @@ export function SoldProductsReport() {
               </button>
             ))}
           </div>
-          <Button onClick={exportCsv} size="sm" disabled={filtered.length === 0}>
+          <Button
+            onClick={() => setShowAbc((v) => !v)}
+            size="sm"
+            variant={showAbc ? "default" : "outline"}
+          >
+            <BarChart3 className="h-3.5 w-3.5 mr-1" /> Curva ABC
+          </Button>
+          <Button onClick={exportCsv} size="sm" variant="outline" disabled={filtered.length === 0}>
             <Download className="h-3.5 w-3.5 mr-1" /> CSV
           </Button>
+
         </div>
       </div>
 
@@ -301,6 +338,9 @@ export function SoldProductsReport() {
         )}
       </Card>
 
+      {/* Curva ABC */}
+      {showAbc && <AbcPanel items={withAbc} />}
+
       {/* Search + Table */}
       <Card className="p-5">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -313,10 +353,31 @@ export function SoldProductsReport() {
               className="pl-9"
             />
           </div>
+          <select
+            value={abcFilter}
+            onChange={(e) => setAbcFilter(e.target.value as any)}
+            className="h-9 rounded-lg border border-border bg-card px-2 text-xs font-bold"
+          >
+            <option value="all">Todas classes ABC</option>
+            <option value="A">Classe A (80% receita)</option>
+            <option value="B">Classe B (15% receita)</option>
+            <option value="C">Classe C (5% receita)</option>
+          </select>
+          <select
+            value={marginFilter}
+            onChange={(e) => setMarginFilter(e.target.value as any)}
+            className="h-9 rounded-lg border border-border bg-card px-2 text-xs font-bold"
+          >
+            <option value="all">Todas margens</option>
+            <option value="positive">Margem positiva</option>
+            <option value="negative">Margem negativa</option>
+            <option value="high">Margem alta (≥30%)</option>
+          </select>
           <div className="text-xs text-muted-foreground font-bold inline-flex items-center gap-1">
             <Filter className="h-3 w-3" /> {filtered.length} produto(s)
           </div>
         </div>
+
 
         {loading ? (
           <div className="py-10 flex items-center justify-center text-muted-foreground">
@@ -355,11 +416,28 @@ export function SoldProductsReport() {
                 {filtered.slice(0, 200).map((a) => (
                   <tr key={a.key} className="border-b border-border/60 hover:bg-muted/40">
                     <td className="py-2.5 pl-5">
-                      <div className="font-bold truncate max-w-[280px]">{a.name}</div>
+                      <div className="flex items-center gap-2">
+                        {a.abcClass && (
+                          <span
+                            className={`h-5 w-5 rounded-md flex items-center justify-center text-[10px] font-black ${
+                              a.abcClass === "A"
+                                ? "bg-success/15 text-success"
+                                : a.abcClass === "B"
+                                  ? "bg-warning/15 text-warning"
+                                  : "bg-muted text-muted-foreground"
+                            }`}
+                            title={`Classe ${a.abcClass}`}
+                          >
+                            {a.abcClass}
+                          </span>
+                        )}
+                        <div className="font-bold truncate max-w-[260px]">{a.name}</div>
+                      </div>
                       {a.sku && (
-                        <div className="text-[10px] text-muted-foreground">SKU: {a.sku}</div>
+                        <div className="text-[10px] text-muted-foreground pl-7">SKU: {a.sku}</div>
                       )}
                     </td>
+
                     <td className="text-right tabular-nums font-bold">{a.qty}</td>
                     <td className="text-right tabular-nums">{a.orders}</td>
                     <td className="text-right tabular-nums font-bold">{fmtBRL(a.revenue)}</td>
@@ -463,3 +541,65 @@ function Th({
     </th>
   );
 }
+
+function AbcPanel({ items }: { items: Agg[] }) {
+  const totalRev = items.reduce((s, a) => s + a.revenue, 0) || 1;
+  const groups = { A: [] as Agg[], B: [] as Agg[], C: [] as Agg[] };
+  for (const a of items) {
+    if (a.abcClass) groups[a.abcClass].push(a);
+  }
+  const stat = (g: Agg[]) => {
+    const rev = g.reduce((s, a) => s + a.revenue, 0);
+    return { count: g.length, rev, pct: (rev / totalRev) * 100 };
+  };
+  const A = stat(groups.A);
+  const B = stat(groups.B);
+  const C = stat(groups.C);
+  const totalCount = items.length || 1;
+
+  const rows: Array<{ label: "A" | "B" | "C"; s: ReturnType<typeof stat>; tone: string; hint: string }> = [
+    { label: "A", s: A, tone: "bg-success/15 text-success border-success/30", hint: "Prioridade máxima — 80% da receita" },
+    { label: "B", s: B, tone: "bg-warning/15 text-warning border-warning/30", hint: "Atenção média — 15% da receita" },
+    { label: "C", s: C, tone: "bg-muted text-muted-foreground border-border", hint: "Cauda longa — 5% da receita" },
+  ];
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="h-4 w-4 text-primary" />
+        <h3 className="font-black text-sm uppercase tracking-widest">Curva ABC</h3>
+        <span className="text-[10px] text-muted-foreground font-bold">
+          (Pareto por receita)
+        </span>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {rows.map((r) => (
+          <div key={r.label} className={`rounded-xl border p-4 ${r.tone}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-black">{r.label}</span>
+              <span className="text-xs font-bold">
+                {r.s.count} prod. ({((r.s.count / totalCount) * 100).toFixed(0)}%)
+              </span>
+            </div>
+            <div className="text-xl font-black tabular-nums mt-2">{fmtBRL(r.s.rev)}</div>
+            <div className="text-[10px] uppercase font-bold tracking-widest opacity-80 mt-1">
+              {r.s.pct.toFixed(1)}% da receita
+            </div>
+            <div className="text-[10px] mt-2 opacity-70">{r.hint}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">
+          Distribuição visual
+        </div>
+        <div className="flex h-3 rounded-full overflow-hidden bg-muted">
+          <div className="bg-success" style={{ width: `${A.pct}%` }} title={`A: ${A.pct.toFixed(1)}%`} />
+          <div className="bg-warning" style={{ width: `${B.pct}%` }} title={`B: ${B.pct.toFixed(1)}%`} />
+          <div className="bg-muted-foreground/40" style={{ width: `${C.pct}%` }} title={`C: ${C.pct.toFixed(1)}%`} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
