@@ -338,6 +338,9 @@ export function SoldProductsReport() {
         )}
       </Card>
 
+      {/* Curva ABC */}
+      {showAbc && <AbcPanel items={withAbc} />}
+
       {/* Search + Table */}
       <Card className="p-5">
         <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -350,10 +353,31 @@ export function SoldProductsReport() {
               className="pl-9"
             />
           </div>
+          <select
+            value={abcFilter}
+            onChange={(e) => setAbcFilter(e.target.value as any)}
+            className="h-9 rounded-lg border border-border bg-card px-2 text-xs font-bold"
+          >
+            <option value="all">Todas classes ABC</option>
+            <option value="A">Classe A (80% receita)</option>
+            <option value="B">Classe B (15% receita)</option>
+            <option value="C">Classe C (5% receita)</option>
+          </select>
+          <select
+            value={marginFilter}
+            onChange={(e) => setMarginFilter(e.target.value as any)}
+            className="h-9 rounded-lg border border-border bg-card px-2 text-xs font-bold"
+          >
+            <option value="all">Todas margens</option>
+            <option value="positive">Margem positiva</option>
+            <option value="negative">Margem negativa</option>
+            <option value="high">Margem alta (≥30%)</option>
+          </select>
           <div className="text-xs text-muted-foreground font-bold inline-flex items-center gap-1">
             <Filter className="h-3 w-3" /> {filtered.length} produto(s)
           </div>
         </div>
+
 
         {loading ? (
           <div className="py-10 flex items-center justify-center text-muted-foreground">
