@@ -51,22 +51,13 @@ function ChurnPage() {
     if (!orgId) return;
     setLoading(true);
     Promise.all([
-      supabase
-        .from("customers" as any)
-        .select("id, name, phone, email")
-        .eq("organization_id", orgId)
-        .limit(2000),
-      supabase
-        .from("sales_orders")
-        .select("id, customer_id, total_amount, created_at, status")
-        .eq("organization_id", orgId)
-        .order("created_at", { ascending: false })
-        .limit(5000),
-    ]).then(([c, s]) => {
-      setCustomers((c.data as Customer[]) ?? []);
-      setSales((s.data as Sale[]) ?? []);
+      (supabase.from("customers" as any).select("id, name, phone, email").eq("organization_id", orgId).limit(2000) as any).then((r: any) => r, () => ({ data: [] })),
+      (supabase.from("sales_orders").select("id, customer_id, total_amount, created_at, status").eq("organization_id", orgId).order("created_at", { ascending: false }).limit(5000) as any).then((r: any) => r, () => ({ data: [] })),
+    ]).then(([c, s]: any) => {
+      setCustomers((c?.data as Customer[]) ?? []);
+      setSales((s?.data as Sale[]) ?? []);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [orgId]);
 
   const atRisk: AtRisk[] = useMemo(() => {
