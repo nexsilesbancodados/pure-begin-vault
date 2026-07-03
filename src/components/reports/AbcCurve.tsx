@@ -25,6 +25,7 @@ import {
   TrendingUp,
   Package,
   DollarSign,
+  FileText,
 } from "lucide-react";
 import {
   ComposedChart,
