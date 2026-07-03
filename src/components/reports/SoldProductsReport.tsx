@@ -346,8 +346,18 @@ export function SoldProductsReport() {
         )}
       </Card>
 
-      {/* Curva ABC */}
-      {showAbc && <AbcPanel items={withAbc} />}
+      {/* Curva ABC — legado (rápido) */}
+      {showAbc && !abcConfig && <AbcPanel items={withAbc} />}
+
+      {/* Curva ABC — Relatório Completo */}
+      {abcConfig && <AbcCurveReport config={abcConfig} />}
+
+      <AbcCurveConfigDialog
+        open={abcOpen}
+        onOpenChange={setAbcOpen}
+        initial={abcConfig ?? undefined}
+        onGenerate={(cfg) => { setAbcConfig(cfg); setShowAbc(false); }}
+      />
 
       {/* Search + Table */}
       <Card className="p-5">
