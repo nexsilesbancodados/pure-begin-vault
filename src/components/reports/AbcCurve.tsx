@@ -25,6 +25,7 @@ import {
   TrendingUp,
   Package,
   DollarSign,
+  FileText,
 } from "lucide-react";
 import {
   ComposedChart,
@@ -482,6 +483,23 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
   const [classFilter, setClassFilter] = useState<"all" | "A" | "B" | "C">("all");
   const [sortKey, setSortKey] = useState<SortKey>("participation");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [orgName, setOrgName] = useState<string>("ConectaPhone");
+  const [userLabel, setUserLabel] = useState<string>("");
+
+  useEffect(() => {
+    if (!orgId) return;
+    (supabase as any)
+      .from("organizations")
+      .select("name")
+      .eq("id", orgId)
+      .maybeSingle()
+      .then((r: any) => { if (r?.data?.name) setOrgName(r.data.name); })
+      .catch(() => {});
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data?.user;
+      if (u) setUserLabel((u.user_metadata as any)?.full_name || u.email || "");
+    }).catch(() => {});
+  }, [orgId]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -748,6 +766,172 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
     URL.revokeObjectURL(url);
   };
 
+  const exportPdf = () => {
+    const esc = (s: any) =>
+      String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const now = new Date();
+    const genStr = now.toLocaleString("pt-BR");
+    const period = `${config.from ?? "—"} até ${config.to ?? "—"}`;
+    const critLabel = CRIT_LABEL[config.criterion];
+    const topByRevenue = [...classed].sort((a, b) => b.revenue - a.revenue)[0];
+    const topByProfit = [...classed].sort((a, b) => b.profit - a.profit)[0];
+    const cCount = classed.filter((r) => r.abcClass === "C").length;
+    const aPctRevenue = classSummary[0]?.pct ?? 0;
+
+    const classColor = (c?: string) =>
+      c === "A" ? "#16a34a" : c === "B" ? "#eab308" : "#dc2626";
+    const classBg = (c?: string) =>
+      c === "A" ? "#dcfce7" : c === "B" ? "#fef9c3" : "#fee2e2";
+
+    const rowsHtml = filtered
+      .map(
+        (r) => `
+        <tr>
+          <td class="cls" style="color:${classColor(r.abcClass)};background:${classBg(r.abcClass)}">${esc(r.abcClass ?? "-")}</td>
+          <td class="prod">${esc(r.name)}${r.sku ? `<div class="sku">${esc(r.sku)}</div>` : ""}</td>
+          <td class="num">${r.qty.toLocaleString("pt-BR")}</td>
+          <td class="num money">${fmtBRL(r.revenue)}</td>
+          <td class="num money ${r.profit < 0 ? "neg" : ""}">${fmtBRL(r.profit)}</td>
+          <td class="num pct">${(r.participation ?? 0).toFixed(2)}%</td>
+          <td class="num pct">${(r.cumulativePct ?? 0).toFixed(2)}%</td>
+        </tr>`,
+      )
+      .join("");
+
+    const summaryRows = classSummary
+      .map(
+        (c) => `
+        <tr>
+          <td class="cls" style="color:${classColor(c.cls)};background:${classBg(c.cls)}">${c.cls}</td>
+          <td class="num">${c.count}</td>
+          <td class="num pct">${c.pct.toFixed(1)}%</td>
+        </tr>`,
+      )
+      .join("");
+
+    const insightsHtml = `
+      <ul>
+        <li><strong>Classe A</strong> representa <strong>${aPctRevenue.toFixed(1)}%</strong> do faturamento total.</li>
+        ${topByRevenue ? `<li>Produto com maior receita: <strong>${esc(topByRevenue.name)}</strong> — ${fmtBRL(topByRevenue.revenue)}.</li>` : ""}
+        ${topByProfit ? `<li>Produto com maior lucro: <strong>${esc(topByProfit.name)}</strong> — ${fmtBRL(topByProfit.profit)}.</li>` : ""}
+        <li>Total de produtos <strong>Classe C</strong>: <strong>${cCount}</strong>.</li>
+      </ul>`;
+
+    const html = `<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8"><title>Relatório Curva ABC — ${esc(orgName)}</title>
+<style>
+  @page { size: A4; margin: 18mm 14mm 22mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color:#0f172a; font-size:11px; margin:0; padding:0; }
+  .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #0ea5e9; padding-bottom:12px; margin-bottom:16px; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .logo { width:38px; height:38px; border-radius:10px; background:linear-gradient(135deg,#0ea5e9,#6366f1); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:16px; letter-spacing:-.5px; }
+  .brand h1 { font-size:18px; margin:0; font-weight:900; letter-spacing:-.3px; }
+  .brand .sub { font-size:10px; color:#64748b; margin-top:2px; }
+  .meta { text-align:right; font-size:10px; color:#475569; line-height:1.5; }
+  .meta strong { color:#0f172a; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:#0ea5e9; margin:18px 0 8px; font-weight:800; }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:6px; }
+  .kpi { border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; background:#f8fafc; }
+  .kpi .lbl { font-size:9px; text-transform:uppercase; letter-spacing:1px; color:#64748b; font-weight:700; }
+  .kpi .val { font-size:15px; font-weight:900; margin-top:4px; color:#0f172a; }
+  .split { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px; }
+  .card { border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; background:#fff; }
+  .card h3 { font-size:11px; margin:0 0 8px; text-transform:uppercase; letter-spacing:1px; color:#334155; font-weight:800; }
+  .insights { border-left:4px solid #0ea5e9; background:#f0f9ff; border-radius:8px; padding:10px 14px; }
+  .insights ul { margin:0; padding-left:16px; }
+  .insights li { margin:4px 0; }
+  table { width:100%; border-collapse:collapse; font-size:10px; }
+  thead { display:table-header-group; }
+  tr { page-break-inside:avoid; }
+  th { background:#0f172a; color:#fff; text-align:left; padding:8px 8px; font-size:9px; text-transform:uppercase; letter-spacing:.8px; font-weight:800; }
+  td { padding:7px 8px; border-bottom:1px solid #e2e8f0; vertical-align:top; }
+  tbody tr:nth-child(even) td { background:#f8fafc; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  td.money { font-weight:700; }
+  td.neg { color:#dc2626; }
+  td.pct { color:#334155; }
+  td.cls { text-align:center; font-weight:900; width:42px; border-radius:0; }
+  td.prod { max-width:280px; word-wrap:break-word; }
+  td.prod .sku { font-size:8.5px; color:#64748b; margin-top:2px; }
+  .summary-table td, .summary-table th { padding:6px 10px; }
+  .footer { position:fixed; bottom:8mm; left:14mm; right:14mm; border-top:1px solid #cbd5e1; padding-top:6px; display:flex; justify-content:space-between; font-size:9px; color:#64748b; }
+  .footer .pg::after { content: "Página " counter(page) " de " counter(pages); }
+  @media print { .noprint { display:none; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  .toolbar { padding:10px; background:#f1f5f9; border-bottom:1px solid #cbd5e1; text-align:right; }
+  .toolbar button { background:#0ea5e9; color:#fff; border:0; padding:8px 16px; border-radius:8px; font-weight:700; cursor:pointer; font-size:13px; }
+</style></head>
+<body>
+<div class="toolbar noprint"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
+<div class="header">
+  <div class="brand">
+    <div class="logo">CP</div>
+    <div>
+      <h1>Relatório Curva ABC</h1>
+      <div class="sub">${esc(orgName)}</div>
+    </div>
+  </div>
+  <div class="meta">
+    <div><strong>Gerado em:</strong> ${esc(genStr)}</div>
+    <div><strong>Período:</strong> ${esc(period)}</div>
+    <div><strong>Critério:</strong> ${esc(critLabel)}</div>
+    ${userLabel ? `<div><strong>Usuário:</strong> ${esc(userLabel)}</div>` : ""}
+  </div>
+</div>
+
+<h2>Resumo Executivo</h2>
+<div class="kpis">
+  <div class="kpi"><div class="lbl">Receita Total</div><div class="val">${fmtBRL(kpis.revenue)}</div></div>
+  <div class="kpi"><div class="lbl">Lucro Total</div><div class="val">${fmtBRL(kpis.profit)}</div></div>
+  <div class="kpi"><div class="lbl">Produtos Analisados</div><div class="val">${kpis.distinct}</div></div>
+  <div class="kpi"><div class="lbl">Critério</div><div class="val">${esc(critLabel)}</div></div>
+</div>
+
+<div class="split">
+  <div class="card">
+    <h3>Distribuição por Classe</h3>
+    <table class="summary-table">
+      <thead><tr><th>Classe</th><th style="text-align:right">Produtos</th><th style="text-align:right">Participação</th></tr></thead>
+      <tbody>${summaryRows}</tbody>
+    </table>
+  </div>
+  <div class="card insights">
+    <h3>Insights</h3>
+    ${insightsHtml}
+  </div>
+</div>
+
+<h2>Produtos — Ranking</h2>
+<table>
+  <thead>
+    <tr>
+      <th style="text-align:center">Classe</th>
+      <th>Produto</th>
+      <th style="text-align:right">Qtd</th>
+      <th style="text-align:right">Receita</th>
+      <th style="text-align:right">Lucro</th>
+      <th style="text-align:right">Participação</th>
+      <th style="text-align:right">Acumulado</th>
+    </tr>
+  </thead>
+  <tbody>${rowsHtml}</tbody>
+</table>
+
+<div class="footer">
+  <div>Relatório gerado pelo ConectaPhone · ${esc(genStr)}</div>
+  <div class="pg"></div>
+</div>
+
+<script>window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 400); });</script>
+</body></html>`;
+
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  };
+
   if (loading) {
     return (
       <Card className="p-10 flex items-center justify-center text-muted-foreground">
@@ -771,9 +955,14 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
           </p>
 
         </div>
-        <Button size="sm" variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
-          <Download className="h-3.5 w-3.5 mr-1" /> Exportar CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
+            <Download className="h-3.5 w-3.5 mr-1" /> Exportar CSV
+          </Button>
+          <Button size="sm" onClick={exportPdf} disabled={filtered.length === 0}>
+            <FileText className="h-3.5 w-3.5 mr-1" /> Exportar PDF
+          </Button>
+        </div>
       </div>
 
       {/* KPIs */}
