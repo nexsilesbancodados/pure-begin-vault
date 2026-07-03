@@ -264,9 +264,17 @@ export function SoldProductsReport() {
               </button>
             ))}
           </div>
-          <Button onClick={exportCsv} size="sm" disabled={filtered.length === 0}>
+          <Button
+            onClick={() => setShowAbc((v) => !v)}
+            size="sm"
+            variant={showAbc ? "default" : "outline"}
+          >
+            <BarChart3 className="h-3.5 w-3.5 mr-1" /> Curva ABC
+          </Button>
+          <Button onClick={exportCsv} size="sm" variant="outline" disabled={filtered.length === 0}>
             <Download className="h-3.5 w-3.5 mr-1" /> CSV
           </Button>
+
         </div>
       </div>
 
