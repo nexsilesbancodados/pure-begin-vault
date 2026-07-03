@@ -97,6 +97,8 @@ export function SoldProductsReport() {
   const [abcFilter, setAbcFilter] = useState<"all" | "A" | "B" | "C">("all");
   const [marginFilter, setMarginFilter] = useState<"all" | "positive" | "negative" | "high">("all");
   const [showAbc, setShowAbc] = useState(false);
+  const [abcOpen, setAbcOpen] = useState(false);
+  const [abcConfig, setAbcConfig] = useState<AbcConfig | null>(null);
 
 
 
