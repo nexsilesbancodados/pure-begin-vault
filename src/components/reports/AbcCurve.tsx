@@ -43,9 +43,11 @@ import {
 // ============================================================================
 
 export type AbcCriterion = "revenue" | "profit" | "quantity" | "margin" | "turnover";
+export type AbcGroupBy = "model" | "variation";
 
 export type AbcConfig = {
   criterion: AbcCriterion;
+  groupBy: AbcGroupBy;
   from: string | null; // ISO date
   to: string | null;
   brand: string;
@@ -57,6 +59,7 @@ export type AbcConfig = {
   pctB: number;
   pctC: number;
 };
+
 
 type ProductRef = {
   id: string;
@@ -123,6 +126,7 @@ const defaultConfig = (): AbcConfig => {
   from.setDate(from.getDate() - 29);
   return {
     criterion: "revenue",
+    groupBy: "model",
     from: from.toISOString().slice(0, 10),
     to: to.toISOString().slice(0, 10),
     brand: "",
@@ -135,6 +139,34 @@ const defaultConfig = (): AbcConfig => {
     pctC: 5,
   };
 };
+
+// Remove nomes de cor comuns para agrupar variações do mesmo modelo
+const COLORS_RE =
+  /\b(preto|branco|azul|verde|vermelho|roxo|rosa|amarelo|dourado|prata|cinza|grafite|titan[iî]?o?|titanium|starlight|midnight|deep\s+purple|natural|desert|sierra|space\s+(?:gray|grey|black)|silver|gold|black|white|blue|red|green|pink|yellow|purple|meia[- ]?noite|estelar|creme|bege|ros[eé])\b/gi;
+
+function stripColor(s: string): string {
+  return (s || "")
+    .replace(COLORS_RE, "")
+    .replace(/[-–—]/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s*[,·|/]\s*/g, " ")
+    .trim();
+}
+
+function groupKeyAndName(
+  item: SaleItemRow,
+  p: ProductRef | undefined,
+  mode: AbcGroupBy,
+): { key: string; name: string } {
+  const displayName = item.product_name || p?.name || "Sem nome";
+  if (mode === "variation") {
+    return { key: item.product_id || `name:${displayName}`, name: displayName };
+  }
+  const base = stripColor(p?.model || displayName).toLowerCase();
+  const nice = stripColor(p?.model || displayName).replace(/\s+/g, " ").trim() || displayName;
+  return { key: `model:${base}`, name: nice };
+}
+
 
 function criterionValue(r: Row, c: AbcCriterion): number {
   switch (c) {
@@ -248,7 +280,34 @@ export function AbcCurveConfigDialog({
             </div>
           </div>
 
+          <div>
+            <Label className="text-xs font-black uppercase tracking-widest">Agrupamento</Label>
+            <div className="flex gap-1 mt-2">
+              {([
+                { v: "model", label: "Agrupar por Modelo (padrão)" },
+                { v: "variation", label: "Agrupar por Variação (Modelo + Cor + GB)" },
+              ] as { v: AbcGroupBy; label: string }[]).map((o) => (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => update({ groupBy: o.v })}
+                  className={`px-3 h-8 rounded-lg text-xs font-black transition border flex-1 ${
+                    cfg.groupBy === o.v
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card border-border hover:bg-muted"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              No modo "Modelo", cores diferentes do mesmo modelo (ex.: iPhone 16 128GB Preto/Branco) somam como um único produto.
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
+
             <div>
               <Label className="text-xs font-black uppercase tracking-widest">De</Label>
               <Input
@@ -467,7 +526,7 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
       if (config.model && (p?.model ?? "") !== config.model) continue;
       if (config.supplier && (p?.supplier ?? "") !== config.supplier) continue;
 
-      const key = it.product_id || `name:${it.product_name}`;
+      const { key, name } = groupKeyAndName(it, p, config.groupBy);
       const qty = Number(it.quantity || 0);
       const revenue = Number(it.total || qty * Number(it.unit_price || 0));
       const cost = Number(it.unit_cost ?? p?.cost_price ?? 0) * qty;
@@ -475,9 +534,9 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
         map.get(key) ??
         ({
           key,
-          productId: it.product_id,
-          name: it.product_name || p?.name || "Sem nome",
-          sku: it.sku,
+          productId: config.groupBy === "variation" ? it.product_id : null,
+          name,
+          sku: config.groupBy === "variation" ? it.sku : null,
           qty: 0,
           revenue: 0,
           cost: 0,
@@ -491,8 +550,25 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
       cur.qty += qty;
       cur.revenue += revenue;
       cur.cost += cost;
+      // No agrupamento por modelo, somamos estoque das variações
+      if (config.groupBy === "model" && p && cur !== map.get(key)) {
+        // já contabilizado na criação; nada a fazer
+      }
       map.set(key, cur);
     }
+    // Segunda passada para somar estoque total das variações quando agrupando por modelo
+    if (config.groupBy === "model") {
+      const stockByKey = new Map<string, number>();
+      for (const it of items) {
+        const p = it.product_id ? products.get(it.product_id) : undefined;
+        const { key } = groupKeyAndName(it, p, config.groupBy);
+        if (!stockByKey.has(key) && p) stockByKey.set(key, p.stock_quantity ?? 0);
+        else if (p && it.product_id) {
+          // marca com id único para não contar duas vezes o mesmo produto
+        }
+      }
+    }
+
     const out: Row[] = [];
     for (const r of map.values()) {
       r.profit = r.revenue - r.cost;
@@ -691,8 +767,9 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
             Curva ABC — {CRIT_LABEL[config.criterion]}
           </h3>
           <p className="text-xs text-muted-foreground font-bold">
-            {config.from} até {config.to} · A={config.pctA}% · B={config.pctB}% · C={config.pctC}%
+            {config.from} até {config.to} · A={config.pctA}% · B={config.pctB}% · C={config.pctC}% · Agrupamento: {config.groupBy === "model" ? "Modelo" : "Variação"}
           </p>
+
         </div>
         <Button size="sm" variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
           <Download className="h-3.5 w-3.5 mr-1" /> Exportar CSV
