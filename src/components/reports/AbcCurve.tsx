@@ -483,6 +483,23 @@ export function AbcCurveReport({ config }: { config: AbcConfig }) {
   const [classFilter, setClassFilter] = useState<"all" | "A" | "B" | "C">("all");
   const [sortKey, setSortKey] = useState<SortKey>("participation");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [orgName, setOrgName] = useState<string>("ConectaPhone");
+  const [userLabel, setUserLabel] = useState<string>("");
+
+  useEffect(() => {
+    if (!orgId) return;
+    (supabase as any)
+      .from("organizations")
+      .select("name")
+      .eq("id", orgId)
+      .maybeSingle()
+      .then((r: any) => { if (r?.data?.name) setOrgName(r.data.name); })
+      .catch(() => {});
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data?.user;
+      if (u) setUserLabel((u.user_metadata as any)?.full_name || u.email || "");
+    }).catch(() => {});
+  }, [orgId]);
 
   useEffect(() => {
     if (!orgId) return;
