@@ -18,6 +18,7 @@ import {
   Trophy,
   BarChart3,
 } from "lucide-react";
+import { AbcCurveConfigDialog, AbcCurveReport, type AbcConfig } from "./AbcCurve";
 
 
 type RangePreset = "today" | "7d" | "30d" | "month" | "year" | "all";
@@ -96,6 +97,8 @@ export function SoldProductsReport() {
   const [abcFilter, setAbcFilter] = useState<"all" | "A" | "B" | "C">("all");
   const [marginFilter, setMarginFilter] = useState<"all" | "positive" | "negative" | "high">("all");
   const [showAbc, setShowAbc] = useState(false);
+  const [abcOpen, setAbcOpen] = useState(false);
+  const [abcConfig, setAbcConfig] = useState<AbcConfig | null>(null);
 
 
 
@@ -265,12 +268,17 @@ export function SoldProductsReport() {
             ))}
           </div>
           <Button
-            onClick={() => setShowAbc((v) => !v)}
+            onClick={() => setAbcOpen(true)}
             size="sm"
-            variant={showAbc ? "default" : "outline"}
+            variant={abcConfig ? "default" : "outline"}
           >
             <BarChart3 className="h-3.5 w-3.5 mr-1" /> Curva ABC
           </Button>
+          {abcConfig && (
+            <Button onClick={() => { setAbcConfig(null); setShowAbc(false); }} size="sm" variant="ghost">
+              Limpar ABC
+            </Button>
+          )}
           <Button onClick={exportCsv} size="sm" variant="outline" disabled={filtered.length === 0}>
             <Download className="h-3.5 w-3.5 mr-1" /> CSV
           </Button>
@@ -338,8 +346,18 @@ export function SoldProductsReport() {
         )}
       </Card>
 
-      {/* Curva ABC */}
-      {showAbc && <AbcPanel items={withAbc} />}
+      {/* Curva ABC — legado (rápido) */}
+      {showAbc && !abcConfig && <AbcPanel items={withAbc} />}
+
+      {/* Curva ABC — Relatório Completo */}
+      {abcConfig && <AbcCurveReport config={abcConfig} />}
+
+      <AbcCurveConfigDialog
+        open={abcOpen}
+        onOpenChange={setAbcOpen}
+        initial={abcConfig ?? undefined}
+        onGenerate={(cfg) => { setAbcConfig(cfg); setShowAbc(false); }}
+      />
 
       {/* Search + Table */}
       <Card className="p-5">
