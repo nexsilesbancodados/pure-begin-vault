@@ -541,3 +541,65 @@ function Th({
     </th>
   );
 }
+
+function AbcPanel({ items }: { items: Agg[] }) {
+  const totalRev = items.reduce((s, a) => s + a.revenue, 0) || 1;
+  const groups = { A: [] as Agg[], B: [] as Agg[], C: [] as Agg[] };
+  for (const a of items) {
+    if (a.abcClass) groups[a.abcClass].push(a);
+  }
+  const stat = (g: Agg[]) => {
+    const rev = g.reduce((s, a) => s + a.revenue, 0);
+    return { count: g.length, rev, pct: (rev / totalRev) * 100 };
+  };
+  const A = stat(groups.A);
+  const B = stat(groups.B);
+  const C = stat(groups.C);
+  const totalCount = items.length || 1;
+
+  const rows: Array<{ label: "A" | "B" | "C"; s: ReturnType<typeof stat>; tone: string; hint: string }> = [
+    { label: "A", s: A, tone: "bg-success/15 text-success border-success/30", hint: "Prioridade máxima — 80% da receita" },
+    { label: "B", s: B, tone: "bg-warning/15 text-warning border-warning/30", hint: "Atenção média — 15% da receita" },
+    { label: "C", s: C, tone: "bg-muted text-muted-foreground border-border", hint: "Cauda longa — 5% da receita" },
+  ];
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="h-4 w-4 text-primary" />
+        <h3 className="font-black text-sm uppercase tracking-widest">Curva ABC</h3>
+        <span className="text-[10px] text-muted-foreground font-bold">
+          (Pareto por receita)
+        </span>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {rows.map((r) => (
+          <div key={r.label} className={`rounded-xl border p-4 ${r.tone}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-black">{r.label}</span>
+              <span className="text-xs font-bold">
+                {r.s.count} prod. ({((r.s.count / totalCount) * 100).toFixed(0)}%)
+              </span>
+            </div>
+            <div className="text-xl font-black tabular-nums mt-2">{fmtBRL(r.s.rev)}</div>
+            <div className="text-[10px] uppercase font-bold tracking-widest opacity-80 mt-1">
+              {r.s.pct.toFixed(1)}% da receita
+            </div>
+            <div className="text-[10px] mt-2 opacity-70">{r.hint}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-2">
+          Distribuição visual
+        </div>
+        <div className="flex h-3 rounded-full overflow-hidden bg-muted">
+          <div className="bg-success" style={{ width: `${A.pct}%` }} title={`A: ${A.pct.toFixed(1)}%`} />
+          <div className="bg-warning" style={{ width: `${B.pct}%` }} title={`B: ${B.pct.toFixed(1)}%`} />
+          <div className="bg-muted-foreground/40" style={{ width: `${C.pct}%` }} title={`C: ${C.pct.toFixed(1)}%`} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
