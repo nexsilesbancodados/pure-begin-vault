@@ -157,7 +157,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       var h = location.hostname;
       var isPreview = h.indexOf('lovable.app') !== -1 || h.indexOf('lovableproject.com') !== -1 || h === 'localhost' || h === '127.0.0.1';
       if (!isPreview) return;
-      if (sessionStorage.getItem('__sw_purged__')) return;
+      if (sessionStorage.getItem('__sw_purged_v3__')) return;
       var work = [];
       if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
         work.push(navigator.serviceWorker.getRegistrations().then(function(rs){
@@ -170,9 +170,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
         }));
       }
       Promise.all(work).then(function(results){
-        sessionStorage.setItem('__sw_purged__', '1');
+        sessionStorage.setItem('__sw_purged_v3__', '1');
         if (results.some(Boolean)) location.reload();
-      }).catch(function(){ sessionStorage.setItem('__sw_purged__', '1'); });
+      }).catch(function(){ sessionStorage.setItem('__sw_purged_v3__', '1'); });
     } catch(e) {}
   })();`;
   return (
