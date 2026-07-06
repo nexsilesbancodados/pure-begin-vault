@@ -172,7 +172,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       Promise.all(work).then(function(results){
         sessionStorage.setItem('__sw_purged_v3__', '1');
         if (results.some(Boolean)) location.reload();
-      }).catch(function(){ sessionStorage.setItem('__sw_purged__', '1'); });
+      }).catch(function(){ sessionStorage.setItem('__sw_purged_v3__', '1'); });
     } catch(e) {}
   })();`;
   return (
