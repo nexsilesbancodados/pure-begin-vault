@@ -36,8 +36,13 @@ export function PwaInstallPrompt() {
     }
 
 
-    if ("serviceWorker" in navigator && import.meta.env.PROD) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    // Service Worker desativado: causava servir bundles antigos em produção
+    // (Curva ABC não aparecia). O /sw.js atual é um kill-switch que se
+    // desregistra sozinho e limpa caches antigos.
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((rs) => {
+        rs.forEach((r) => r.unregister().catch(() => {}));
+      }).catch(() => {});
     }
     if (localStorage.getItem("pwa_install_dismissed")) return;
     const handler = (e: Event) => {
