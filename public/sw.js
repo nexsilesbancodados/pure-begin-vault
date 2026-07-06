@@ -1,44 +1,37 @@
-// ConectaCRM Service Worker
-// Mantido apenas para atualizar instalações antigas: nunca cacheia bundles JS/CSS.
-const CACHE = "ccrm-v4";
-const ASSETS = ["/manifest.webmanifest"];
+// Kill-switch Service Worker.
+// Instalações antigas do ConectaCRM cacheavam bundles JS/CSS obsoletos,
+// impedindo a exibição de novas funcionalidades (ex.: Curva ABC).
+// Este SW se desregistra sozinho e apaga os caches criados pelas versões anteriores.
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS).catch(() => {})));
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        const keys = await caches.keys();
+        // Só apaga caches criados por versões anteriores deste SW (prefixo ccrm-).
+        await Promise.all(
+          keys.filter((k) => k.startsWith("ccrm-")).map((k) => caches.delete(k)),
+        );
+        const clients = await self.clients.matchAll({ type: "window" });
+        await Promise.all(
+          clients.map((c) => {
+            try {
+              return c.navigate(c.url);
+            } catch {
+              return undefined;
+            }
+          }),
+        );
+      } finally {
+        await self.registration.unregister();
+      }
+    })(),
   );
-  self.clients.claim();
 });
 
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  if (req.method !== "GET") return;
-  const url = new URL(req.url);
-  if (url.origin === location.origin && /\.(?:js|css)$/.test(url.pathname)) {
-    e.respondWith(fetch(req));
-    return;
-  }
-
-  // Network-first for navigations and API calls; cache-first only for safe static media/fonts.
-  if (req.mode === "navigate") {
-    e.respondWith(fetch(req));
-    return;
-  }
-  if (url.origin === location.origin && /\.(png|jpg|jpeg|svg|webp|woff2?)$/.test(url.pathname)) {
-    e.respondWith(
-      caches.match(req).then((cached) =>
-        cached ||
-        fetch(req).then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
-          return res;
-        })
-      )
-    );
-  }
-});
+// Passa todos os fetches direto para a rede — sem cache.
+self.addEventListener("fetch", () => {});
