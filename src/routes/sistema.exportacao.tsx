@@ -94,6 +94,9 @@ function ExportacaoPage() {
           <TabsTrigger value="clientes" className="gap-2">
             <FileText className="h-4 w-4" /> Clientes
           </TabsTrigger>
+          <TabsTrigger value="vendas" className="gap-2">
+            <FileText className="h-4 w-4" /> Vendas
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -110,6 +113,9 @@ function ExportacaoPage() {
         </TabsContent>
         <TabsContent value="clientes">
           <CustomersTab orgId={orgId} />
+        </TabsContent>
+        <TabsContent value="vendas">
+          <SalesTab orgId={orgId} />
         </TabsContent>
       </Tabs>
     </div>
@@ -817,6 +823,158 @@ function ExportRow({
         <Button size="sm" onClick={() => onExport(mode, "xlsx")} disabled={disabled} className="gap-1.5">
           {busy === mode ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
           Excel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────
+import { validateSales, exportSales, SalesValidationReport, SalesExportMode, SalesExportResult } from "@/lib/export/sales";
+import { ShoppingCart } from "lucide-react";
+
+function SalesTab({ orgId }: { orgId: string | null }) {
+  const [report, setReport] = useState<SalesValidationReport | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<SalesExportResult | null>(null);
+
+  const check = async () => {
+    setChecking(true);
+    try {
+      setReport(await validateSales(orgId));
+    } catch (e: any) {
+      toast.error(`Falha: ${e?.message ?? e}`);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    void check();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
+
+  const doExport = async (mode: SalesExportMode, format: "csv" | "xlsx" | "zip") => {
+    const key = `${mode}-${format}`;
+    setBusy(key);
+    try {
+      const res = await exportSales(orgId, mode, format);
+      setLastResult(res);
+      toast.success(`Exportado: ${res.filename}`);
+    } catch (e: any) {
+      toast.error(`Falha: ${e?.message ?? e}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const Cell = ({ label, value, danger }: { label: string; value: number; danger?: boolean }) => (
+    <div className={`rounded-md border px-3 py-2 ${danger && value > 0 ? "bg-destructive/10 border-destructive/40" : ""}`}>
+      <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{label}</div>
+      <div className={`text-xl font-black ${danger && value > 0 ? "text-destructive" : ""}`}>
+        {value.toLocaleString("pt-BR")}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4" /> Validação do histórico de vendas
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={check} disabled={checking} className="gap-1.5">
+            {checking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Reverificar
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {!report ? (
+            <p className="text-xs text-muted-foreground">Verificando…</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                <Cell label="Total de vendas" value={report.totalVendas} />
+                <Cell label="Canceladas" value={report.vendasCanceladas} />
+                <Cell label="Sem cliente" value={report.vendasSemCliente} danger />
+                <Cell label="Sem itens" value={report.vendasSemItens} danger />
+                <Cell label="Clientes inexistentes" value={report.clientesInexistentes} danger />
+                <Cell label="Produtos inexistentes" value={report.produtosInexistentes} danger />
+                <Cell label="IMEIs duplicados" value={report.imeisDuplicados} danger />
+                <Cell label="Pagamentos órfãos" value={report.pagamentosOrfaos} danger />
+                <Cell label="Valores negativos" value={report.valoresNegativos} danger />
+              </div>
+              {report.amostra.length > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground">
+                    Ver amostra ({report.amostra.length})
+                  </summary>
+                  <pre className="mt-2 p-2 bg-muted/40 rounded text-[10px] overflow-x-auto">
+                    {JSON.stringify(report.amostra, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Download className="h-4 w-4" /> Exportar vendas
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <SalesRow title="Padrão" desc="Todas as colunas das tabelas sales_orders, sale_items, sale_payments." mode="padrao" busy={busy} onExport={doExport} />
+          <SalesRow title="Expandida" desc="Achata campos JSON (metadata.*) em colunas individuais." mode="expandida" busy={busy} onExport={doExport} />
+          <SalesRow title="Compatível com Premier ERP" desc="Cabeçalhos pt-BR na estrutura esperada pelo importador do Premier." mode="premier" busy={busy} onExport={doExport} highlight />
+        </CardContent>
+      </Card>
+
+      {lastResult && (
+        <Card className="bg-muted/30 border-dashed">
+          <CardContent className="p-3 text-xs grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div><div className="text-muted-foreground">Vendas</div><div className="font-black text-lg">{lastResult.vendas.toLocaleString("pt-BR")}</div></div>
+            <div><div className="text-muted-foreground">Itens</div><div className="font-black text-lg">{lastResult.itens.toLocaleString("pt-BR")}</div></div>
+            <div><div className="text-muted-foreground">Pagamentos</div><div className="font-black text-lg">{lastResult.pagamentos.toLocaleString("pt-BR")}</div></div>
+            <div><div className="text-muted-foreground">Total vendido</div><div className="font-black text-lg">R$ {lastResult.totalVendido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div></div>
+            <div><div className="text-muted-foreground">Duração</div><div className="font-black text-lg">{(lastResult.durationMs / 1000).toFixed(1)}s</div></div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function SalesRow({
+  title, desc, mode, busy, onExport, highlight,
+}: {
+  title: string;
+  desc: string;
+  mode: SalesExportMode;
+  busy: string | null;
+  onExport: (m: SalesExportMode, f: "csv" | "xlsx" | "zip") => void;
+  highlight?: boolean;
+}) {
+  const disabled = busy !== null;
+  const b = (f: "csv" | "xlsx" | "zip") => busy === `${mode}-${f}`;
+  return (
+    <div className={`rounded-lg border p-3 flex items-center justify-between gap-3 flex-wrap ${highlight ? "border-primary/60 bg-primary/5" : ""}`}>
+      <div>
+        <div className="font-bold text-sm">{title}</div>
+        <div className="text-xs text-muted-foreground">{desc}</div>
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" onClick={() => onExport(mode, "zip")} disabled={disabled} className="gap-1.5">
+          {b("zip") ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+          ZIP (3 CSVs)
+        </Button>
+        <Button size="sm" onClick={() => onExport(mode, "xlsx")} disabled={disabled} className="gap-1.5">
+          {b("xlsx") ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
+          Excel (3 abas)
         </Button>
       </div>
     </div>
