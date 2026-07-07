@@ -94,6 +94,9 @@ function ExportacaoPage() {
           <TabsTrigger value="clientes" className="gap-2">
             <FileText className="h-4 w-4" /> Clientes
           </TabsTrigger>
+          <TabsTrigger value="vendas" className="gap-2">
+            <FileText className="h-4 w-4" /> Vendas
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -110,6 +113,9 @@ function ExportacaoPage() {
         </TabsContent>
         <TabsContent value="clientes">
           <CustomersTab orgId={orgId} />
+        </TabsContent>
+        <TabsContent value="vendas">
+          <SalesTab orgId={orgId} />
         </TabsContent>
       </Tabs>
     </div>
