@@ -74,6 +74,7 @@ function ExportacaoPage() {
             Módulo somente leitura. Nenhum dado do sistema será alterado.
           </p>
         </div>
+        <BackupButton orgId={orgId} />
       </header>
 
       <Tabs defaultValue="dashboard" className="space-y-4">
