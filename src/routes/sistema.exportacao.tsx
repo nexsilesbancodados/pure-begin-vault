@@ -460,3 +460,61 @@ function DiagnosticsTab({ orgId }: { orgId: string | null }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────
+function BackupButton({ orgId }: { orgId: string | null }) {
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<BackupProgress | null>(null);
+  const [result, setResult] = useState<BackupResult | null>(null);
+
+  const run = async () => {
+    if (!orgId) {
+      toast.error("Nenhuma loja selecionada.");
+      return;
+    }
+    setBusy(true);
+    setResult(null);
+    setProgress(null);
+    try {
+      const res = await generateBackupZip(orgId, (p) => setProgress(p));
+      setResult(res);
+      toast.success(
+        `Backup gerado: ${res.totalRows.toLocaleString("pt-BR")} registros (${(res.bytes / 1024 / 1024).toFixed(2)} MB)`,
+      );
+    } catch (e: any) {
+      toast.error(`Falha no backup: ${e?.message ?? e}`);
+    } finally {
+      setBusy(false);
+      setProgress(null);
+    }
+  };
+
+  const pct = progress
+    ? Math.round((progress.currentIndex / progress.totalDatasets) * 100)
+    : null;
+
+  return (
+    <div className="flex flex-col items-end gap-1 min-w-[260px]">
+      <Button onClick={run} disabled={busy} size="lg" className="gap-2">
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
+        Exportar Backup Completo
+      </Button>
+      {progress && (
+        <div className="w-full space-y-1">
+          <Progress value={pct ?? undefined} />
+          <div className="text-[10px] text-muted-foreground text-right">
+            {progress.currentIndex}/{progress.totalDatasets} · {progress.currentDataset} ·{" "}
+            {progress.rowsSoFar.toLocaleString("pt-BR")} registros
+          </div>
+        </div>
+      )}
+      {result && !busy && (
+        <div className="text-[10px] text-muted-foreground text-right">
+          ✓ {result.filename} · {(result.bytes / 1024 / 1024).toFixed(2)} MB ·{" "}
+          {result.totalRows.toLocaleString("pt-BR")} registros ·{" "}
+          {(result.durationMs / 1000).toFixed(1)}s
+        </div>
+      )}
+    </div>
+  );
+}
