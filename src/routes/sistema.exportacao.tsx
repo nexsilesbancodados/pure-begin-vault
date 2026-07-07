@@ -25,6 +25,8 @@ import { fetchDataset, countDataset, ExportFilters } from "@/lib/export/fetcher"
 import { downloadCsv } from "@/lib/export/csv";
 import { downloadXlsx } from "@/lib/export/xlsx";
 import { collectTableStats, runIntegrityChecks, TableStat, IntegrityIssue } from "@/lib/export/diagnostics";
+import { generateBackupZip, BackupProgress, BackupResult } from "@/lib/export/backup";
+import { Archive } from "lucide-react";
 
 export const Route = createFileRoute("/sistema/exportacao")({
   head: () => ({
