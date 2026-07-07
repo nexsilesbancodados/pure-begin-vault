@@ -72,6 +72,7 @@ import { Route as VendasGarantiasRouteImport } from './routes/vendas.garantias'
 import { Route as VendasDeliveryRouteImport } from './routes/vendas.delivery'
 import { Route as VendasConsultaEstoqueRouteImport } from './routes/vendas.consulta-estoque'
 import { Route as VendasCalculadoraRouteImport } from './routes/vendas.calculadora'
+import { Route as SistemaExportacaoRouteImport } from './routes/sistema.exportacao'
 import { Route as ServicosTermosRouteImport } from './routes/servicos.termos'
 import { Route as ServicosTecnicosRouteImport } from './routes/servicos.tecnicos'
 import { Route as ServicosNovaRouteImport } from './routes/servicos.nova'
@@ -431,6 +432,11 @@ const VendasCalculadoraRoute = VendasCalculadoraRouteImport.update({
   path: '/calculadora',
   getParentRoute: () => VendasRoute,
 } as any)
+const SistemaExportacaoRoute = SistemaExportacaoRouteImport.update({
+  id: '/sistema/exportacao',
+  path: '/sistema/exportacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServicosTermosRoute = ServicosTermosRouteImport.update({
   id: '/termos',
   path: '/termos',
@@ -742,6 +748,7 @@ export interface FileRoutesByFullPath {
   '/servicos/nova': typeof ServicosNovaRoute
   '/servicos/tecnicos': typeof ServicosTecnicosRoute
   '/servicos/termos': typeof ServicosTermosRoute
+  '/sistema/exportacao': typeof SistemaExportacaoRoute
   '/vendas/calculadora': typeof VendasCalculadoraRoute
   '/vendas/consulta-estoque': typeof VendasConsultaEstoqueRoute
   '/vendas/delivery': typeof VendasDeliveryRoute
@@ -850,6 +857,7 @@ export interface FileRoutesByTo {
   '/servicos/nova': typeof ServicosNovaRoute
   '/servicos/tecnicos': typeof ServicosTecnicosRoute
   '/servicos/termos': typeof ServicosTermosRoute
+  '/sistema/exportacao': typeof SistemaExportacaoRoute
   '/vendas/calculadora': typeof VendasCalculadoraRoute
   '/vendas/consulta-estoque': typeof VendasConsultaEstoqueRoute
   '/vendas/delivery': typeof VendasDeliveryRoute
@@ -959,6 +967,7 @@ export interface FileRoutesById {
   '/servicos/nova': typeof ServicosNovaRoute
   '/servicos/tecnicos': typeof ServicosTecnicosRoute
   '/servicos/termos': typeof ServicosTermosRoute
+  '/sistema/exportacao': typeof SistemaExportacaoRoute
   '/vendas/calculadora': typeof VendasCalculadoraRoute
   '/vendas/consulta-estoque': typeof VendasConsultaEstoqueRoute
   '/vendas/delivery': typeof VendasDeliveryRoute
@@ -1069,6 +1078,7 @@ export interface FileRouteTypes {
     | '/servicos/nova'
     | '/servicos/tecnicos'
     | '/servicos/termos'
+    | '/sistema/exportacao'
     | '/vendas/calculadora'
     | '/vendas/consulta-estoque'
     | '/vendas/delivery'
@@ -1177,6 +1187,7 @@ export interface FileRouteTypes {
     | '/servicos/nova'
     | '/servicos/tecnicos'
     | '/servicos/termos'
+    | '/sistema/exportacao'
     | '/vendas/calculadora'
     | '/vendas/consulta-estoque'
     | '/vendas/delivery'
@@ -1285,6 +1296,7 @@ export interface FileRouteTypes {
     | '/servicos/nova'
     | '/servicos/tecnicos'
     | '/servicos/termos'
+    | '/sistema/exportacao'
     | '/vendas/calculadora'
     | '/vendas/consulta-estoque'
     | '/vendas/delivery'
@@ -1369,6 +1381,7 @@ export interface RootRouteChildren {
   OsTermoIdRoute: typeof OsTermoIdRoute
   OsTrackIdRoute: typeof OsTrackIdRoute
   ReciboIdRoute: typeof ReciboIdRoute
+  SistemaExportacaoRoute: typeof SistemaExportacaoRoute
   ApiEvolutionSplatRoute: typeof ApiEvolutionSplatRoute
   ApiOsPublicIdRoute: typeof ApiOsPublicIdRoute
   ApiPublicSplatRoute: typeof ApiPublicSplatRoute
@@ -1818,6 +1831,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/vendas/calculadora'
       preLoaderRoute: typeof VendasCalculadoraRouteImport
       parentRoute: typeof VendasRoute
+    }
+    '/sistema/exportacao': {
+      id: '/sistema/exportacao'
+      path: '/sistema/exportacao'
+      fullPath: '/sistema/exportacao'
+      preLoaderRoute: typeof SistemaExportacaoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/servicos/termos': {
       id: '/servicos/termos'
@@ -2325,6 +2345,7 @@ const rootRouteChildren: RootRouteChildren = {
   OsTermoIdRoute: OsTermoIdRoute,
   OsTrackIdRoute: OsTrackIdRoute,
   ReciboIdRoute: ReciboIdRoute,
+  SistemaExportacaoRoute: SistemaExportacaoRoute,
   ApiEvolutionSplatRoute: ApiEvolutionSplatRoute,
   ApiOsPublicIdRoute: ApiOsPublicIdRoute,
   ApiPublicSplatRoute: ApiPublicSplatRoute,
