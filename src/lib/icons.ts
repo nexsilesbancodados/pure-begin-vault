@@ -18,6 +18,7 @@ import {
   ClipboardList,
   Clock,
   DollarSign,
+  Download,
   FileText,
   FileWarning,
   Headphones,
