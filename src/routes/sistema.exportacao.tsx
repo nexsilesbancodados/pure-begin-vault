@@ -17,6 +17,11 @@ import {
   RefreshCw,
   ShieldCheck,
   Loader2,
+  Archive,
+  FileDown,
+  Users,
+  ShoppingCart,
+  Banknote,
 } from "lucide-react";
 import { useOrg } from "@/lib/useOrg";
 import { useDashboardRole } from "@/lib/userRole";
@@ -26,7 +31,21 @@ import { downloadCsv } from "@/lib/export/csv";
 import { downloadXlsx } from "@/lib/export/xlsx";
 import { collectTableStats, runIntegrityChecks, TableStat, IntegrityIssue } from "@/lib/export/diagnostics";
 import { generateBackupZip, BackupProgress, BackupResult } from "@/lib/export/backup";
-import { Archive } from "lucide-react";
+import { runCompatibilityAnalysis, exportCompatibilityPdf, CompatibilityReport, Severity } from "@/lib/export/compatibility";
+import {
+  checkCustomerIntegrity,
+  exportCustomers,
+  CustomerIntegrityReport,
+  CustomerExportMode,
+} from "@/lib/export/customers";
+import { validateSales, exportSales, SalesValidationReport, SalesExportMode, SalesExportResult } from "@/lib/export/sales";
+import {
+  validateFinancialExport,
+  exportFinancial,
+  FinancialExportMode,
+  FinancialExportResult,
+  FinancialIntegrityReport,
+} from "@/lib/export/financial";
 
 export const Route = createFileRoute("/sistema/exportacao")({
   head: () => ({
@@ -97,6 +116,9 @@ function ExportacaoPage() {
           <TabsTrigger value="vendas" className="gap-2">
             <FileText className="h-4 w-4" /> Vendas
           </TabsTrigger>
+          <TabsTrigger value="financeiro" className="gap-2">
+            <Banknote className="h-4 w-4" /> Financeiro
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -116,6 +138,9 @@ function ExportacaoPage() {
         </TabsContent>
         <TabsContent value="vendas">
           <SalesTab orgId={orgId} />
+        </TabsContent>
+        <TabsContent value="financeiro">
+          <FinancialTab orgId={orgId} />
         </TabsContent>
       </Tabs>
     </div>
@@ -537,10 +562,6 @@ function BackupButton({ orgId }: { orgId: string | null }) {
   );
 }
 
-// ─────────────────────────────────────────────────────
-import { runCompatibilityAnalysis, exportCompatibilityPdf, CompatibilityReport, Severity } from "@/lib/export/compatibility";
-import { FileDown } from "lucide-react";
-
 const SEV_COLOR: Record<Severity, string> = {
   alta: "bg-destructive/15 text-destructive border-destructive/40",
   media: "bg-warning/15 text-warning border-warning/40",
@@ -671,15 +692,6 @@ function CompatibilityTab({ orgId }: { orgId: string | null }) {
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────
-import {
-  checkCustomerIntegrity,
-  exportCustomers,
-  CustomerIntegrityReport,
-  CustomerExportMode,
-} from "@/lib/export/customers";
-import { Users } from "lucide-react";
 
 function CustomersTab({ orgId }: { orgId: string | null }) {
   const [report, setReport] = useState<CustomerIntegrityReport | null>(null);
@@ -828,10 +840,6 @@ function ExportRow({
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────
-import { validateSales, exportSales, SalesValidationReport, SalesExportMode, SalesExportResult } from "@/lib/export/sales";
-import { ShoppingCart } from "lucide-react";
 
 function SalesTab({ orgId }: { orgId: string | null }) {
   const [report, setReport] = useState<SalesValidationReport | null>(null);
