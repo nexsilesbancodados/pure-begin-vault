@@ -88,6 +88,9 @@ function ExportacaoPage() {
           <TabsTrigger value="diagnostics" className="gap-2">
             <ShieldCheck className="h-4 w-4" /> Diagnóstico
           </TabsTrigger>
+          <TabsTrigger value="compat" className="gap-2">
+            <ShieldCheck className="h-4 w-4" /> Compatibilidade
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -98,6 +101,9 @@ function ExportacaoPage() {
         </TabsContent>
         <TabsContent value="diagnostics">
           <DiagnosticsTab orgId={orgId} />
+        </TabsContent>
+        <TabsContent value="compat">
+          <CompatibilityTab orgId={orgId} />
         </TabsContent>
       </Tabs>
     </div>
@@ -515,6 +521,141 @@ function BackupButton({ orgId }: { orgId: string | null }) {
           {(result.durationMs / 1000).toFixed(1)}s
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────
+import { runCompatibilityAnalysis, exportCompatibilityPdf, CompatibilityReport, Severity } from "@/lib/export/compatibility";
+import { FileDown } from "lucide-react";
+
+const SEV_COLOR: Record<Severity, string> = {
+  alta: "bg-destructive/15 text-destructive border-destructive/40",
+  media: "bg-warning/15 text-warning border-warning/40",
+  baixa: "bg-muted text-muted-foreground border-border",
+};
+
+function CompatibilityTab({ orgId }: { orgId: string | null }) {
+  const [busy, setBusy] = useState(false);
+  const [report, setReport] = useState<CompatibilityReport | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const run = async () => {
+    setBusy(true);
+    try {
+      const r = await runCompatibilityAnalysis(orgId);
+      setReport(r);
+      toast.success(`Análise concluída · ${r.overallScore}% de compatibilidade`);
+    } catch (e: any) {
+      toast.error(`Falha na análise: ${e?.message ?? e}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doPdf = async () => {
+    if (!report) return;
+    setExporting(true);
+    try {
+      const name = await exportCompatibilityPdf(report);
+      toast.success(`PDF gerado: ${name}`);
+    } catch (e: any) {
+      toast.error(`Falha ao gerar PDF: ${e?.message ?? e}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const scoreColor = (n: number) =>
+    n >= 95 ? "text-success" : n >= 80 ? "text-primary" : n >= 60 ? "text-warning" : "text-destructive";
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" /> Análise de Compatibilidade para Migração
+          </CardTitle>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={run} disabled={busy} className="gap-1.5">
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+              {report ? "Rodar novamente" : "Analisar base"}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={doPdf} disabled={!report || exporting} className="gap-1.5">
+              {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+              Exportar Relatório (PDF)
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {!report ? (
+            <p className="text-xs text-muted-foreground">
+              Executa dezenas de verificações somente-leitura em produtos, clientes, fornecedores, estoque, financeiro e integridade referencial.
+              Nenhum dado é alterado.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-6 flex-wrap">
+                <div>
+                  <div className="text-[11px] uppercase font-bold tracking-widest text-muted-foreground">Compatibilidade da base</div>
+                  <div className={`text-6xl font-black tracking-tight ${scoreColor(report.overallScore)}`}>
+                    {report.overallScore}%
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 flex-1 min-w-[280px]">
+                  {report.modules.map((m) => (
+                    <div key={m.module} className="rounded-lg border p-2">
+                      <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">{m.label}</div>
+                      <div className={`text-xl font-black ${scoreColor(m.score)}`}>{m.score}%</div>
+                      <Progress value={m.score} className="mt-1" />
+                      <div className="text-[10px] text-muted-foreground mt-1">
+                        {m.issuesCount.toLocaleString("pt-BR")} inconsistências
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground">
+                Total: <b>{report.totalIssues.toLocaleString("pt-BR")}</b> inconsistências · Duração:{" "}
+                {(report.durationMs / 1000).toFixed(1)}s
+              </div>
+
+              {report.modules.map((m) => (
+                <div key={m.module}>
+                  <h3 className="text-xs uppercase font-black tracking-widest text-muted-foreground mb-2">
+                    {m.label} — {m.score}%
+                  </h3>
+                  <div className="space-y-1">
+                    {m.checks.filter((c) => c.count > 0 || c.error).length === 0 ? (
+                      <p className="text-[11px] text-success">Nenhuma inconsistência encontrada.</p>
+                    ) : (
+                      m.checks
+                        .filter((c) => c.count > 0 || c.error)
+                        .sort((a, b) => b.count - a.count)
+                        .map((c) => (
+                          <div
+                            key={c.id}
+                            className={`flex items-center justify-between text-xs rounded-md border px-2 py-1.5 ${SEV_COLOR[c.severity]}`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-[9px] uppercase font-bold">
+                                {c.severity}
+                              </Badge>
+                              <span>{c.label}</span>
+                              {c.error && <span className="text-[10px] opacity-70">({c.error})</span>}
+                            </div>
+                            <span className="font-black tabular-nums">{c.count.toLocaleString("pt-BR")}</span>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
