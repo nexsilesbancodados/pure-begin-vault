@@ -91,6 +91,9 @@ function ExportacaoPage() {
           <TabsTrigger value="compat" className="gap-2">
             <ShieldCheck className="h-4 w-4" /> Compatibilidade
           </TabsTrigger>
+          <TabsTrigger value="clientes" className="gap-2">
+            <FileText className="h-4 w-4" /> Clientes
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -104,6 +107,9 @@ function ExportacaoPage() {
         </TabsContent>
         <TabsContent value="compat">
           <CompatibilityTab orgId={orgId} />
+        </TabsContent>
+        <TabsContent value="clientes">
+          <CustomersTab orgId={orgId} />
         </TabsContent>
       </Tabs>
     </div>
