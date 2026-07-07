@@ -133,6 +133,7 @@ export const sidebarItems = [
       { title: "Avaliações Google", url: "/google-reviews", icon: "Star" },
       { title: "API Pública", url: "/api-keys", icon: "Key" },
       { title: "Auditoria", url: "/audit-log", icon: "Shield" },
+      { title: "Exportação de Dados", url: "/sistema/exportacao", icon: "Download" },
     ],
   },
   {
