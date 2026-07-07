@@ -665,3 +665,160 @@ function CompatibilityTab({ orgId }: { orgId: string | null }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────
+import {
+  checkCustomerIntegrity,
+  exportCustomers,
+  CustomerIntegrityReport,
+  CustomerExportMode,
+} from "@/lib/export/customers";
+import { Users } from "lucide-react";
+
+function CustomersTab({ orgId }: { orgId: string | null }) {
+  const [report, setReport] = useState<CustomerIntegrityReport | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [busy, setBusy] = useState<CustomerExportMode | null>(null);
+
+  const check = async () => {
+    setChecking(true);
+    try {
+      setReport(await checkCustomerIntegrity(orgId));
+    } catch (e: any) {
+      toast.error(`Falha na verificação: ${e?.message ?? e}`);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    void check();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
+
+  const doExport = async (mode: CustomerExportMode, format: "csv" | "xlsx") => {
+    setBusy(mode);
+    try {
+      const res = await exportCustomers(orgId, mode, format);
+      toast.success(`Exportado: ${res.filename} · ${res.count.toLocaleString("pt-BR")} clientes`);
+    } catch (e: any) {
+      toast.error(`Falha: ${e?.message ?? e}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const IntegRow = ({ label, value, danger }: { label: string; value: number; danger?: boolean }) => (
+    <div className={`rounded-md border px-3 py-2 ${danger && value > 0 ? "bg-destructive/10 border-destructive/40" : ""}`}>
+      <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{label}</div>
+      <div className={`text-xl font-black ${danger && value > 0 ? "text-destructive" : ""}`}>
+        {value.toLocaleString("pt-BR")}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Users className="h-4 w-4" /> Integridade do cadastro de clientes
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={check} disabled={checking} className="gap-1.5">
+            {checking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Reverificar
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {!report ? (
+            <p className="text-xs text-muted-foreground">Analisando base…</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                <IntegRow label="Total" value={report.total} />
+                <IntegRow label="Sem nome" value={report.semNome} danger />
+                <IntegRow label="Sem telefone" value={report.semTelefone} />
+                <IntegRow label="Sem cidade" value={report.semCidade} />
+                <IntegRow label="CPF inválido" value={report.cpfInvalido} danger />
+                <IntegRow label="CNPJ inválido" value={report.cnpjInvalido} danger />
+                <IntegRow label="CPF duplicado" value={report.cpfDuplicado} danger />
+                <IntegRow label="CNPJ duplicado" value={report.cnpjDuplicado} danger />
+              </div>
+              {report.amostraProblemas.length > 0 && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground">Ver amostra ({report.amostraProblemas.length})</summary>
+                  <pre className="mt-2 p-2 bg-muted/40 rounded text-[10px] overflow-x-auto">
+                    {JSON.stringify(report.amostraProblemas, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Download className="h-4 w-4" /> Exportar clientes
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ExportRow
+            title="Exportação Padrão"
+            desc="Todas as colunas da tabela + métricas (total_compras, ticket_medio, última compra)."
+            mode="padrao"
+            busy={busy}
+            onExport={doExport}
+          />
+          <ExportRow
+            title="Exportação Expandida"
+            desc="Achata campos JSON (metadata.*) em colunas individuais."
+            mode="expandida"
+            busy={busy}
+            onExport={doExport}
+          />
+          <ExportRow
+            title="Exportação compatível com Premier ERP"
+            desc="Colunas em pt-BR e ordem esperada pelo importador do Premier ERP."
+            mode="premier"
+            busy={busy}
+            onExport={doExport}
+            highlight
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function ExportRow({
+  title, desc, mode, busy, onExport, highlight,
+}: {
+  title: string;
+  desc: string;
+  mode: CustomerExportMode;
+  busy: CustomerExportMode | null;
+  onExport: (m: CustomerExportMode, f: "csv" | "xlsx") => void;
+  highlight?: boolean;
+}) {
+  const disabled = busy !== null;
+  return (
+    <div className={`rounded-lg border p-3 flex items-center justify-between gap-3 flex-wrap ${highlight ? "border-primary/60 bg-primary/5" : ""}`}>
+      <div>
+        <div className="font-bold text-sm">{title}</div>
+        <div className="text-xs text-muted-foreground">{desc}</div>
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" onClick={() => onExport(mode, "csv")} disabled={disabled} className="gap-1.5">
+          {busy === mode ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+          CSV
+        </Button>
+        <Button size="sm" onClick={() => onExport(mode, "xlsx")} disabled={disabled} className="gap-1.5">
+          {busy === mode ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
+          Excel
+        </Button>
+      </div>
+    </div>
+  );
+}
