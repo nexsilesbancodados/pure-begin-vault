@@ -88,6 +88,9 @@ function ExportacaoPage() {
           <TabsTrigger value="diagnostics" className="gap-2">
             <ShieldCheck className="h-4 w-4" /> Diagnóstico
           </TabsTrigger>
+          <TabsTrigger value="compat" className="gap-2">
+            <ShieldCheck className="h-4 w-4" /> Compatibilidade
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -98,6 +101,9 @@ function ExportacaoPage() {
         </TabsContent>
         <TabsContent value="diagnostics">
           <DiagnosticsTab orgId={orgId} />
+        </TabsContent>
+        <TabsContent value="compat">
+          <CompatibilityTab orgId={orgId} />
         </TabsContent>
       </Tabs>
     </div>
