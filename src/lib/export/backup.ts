@@ -493,6 +493,8 @@ export async function generateBackupZip(
       totalFiles: files.length + 3, // + README já em criação, manifest e relatório.
       modulosExportados,
       warnings,
+      period: normalizedPeriod,
+      hasPeriod,
     }),
   );
 
