@@ -2,8 +2,8 @@
 // SOMENTE LEITURA: não altera tabela, RLS ou regra de negócio.
 import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
-import { DATASETS, DatasetDef, ExportGroup } from "./registry";
-import { fetchDataset } from "./fetcher";
+import { DATASETS, DatasetDef, ExportGroup, isTransactionalDataset } from "./registry";
+import { fetchDataset, ExportFilters } from "./fetcher";
 import { rowsToCsv } from "./csv";
 
 // Mapeia grupos → pastas no ZIP (nomes em pt-BR conforme spec)
@@ -32,6 +32,11 @@ export interface BackupResult {
   durationMs: number;
   perTable: Record<string, number>;
   warnings: string[];
+}
+
+export interface BackupPeriod {
+  from: string | null; // ISO or null
+  to: string | null;   // ISO or null
 }
 
 interface BackupFile {
@@ -217,6 +222,8 @@ function buildReadme(params: {
   totalFiles: number;
   modulosExportados: ModuleExportInfo[];
   warnings: string[];
+  period: BackupPeriod;
+  hasPeriod: boolean;
 }) {
   const companyName = getOrganizationName(params.organization) ?? "Empresa não identificada";
   return [
@@ -233,6 +240,12 @@ function buildReadme(params: {
     `- Total de registros: ${params.totalRows.toLocaleString("pt-BR")}`,
     `- Total de módulos exportados: ${params.totalModules}`,
     `- Total de arquivos: ${params.totalFiles}`,
+    "",
+    "## Período Exportado",
+    "- Cadastros: Completo",
+    params.hasPeriod
+      ? `- Transações: ${(params.period.from ?? "início").slice(0, 10)} até ${(params.period.to ?? "hoje").slice(0, 10)}`
+      : "- Transações: Todo o período (sem filtro aplicado)",
     "",
     "## Estrutura do ZIP",
     "- empresa.json — dados cadastrais da empresa.",
@@ -317,6 +330,7 @@ function buildCompatibilityReport(params: {
 export async function generateBackupZip(
   orgId: string | null,
   onProgress?: (p: BackupProgress) => void,
+  period?: BackupPeriod | null,
 ): Promise<BackupResult> {
   const t0 = performance.now();
   const backupUuid = makeBackupUuid();
@@ -326,6 +340,12 @@ export async function generateBackupZip(
   const warnings: string[] = [];
   const metas: DatasetExportMeta[] = [];
   let totalRows = 0;
+
+  const normalizedPeriod: BackupPeriod = {
+    from: period?.from || null,
+    to: period?.to || null,
+  };
+  const hasPeriod = !!(normalizedPeriod.from || normalizedPeriod.to);
 
   const addFile = (path: string, content: string) => {
     files.push({ path, content });
@@ -346,7 +366,13 @@ export async function generateBackupZip(
       rowsSoFar: totalRows,
     });
     try {
-      const res = await fetchDataset(ds, orgId);
+      // Cadastros/sistema sempre completos. Transacionais respeitam o período.
+      const filters: ExportFilters = {};
+      if (hasPeriod && isTransactionalDataset(ds)) {
+        if (normalizedPeriod.from) filters.periodStart = normalizedPeriod.from;
+        if (normalizedPeriod.to) filters.periodEnd = normalizedPeriod.to;
+      }
+      const res = await fetchDataset(ds, orgId, filters);
       const folder = GROUP_FOLDER[ds.group] ?? ds.group;
       const csv = rowsToCsv(res.rows, res.columns);
       const file = `${folder}/${ds.key}.csv`;
@@ -475,6 +501,8 @@ export async function generateBackupZip(
       totalFiles: files.length + 3, // + README já em criação, manifest e relatório.
       modulosExportados,
       warnings,
+      period: normalizedPeriod,
+      hasPeriod,
     }),
   );
 
@@ -500,6 +528,12 @@ export async function generateBackupZip(
     separador_csv: ";",
     compatible_with: COMPATIBLE_WITH,
     compatibilidade: COMPATIBILITY,
+    export_period: {
+      from: normalizedPeriod.from,
+      to: normalizedPeriod.to,
+      mode: "transactional_only" as const,
+      applied: hasPeriod,
+    },
     modulos_exportados: modulosExportados,
     total_registros: totalRows,
     total_records: totalRows,

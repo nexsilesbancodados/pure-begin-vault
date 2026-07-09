@@ -25,12 +25,12 @@ import {
 } from "lucide-react";
 import { useOrg } from "@/lib/useOrg";
 import { useDashboardRole } from "@/lib/userRole";
-import { DATASETS, GROUP_LABELS, DatasetDef, ExportGroup } from "@/lib/export/registry";
+import { DATASETS, GROUP_LABELS, DatasetDef, ExportGroup, isTransactionalDataset } from "@/lib/export/registry";
 import { fetchDataset, countDataset, ExportFilters } from "@/lib/export/fetcher";
 import { downloadCsv } from "@/lib/export/csv";
 import { downloadXlsx } from "@/lib/export/xlsx";
 import { collectTableStats, runIntegrityChecks, TableStat, IntegrityIssue } from "@/lib/export/diagnostics";
-import { generateBackupZip, BackupProgress, BackupResult } from "@/lib/export/backup";
+import { generateBackupZip, BackupProgress, BackupResult, BackupPeriod } from "@/lib/export/backup";
 import { runCompatibilityAnalysis, exportCompatibilityPdf, CompatibilityReport, Severity } from "@/lib/export/compatibility";
 import {
   checkCustomerIntegrity,
@@ -65,6 +65,7 @@ function ExportacaoPage() {
   const { orgId } = useOrg();
   const role = useDashboardRole();
   const isAdmin = role === "admin";
+  const [period, setPeriod] = useState<BackupPeriod>({ from: null, to: null });
 
   if (!isAdmin) {
     return (
@@ -93,8 +94,10 @@ function ExportacaoPage() {
             Módulo somente leitura. Nenhum dado do sistema será alterado.
           </p>
         </div>
-        <BackupButton orgId={orgId} />
+        <BackupButton orgId={orgId} period={period} />
       </header>
+
+      <PeriodFilterPanel period={period} onChange={setPeriod} />
 
       <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList>
@@ -505,7 +508,91 @@ function DiagnosticsTab({ orgId }: { orgId: string | null }) {
 }
 
 // ─────────────────────────────────────────────────────
-function BackupButton({ orgId }: { orgId: string | null }) {
+function PeriodFilterPanel({
+  period,
+  onChange,
+}: {
+  period: BackupPeriod;
+  onChange: (p: BackupPeriod) => void;
+}) {
+  const applyPreset = (days: number | "all" | "ytd") => {
+    if (days === "all") return onChange({ from: null, to: null });
+    const now = new Date();
+    const to = now.toISOString();
+    let from: Date;
+    if (days === "ytd") {
+      from = new Date(now.getFullYear(), 0, 1);
+    } else {
+      from = new Date(now);
+      from.setDate(from.getDate() - days);
+    }
+    onChange({ from: from.toISOString(), to });
+  };
+  const active = !!(period.from || period.to);
+  const transCount = DATASETS.filter(isTransactionalDataset).length;
+  const masterCount = DATASETS.length - transCount;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          Filtro Global de Período
+          {active ? (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary">
+              Ativo
+            </span>
+          ) : (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+              Sem filtro
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => applyPreset(7)}>Últimos 7 dias</Button>
+          <Button size="sm" variant="outline" onClick={() => applyPreset(30)}>Últimos 30 dias</Button>
+          <Button size="sm" variant="outline" onClick={() => applyPreset(90)}>Últimos 90 dias</Button>
+          <Button size="sm" variant="outline" onClick={() => applyPreset(365)}>Últimos 12 meses</Button>
+          <Button size="sm" variant="outline" onClick={() => applyPreset("ytd")}>Ano atual</Button>
+          <Button size="sm" variant="ghost" onClick={() => applyPreset("all")}>Todo o período</Button>
+        </div>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] text-muted-foreground">De</label>
+            <input
+              type="date"
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+              value={period.from ? period.from.slice(0, 10) : ""}
+              onChange={(e) =>
+                onChange({ ...period, from: e.target.value ? new Date(e.target.value).toISOString() : null })
+              }
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[11px] text-muted-foreground">Até</label>
+            <input
+              type="date"
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+              value={period.to ? period.to.slice(0, 10) : ""}
+              onChange={(e) =>
+                onChange({ ...period, to: e.target.value ? new Date(e.target.value).toISOString() : null })
+              }
+            />
+          </div>
+        </div>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          Aplica-se somente aos <strong>{transCount} módulos transacionais</strong> (vendas, financeiro,
+          estoque, compras, CRM e serviços). Os <strong>{masterCount} cadastros mestres</strong>{" "}
+          (clientes, produtos, fornecedores, configurações) são sempre exportados por completo para
+          preservar integridade referencial.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function BackupButton({ orgId, period }: { orgId: string | null; period?: BackupPeriod }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<BackupProgress | null>(null);
   const [result, setResult] = useState<BackupResult | null>(null);
@@ -519,7 +606,7 @@ function BackupButton({ orgId }: { orgId: string | null }) {
     setResult(null);
     setProgress(null);
     try {
-      const res = await generateBackupZip(orgId, (p) => setProgress(p));
+      const res = await generateBackupZip(orgId, (p) => setProgress(p), period ?? null);
       setResult(res);
       toast.success(
         `Backup gerado: ${res.totalRows.toLocaleString("pt-BR")} registros (${(res.bytes / 1024 / 1024).toFixed(2)} MB)`,
