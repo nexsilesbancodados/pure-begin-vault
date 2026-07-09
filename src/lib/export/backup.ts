@@ -106,11 +106,7 @@ async function fetchOrgInfo(orgId: string | null) {
   const db = supabase as unknown as { from: (table: string) => SupabaseReadBuilder };
   const [{ data: organization }, { data: settings }] = await Promise.all([
     db.from("organizations").select("*").eq("id", orgId).maybeSingle(),
-    db
-      .from("organization_settings")
-      .select("*")
-      .eq("organization_id", orgId)
-      .maybeSingle(),
+    db.from("organization_settings").select("*").eq("organization_id", orgId).maybeSingle(),
   ]);
   return { organization, settings };
 }
