@@ -25,12 +25,12 @@ import {
 } from "lucide-react";
 import { useOrg } from "@/lib/useOrg";
 import { useDashboardRole } from "@/lib/userRole";
-import { DATASETS, GROUP_LABELS, DatasetDef, ExportGroup } from "@/lib/export/registry";
+import { DATASETS, GROUP_LABELS, DatasetDef, ExportGroup, isTransactionalDataset } from "@/lib/export/registry";
 import { fetchDataset, countDataset, ExportFilters } from "@/lib/export/fetcher";
 import { downloadCsv } from "@/lib/export/csv";
 import { downloadXlsx } from "@/lib/export/xlsx";
 import { collectTableStats, runIntegrityChecks, TableStat, IntegrityIssue } from "@/lib/export/diagnostics";
-import { generateBackupZip, BackupProgress, BackupResult } from "@/lib/export/backup";
+import { generateBackupZip, BackupProgress, BackupResult, BackupPeriod } from "@/lib/export/backup";
 import { runCompatibilityAnalysis, exportCompatibilityPdf, CompatibilityReport, Severity } from "@/lib/export/compatibility";
 import {
   checkCustomerIntegrity,
