@@ -222,6 +222,8 @@ function buildReadme(params: {
   totalFiles: number;
   modulosExportados: ModuleExportInfo[];
   warnings: string[];
+  period: BackupPeriod;
+  hasPeriod: boolean;
 }) {
   const companyName = getOrganizationName(params.organization) ?? "Empresa não identificada";
   return [
