@@ -322,6 +322,7 @@ function buildCompatibilityReport(params: {
 export async function generateBackupZip(
   orgId: string | null,
   onProgress?: (p: BackupProgress) => void,
+  period?: BackupPeriod | null,
 ): Promise<BackupResult> {
   const t0 = performance.now();
   const backupUuid = makeBackupUuid();
@@ -331,6 +332,12 @@ export async function generateBackupZip(
   const warnings: string[] = [];
   const metas: DatasetExportMeta[] = [];
   let totalRows = 0;
+
+  const normalizedPeriod: BackupPeriod = {
+    from: period?.from || null,
+    to: period?.to || null,
+  };
+  const hasPeriod = !!(normalizedPeriod.from || normalizedPeriod.to);
 
   const addFile = (path: string, content: string) => {
     files.push({ path, content });
@@ -351,7 +358,13 @@ export async function generateBackupZip(
       rowsSoFar: totalRows,
     });
     try {
-      const res = await fetchDataset(ds, orgId);
+      // Cadastros/sistema sempre completos. Transacionais respeitam o período.
+      const filters: ExportFilters = {};
+      if (hasPeriod && isTransactionalDataset(ds)) {
+        if (normalizedPeriod.from) filters.periodStart = normalizedPeriod.from;
+        if (normalizedPeriod.to) filters.periodEnd = normalizedPeriod.to;
+      }
+      const res = await fetchDataset(ds, orgId, filters);
       const folder = GROUP_FOLDER[ds.group] ?? ds.group;
       const csv = rowsToCsv(res.rows, res.columns);
       const file = `${folder}/${ds.key}.csv`;
