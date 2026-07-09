@@ -83,15 +83,28 @@ export async function generateBackupZip(
 
   // 3) manifest.json
   const durationMs = Math.round(performance.now() - t0);
+  const modulosExportados = Array.from(new Set(DATASETS.map((d) => d.group))).map((g) => ({
+    modulo: g,
+    pasta: GROUP_FOLDER[g] ?? g,
+    tabelas: DATASETS.filter((d) => d.group === g).map((d) => ({
+      key: d.key,
+      tabela: d.table,
+      arquivo: `${GROUP_FOLDER[d.group] ?? d.group}/${d.key}.csv`,
+      registros: perTable[d.table] ?? 0,
+    })),
+  }));
   const manifest = {
+    schema_version: "1.1",
+    sistema_origem: "Conecta Sistema",
+    versao_sistema: (import.meta as any).env?.VITE_APP_VERSION ?? "conecta-1.0",
+    versao_banco: "supabase-postgres-15",
     empresa_nome: organization?.name ?? organization?.nome ?? null,
     empresa_id: orgId,
     exportado_em: new Date().toISOString(),
-    versao_sistema: (import.meta as any).env?.VITE_APP_VERSION ?? "conecta-1.0",
-    versao_banco: "supabase-postgres-15",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     encoding: "UTF-8 (com BOM nos CSVs)",
     separador_csv: ";",
+    modulos_exportados: modulosExportados,
     total_registros: totalRows,
     registros_por_tabela: perTable,
     tempo_total_ms: durationMs,
@@ -99,6 +112,31 @@ export async function generateBackupZip(
     observacoes:
       "Backup somente-leitura gerado pela Central de Exportação. Nenhum dado do sistema foi alterado.",
   };
+  // 3b) RELATORIO_COMPATIBILIDADE.md — auditoria da exportação
+  const compatMd = [
+    "# Relatório de Compatibilidade — Backup Conecta",
+    "",
+    `- Gerado em: ${manifest.exportado_em}`,
+    `- Empresa: ${manifest.empresa_nome ?? "-"} (${orgId ?? "-"})`,
+    `- Schema: ${manifest.schema_version} · Sistema: ${manifest.sistema_origem} ${manifest.versao_sistema}`,
+    `- Encoding: ${manifest.encoding} · Separador CSV: "${manifest.separador_csv}"`,
+    "",
+    "## Módulos exportados",
+    ...modulosExportados.map((m) => `- **${m.modulo}** (${m.pasta}) — ${m.tabelas.length} tabelas`),
+    "",
+    "## Registros por tabela",
+    ...Object.entries(perTable).map(([t, n]) => `- ${t}: ${n.toLocaleString("pt-BR")}`),
+    "",
+    "## Limitações conhecidas",
+    "- Anexos binários (fotos de OS, PDFs) não são incluídos neste backup.",
+    "- Logs de automação e webhooks históricos são omitidos por volume.",
+    "",
+    "## Recomendações",
+    "- Validar `manifest.json` antes da importação em outro ERP.",
+    "- Preservar os IDs originais para reconstrução de relacionamentos.",
+    warnings.length ? `\n## Avisos\n${warnings.map((w) => `- ${w}`).join("\n")}` : "",
+  ].join("\n");
+  zip.file("RELATORIO_COMPATIBILIDADE.md", compatMd);
   zip.file("manifest.json", JSON.stringify(manifest, null, 2));
 
   const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
