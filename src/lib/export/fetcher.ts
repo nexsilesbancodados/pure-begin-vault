@@ -20,9 +20,16 @@ export interface FetchResult {
 
 const PAGE = 1000;
 
-export async function countDataset(ds: DatasetDef, orgId: string | null): Promise<number> {
+export async function countDataset(
+  ds: DatasetDef,
+  orgId: string | null,
+  filters: ExportFilters = {},
+): Promise<number> {
   let q: any = (supabase as any).from(ds.table).select("*", { count: "exact", head: true });
   if (ds.orgColumn && orgId) q = q.eq(ds.orgColumn, orgId);
+  if (filters.periodStart && ds.dateColumn) q = q.gte(ds.dateColumn, filters.periodStart);
+  if (filters.periodEnd && ds.dateColumn) q = q.lte(ds.dateColumn, filters.periodEnd);
+  if (filters.status && ds.statusColumn) q = q.eq(ds.statusColumn, filters.status);
   const { count, error } = await q;
   if (error) return 0;
   return count ?? 0;

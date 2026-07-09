@@ -85,6 +85,21 @@ export const GROUP_LABELS: Record<ExportGroup, string> = {
   sistema: "Sistema",
 };
 
+// Grupos considerados "transacionais" para o filtro global de período.
+// Cadastros e Sistema são sempre exportados completos (mestres).
+export const TRANSACTIONAL_GROUPS: ExportGroup[] = [
+  "estoque",
+  "vendas",
+  "compras",
+  "financeiro",
+  "crm",
+  "servicos",
+];
+
+export function isTransactionalDataset(ds: DatasetDef): boolean {
+  return !!ds.dateColumn && TRANSACTIONAL_GROUPS.includes(ds.group);
+}
+
 export function getDataset(key: string): DatasetDef | undefined {
   return DATASETS.find((d) => d.key === key);
 }
