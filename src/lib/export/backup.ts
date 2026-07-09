@@ -34,6 +34,11 @@ export interface BackupResult {
   warnings: string[];
 }
 
+export interface BackupPeriod {
+  from: string | null; // ISO or null
+  to: string | null;   // ISO or null
+}
+
 interface BackupFile {
   path: string;
   content: string;
