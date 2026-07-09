@@ -620,3 +620,246 @@ function triggerBlob(filename: string, blob: Blob) {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// Sprint 3.3 — Assistente de Migração Financeira
+// ═══════════════════════════════════════════════════════════════════════
+
+export type FinancialModuleKey =
+  | "accounts_payable"
+  | "accounts_receivable"
+  | "finance_transactions"
+  | "bank_accounts"
+  | "cash_register"
+  | "financial_categories"
+  | "chart_of_accounts"
+  | "cost_centers";
+
+export type FinancialStatusFilter = "all" | "open" | "paid" | "overdue";
+export type FinancialDateField = "due_date" | "issued_at" | "paid_at" | "transaction_date" | "created_at";
+
+export interface ModuleFilter {
+  status?: FinancialStatusFilter;
+  dateField?: FinancialDateField;
+  periodStart?: string;
+  periodEnd?: string;
+}
+
+export interface FinancialAssistantSelection {
+  modules: FinancialModuleKey[];
+  filters: Partial<Record<FinancialModuleKey, ModuleFilter>>;
+}
+
+export interface ModuleSummary { count: number; totalAmount: number; }
+
+export interface FinancialAssistantResult {
+  filename: string;
+  durationMs: number;
+  bytes: number;
+  modules: Array<{ key: FinancialModuleKey; count: number; totalAmount: number }>;
+}
+
+const MODULE_TO_TABLES: Record<FinancialModuleKey, string[]> = {
+  accounts_payable: ["accounts_payable"],
+  accounts_receivable: ["accounts_receivable"],
+  finance_transactions: ["finance_transactions"],
+  bank_accounts: ["bank_accounts"],
+  cash_register: ["cash_register_sessions", "cash_register_movements"],
+  financial_categories: ["chart_of_accounts"],
+  chart_of_accounts: ["chart_of_accounts"],
+  cost_centers: ["cost_centers"],
+};
+
+export const FINANCIAL_MODULE_LABELS: Record<FinancialModuleKey, string> = {
+  accounts_payable: "Contas a pagar",
+  accounts_receivable: "Contas a receber",
+  finance_transactions: "Movimentações financeiras",
+  bank_accounts: "Bancos",
+  cash_register: "Caixas",
+  financial_categories: "Categorias financeiras",
+  chart_of_accounts: "Plano de contas",
+  cost_centers: "Centros de custo",
+};
+
+export const FINANCIAL_TRANSACTIONAL: FinancialModuleKey[] = [
+  "accounts_payable",
+  "accounts_receivable",
+  "finance_transactions",
+];
+
+const STATUS_OPEN = ["open", "pending", "em_aberto", "a_pagar", "a_receber", "aberto"];
+const STATUS_PAID = ["paid", "pago", "liquidado", "quitado", "completed"];
+
+function applyModuleFilter(query: any, table: string, filter?: ModuleFilter) {
+  if (!filter) return query;
+  const dateCol = filter.dateField ?? (table === "finance_transactions" ? "transaction_date" : table === "cash_register_movements" ? "created_at" : "due_date");
+  if (filter.periodStart) query = query.gte(dateCol, filter.periodStart);
+  if (filter.periodEnd) query = query.lte(dateCol, filter.periodEnd + "T23:59:59");
+  if (filter.status === "open") query = query.in("status", STATUS_OPEN);
+  else if (filter.status === "paid") query = query.in("status", STATUS_PAID);
+  else if (filter.status === "overdue") {
+    const today = new Date().toISOString().slice(0, 10);
+    query = query.in("status", STATUS_OPEN).lt("due_date", today);
+  }
+  return query;
+}
+
+async function fetchFilteredRows(table: string, orgId: string | null, filter?: ModuleFilter): Promise<any[]> {
+  if (!orgId) return [];
+  const rows: any[] = [];
+  let from = 0;
+  while (true) {
+    let q: any = (supabase as any).from(table).select("*").eq("organization_id", orgId).range(from, from + PAGE - 1);
+    q = applyModuleFilter(q, table, filter);
+    const { data, error } = await q;
+    if (error) return rows;
+    const batch = (data ?? []) as any[];
+    rows.push(...batch);
+    if (batch.length < PAGE) break;
+    from += PAGE;
+  }
+  return rows;
+}
+
+export async function summarizeFinancialModule(
+  orgId: string | null,
+  moduleKey: FinancialModuleKey,
+  filter?: ModuleFilter,
+): Promise<ModuleSummary> {
+  if (!orgId) return { count: 0, totalAmount: 0 };
+  const tables = MODULE_TO_TABLES[moduleKey];
+  let count = 0;
+  let totalAmount = 0;
+  for (const table of tables) {
+    try {
+      let qc: any = (supabase as any).from(table).select("id", { count: "exact", head: true }).eq("organization_id", orgId);
+      qc = applyModuleFilter(qc, table, filter);
+      const { count: c, error } = await qc;
+      if (error) continue;
+      count += c ?? 0;
+
+      if (["accounts_payable", "accounts_receivable", "finance_transactions", "cash_register_movements"].includes(table)) {
+        let from = 0;
+        while (true) {
+          let qs: any = (supabase as any).from(table).select("amount").eq("organization_id", orgId).range(from, from + PAGE - 1);
+          qs = applyModuleFilter(qs, table, filter);
+          const { data, error: e2 } = await qs;
+          if (e2) break;
+          const batch = (data ?? []) as any[];
+          totalAmount += batch.reduce((s, r) => s + num((r as any).amount), 0);
+          if (batch.length < PAGE) break;
+          from += PAGE;
+        }
+      }
+    } catch {
+      // tabelas opcionais (bank_accounts, cost_centers) podem não existir
+    }
+  }
+  return { count, totalAmount };
+}
+
+export async function exportFinancialAssistant(
+  orgId: string | null,
+  selection: FinancialAssistantSelection,
+  format: "xlsx" | "zip",
+): Promise<FinancialAssistantResult> {
+  const t0 = performance.now();
+  const sheets: Sheet[] = [];
+  const summary: FinancialAssistantResult["modules"] = [];
+  const emitted = new Set<string>();
+
+  for (const moduleKey of selection.modules) {
+    const filter = selection.filters[moduleKey];
+    const tables = MODULE_TO_TABLES[moduleKey];
+    let modCount = 0;
+    let modTotal = 0;
+    for (const table of tables) {
+      if (emitted.has(table)) continue;
+      emitted.add(table);
+      const rows = await fetchFilteredRows(table, orgId, filter).catch(() => [] as any[]);
+      modCount += rows.length;
+      modTotal += rows.reduce((s, r) => s + num((r as any).amount), 0);
+      sheets.push({ name: table, rows, columns: columnsOf(rows) });
+    }
+    summary.push({ key: moduleKey, count: modCount, totalAmount: modTotal });
+  }
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  const filename = `financeiro-assistente-${stamp}.${format === "xlsx" ? "xlsx" : "zip"}`;
+  let bytes = 0;
+
+  const manifest = {
+    tipo: "assistente_financeiro",
+    gerado_em: new Date().toISOString(),
+    somente_leitura: true,
+    modulos_exportados: selection.modules.map((key) => ({
+      modulo: key,
+      label: FINANCIAL_MODULE_LABELS[key],
+      filtros: selection.filters[key] ?? null,
+      registros: summary.find((s) => s.key === key)?.count ?? 0,
+      valor_total: summary.find((s) => s.key === key)?.totalAmount ?? 0,
+    })),
+    tabelas: [...emitted],
+    total_registros: summary.reduce((s, m) => s + m.count, 0),
+    total_valor: summary.reduce((s, m) => s + m.totalAmount, 0),
+  };
+
+  const readme = [
+    "# Exportação Financeira — Assistente de Migração",
+    "",
+    `Gerado em: ${new Date().toISOString()}`,
+    "",
+    "## Módulos exportados",
+    ...selection.modules.map((k) => {
+      const m = summary.find((x) => x.key === k)!;
+      const f = selection.filters[k];
+      const parts = f
+        ? [
+            f.status && f.status !== "all" ? `status=${f.status}` : "",
+            f.dateField ? `data=${f.dateField}` : "",
+            f.periodStart ? `de ${f.periodStart}` : "",
+            f.periodEnd ? `até ${f.periodEnd}` : "",
+          ].filter(Boolean).join(", ")
+        : "";
+      return `- ${FINANCIAL_MODULE_LABELS[k]}: ${m.count} registros · ${m.totalAmount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}${parts ? ` · ${parts}` : ""}`;
+    }),
+    "",
+    "## Compatibilidade",
+    "- Formato dos CSVs preservado (colunas idênticas ao banco).",
+    "- Estrutura do ZIP inalterada.",
+    "- Compatível com o pipeline do Premier ERP.",
+  ].join("\n");
+
+  if (format === "xlsx") {
+    const XLSX = await import("xlsx");
+    const wb = XLSX.utils.book_new();
+    for (const sheet of sheets) {
+      const normalized = sheet.rows.map((row) => {
+        const out: Record<string, any> = {};
+        for (const column of sheet.columns) {
+          const value = row[column];
+          out[column] = value && typeof value === "object" && !(value instanceof Date) ? JSON.stringify(value) : value;
+        }
+        return out;
+      });
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(normalized, { header: sheet.columns }), sheet.name.slice(0, 31));
+    }
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.json_to_sheet(Object.entries(manifest).map(([campo, valor]) => ({ campo, valor: typeof valor === "object" ? JSON.stringify(valor) : valor }))),
+      "manifest",
+    );
+    XLSX.writeFile(wb, filename);
+    bytes = sheets.reduce((sum, sheet) => sum + sheet.rows.length * Math.max(sheet.columns.length, 1) * 20, 0);
+  } else {
+    const zip = new JSZip();
+    for (const sheet of sheets) zip.file(`${sheet.name}.csv`, rowsToCsv(sheet.rows, sheet.columns));
+    zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+    zip.file("README.md", readme);
+    const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+    bytes = blob.size;
+    triggerBlob(filename, blob);
+  }
+
+  return { filename, durationMs: Math.round(performance.now() - t0), bytes, modules: summary };
+}
