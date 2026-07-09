@@ -2,8 +2,8 @@
 // SOMENTE LEITURA: não altera tabela, RLS ou regra de negócio.
 import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
-import { DATASETS, DatasetDef, ExportGroup } from "./registry";
-import { fetchDataset } from "./fetcher";
+import { DATASETS, DatasetDef, ExportGroup, isTransactionalDataset } from "./registry";
+import { fetchDataset, ExportFilters } from "./fetcher";
 import { rowsToCsv } from "./csv";
 
 // Mapeia grupos → pastas no ZIP (nomes em pt-BR conforme spec)
