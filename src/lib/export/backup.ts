@@ -528,6 +528,12 @@ export async function generateBackupZip(
     separador_csv: ";",
     compatible_with: COMPATIBLE_WITH,
     compatibilidade: COMPATIBILITY,
+    export_period: {
+      from: normalizedPeriod.from,
+      to: normalizedPeriod.to,
+      mode: "transactional_only" as const,
+      applied: hasPeriod,
+    },
     modulos_exportados: modulosExportados,
     total_registros: totalRows,
     total_records: totalRows,
