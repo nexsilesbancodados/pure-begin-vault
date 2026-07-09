@@ -358,7 +358,9 @@ export async function generateBackupZip(
       addFile(file, csv);
       perTable[ds.table] = res.count;
       totalRows += res.count;
-      if (res.warnings.length) warnings.push(...res.warnings.map((w) => `${ds.key}: ${w}`));
+      if (res.warnings.length) {
+        warnings.push(...res.warnings.map((w) => `${ds.key}: ${w}`));
+      }
       metas.push({
         key: ds.key,
         label: ds.label,
@@ -373,8 +375,8 @@ export async function generateBackupZip(
         lastDate: bounds.lastDate,
         warnings: res.warnings,
       });
-    } catch (e: any) {
-      const message = `${ds.key}: ${e?.message ?? e}`;
+    } catch (e: unknown) {
+      const message = `${ds.key}: ${getErrorMessage(e)}`;
       warnings.push(message);
       perTable[ds.table] = 0;
       metas.push({
@@ -492,9 +494,9 @@ export async function generateBackupZip(
     version: BACKUP_FORMAT_VERSION,
     schema_version: BACKUP_SCHEMA_VERSION,
     sistema_origem: "Conecta Sistema",
-    versao_sistema: (import.meta as any).env?.VITE_APP_VERSION ?? "conecta-1.0",
+    versao_sistema: getAppVersion(),
     versao_banco: "supabase-postgres-15",
-    empresa_nome: organization?.name ?? organization?.nome ?? null,
+    empresa_nome: getOrganizationName(organization),
     empresa_id: orgId,
     exportado_em: new Date().toISOString(),
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -521,7 +523,10 @@ export async function generateBackupZip(
     const manifest = buildManifest(durationMs);
     const zip = new JSZip();
     for (const file of files) zip.file(file.path, file.content);
-    zip.file("RELATORIO_COMPATIBILIDADE.md", buildCompatibilityReport({ manifest, moduleStatistics, warnings, zipBytes }));
+    zip.file(
+      "RELATORIO_COMPATIBILIDADE.md",
+      buildCompatibilityReport({ manifest, moduleStatistics, warnings, zipBytes }),
+    );
     zip.file("manifest.json", toJson(manifest));
     return zip;
   };
