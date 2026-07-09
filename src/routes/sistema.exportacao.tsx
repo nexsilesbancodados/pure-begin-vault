@@ -65,6 +65,7 @@ function ExportacaoPage() {
   const { orgId } = useOrg();
   const role = useDashboardRole();
   const isAdmin = role === "admin";
+  const [period, setPeriod] = useState<BackupPeriod>({ from: null, to: null });
 
   if (!isAdmin) {
     return (
@@ -93,8 +94,10 @@ function ExportacaoPage() {
             Módulo somente leitura. Nenhum dado do sistema será alterado.
           </p>
         </div>
-        <BackupButton orgId={orgId} />
+        <BackupButton orgId={orgId} period={period} />
       </header>
+
+      <PeriodFilterPanel period={period} onChange={setPeriod} />
 
       <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList>
