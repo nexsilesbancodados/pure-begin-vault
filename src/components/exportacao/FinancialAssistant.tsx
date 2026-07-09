@@ -341,15 +341,24 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
       })}
 
       {/* Preview + Exportação */}
-      <Card>
+      <Card className="border-primary/40">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Download className="h-4 w-4" /> Preview e exportação
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           <div className="rounded-md border bg-primary/5 px-3 py-2 text-sm">
-            <div className="font-bold">Serão exportados:</div>
+            <div className="font-bold">Será gerado:</div>
+            <ul className="text-xs mt-1 space-y-0.5">
+              <li>• Backup ZIP</li>
+              <li>• Manifest</li>
+              <li>• README</li>
+              <li>• Diagnóstico</li>
+              <li>• Checksums</li>
+              <li>• Arquivos dos módulos selecionados</li>
+            </ul>
+            <div className="mt-3 font-bold">Serão exportados:</div>
             <ul className="text-xs mt-1 space-y-0.5">
               {[...selected].map((k) => {
                 const s = summaries[k];
@@ -365,17 +374,63 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
             <div className="mt-2 text-xs font-bold">
               Total: {previewTotals.count.toLocaleString("pt-BR")} registros · {money(previewTotals.total)}
             </div>
+            <div className="mt-3 flex items-center gap-2 text-xs">
+              <span className="font-bold">Compatível com:</span>
+              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 gap-1">
+                <ShieldCheck className="h-3 w-3" /> Premier ERP
+              </Badge>
+            </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button size="sm" variant="outline" disabled={busy !== null || selected.size === 0} onClick={() => doExport("zip")} className="gap-1.5">
-              {busy === "zip" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
-              ZIP (CSVs)
+
+          {/* 🥇 Opção principal: ZIP para Premier ERP */}
+          <div className="rounded-lg border-2 border-primary/60 bg-primary/5 p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/40 gap-1 text-[10px] font-black uppercase">
+                ⭐ Recomendado
+              </Badge>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Migração completa
+              </span>
+            </div>
+            <Button
+              size="lg"
+              disabled={busy !== null || selected.size === 0}
+              onClick={() => doExport("zip")}
+              title="Este é o formato recomendado para migrar dados para o Premier ERP."
+              className="w-full gap-2 font-bold"
+            >
+              {busy === "zip" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+              Exportar para Premier ERP (.zip)
             </Button>
-            <Button size="sm" disabled={busy !== null || selected.size === 0} onClick={() => doExport("xlsx")} className="gap-1.5">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Recomendado para migração completa para o Premier ERP. Inclui todos os módulos selecionados,
+              manifest, README, diagnósticos e estrutura pronta para importação.
+            </p>
+          </div>
+
+          {/* 🥈 Opção secundária: Excel individual */}
+          <div className="rounded-md border border-dashed p-3 space-y-2 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Exportação individual
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={busy !== null || selected.size === 0}
+              onClick={() => doExport("xlsx")}
+              className="gap-1.5"
+            >
               {busy === "xlsx" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileSpreadsheet className="h-3.5 w-3.5" />}
-              Excel
+              Baixar Excel
             </Button>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Exporta apenas estes módulos em formato Excel para auditoria, conferência ou integração manual.
+              Não é o formato recomendado para migração ao Premier ERP.
+            </p>
           </div>
+
           {lastResult && (
             <div className="rounded-md bg-muted/30 border-dashed border text-xs p-2">
               Exportado: <span className="font-mono">{lastResult.filename}</span> · {(lastResult.bytes / 1024).toFixed(1)} KB · {(lastResult.durationMs / 1000).toFixed(1)}s
@@ -383,6 +438,7 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
           )}
         </CardContent>
       </Card>
+
 
       {/* Diagnóstico (reorganizado, colapsado) */}
       <Card>
