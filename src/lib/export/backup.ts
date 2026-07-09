@@ -246,7 +246,7 @@ function buildReadme(params: {
     params.hasPeriod
       ? `- Transações: ${(params.period.from ?? "início").slice(0, 10)} até ${(params.period.to ?? "hoje").slice(0, 10)}`
       : "- Transações: Todo o período (sem filtro aplicado)",
-    ""
+    "",
     "## Estrutura do ZIP",
     "- empresa.json — dados cadastrais da empresa.",
     "- configuracoes.json — configurações da empresa.",
