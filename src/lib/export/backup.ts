@@ -54,6 +54,41 @@ interface DatasetExportMeta {
   warnings: string[];
 }
 
+type JsonObject = Record<string, unknown>;
+
+interface SupabaseReadBuilder {
+  select: (columns: string) => SupabaseReadBuilder;
+  eq: (column: string, value: unknown) => SupabaseReadBuilder;
+  maybeSingle: () => Promise<{ data: JsonObject | null }>;
+}
+
+interface ModuleExportInfo {
+  modulo: ExportGroup;
+  pasta: string;
+  tabelas: Array<{
+    key: string;
+    tabela: string;
+    arquivo: string;
+    registros: number;
+  }>;
+}
+
+interface CompatibilityManifest {
+  exportado_em: string;
+  empresa_nome: string | null;
+  empresa_id: string | null;
+  schema_version: string;
+  sistema_origem: string;
+  versao_sistema: string;
+  encoding: string;
+  separador_csv: string;
+  duration_ms: number;
+  total_files: number;
+  total_records: number;
+  total_modules: number;
+  registros_por_tabela: Record<string, number>;
+}
+
 const BACKUP_FORMAT_VERSION = "3.1";
 const BACKUP_SCHEMA_VERSION = "1.1";
 const COMPATIBILITY = {
@@ -68,11 +103,29 @@ const COMPATIBLE_WITH = {
 
 async function fetchOrgInfo(orgId: string | null) {
   if (!orgId) return { organization: null, settings: null };
+  const db = supabase as unknown as { from: (table: string) => SupabaseReadBuilder };
   const [{ data: organization }, { data: settings }] = await Promise.all([
-    (supabase as any).from("organizations").select("*").eq("id", orgId).maybeSingle(),
-    (supabase as any).from("organization_settings").select("*").eq("organization_id", orgId).maybeSingle(),
+    db.from("organizations").select("*").eq("id", orgId).maybeSingle(),
+    db
+      .from("organization_settings")
+      .select("*")
+      .eq("organization_id", orgId)
+      .maybeSingle(),
   ]);
   return { organization, settings };
+}
+
+function getAppVersion() {
+  return import.meta.env.VITE_APP_VERSION ?? "conecta-1.0";
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function getOrganizationName(organization: JsonObject | null) {
+  const name = organization?.name ?? organization?.nome;
+  return typeof name === "string" && name.trim() ? name : null;
 }
 
 function makeBackupUuid() {
@@ -96,7 +149,9 @@ async function sha256(content: string): Promise<string> {
 }
 
 async function checksumMap(files: BackupFile[]): Promise<Record<string, string>> {
-  const entries = await Promise.all(files.map(async (file) => [file.path, await sha256(file.content)] as const));
+  const entries = await Promise.all(
+    files.map(async (file) => [file.path, await sha256(file.content)] as const),
+  );
   return Object.fromEntries(entries);
 }
 
@@ -108,13 +163,16 @@ async function checksumGlobal(checksums: Record<string, string>) {
   return sha256(canonical);
 }
 
-function temporalBounds(rows: any[], dateColumn?: string): { firstDate: string | null; lastDate: string | null } {
+function temporalBounds(
+  rows: Array<Record<string, unknown>>,
+  dateColumn?: string,
+): { firstDate: string | null; lastDate: string | null } {
   if (!dateColumn) return { firstDate: null, lastDate: null };
   let first = Number.POSITIVE_INFINITY;
   let last = Number.NEGATIVE_INFINITY;
 
   for (const row of rows) {
-    const raw = row?.[dateColumn];
+    const raw = row[dateColumn];
     if (!raw) continue;
     const ts = Date.parse(String(raw));
     if (Number.isNaN(ts)) continue;
@@ -135,7 +193,7 @@ function moduleStats(metas: DatasetExportMeta[]) {
     const firstDates = dated.map((m) => m.firstDate).filter(Boolean) as string[];
     const lastDates = dated.map((m) => m.lastDate).filter(Boolean) as string[];
     const firstDate = firstDates.length ? firstDates.sort()[0] : null;
-    const lastDate = lastDates.length ? lastDates.sort().at(-1) ?? null : null;
+    const lastDate = lastDates.length ? (lastDates.sort().at(-1) ?? null) : null;
 
     return {
       modulo: group,
@@ -155,16 +213,16 @@ function toJson(data: unknown) {
 }
 
 function buildReadme(params: {
-  organization: any;
+  organization: JsonObject | null;
   orgId: string | null;
   exportedAt: string;
   totalRows: number;
   totalModules: number;
   totalFiles: number;
-  modulosExportados: any[];
+  modulosExportados: ModuleExportInfo[];
   warnings: string[];
 }) {
-  const companyName = params.organization?.name ?? params.organization?.nome ?? "Empresa não identificada";
+  const companyName = getOrganizationName(params.organization) ?? "Empresa não identificada";
   return [
     "# Backup Conecta Sistema",
     "",
@@ -172,7 +230,7 @@ function buildReadme(params: {
     `- Empresa: ${companyName}`,
     `- ID da empresa: ${params.orgId ?? "-"}`,
     "- Sistema de origem: Conecta Sistema",
-    `- Versão do sistema: ${(import.meta as any).env?.VITE_APP_VERSION ?? "conecta-1.0"}`,
+    `- Versão do sistema: ${getAppVersion()}`,
     `- Versão do backup: ${BACKUP_FORMAT_VERSION}`,
     `- Data da exportação: ${new Date(params.exportedAt).toLocaleDateString("pt-BR")}`,
     `- Data/hora: ${params.exportedAt}`,
@@ -187,7 +245,9 @@ function buildReadme(params: {
     "- README.md — este guia de leitura do backup.",
     "- RELATORIO_COMPATIBILIDADE.md — relatório resumido para auditoria e migração.",
     "- diagnostico/ — arquivos informativos de saúde, tabelas vazias, avisos e resumo.",
-    ...params.modulosExportados.map((m) => `- ${m.pasta}/ — ${m.tabelas.length} arquivo(s) CSV do módulo ${m.modulo}.`),
+    ...params.modulosExportados.map(
+      (m) => `- ${m.pasta}/ — ${m.tabelas.length} arquivo(s) CSV do módulo ${m.modulo}.`,
+    ),
     "",
     "## Como restaurar/importar",
     "1. Leia o manifest.json para identificar módulos, tabelas, registros e checksums.",
@@ -214,12 +274,13 @@ function buildReadme(params: {
 }
 
 function buildCompatibilityReport(params: {
-  manifest: any;
+  manifest: CompatibilityManifest;
   moduleStatistics: ReturnType<typeof moduleStats>;
   warnings: string[];
   zipBytes: number | null;
 }) {
-  const zipSize = params.zipBytes == null ? "calculando" : `${(params.zipBytes / 1024 / 1024).toFixed(2)} MB`;
+  const zipSize =
+    params.zipBytes == null ? "calculando" : `${(params.zipBytes / 1024 / 1024).toFixed(2)} MB`;
   return [
     "# Relatório de Compatibilidade — Backup Conecta",
     "",
@@ -241,7 +302,9 @@ function buildCompatibilityReport(params: {
     ),
     "",
     "## Registros por tabela",
-    ...Object.entries(params.manifest.registros_por_tabela).map(([t, n]) => `- ${t}: ${Number(n).toLocaleString("pt-BR")}`),
+    ...Object.entries(params.manifest.registros_por_tabela).map(
+      ([t, n]) => `- ${t}: ${Number(n).toLocaleString("pt-BR")}`,
+    ),
     "",
     "## Limitações conhecidas",
     "- Anexos binários (fotos de OS, PDFs) não são incluídos neste backup.",
