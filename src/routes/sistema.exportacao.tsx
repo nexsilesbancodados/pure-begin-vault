@@ -508,7 +508,7 @@ function DiagnosticsTab({ orgId }: { orgId: string | null }) {
 }
 
 // ─────────────────────────────────────────────────────
-function BackupButton({ orgId }: { orgId: string | null }) {
+function BackupButton({ orgId, period }: { orgId: string | null; period?: BackupPeriod }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<BackupProgress | null>(null);
   const [result, setResult] = useState<BackupResult | null>(null);
@@ -522,7 +522,7 @@ function BackupButton({ orgId }: { orgId: string | null }) {
     setResult(null);
     setProgress(null);
     try {
-      const res = await generateBackupZip(orgId, (p) => setProgress(p));
+      const res = await generateBackupZip(orgId, (p) => setProgress(p), period ?? null);
       setResult(res);
       toast.success(
         `Backup gerado: ${res.totalRows.toLocaleString("pt-BR")} registros (${(res.bytes / 1024 / 1024).toFixed(2)} MB)`,
