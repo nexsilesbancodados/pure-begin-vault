@@ -7,6 +7,35 @@ import JSZip from "jszip";
 
 export type SalesExportMode = "padrao" | "expandida" | "premier";
 
+export interface SalesSanitizeFilters {
+  onlyValid?: boolean;
+  excludeSemItens?: boolean;
+  excludeTotalDivergente?: boolean;
+  excludeSemCliente?: boolean;
+  excludeImeiDuplicado?: boolean;
+  excludePagamentoDivergente?: boolean;
+  excludeCanceladas?: boolean;
+}
+
+export const DEFAULT_SANITIZE: SalesSanitizeFilters = {
+  onlyValid: true,
+  excludeSemItens: true,
+  excludeTotalDivergente: true,
+  excludeSemCliente: true,
+  excludeImeiDuplicado: true,
+  excludePagamentoDivergente: true,
+  excludeCanceladas: true,
+};
+
+export interface SalesSanitizeCandidates {
+  semItens: string[];
+  totalDivergente: string[];
+  semCliente: string[];
+  imeiDuplicado: string[];
+  pagamentoDivergente: string[];
+  canceladas: string[];
+}
+
 export interface SalesValidationReport {
   totalVendas: number;
   vendasSemCliente: number;
@@ -30,6 +59,42 @@ export interface SalesValidationReport {
   percentualIntegridade: number;
   amostra: Array<{ sale_id?: string; problema: string; detalhe?: string }>;
   detalhes?: Array<{ tipo: "erro" | "aviso" | "inconsistencia"; sale_id?: string; registro_id?: string; problema: string; detalhe?: string }>;
+  candidates: SalesSanitizeCandidates;
+  salesIndex: Array<{ id: string; sale_number?: any; customer_id?: string | null; created_at?: string | null }>;
+}
+
+const SANITIZE_LABELS: Record<keyof SalesSanitizeCandidates, string> = {
+  semItens: "Venda sem itens",
+  totalDivergente: "Total divergente",
+  semCliente: "Cliente inexistente / sem cliente",
+  imeiDuplicado: "IMEI duplicado",
+  pagamentoDivergente: "Pagamento divergente",
+  canceladas: "Venda cancelada",
+};
+
+export function computeExcludedSales(
+  report: Pick<SalesValidationReport, "candidates">,
+  filters: SalesSanitizeFilters,
+): { excluded: Set<string>; reasonsBySale: Map<string, string[]> } {
+  const excluded = new Set<string>();
+  const reasonsBySale = new Map<string, string[]>();
+  const c = report.candidates;
+  const add = (ids: string[], label: string) => {
+    for (const id of ids) {
+      if (!id) continue;
+      excluded.add(id);
+      if (!reasonsBySale.has(id)) reasonsBySale.set(id, []);
+      const arr = reasonsBySale.get(id)!;
+      if (!arr.includes(label)) arr.push(label);
+    }
+  };
+  if (filters.excludeSemItens) add(c.semItens, SANITIZE_LABELS.semItens);
+  if (filters.excludeTotalDivergente) add(c.totalDivergente, SANITIZE_LABELS.totalDivergente);
+  if (filters.excludeSemCliente) add(c.semCliente, SANITIZE_LABELS.semCliente);
+  if (filters.excludeImeiDuplicado) add(c.imeiDuplicado, SANITIZE_LABELS.imeiDuplicado);
+  if (filters.excludePagamentoDivergente) add(c.pagamentoDivergente, SANITIZE_LABELS.pagamentoDivergente);
+  if (filters.excludeCanceladas) add(c.canceladas, SANITIZE_LABELS.canceladas);
+  return { excluded, reasonsBySale };
 }
 
 export interface SalesExportResult {
@@ -111,6 +176,15 @@ function buildSalesValidationReport(
     percentualIntegridade: 100,
     amostra: [],
     detalhes: [],
+    candidates: {
+      semItens: [],
+      totalDivergente: [],
+      semCliente: [],
+      imeiDuplicado: [],
+      pagamentoDivergente: [],
+      canceladas: [],
+    },
+    salesIndex: sales.map((s: any) => ({ id: s.id, sale_number: s.sale_number, customer_id: s.customer_id ?? null, created_at: s.created_at ?? null })),
   };
 
   const itemsBySale = new Map<string, any[]>();
@@ -144,9 +218,11 @@ function buildSalesValidationReport(
 
     if (!s.customer_id) {
       rep.vendasSemCliente++;
+      rep.candidates.semCliente.push(s.id);
       pushIssue(rep, "aviso", { sale_id: s.id, problema: "venda sem cliente" });
     } else if (!customerIds.has(s.customer_id)) {
       rep.clientesInexistentes++;
+      rep.candidates.semCliente.push(s.id);
       pushIssue(rep, "erro", { sale_id: s.id, problema: "cliente inexistente", detalhe: s.customer_id });
     }
     if (!(s.seller_id || s.user_id)) {
@@ -155,9 +231,13 @@ function buildSalesValidationReport(
     }
     if (saleItems.length === 0) {
       rep.vendasSemItens++;
+      rep.candidates.semItens.push(s.id);
       pushIssue(rep, "erro", { sale_id: s.id, problema: "venda sem itens" });
     }
-    if (s.status === "cancelled" || s.status === "canceled" || s.status === "cancelada") rep.vendasCanceladas++;
+    if (s.status === "cancelled" || s.status === "canceled" || s.status === "cancelada") {
+      rep.vendasCanceladas++;
+      rep.candidates.canceladas.push(s.id);
+    }
     if (saleTotal < 0) {
       rep.valoresNegativos++;
       pushIssue(rep, "erro", { sale_id: s.id, problema: "total negativo", detalhe: String(s.total_amount) });
@@ -178,6 +258,7 @@ function buildSalesValidationReport(
       const expectedItemTotal = num(it.quantity) * num(it.unit_price) - num(it.discount);
       if (it.total != null && !closeMoney(num(it.total), expectedItemTotal)) {
         rep.totaisDivergentes++;
+        rep.candidates.totalDivergente.push(it.sale_id);
         pushIssue(rep, "inconsistencia", { sale_id: it.sale_id, registro_id: it.id, problema: "total do item divergente", detalhe: `${round2(num(it.total))} ≠ ${round2(expectedItemTotal)}` });
       }
     }
@@ -185,21 +266,40 @@ function buildSalesValidationReport(
       const expectedSaleTotal = itemsTotal + num(s.addition) - num(s.discount);
       if (!closeMoney(saleTotal, expectedSaleTotal)) {
         rep.totaisDivergentes++;
+        rep.candidates.totalDivergente.push(s.id);
         pushIssue(rep, "inconsistencia", { sale_id: s.id, problema: "total da venda divergente", detalhe: `${round2(saleTotal)} ≠ ${round2(expectedSaleTotal)}` });
       }
     }
     if (salePayments.length > 0 && !closeMoney(saleTotal, paymentsTotal)) {
       rep.pagamentosDivergentes++;
+      rep.candidates.pagamentoDivergente.push(s.id);
       pushIssue(rep, "inconsistencia", { sale_id: s.id, problema: "pagamentos diferentes do total da venda", detalhe: `${round2(paymentsTotal)} ≠ ${round2(saleTotal)}` });
     }
   }
 
-  const imeiMap = new Map<string, number>();
-  for (const it of items) if (it.imei) imeiMap.set(String(it.imei), (imeiMap.get(String(it.imei)) ?? 0) + 1);
-  rep.imeisDuplicados = [...imeiMap.values()].filter((n) => n > 1).reduce((s, n) => s + n, 0);
+  const imeiMap = new Map<string, string[]>();
+  for (const it of items) {
+    if (!it.imei) continue;
+    const key = String(it.imei);
+    if (!imeiMap.has(key)) imeiMap.set(key, []);
+    imeiMap.get(key)!.push(it.sale_id);
+  }
+  let imeiDupCount = 0;
+  for (const [, saleIdList] of imeiMap) {
+    if (saleIdList.length > 1) {
+      imeiDupCount += saleIdList.length;
+      for (const sid of saleIdList) rep.candidates.imeiDuplicado.push(sid);
+    }
+  }
+  rep.imeisDuplicados = imeiDupCount;
   if (rep.imeisDuplicados > 0) {
     pushIssue(rep, "aviso", { problema: "IMEIs duplicados", detalhe: `${rep.imeisDuplicados} ocorrências` });
   }
+
+  // dedupe candidates
+  (Object.keys(rep.candidates) as Array<keyof SalesSanitizeCandidates>).forEach((k) => {
+    rep.candidates[k] = [...new Set(rep.candidates[k])];
+  });
 
   rep.erros = (rep.detalhes ?? []).filter((d) => d.tipo === "erro").length;
   rep.avisos = (rep.detalhes ?? []).filter((d) => d.tipo === "aviso").length;
@@ -742,6 +842,7 @@ export async function exportSales(
   mode: SalesExportMode,
   format: "csv" | "xlsx" | "zip",
   period?: BackupPeriod | null,
+  sanitize?: SalesSanitizeFilters | null,
 ): Promise<SalesExportResult> {
   const t0 = performance.now();
   const salesFilter = (q: any) => {
@@ -766,18 +867,61 @@ export async function exportSales(
       return data ?? [];
     })(),
   ]);
-  const sales = salesAll;
+  let sales = salesAll;
   const saleIds = new Set(sales.map((s: any) => s.id));
-  const items = period?.from || period?.to ? itemsAll.filter((it: any) => saleIds.has(it.sale_id)) : itemsAll;
-  const payments = period?.from || period?.to ? paymentsAll.filter((p: any) => saleIds.has(p.sale_id)) : paymentsAll;
+  let items = period?.from || period?.to ? itemsAll.filter((it: any) => saleIds.has(it.sale_id)) : itemsAll;
+  let payments = period?.from || period?.to ? paymentsAll.filter((p: any) => saleIds.has(p.sale_id)) : paymentsAll;
   const custMap = new Map(customers.map((c: any) => [c.id, c]));
   const prodMap = new Map(products.map((p: any) => [p.id, p]));
   const supplierMap = new Map(suppliers.map((s: any) => [s.id, s]));
-  const saleMap = new Map(sales.map((s: any) => [s.id, s]));
+  let saleMap = new Map(sales.map((s: any) => [s.id, s]));
   const sellerMap = new Map((sellers as any[]).map((s: any) => [s.id, s]));
   const orgMap = new Map((orgs as any[]).map((o: any) => [o.id, o]));
-  const { stats: saleAnalytics } = buildSaleAnalytics(sales, items, payments, prodMap);
-  const validationReport = buildSalesValidationReport(sales, items, payments, customers, products);
+  const { stats: saleAnalyticsPre } = buildSaleAnalytics(sales, items, payments, prodMap);
+  const validationReportPre = buildSalesValidationReport(sales, items, payments, customers, products);
+
+  // ── Saneamento: filtrar vendas conforme sanitize ─────────────
+  const active = sanitize && (
+    sanitize.excludeSemItens || sanitize.excludeTotalDivergente || sanitize.excludeSemCliente ||
+    sanitize.excludeImeiDuplicado || sanitize.excludePagamentoDivergente || sanitize.excludeCanceladas
+  );
+  let excludedRecordsRows: Array<{ sale_id: string; sale_number: any; cliente: string; data: string; motivo_exclusao: string }> = [];
+  let salesFiltered = sales;
+  let itemsFiltered = items;
+  let paymentsFiltered = payments;
+  const totalBanco = sales.length;
+
+  if (active) {
+    const { excluded, reasonsBySale } = computeExcludedSales(validationReportPre, sanitize!);
+    if (excluded.size > 0) {
+      excludedRecordsRows = sales
+        .filter((s: any) => excluded.has(s.id))
+        .map((s: any) => {
+          const cust = s.customer_id ? (custMap.get(s.customer_id) as any) : null;
+          return {
+            sale_id: s.id,
+            sale_number: s.sale_number ?? "",
+            cliente: cust?.name ?? (s.customer_id ? `id:${s.customer_id}` : "—"),
+            data: s.created_at ?? "",
+            motivo_exclusao: (reasonsBySale.get(s.id) ?? []).join(" | "),
+          };
+        });
+      salesFiltered = sales.filter((s: any) => !excluded.has(s.id));
+      const keepIds = new Set(salesFiltered.map((s: any) => s.id));
+      itemsFiltered = items.filter((it: any) => keepIds.has(it.sale_id));
+      paymentsFiltered = payments.filter((p: any) => keepIds.has(p.sale_id));
+    }
+  }
+
+  // Rebuild derivativos com o dataset saneado
+  if (active) {
+    sales = salesFiltered;
+    items = itemsFiltered;
+    payments = paymentsFiltered;
+    saleMap = new Map(sales.map((s: any) => [s.id, s]));
+  }
+  const { stats: saleAnalytics } = active ? buildSaleAnalytics(sales, items, payments, prodMap) : { stats: saleAnalyticsPre };
+  const validationReport = active ? buildSalesValidationReport(sales, items, payments, customers, products) : validationReportPre;
   const totalVendido = sales.reduce((s: number, r: any) => s + Number(r.total_amount ?? 0), 0);
 
   const empresaAtual = orgId ? (orgMap.get(orgId)?.name ?? orgId) : "todas as lojas";
@@ -956,6 +1100,18 @@ export async function exportSales(
       })),
     };
     zip.file("manifest.json", JSON.stringify(zipManifest, null, 2));
+    // Registros excluídos pelos filtros de saneamento (sempre presente, mesmo vazio, para rastreabilidade)
+    zip.file(
+      "excluded_records.csv",
+      rowsToCsv(excludedRecordsRows, ["sale_id", "sale_number", "cliente", "data", "motivo_exclusao"]),
+    );
+    zip.file("sanitize_summary.json", JSON.stringify({
+      filtros_aplicados: sanitize ?? null,
+      total_banco: totalBanco,
+      total_exportado: sales.length,
+      total_excluido: excludedRecordsRows.length,
+      integridade_percentual: validationReport.percentualIntegridade,
+    }, null, 2));
     if (mode === "premier") {
       zip.file("validation_report.json", JSON.stringify(validationReport, null, 2));
       zip.file("import_map.json", JSON.stringify(buildPremierImportMap(), null, 2));
