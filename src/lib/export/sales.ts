@@ -627,6 +627,73 @@ Total geral vendido: **${meta.totalVendido.toLocaleString("pt-BR", { style: "cur
 `;
 }
 
+function buildPremierImportMap() {
+  return {
+    versao: "premier-erp/plug-and-play-1.0",
+    sistema_origem: "ConectaPhone",
+    destino_sugerido: "Premier ERP",
+    chave_global: "sale_uuid",
+    regra_chave_global: "conecta:{empresa_id}:sale:{numero/import_id/id}",
+    arquivos: {
+      "vendas.csv": {
+        entidade: "vendas",
+        chave_primaria: "sale_uuid",
+        chaves_alternativas: ["sale_id", "numero_venda"],
+        colunas_recomendadas: [
+          "sale_uuid", "sale_id", "numero_venda", "data", "hora", "status_codigo", "status_nome",
+          "cliente_id", "cliente_nome", "cliente_documento", "vendedor_id", "vendedor_nome",
+          "empresa_id", "empresa_nome", "loja_id", "loja_nome", "total", "lucro", "margem",
+          "pagamento_misto", "venda_parcelada", "total_pagamentos", "saldo",
+        ],
+        relacionamentos: {
+          clientes: "cliente_id",
+          vendedores: "vendedor_id",
+          empresas: "empresa_id",
+          lojas: "loja_id",
+          itens: "sale_uuid",
+          pagamentos: "sale_uuid",
+        },
+      },
+      "itens.csv": {
+        entidade: "itens_da_venda",
+        chave_primaria: "item_id",
+        chave_venda: "sale_uuid",
+        colunas_recomendadas: [
+          "item_id", "sale_uuid", "sale_id", "produto_id", "produto_nome", "sku", "imei", "serial",
+          "marca", "modelo", "capacidade", "cor", "código_barras", "fornecedor_nome",
+          "fornecedor_documento", "quantidade", "valor_unitario", "custo_unitario", "subtotal", "lucro_item", "margem_item",
+        ],
+        relacionamentos: {
+          vendas: "sale_uuid",
+          produtos: "produto_id",
+          clientes: "cliente_id",
+          fornecedores: "fornecedor_documento",
+        },
+      },
+      "pagamentos.csv": {
+        entidade: "pagamentos_da_venda",
+        chave_primaria: "pagamento_id",
+        chave_venda: "sale_uuid",
+        colunas_recomendadas: [
+          "pagamento_id", "sale_uuid", "sale_id", "forma_pagamento_codigo", "forma_pagamento_nome",
+          "parcelas", "valor", "taxa", "data", "status", "autorizacao", "nsu", "adquirente", "bandeira",
+        ],
+        relacionamentos: {
+          vendas: "sale_uuid",
+          clientes: "cliente_id",
+          lojas: "loja_id",
+        },
+      },
+    },
+    observacoes: [
+      "Importe vendas.csv antes de itens.csv e pagamentos.csv.",
+      "Use sale_uuid como chave estável para evitar duplicidades em reimportações.",
+      "Campos *_codigo preservam o valor original; campos *_nome trazem o texto humanizado.",
+      "validation_report.json deve ser conferido antes da importação final.",
+    ],
+  };
+}
+
 // FNV-1a 32-bit → hex de 8 chars. Suficiente como "checksum" leve para o manifest.
 function fnv1a(s: string): string {
   let h = 0x811c9dc5;
@@ -720,8 +787,9 @@ export async function exportSales(
 
   const manifest = {
     versao_exportador: "3.5",
-    versao_schema: "premier-erp/1.1",
+    versao_schema: mode === "premier" ? "premier-erp/plug-and-play-1.0" : "premier-erp/1.1",
     modo: suffix,
+    formato: format,
     empresa: empresaAtual,
     empresa_id: orgId ?? null,
     periodo,
@@ -732,6 +800,25 @@ export async function exportSales(
     quantidade_pagamentos: payments.length,
     total_vendido: totalVendido,
     hash_integridade: integrityHash,
+    validacao: {
+      erros: validationReport.erros,
+      avisos: validationReport.avisos,
+      inconsistencias: validationReport.inconsistencias,
+      registros_afetados: validationReport.registrosAfetados,
+      percentual_integridade: validationReport.percentualIntegridade,
+      vendas_sem_cliente: validationReport.vendasSemCliente,
+      vendas_sem_itens: validationReport.vendasSemItens,
+      clientes_inexistentes: validationReport.clientesInexistentes,
+      produtos_inexistentes: validationReport.produtosInexistentes,
+      totais_divergentes: validationReport.totaisDivergentes,
+      pagamentos_divergentes: validationReport.pagamentosDivergentes,
+    },
+    arquivos: sheets.map((sh) => ({
+      nome: `${sh.name}.csv`,
+      registros: sh.rows.length,
+      colunas: sh.columns.length,
+      colunas_lista: sh.columns,
+    })),
     // Legado
     gerado_em: new Date().toISOString(),
     vendas: sales.length,
@@ -754,9 +841,22 @@ export async function exportSales(
     bytes = sales.length * 300;
   } else if (format === "zip") {
     const zip = new JSZip();
-    for (const sh of sheets) zip.file(`${sh.name}.csv`, rowsToCsv(sh.rows, sh.columns));
-    zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+    const csvFiles = sheets.map((sh) => ({ ...sh, arquivo: `${sh.name}.csv`, csv: rowsToCsv(sh.rows, sh.columns) }));
+    for (const sh of csvFiles) zip.file(sh.arquivo, sh.csv);
+    const zipManifest = {
+      ...manifest,
+      arquivos: csvFiles.map((sh) => ({
+        nome: sh.arquivo,
+        registros: sh.rows.length,
+        colunas: sh.columns.length,
+        checksum_fnv1a: fnv1a(sh.csv),
+        colunas_lista: sh.columns,
+      })),
+    };
+    zip.file("manifest.json", JSON.stringify(zipManifest, null, 2));
     if (mode === "premier") {
+      zip.file("validation_report.json", JSON.stringify(validationReport, null, 2));
+      zip.file("import_map.json", JSON.stringify(buildPremierImportMap(), null, 2));
       zip.file("README.md", buildReadme({
         suffix,
         vendas: sales.length,
