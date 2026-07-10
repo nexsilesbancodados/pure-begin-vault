@@ -1115,7 +1115,7 @@ function ExportRow({
   );
 }
 
-function SalesTab({ orgId }: { orgId: string | null }) {
+function SalesTab({ orgId, period }: { orgId: string | null; period: BackupPeriod }) {
   const [report, setReport] = useState<SalesValidationReport | null>(null);
   const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -1124,7 +1124,7 @@ function SalesTab({ orgId }: { orgId: string | null }) {
   const check = async () => {
     setChecking(true);
     try {
-      setReport(await validateSales(orgId));
+      setReport(await validateSales(orgId, period));
     } catch (e: any) {
       toast.error(`Falha: ${e?.message ?? e}`);
     } finally {
@@ -1135,13 +1135,13 @@ function SalesTab({ orgId }: { orgId: string | null }) {
   useEffect(() => {
     void check();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId]);
+  }, [orgId, period.from, period.to]);
 
   const doExport = async (mode: SalesExportMode, format: "csv" | "xlsx" | "zip") => {
     const key = `${mode}-${format}`;
     setBusy(key);
     try {
-      const res = await exportSales(orgId, mode, format);
+      const res = await exportSales(orgId, mode, format, period);
       setLastResult(res);
       toast.success(`Exportado: ${res.filename}`);
     } catch (e: any) {
