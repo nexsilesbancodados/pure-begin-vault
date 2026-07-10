@@ -867,14 +867,14 @@ export async function exportSales(
       return data ?? [];
     })(),
   ]);
-  const sales = salesAll;
+  let sales = salesAll;
   const saleIds = new Set(sales.map((s: any) => s.id));
-  const items = period?.from || period?.to ? itemsAll.filter((it: any) => saleIds.has(it.sale_id)) : itemsAll;
-  const payments = period?.from || period?.to ? paymentsAll.filter((p: any) => saleIds.has(p.sale_id)) : paymentsAll;
+  let items = period?.from || period?.to ? itemsAll.filter((it: any) => saleIds.has(it.sale_id)) : itemsAll;
+  let payments = period?.from || period?.to ? paymentsAll.filter((p: any) => saleIds.has(p.sale_id)) : paymentsAll;
   const custMap = new Map(customers.map((c: any) => [c.id, c]));
   const prodMap = new Map(products.map((p: any) => [p.id, p]));
   const supplierMap = new Map(suppliers.map((s: any) => [s.id, s]));
-  const saleMap = new Map(sales.map((s: any) => [s.id, s]));
+  let saleMap = new Map(sales.map((s: any) => [s.id, s]));
   const sellerMap = new Map((sellers as any[]).map((s: any) => [s.id, s]));
   const orgMap = new Map((orgs as any[]).map((o: any) => [o.id, o]));
   const { stats: saleAnalyticsPre } = buildSaleAnalytics(sales, items, payments, prodMap);
