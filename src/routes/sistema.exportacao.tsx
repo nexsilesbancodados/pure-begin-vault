@@ -22,7 +22,14 @@ import {
   Users,
   ShoppingCart,
   Banknote,
+  CalendarRange,
+  Package,
+  CreditCard,
+  HardDrive,
+  Sparkles,
+  ChevronDown,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useOrg } from "@/lib/useOrg";
 import { useDashboardRole } from "@/lib/userRole";
 import { DATASETS, GROUP_LABELS, DatasetDef, ExportGroup, isTransactionalDataset } from "@/lib/export/registry";
