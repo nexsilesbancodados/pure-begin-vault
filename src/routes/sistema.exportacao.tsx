@@ -105,7 +105,7 @@ function ExportacaoPage() {
         <BackupButton orgId={orgId} period={period} />
       </header>
 
-      <PeriodFilterPanel period={period} onChange={setPeriod} />
+      <PeriodFilterPanel period={period} onChange={setPeriod} orgId={orgId} />
 
       <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList>
