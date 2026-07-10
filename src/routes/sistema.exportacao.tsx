@@ -148,7 +148,7 @@ function ExportacaoPage() {
           <CustomersTab orgId={orgId} />
         </TabsContent>
         <TabsContent value="vendas">
-          <SalesTab orgId={orgId} />
+          <SalesTab orgId={orgId} period={period} />
         </TabsContent>
         <TabsContent value="financeiro">
           <FinancialTab orgId={orgId} />
