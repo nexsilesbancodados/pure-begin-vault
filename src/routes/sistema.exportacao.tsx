@@ -1120,6 +1120,17 @@ function SalesTab({ orgId, period }: { orgId: string | null; period: BackupPerio
   const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<SalesExportResult | null>(null);
+  const [sanitize, setSanitize] = useState<SalesSanitizeFilters>(() => {
+    try {
+      const raw = localStorage.getItem("export_sales_sanitize_v1");
+      if (raw) return { ...DEFAULT_SANITIZE, ...JSON.parse(raw) };
+    } catch { /* noop */ }
+    return DEFAULT_SANITIZE;
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem("export_sales_sanitize_v1", JSON.stringify(sanitize)); } catch { /* noop */ }
+  }, [sanitize]);
 
   const check = async () => {
     setChecking(true);
@@ -1141,7 +1152,7 @@ function SalesTab({ orgId, period }: { orgId: string | null; period: BackupPerio
     const key = `${mode}-${format}`;
     setBusy(key);
     try {
-      const res = await exportSales(orgId, mode, format, period);
+      const res = await exportSales(orgId, mode, format, period, sanitize);
       setLastResult(res);
       toast.success(`Exportado: ${res.filename}`);
     } catch (e: any) {
@@ -1158,6 +1169,51 @@ function SalesTab({ orgId, period }: { orgId: string | null; period: BackupPerio
         {(value ?? 0).toLocaleString("pt-BR")}
       </div>
     </div>
+  );
+
+  // Preview em tempo real do saneamento
+  const preview = useMemo(() => {
+    if (!report) return null;
+    const { excluded } = computeExcludedSales(report, sanitize);
+    const totalBanco = report.totalVendas ?? 0;
+    const totalExportado = Math.max(0, totalBanco - excluded.size);
+    const integridade = totalBanco > 0 ? (totalExportado / totalBanco) * 100 : 100;
+    const excludedIds = excluded;
+    const itensRefs = (report.candidates.semItens.length ? 0 : 0); // itens não indexados no client
+    return { totalBanco, totalExportado, excluidos: excluded.size, integridade, excludedIds, itensRefs };
+  }, [report, sanitize]);
+
+  const setFlag = (key: keyof SalesSanitizeFilters, v: boolean) =>
+    setSanitize((s) => ({ ...s, [key]: v, onlyValid: false }));
+
+  const applyOnlyValid = (v: boolean) => {
+    if (v) setSanitize({ ...DEFAULT_SANITIZE, onlyValid: true });
+    else setSanitize({
+      onlyValid: false,
+      excludeSemItens: false,
+      excludeTotalDivergente: false,
+      excludeSemCliente: false,
+      excludeImeiDuplicado: false,
+      excludePagamentoDivergente: false,
+      excludeCanceladas: false,
+    });
+  };
+
+  const FilterRow = ({ k, label, count }: { k: keyof SalesSanitizeFilters; label: string; count: number }) => (
+    <label className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted/40">
+      <div className="flex items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          className="h-4 w-4 accent-primary"
+          checked={!!sanitize[k]}
+          onChange={(e) => setFlag(k, e.target.checked)}
+        />
+        <span>{label}</span>
+      </div>
+      <Badge variant={count > 0 ? "destructive" : "outline"} className="text-[10px]">
+        {count.toLocaleString("pt-BR")}
+      </Badge>
+    </label>
   );
 
   return (
@@ -1177,6 +1233,56 @@ function SalesTab({ orgId, period }: { orgId: string | null; period: BackupPerio
             <p className="text-xs text-muted-foreground">Verificando…</p>
           ) : (
             <>
+              {/* Comparativo Banco completo × Será exportado */}
+              {preview && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                  <div className="rounded-lg border p-3 bg-muted/30">
+                    <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Banco completo</div>
+                    <div className="text-2xl font-black">{preview.totalBanco.toLocaleString("pt-BR")} vendas</div>
+                    <div className="text-[11px] text-muted-foreground">no período selecionado</div>
+                  </div>
+                  <div className="rounded-lg border p-3 bg-primary/5 border-primary/40">
+                    <div className="text-[10px] uppercase font-bold tracking-wider text-primary">Será exportado</div>
+                    <div className="text-2xl font-black">{preview.totalExportado.toLocaleString("pt-BR")} vendas</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      Integridade: {preview.integridade.toFixed(1)}% ·{" "}
+                      <span className={preview.excluidos > 0 ? "text-destructive font-semibold" : ""}>
+                        {preview.excluidos.toLocaleString("pt-BR")} excluídas
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Filtros de saneamento */}
+              <div className="rounded-md border p-3 mb-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-semibold flex items-center gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5" /> Filtros de saneamento
+                  </div>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-primary"
+                      checked={!!sanitize.onlyValid}
+                      onChange={(e) => applyOnlyValid(e.target.checked)}
+                    />
+                    Exportar somente vendas válidas
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <FilterRow k="excludeSemItens" label="Ignorar vendas sem itens" count={report.candidates.semItens.length} />
+                  <FilterRow k="excludeTotalDivergente" label="Ignorar vendas com total divergente" count={report.candidates.totalDivergente.length} />
+                  <FilterRow k="excludeSemCliente" label="Ignorar vendas sem cliente" count={report.candidates.semCliente.length} />
+                  <FilterRow k="excludeImeiDuplicado" label="Ignorar vendas com IMEI duplicado" count={report.candidates.imeiDuplicado.length} />
+                  <FilterRow k="excludePagamentoDivergente" label="Ignorar vendas com pagamentos divergentes" count={report.candidates.pagamentoDivergente.length} />
+                  <FilterRow k="excludeCanceladas" label="Ignorar vendas canceladas" count={report.candidates.canceladas.length} />
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  O ZIP incluirá <code>excluded_records.csv</code> com sale_id, cliente, data e motivo de cada exclusão.
+                </p>
+              </div>
+
               <div className="rounded-md border bg-muted/30 px-3 py-2 mb-3 flex flex-wrap items-center gap-2 text-xs">
                 <Badge variant={(report.erros ?? 0) > 0 ? "destructive" : "outline"}>
                   {(report.erros ?? 0).toLocaleString("pt-BR")} erros
@@ -1191,7 +1297,7 @@ function SalesTab({ orgId, period }: { orgId: string | null; period: BackupPerio
                   <ShieldCheck className="h-3 w-3" /> {(report.percentualIntegridade ?? 100).toFixed(1)}% integridade
                 </Badge>
                 <span className="text-muted-foreground">
-                  Pré-validação automática incluída no ZIP Premier como validation_report.json.
+                  ZIP Premier inclui validation_report.json + excluded_records.csv + sanitize_summary.json.
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
