@@ -211,15 +211,29 @@ function buildSalesValidationReport(
 }
 
 // ── Validação ─────────────────────────────────────────
-export async function validateSales(orgId: string | null): Promise<SalesValidationReport> {
-  const [sales, items, payments, customers, products] = await Promise.all([
-    fetchAll("sales_orders", orgId),
-    fetchAll("sale_items", orgId),
-    fetchAll("sale_payments", orgId),
+export async function validateSales(
+  orgId: string | null,
+  period?: BackupPeriod | null,
+): Promise<SalesValidationReport> {
+  const salesFilter = (q: any) => {
+    if (period?.from) q = q.gte("created_at", period.from);
+    if (period?.to) q = q.lte("created_at", period.to);
+    return q;
+  };
+  const [salesAll, customers, products] = await Promise.all([
+    fetchAll("sales_orders", orgId, salesFilter),
     fetchAll("customers", orgId),
     fetchAll("products", orgId),
   ]);
-  return buildSalesValidationReport(sales, items, payments, customers, products);
+  const saleIds = new Set(salesAll.map((s: any) => s.id));
+  const [itemsAll, paymentsAll] = await Promise.all([
+    fetchAll("sale_items", orgId),
+    fetchAll("sale_payments", orgId),
+  ]);
+  // Se houver filtro, restringe itens/pagamentos ao conjunto de vendas visível
+  const items = period?.from || period?.to ? itemsAll.filter((it: any) => saleIds.has(it.sale_id)) : itemsAll;
+  const payments = period?.from || period?.to ? paymentsAll.filter((p: any) => saleIds.has(p.sale_id)) : paymentsAll;
+  return buildSalesValidationReport(salesAll, items, payments, customers, products);
 }
 
 // ── Expansão JSON ─────────────────────────────────────
