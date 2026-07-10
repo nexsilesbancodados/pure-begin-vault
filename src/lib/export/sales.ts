@@ -218,9 +218,11 @@ function buildSalesValidationReport(
 
     if (!s.customer_id) {
       rep.vendasSemCliente++;
+      rep.candidates.semCliente.push(s.id);
       pushIssue(rep, "aviso", { sale_id: s.id, problema: "venda sem cliente" });
     } else if (!customerIds.has(s.customer_id)) {
       rep.clientesInexistentes++;
+      rep.candidates.semCliente.push(s.id);
       pushIssue(rep, "erro", { sale_id: s.id, problema: "cliente inexistente", detalhe: s.customer_id });
     }
     if (!(s.seller_id || s.user_id)) {
@@ -229,9 +231,13 @@ function buildSalesValidationReport(
     }
     if (saleItems.length === 0) {
       rep.vendasSemItens++;
+      rep.candidates.semItens.push(s.id);
       pushIssue(rep, "erro", { sale_id: s.id, problema: "venda sem itens" });
     }
-    if (s.status === "cancelled" || s.status === "canceled" || s.status === "cancelada") rep.vendasCanceladas++;
+    if (s.status === "cancelled" || s.status === "canceled" || s.status === "cancelada") {
+      rep.vendasCanceladas++;
+      rep.candidates.canceladas.push(s.id);
+    }
     if (saleTotal < 0) {
       rep.valoresNegativos++;
       pushIssue(rep, "erro", { sale_id: s.id, problema: "total negativo", detalhe: String(s.total_amount) });
@@ -252,6 +258,7 @@ function buildSalesValidationReport(
       const expectedItemTotal = num(it.quantity) * num(it.unit_price) - num(it.discount);
       if (it.total != null && !closeMoney(num(it.total), expectedItemTotal)) {
         rep.totaisDivergentes++;
+        rep.candidates.totalDivergente.push(it.sale_id);
         pushIssue(rep, "inconsistencia", { sale_id: it.sale_id, registro_id: it.id, problema: "total do item divergente", detalhe: `${round2(num(it.total))} ≠ ${round2(expectedItemTotal)}` });
       }
     }
@@ -259,21 +266,40 @@ function buildSalesValidationReport(
       const expectedSaleTotal = itemsTotal + num(s.addition) - num(s.discount);
       if (!closeMoney(saleTotal, expectedSaleTotal)) {
         rep.totaisDivergentes++;
+        rep.candidates.totalDivergente.push(s.id);
         pushIssue(rep, "inconsistencia", { sale_id: s.id, problema: "total da venda divergente", detalhe: `${round2(saleTotal)} ≠ ${round2(expectedSaleTotal)}` });
       }
     }
     if (salePayments.length > 0 && !closeMoney(saleTotal, paymentsTotal)) {
       rep.pagamentosDivergentes++;
+      rep.candidates.pagamentoDivergente.push(s.id);
       pushIssue(rep, "inconsistencia", { sale_id: s.id, problema: "pagamentos diferentes do total da venda", detalhe: `${round2(paymentsTotal)} ≠ ${round2(saleTotal)}` });
     }
   }
 
-  const imeiMap = new Map<string, number>();
-  for (const it of items) if (it.imei) imeiMap.set(String(it.imei), (imeiMap.get(String(it.imei)) ?? 0) + 1);
-  rep.imeisDuplicados = [...imeiMap.values()].filter((n) => n > 1).reduce((s, n) => s + n, 0);
+  const imeiMap = new Map<string, string[]>();
+  for (const it of items) {
+    if (!it.imei) continue;
+    const key = String(it.imei);
+    if (!imeiMap.has(key)) imeiMap.set(key, []);
+    imeiMap.get(key)!.push(it.sale_id);
+  }
+  let imeiDupCount = 0;
+  for (const [, saleIdList] of imeiMap) {
+    if (saleIdList.length > 1) {
+      imeiDupCount += saleIdList.length;
+      for (const sid of saleIdList) rep.candidates.imeiDuplicado.push(sid);
+    }
+  }
+  rep.imeisDuplicados = imeiDupCount;
   if (rep.imeisDuplicados > 0) {
     pushIssue(rep, "aviso", { problema: "IMEIs duplicados", detalhe: `${rep.imeisDuplicados} ocorrências` });
   }
+
+  // dedupe candidates
+  (Object.keys(rep.candidates) as Array<keyof SalesSanitizeCandidates>).forEach((k) => {
+    rep.candidates[k] = [...new Set(rep.candidates[k])];
+  });
 
   rep.erros = (rep.detalhes ?? []).filter((d) => d.tipo === "erro").length;
   rep.avisos = (rep.detalhes ?? []).filter((d) => d.tipo === "aviso").length;
