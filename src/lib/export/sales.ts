@@ -60,7 +60,8 @@ export interface SalesValidationReport {
   amostra: Array<{ sale_id?: string; problema: string; detalhe?: string }>;
   detalhes?: Array<{ tipo: "erro" | "aviso" | "inconsistencia"; sale_id?: string; registro_id?: string; problema: string; detalhe?: string }>;
   candidates: SalesSanitizeCandidates;
-  salesIndex: Array<{ id: string; sale_number?: any; customer_id?: string | null; created_at?: string | null }>;
+  salesIndex: Array<{ id: string; sale_number?: any; customer_id?: string | null; customer_name?: string | null; created_at?: string | null; total_amount?: number | null }>;
+  totals: { itens: number; pagamentos: number; clientesReferenciados: number; produtosReferenciados: number };
 }
 
 const SANITIZE_LABELS: Record<keyof SalesSanitizeCandidates, string> = {
