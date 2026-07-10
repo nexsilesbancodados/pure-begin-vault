@@ -934,6 +934,24 @@ export async function exportSales(
     if (mode === "premier") {
       zip.file("validation_report.json", JSON.stringify(validationReport, null, 2));
       zip.file("import_map.json", JSON.stringify(buildPremierImportMap(), null, 2));
+      const customersSheet = csvFiles.find((s) => s.name === "customers");
+      const productsSheet = csvFiles.find((s) => s.name === "products");
+      const premierReady = {
+        versao_layout: "premier-erp/plug-and-play-1.0",
+        hash: integrityHash,
+        empresa: empresaAtual,
+        empresa_id: orgId ?? null,
+        periodo,
+        quantidade_vendas: sales.length,
+        quantidade_itens: items.length,
+        quantidade_pagamentos: payments.length,
+        quantidade_clientes: customersSheet?.rows.length ?? 0,
+        quantidade_produtos: productsSheet?.rows.length ?? 0,
+        integridade_percentual: validationReport.percentualIntegridade,
+        data_exportacao: new Date().toISOString(),
+        arquivos: csvFiles.map((s) => s.arquivo),
+      };
+      zip.file("premier_ready.json", JSON.stringify(premierReady, null, 2));
       zip.file("README.md", buildReadme({
         suffix,
         vendas: sales.length,
