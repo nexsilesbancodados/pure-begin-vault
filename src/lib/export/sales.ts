@@ -914,19 +914,15 @@ export async function exportSales(
   }
 
   // Rebuild derivativos com o dataset saneado
-  const salesBase = salesFiltered;
-  const itemsBase = itemsFiltered;
-  const paymentsBase = paymentsFiltered;
-  // Substituímos referências abaixo usando as versões *Base
-  const { stats: saleAnalytics } = active ? buildSaleAnalytics(salesBase, itemsBase, paymentsBase, prodMap) : { stats: saleAnalyticsPre };
-  const validationReport = active ? buildSalesValidationReport(salesBase, itemsBase, paymentsBase, customers, products) : validationReportPre;
-  const totalVendido = salesBase.reduce((s: number, r: any) => s + Number(r.total_amount ?? 0), 0);
-  // Alias para o restante da função continuar chamando `sales`, `items`, `payments`
-  const _sales = salesBase; const _items = itemsBase; const _payments = paymentsBase;
-  // Reatribuições via `let` proxies simples:
-  (sales as any).length = 0; sales.push(..._sales);
-  (items as any).length = 0; items.push(..._items);
-  (payments as any).length = 0; payments.push(..._payments);
+  if (active) {
+    sales = salesFiltered;
+    items = itemsFiltered;
+    payments = paymentsFiltered;
+    saleMap = new Map(sales.map((s: any) => [s.id, s]));
+  }
+  const { stats: saleAnalytics } = active ? buildSaleAnalytics(sales, items, payments, prodMap) : { stats: saleAnalyticsPre };
+  const validationReport = active ? buildSalesValidationReport(sales, items, payments, customers, products) : validationReportPre;
+  const totalVendido = sales.reduce((s: number, r: any) => s + Number(r.total_amount ?? 0), 0);
 
   const empresaAtual = orgId ? (orgMap.get(orgId)?.name ?? orgId) : "todas as lojas";
   const datas = sales.map((s: any) => s.created_at).filter(Boolean).sort();
