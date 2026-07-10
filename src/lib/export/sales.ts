@@ -512,6 +512,7 @@ function toPremierItems(
       subtotal,
       garantia_meses: garantiaMeses,
       // novos
+      item_uuid: itemUuid(it, s),
       sale_uuid: s ? saleUuid(s) : "",
       empresa_id: it.organization_id ?? s?.organization_id ?? "",
       loja_id: s?.store_id ?? s?.organization_id ?? it.organization_id ?? "",
