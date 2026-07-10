@@ -741,10 +741,16 @@ export async function exportSales(
   orgId: string | null,
   mode: SalesExportMode,
   format: "csv" | "xlsx" | "zip",
+  period?: BackupPeriod | null,
 ): Promise<SalesExportResult> {
   const t0 = performance.now();
-  const [sales, items, payments, customers, products, suppliers, sellers, orgs] = await Promise.all([
-    fetchAll("sales_orders", orgId),
+  const salesFilter = (q: any) => {
+    if (period?.from) q = q.gte("created_at", period.from);
+    if (period?.to) q = q.lte("created_at", period.to);
+    return q;
+  };
+  const [salesAll, itemsAll, paymentsAll, customers, products, suppliers, sellers, orgs] = await Promise.all([
+    fetchAll("sales_orders", orgId, salesFilter),
     fetchAll("sale_items", orgId),
     fetchAll("sale_payments", orgId),
     fetchAll("customers", orgId),
@@ -760,6 +766,10 @@ export async function exportSales(
       return data ?? [];
     })(),
   ]);
+  const sales = salesAll;
+  const saleIds = new Set(sales.map((s: any) => s.id));
+  const items = period?.from || period?.to ? itemsAll.filter((it: any) => saleIds.has(it.sale_id)) : itemsAll;
+  const payments = period?.from || period?.to ? paymentsAll.filter((p: any) => saleIds.has(p.sale_id)) : paymentsAll;
   const custMap = new Map(customers.map((c: any) => [c.id, c]));
   const prodMap = new Map(products.map((p: any) => [p.id, p]));
   const supplierMap = new Map(suppliers.map((s: any) => [s.id, s]));
