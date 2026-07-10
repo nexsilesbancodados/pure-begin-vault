@@ -145,27 +145,90 @@ function expandRows(rows: any[]): { rows: any[]; columns: string[] } {
 }
 
 // ── Layouts Premier ERP ───────────────────────────────
-function toPremierSales(sales: any[], custMap: Map<string, any>) {
+// Humanização de valores enumerados (padrão de migração ERP → ERP)
+const STATUS_MAP: Record<string, string> = {
+  completed: "Concluída",
+  completa: "Concluída",
+  paid: "Paga",
+  pending: "Pendente",
+  pendente: "Pendente",
+  canceled: "Cancelada",
+  cancelled: "Cancelada",
+  cancelada: "Cancelada",
+  refunded: "Estornada",
+  draft: "Rascunho",
+  open: "Em aberto",
+};
+const PAYMENT_MAP: Record<string, string> = {
+  cash: "Dinheiro",
+  dinheiro: "Dinheiro",
+  pix: "Pix",
+  credit_card: "Cartão de Crédito",
+  credit: "Cartão de Crédito",
+  cartao_credito: "Cartão de Crédito",
+  debit_card: "Cartão de Débito",
+  debit: "Cartão de Débito",
+  cartao_debito: "Cartão de Débito",
+  boleto: "Boleto",
+  transfer: "Transferência",
+  transferencia: "Transferência",
+  crediario: "Crediário",
+  voucher: "Voucher",
+  other: "Outros",
+};
+const humanStatus = (v: any) => STATUS_MAP[String(v ?? "").toLowerCase()] ?? (v ? String(v) : "");
+const humanPayment = (v: any) => PAYMENT_MAP[String(v ?? "").toLowerCase()] ?? (v ? String(v) : "");
+
+// Extrai um campo de metadata JSON (usado para variação: cor, capacidade, etc.)
+function meta(obj: any, ...keys: string[]) {
+  if (!obj) return "";
+  const m = typeof obj === "string" ? safeJson(obj) : obj;
+  for (const k of keys) {
+    if (m && m[k] != null && m[k] !== "") return String(m[k]);
+  }
+  return "";
+}
+function safeJson(s: string) { try { return JSON.parse(s); } catch { return null; } }
+
+function toPremierSales(
+  sales: any[],
+  custMap: Map<string, any>,
+  sellerMap: Map<string, any>,
+  orgMap: Map<string, any>,
+) {
   const cols = [
+    // legado (mantido para compatibilidade)
     "sale_id", "numero_venda", "data", "hora", "status", "cliente_id", "cliente_nome",
     "cliente_documento", "vendedor_id", "empresa_id", "loja_id", "canal_venda", "origem",
     "subtotal", "desconto", "acrescimo", "frete", "total", "lucro", "margem", "observacoes",
+    // novos campos (opcionais / humanizados)
+    "status_codigo", "status_nome",
+    "vendedor_nome", "empresa_nome", "loja_nome",
+    "cliente_telefone", "cliente_email", "cliente_cidade", "cliente_estado", "cliente_cpf_cnpj",
+    "forma_pagamento_codigo", "forma_pagamento_nome",
   ];
   const rows = sales.map((s) => {
     const c = s.customer_id ? custMap.get(s.customer_id) : null;
+    const sellerId = s.seller_id ?? s.user_id ?? "";
+    const seller = sellerId ? sellerMap.get(sellerId) : null;
+    const org = s.organization_id ? orgMap.get(s.organization_id) : null;
+    const storeId = s.store_id ?? s.organization_id ?? "";
+    const store = storeId ? orgMap.get(storeId) : null;
     const dt = s.created_at ? new Date(s.created_at) : null;
+    const rawStatus = s.status ?? "";
+    const rawPay = s.payment_method ?? "";
     return {
       sale_id: s.id,
       numero_venda: s.sale_number ?? "",
       data: dt ? dt.toISOString().slice(0, 10) : "",
       hora: dt ? dt.toISOString().slice(11, 19) : "",
-      status: s.status ?? "",
+      status: rawStatus,
       cliente_id: s.customer_id ?? "",
       cliente_nome: c?.name ?? "",
       cliente_documento: c?.document ?? "",
-      vendedor_id: s.seller_id ?? s.user_id ?? "",
+      vendedor_id: sellerId,
       empresa_id: s.organization_id ?? "",
-      loja_id: s.store_id ?? s.organization_id ?? "",
+      loja_id: storeId,
       canal_venda: s.channel ?? "loja",
       origem: s.origin ?? s.source ?? "",
       subtotal: s.subtotal ?? 0,
@@ -176,6 +239,19 @@ function toPremierSales(sales: any[], custMap: Map<string, any>) {
       lucro: s.profit ?? "",
       margem: s.margin ?? "",
       observacoes: s.notes ?? "",
+      // novos
+      status_codigo: rawStatus,
+      status_nome: humanStatus(rawStatus),
+      vendedor_nome: seller?.display_name ?? seller?.nome ?? seller?.email ?? "",
+      empresa_nome: org?.name ?? "",
+      loja_nome: store?.name ?? org?.name ?? "",
+      cliente_telefone: c?.phone ?? "",
+      cliente_email: c?.email ?? "",
+      cliente_cidade: c?.city ?? "",
+      cliente_estado: c?.state ?? "",
+      cliente_cpf_cnpj: c?.document ?? "",
+      forma_pagamento_codigo: rawPay,
+      forma_pagamento_nome: humanPayment(rawPay),
     };
   });
   return { rows, columns: cols };
@@ -183,14 +259,23 @@ function toPremierSales(sales: any[], custMap: Map<string, any>) {
 
 function toPremierItems(items: any[], prodMap: Map<string, any>) {
   const cols = [
+    // legado
     "item_id", "sale_id", "produto_id", "produto_nome", "sku", "imei", "categoria",
     "marca", "quantidade", "valor_unitario", "custo_unitario", "desconto", "acrescimo",
     "subtotal", "garantia_meses",
+    // novos
+    "modelo", "capacidade", "cor", "serial", "garantia",
   ];
   const rows = items.map((it) => {
     const p = it.product_id ? prodMap.get(it.product_id) : null;
     const q = Number(it.quantity ?? 0);
     const u = Number(it.unit_price ?? 0);
+    const md = it.metadata ?? {};
+    const cor = meta(md, "cor", "color") || (p?.color ?? "");
+    const cap = meta(md, "capacidade", "gb", "storage") || (p?.storage ?? p?.capacity ?? "");
+    const modelo = meta(md, "modelo", "model") || (p?.model ?? "");
+    const serial = meta(md, "serial", "sn") || (it.serial ?? "");
+    const garantiaMeses = it.warranty_months ?? p?.warranty_months ?? "";
     return {
       item_id: it.id,
       sale_id: it.sale_id,
@@ -206,7 +291,13 @@ function toPremierItems(items: any[], prodMap: Map<string, any>) {
       desconto: it.discount ?? 0,
       acrescimo: it.addition ?? 0,
       subtotal: it.total ?? q * u,
-      garantia_meses: it.warranty_months ?? p?.warranty_months ?? "",
+      garantia_meses: garantiaMeses,
+      // novos
+      modelo,
+      capacidade: cap,
+      cor,
+      serial,
+      garantia: garantiaMeses ? `${garantiaMeses} meses` : "",
     };
   });
   return { rows, columns: cols };
@@ -214,22 +305,95 @@ function toPremierItems(items: any[], prodMap: Map<string, any>) {
 
 function toPremierPayments(payments: any[]) {
   const cols = [
+    // legado
     "pagamento_id", "sale_id", "forma_pagamento", "parcelas", "valor", "taxa",
     "data", "status", "autorizacao", "nsu",
+    // novos
+    "forma_pagamento_codigo", "forma_pagamento_nome",
+    "adquirente", "bandeira",
   ];
-  const rows = payments.map((p) => ({
-    pagamento_id: p.id,
-    sale_id: p.sale_id,
-    forma_pagamento: p.method ?? "",
-    parcelas: p.installments ?? 1,
-    valor: p.amount ?? 0,
-    taxa: p.fee_amount ?? 0,
-    data: p.paid_at ?? p.created_at ?? "",
-    status: p.status ?? (p.paid_at ? "pago" : "pendente"),
-    autorizacao: p.authorization ?? "",
-    nsu: p.nsu ?? p.reference ?? "",
-  }));
+  const rows = payments.map((p) => {
+    const raw = p.method ?? "";
+    return {
+      pagamento_id: p.id,
+      sale_id: p.sale_id,
+      forma_pagamento: raw,
+      parcelas: p.installments ?? 1,
+      valor: p.amount ?? 0,
+      taxa: p.fee_amount ?? 0,
+      data: p.paid_at ?? p.created_at ?? "",
+      status: p.status ?? (p.paid_at ? "pago" : "pendente"),
+      autorizacao: p.authorization ?? "",
+      nsu: p.nsu ?? p.reference ?? "",
+      // novos
+      forma_pagamento_codigo: raw,
+      forma_pagamento_nome: humanPayment(raw),
+      adquirente: p.acquirer ?? p.provider ?? "",
+      bandeira: p.brand ?? p.card_brand ?? "",
+    };
+  });
   return { rows, columns: cols };
+}
+
+// README humanizado para o pacote Premier
+function buildReadme(meta: {
+  suffix: string;
+  vendas: number;
+  itens: number;
+  pagamentos: number;
+  totalVendido: number;
+  empresa: string;
+  usuario: string;
+  periodo: string;
+}) {
+  return `# Exportação ConectaPhone → Premier ERP
+
+**Modo:** ${meta.suffix}
+**Gerado em:** ${new Date().toLocaleString("pt-BR")}
+**Empresa:** ${meta.empresa}
+**Usuário:** ${meta.usuario}
+**Período:** ${meta.periodo}
+
+## Arquivos incluídos
+
+| Arquivo          | Descrição                                                       |
+|------------------|-----------------------------------------------------------------|
+| \`vendas.csv\`     | Cabeçalho das vendas (${meta.vendas} registros).                    |
+| \`itens.csv\`      | Itens vendidos, com produto, IMEI, cor, capacidade (${meta.itens}). |
+| \`pagamentos.csv\` | Formas de pagamento aplicadas a cada venda (${meta.pagamentos}).    |
+| \`manifest.json\`  | Metadados da exportação e totais.                                 |
+| \`README.md\`      | Este arquivo.                                                     |
+
+## Relacionamentos
+
+Todos os arquivos são ligados pela coluna **\`sale_id\`** (UUID único da venda).
+
+\`\`\`
+vendas.sale_id  ──┬──  itens.sale_id
+                  └──  pagamentos.sale_id
+\`\`\`
+
+Colunas adicionais para localização cruzada:
+- \`cliente_id\` + \`cliente_nome\` + \`cliente_documento\`
+- \`vendedor_id\` + \`vendedor_nome\`
+- \`empresa_id\` + \`empresa_nome\`
+- \`loja_id\` + \`loja_nome\`
+- \`produto_id\` + \`produto_nome\` + \`sku\` + \`imei\`
+
+## Humanização de códigos
+
+Valores internos (ex.: \`completed\`, \`pix\`, \`credit_card\`) são exportados
+tanto na coluna original quanto em uma coluna \`*_nome\` legível
+(\`status_nome\`, \`forma_pagamento_nome\`).
+
+## Compatibilidade
+
+- Todas as colunas antigas foram preservadas.
+- Novas colunas são opcionais — imports antigos continuam funcionando.
+- Encoding: UTF-8 com BOM. Separador: \`;\`. Excel BR abre direto.
+
+Total geral vendido: **${meta.totalVendido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}**
+`;
 }
 
 // ── Export principal ──────────────────────────────────
