@@ -54,6 +54,7 @@ import {
   FinancialIntegrityReport,
 } from "@/lib/export/financial";
 import { FinancialAssistant } from "@/components/exportacao/FinancialAssistant";
+import { MigrationPreviewModal } from "@/components/exportacao/MigrationPreviewModal";
 
 export const Route = createFileRoute("/sistema/exportacao")({
   head: () => ({
