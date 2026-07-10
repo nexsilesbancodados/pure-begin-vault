@@ -421,8 +421,8 @@ function toPremierSales(
       acrescimo: s.addition ?? 0,
       frete: s.shipping ?? 0,
       total: s.total_amount ?? 0,
-      lucro: s.profit ?? "",
-      margem: s.margin ?? "",
+      lucro: s.profit ?? round2(a.lucro ?? 0),
+      margem: s.margin ?? round2(a.margem ?? 0),
       observacoes: s.notes ?? "",
       // novos
       status_codigo: rawStatus,
@@ -446,8 +446,6 @@ function toPremierSales(
       total_descontos: round2(a.totalDescontos ?? num(s.discount)),
       total_pagamentos: round2(a.totalPagamentos ?? 0),
       saldo: round2(a.saldo ?? num(s.total_amount)),
-      lucro: s.profit ?? round2(a.lucro ?? 0),
-      margem: s.margin ?? round2(a.margem ?? 0),
       pagamento_principal: a.pagamentoPrincipal ?? humanPayment(rawPay),
       quantidade_formas_pagamento: a.quantidadeFormasPagamento ?? (rawPay ? 1 : 0),
       pagamento_misto: yesNo(!!a.pagamentoMisto),
@@ -646,12 +644,13 @@ export async function exportSales(
   format: "csv" | "xlsx" | "zip",
 ): Promise<SalesExportResult> {
   const t0 = performance.now();
-  const [sales, items, payments, customers, products, sellers, orgs] = await Promise.all([
+  const [sales, items, payments, customers, products, suppliers, sellers, orgs] = await Promise.all([
     fetchAll("sales_orders", orgId),
     fetchAll("sale_items", orgId),
     fetchAll("sale_payments", orgId),
     fetchAll("customers", orgId),
     fetchAll("products", orgId),
+    fetchAll("suppliers", orgId),
     // vendedores e organizações — não têm organization_id da mesma forma; ignoramos orgId
     (async () => {
       const { data } = await (supabase as any).from("profiles").select("id, nome, display_name, email");
@@ -664,8 +663,12 @@ export async function exportSales(
   ]);
   const custMap = new Map(customers.map((c: any) => [c.id, c]));
   const prodMap = new Map(products.map((p: any) => [p.id, p]));
+  const supplierMap = new Map(suppliers.map((s: any) => [s.id, s]));
+  const saleMap = new Map(sales.map((s: any) => [s.id, s]));
   const sellerMap = new Map((sellers as any[]).map((s: any) => [s.id, s]));
   const orgMap = new Map((orgs as any[]).map((o: any) => [o.id, o]));
+  const { stats: saleAnalytics } = buildSaleAnalytics(sales, items, payments, prodMap);
+  const validationReport = buildSalesValidationReport(sales, items, payments, customers, products);
   const totalVendido = sales.reduce((s: number, r: any) => s + Number(r.total_amount ?? 0), 0);
 
   const empresaAtual = orgId ? (orgMap.get(orgId)?.name ?? orgId) : "todas as lojas";
@@ -679,9 +682,9 @@ export async function exportSales(
 
   if (mode === "premier") {
     sheets = [
-      { name: "vendas", ...toPremierSales(sales, custMap, sellerMap, orgMap) },
-      { name: "itens", ...toPremierItems(items, prodMap) },
-      { name: "pagamentos", ...toPremierPayments(payments) },
+      { name: "vendas", ...toPremierSales(sales, custMap, sellerMap, orgMap, saleAnalytics) },
+      { name: "itens", ...toPremierItems(items, prodMap, supplierMap, saleMap) },
+      { name: "pagamentos", ...toPremierPayments(payments, saleMap) },
     ];
     suffix = "premier";
   } else if (mode === "expandida") {
