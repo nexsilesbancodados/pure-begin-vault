@@ -1148,7 +1148,10 @@ function SalesTab({ orgId, period }: { orgId: string | null; period: BackupPerio
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId, period.from, period.to]);
 
-  const doExport = async (mode: SalesExportMode, format: "csv" | "xlsx" | "zip") => {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [pendingExport, setPendingExport] = useState<{ mode: SalesExportMode; format: "csv" | "xlsx" | "zip" } | null>(null);
+
+  const runExport = async (mode: SalesExportMode, format: "csv" | "xlsx" | "zip") => {
     const key = `${mode}-${format}`;
     setBusy(key);
     try {
@@ -1161,6 +1164,17 @@ function SalesTab({ orgId, period }: { orgId: string | null; period: BackupPerio
       setBusy(null);
     }
   };
+
+  const doExport = async (mode: SalesExportMode, format: "csv" | "xlsx" | "zip") => {
+    // Para o pacote Premier em ZIP, mostrar a Prévia da migração antes de gerar.
+    if (mode === "premier" && format === "zip") {
+      setPendingExport({ mode, format });
+      setPreviewOpen(true);
+      return;
+    }
+    await runExport(mode, format);
+  };
+
 
   const Cell = ({ label, value, danger }: { label: string; value: number; danger?: boolean }) => (
     <div className={`rounded-md border px-3 py-2 ${danger && value > 0 ? "bg-destructive/10 border-destructive/40" : ""}`}>
