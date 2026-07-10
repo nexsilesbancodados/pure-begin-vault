@@ -176,6 +176,15 @@ function buildSalesValidationReport(
     percentualIntegridade: 100,
     amostra: [],
     detalhes: [],
+    candidates: {
+      semItens: [],
+      totalDivergente: [],
+      semCliente: [],
+      imeiDuplicado: [],
+      pagamentoDivergente: [],
+      canceladas: [],
+    },
+    salesIndex: sales.map((s: any) => ({ id: s.id, sale_number: s.sale_number, customer_id: s.customer_id ?? null, created_at: s.created_at ?? null })),
   };
 
   const itemsBySale = new Map<string, any[]>();
