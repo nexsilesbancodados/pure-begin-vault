@@ -1100,6 +1100,18 @@ export async function exportSales(
       })),
     };
     zip.file("manifest.json", JSON.stringify(zipManifest, null, 2));
+    // Registros excluídos pelos filtros de saneamento (sempre presente, mesmo vazio, para rastreabilidade)
+    zip.file(
+      "excluded_records.csv",
+      rowsToCsv(excludedRecordsRows, ["sale_id", "sale_number", "cliente", "data", "motivo_exclusao"]),
+    );
+    zip.file("sanitize_summary.json", JSON.stringify({
+      filtros_aplicados: sanitize ?? null,
+      total_banco: totalBanco,
+      total_exportado: sales.length,
+      total_excluido: excludedRecordsRows.length,
+      integridade_percentual: validationReport.percentualIntegridade,
+    }, null, 2));
     if (mode === "premier") {
       zip.file("validation_report.json", JSON.stringify(validationReport, null, 2));
       zip.file("import_map.json", JSON.stringify(buildPremierImportMap(), null, 2));
