@@ -232,8 +232,8 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await supabase.auth.getUser();
-        const u: any = data?.user;
+        const res = await supabase.auth.getUser();
+        const u: any = res?.data?.user;
         setUserLabel(u?.user_metadata?.full_name || u?.email || "usuário");
       } catch { /* ignore */ }
     })();
