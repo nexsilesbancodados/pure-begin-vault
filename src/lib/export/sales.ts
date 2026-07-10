@@ -542,13 +542,17 @@ function toPremierPayments(payments: any[], saleMap: Map<string, any>) {
     "pagamento_id", "sale_id", "forma_pagamento", "parcelas", "valor", "taxa",
     "data", "status", "autorizacao", "nsu",
     // novos
-    "sale_uuid", "empresa_id", "loja_id", "cliente_id", "vendedor_id",
-    "forma_pagamento_codigo", "forma_pagamento_nome",
-    "adquirente", "bandeira",
+    "payment_uuid", "sale_uuid", "empresa_id", "loja_id", "cliente_id", "vendedor_id",
+    "sequencia", "forma_pagamento_codigo", "forma_pagamento_nome",
+    "adquirente", "bandeira", "tid", "data_pagamento",
   ];
+  const seq = new Map<string, number>();
   const rows = payments.map((p) => {
     const raw = p.method ?? "";
     const s = p.sale_id ? saleMap.get(p.sale_id) : null;
+    const n = (seq.get(p.sale_id) ?? 0) + 1;
+    seq.set(p.sale_id, n);
+    const dt = p.paid_at ?? p.created_at ?? "";
     return {
       pagamento_id: p.id,
       sale_id: p.sale_id,
@@ -556,20 +560,24 @@ function toPremierPayments(payments: any[], saleMap: Map<string, any>) {
       parcelas: p.installments ?? 1,
       valor: p.amount ?? 0,
       taxa: p.fee_amount ?? 0,
-      data: p.paid_at ?? p.created_at ?? "",
+      data: dt,
       status: p.status ?? (p.paid_at ? "pago" : "pendente"),
       autorizacao: p.authorization ?? "",
       nsu: p.nsu ?? p.reference ?? "",
       // novos
+      payment_uuid: paymentUuid(p, s),
       sale_uuid: s ? saleUuid(s) : "",
       empresa_id: p.organization_id ?? s?.organization_id ?? "",
       loja_id: s?.store_id ?? s?.organization_id ?? p.organization_id ?? "",
       cliente_id: s?.customer_id ?? "",
       vendedor_id: s?.seller_id ?? s?.user_id ?? "",
+      sequencia: n,
       forma_pagamento_codigo: raw,
       forma_pagamento_nome: humanPayment(raw),
       adquirente: p.acquirer ?? p.provider ?? "",
       bandeira: p.brand ?? p.card_brand ?? "",
+      tid: p.tid ?? p.transaction_id ?? "",
+      data_pagamento: dt ? String(dt).slice(0, 10) : "",
     };
   });
   return { rows, columns: cols };
