@@ -1371,9 +1371,24 @@ function SalesTab({ orgId, period }: { orgId: string | null; period: BackupPerio
           </CardContent>
         </Card>
       )}
+
+      <MigrationPreviewModal
+        open={previewOpen}
+        onOpenChange={(v) => { if (!busy) setPreviewOpen(v); }}
+        report={report}
+        sanitize={sanitize}
+        busy={busy !== null}
+        onConfirm={async () => {
+          if (!pendingExport) return;
+          await runExport(pendingExport.mode, pendingExport.format);
+          setPreviewOpen(false);
+          setPendingExport(null);
+        }}
+      />
     </div>
   );
 }
+
 
 function SalesRow({
   title, desc, mode, busy, onExport, highlight,
