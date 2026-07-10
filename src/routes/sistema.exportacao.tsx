@@ -516,13 +516,7 @@ function DiagnosticsTab({ orgId }: { orgId: string | null }) {
 }
 
 // ─────────────────────────────────────────────────────
-function PeriodFilterPanel({
-  period,
-  onChange,
-}: {
-  period: BackupPeriod;
-  onChange: (p: BackupPeriod) => void;
-}) {
+
 type PresetKey =
   | "hoje"
   | "ontem"
