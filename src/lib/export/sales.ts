@@ -396,6 +396,16 @@ Total geral vendido: **${meta.totalVendido.toLocaleString("pt-BR", { style: "cur
 `;
 }
 
+// FNV-1a 32-bit → hex de 8 chars. Suficiente como "checksum" leve para o manifest.
+function fnv1a(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0");
+}
+
 // ── Export principal ──────────────────────────────────
 export async function exportSales(
   orgId: string | null,
