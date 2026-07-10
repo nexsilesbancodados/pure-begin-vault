@@ -1155,7 +1155,7 @@ function SalesTab({ orgId }: { orgId: string | null }) {
     <div className={`rounded-md border px-3 py-2 ${danger && value > 0 ? "bg-destructive/10 border-destructive/40" : ""}`}>
       <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{label}</div>
       <div className={`text-xl font-black ${danger && value > 0 ? "text-destructive" : ""}`}>
-        {value.toLocaleString("pt-BR")}
+        {(value ?? 0).toLocaleString("pt-BR")}
       </div>
     </div>
   );
@@ -1177,16 +1177,39 @@ function SalesTab({ orgId }: { orgId: string | null }) {
             <p className="text-xs text-muted-foreground">Verificando…</p>
           ) : (
             <>
+              <div className="rounded-md border bg-muted/30 px-3 py-2 mb-3 flex flex-wrap items-center gap-2 text-xs">
+                <Badge variant={(report.erros ?? 0) > 0 ? "destructive" : "outline"}>
+                  {(report.erros ?? 0).toLocaleString("pt-BR")} erros
+                </Badge>
+                <Badge variant="outline">
+                  {(report.avisos ?? 0).toLocaleString("pt-BR")} avisos
+                </Badge>
+                <Badge variant="outline">
+                  {(report.inconsistencias ?? 0).toLocaleString("pt-BR")} inconsistências
+                </Badge>
+                <Badge variant="outline" className="gap-1">
+                  <ShieldCheck className="h-3 w-3" /> {(report.percentualIntegridade ?? 100).toFixed(1)}% integridade
+                </Badge>
+                <span className="text-muted-foreground">
+                  Pré-validação automática incluída no ZIP Premier como validation_report.json.
+                </span>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                 <Cell label="Total de vendas" value={report.totalVendas} />
                 <Cell label="Canceladas" value={report.vendasCanceladas} />
                 <Cell label="Sem cliente" value={report.vendasSemCliente} danger />
+                <Cell label="Sem vendedor" value={report.vendasSemVendedor ?? 0} danger />
                 <Cell label="Sem itens" value={report.vendasSemItens} danger />
                 <Cell label="Clientes inexistentes" value={report.clientesInexistentes} danger />
                 <Cell label="Produtos inexistentes" value={report.produtosInexistentes} danger />
                 <Cell label="IMEIs duplicados" value={report.imeisDuplicados} danger />
                 <Cell label="Pagamentos órfãos" value={report.pagamentosOrfaos} danger />
+                <Cell label="Itens órfãos" value={report.itensSemVenda ?? 0} danger />
                 <Cell label="Valores negativos" value={report.valoresNegativos} danger />
+                <Cell label="Totais divergentes" value={report.totaisDivergentes ?? 0} danger />
+                <Cell label="Pagamentos divergentes" value={report.pagamentosDivergentes ?? 0} danger />
+                <Cell label="Itens negativos" value={report.itensNegativos ?? 0} danger />
+                <Cell label="Qtd. incorreta" value={report.quantidadeIncorreta ?? 0} danger />
               </div>
               {report.amostra.length > 0 && (
                 <details className="text-xs">

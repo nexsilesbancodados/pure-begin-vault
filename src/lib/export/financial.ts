@@ -727,7 +727,7 @@ export async function summarizeFinancialModule(
   filter?: ModuleFilter,
 ): Promise<ModuleSummary> {
   if (!orgId) return { count: 0, totalAmount: 0 };
-  const tables = MODULE_TO_TABLES[moduleKey];
+  const tables = MODULE_TO_TABLES[moduleKey] ?? [];
   let count = 0;
   let totalAmount = 0;
   for (const table of tables) {
@@ -767,10 +767,14 @@ export async function exportFinancialAssistant(
   const sheets: Sheet[] = [];
   const summary: FinancialAssistantResult["modules"] = [];
   const emitted = new Set<string>();
+  const modules = Array.isArray(selection?.modules)
+    ? selection.modules.filter((key): key is FinancialModuleKey => Boolean(MODULE_TO_TABLES[key]))
+    : [];
+  const filters = selection?.filters ?? {};
 
-  for (const moduleKey of selection.modules) {
-    const filter = selection.filters[moduleKey];
-    const tables = MODULE_TO_TABLES[moduleKey];
+  for (const moduleKey of modules) {
+    const filter = filters[moduleKey];
+    const tables = MODULE_TO_TABLES[moduleKey] ?? [];
     let modCount = 0;
     let modTotal = 0;
     for (const table of tables) {
@@ -792,10 +796,10 @@ export async function exportFinancialAssistant(
     tipo: "assistente_financeiro",
     gerado_em: new Date().toISOString(),
     somente_leitura: true,
-    modulos_exportados: selection.modules.map((key) => ({
+    modulos_exportados: modules.map((key) => ({
       modulo: key,
       label: FINANCIAL_MODULE_LABELS[key],
-      filtros: selection.filters[key] ?? null,
+      filtros: filters[key] ?? null,
       registros: summary.find((s) => s.key === key)?.count ?? 0,
       valor_total: summary.find((s) => s.key === key)?.totalAmount ?? 0,
     })),
@@ -810,9 +814,9 @@ export async function exportFinancialAssistant(
     `Gerado em: ${new Date().toISOString()}`,
     "",
     "## Módulos exportados",
-    ...selection.modules.map((k) => {
+    ...modules.map((k) => {
       const m = summary.find((x) => x.key === k)!;
-      const f = selection.filters[k];
+      const f = filters[k];
       const parts = f
         ? [
             f.status && f.status !== "all" ? `status=${f.status}` : "",

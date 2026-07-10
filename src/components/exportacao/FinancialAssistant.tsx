@@ -73,6 +73,32 @@ const MODULE_DATE_FIELDS: Record<FinancialModuleKey, FinancialDateField[]> = {
   cost_centers: [],
 };
 
+const SAFE_MODULE_LABELS: Record<FinancialModuleKey, string> = FINANCIAL_MODULE_LABELS ?? {
+  accounts_payable: "Contas a pagar",
+  accounts_receivable: "Contas a receber",
+  finance_transactions: "Movimentações financeiras",
+  bank_accounts: "Bancos",
+  cash_register: "Caixas",
+  financial_categories: "Categorias financeiras",
+  chart_of_accounts: "Plano de contas",
+  cost_centers: "Centros de custo",
+};
+
+const SAFE_TRANSACTIONAL: FinancialModuleKey[] = Array.isArray(FINANCIAL_TRANSACTIONAL)
+  ? FINANCIAL_TRANSACTIONAL
+  : ["accounts_payable", "accounts_receivable", "finance_transactions"];
+
+const SAFE_MODULE_TO_TABLES: Record<FinancialModuleKey, string[]> = MODULE_TO_TABLES ?? {
+  accounts_payable: ["accounts_payable"],
+  accounts_receivable: ["accounts_receivable"],
+  finance_transactions: ["finance_transactions"],
+  bank_accounts: ["bank_accounts"],
+  cash_register: ["cash_register_sessions", "cash_register_movements"],
+  financial_categories: ["chart_of_accounts"],
+  chart_of_accounts: ["chart_of_accounts"],
+  cost_centers: ["cost_centers"],
+};
+
 const STATUS_LABEL: Record<FinancialStatusFilter, string> = {
   all: "Todas",
   open: "Em aberto",
@@ -142,6 +168,7 @@ type HistoryItem = {
 };
 
 function loadHistory(): HistoryItem[] {
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(LS_HISTORY);
     if (!raw) return [];
@@ -150,6 +177,7 @@ function loadHistory(): HistoryItem[] {
   } catch { return []; }
 }
 function pushHistory(item: HistoryItem) {
+  if (typeof window === "undefined") return [];
   try {
     const list = [item, ...loadHistory()].slice(0, 10);
     localStorage.setItem(LS_HISTORY, JSON.stringify(list));
@@ -163,6 +191,7 @@ type PersistedState = {
   presets: Partial<Record<FinancialModuleKey, Preset>>;
 };
 function loadPersisted(): PersistedState | null {
+  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(LS_FILTERS);
     if (!raw) return null;
@@ -260,7 +289,7 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
 
   useEffect(() => {
     if (!orgId) return;
-    for (const key of FINANCIAL_TRANSACTIONAL) {
+    for (const key of SAFE_TRANSACTIONAL) {
       void refreshSummary(key);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -299,7 +328,7 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
       );
       setLastResult(result);
       const totalCount = (result.modules ?? []).reduce((s, m) => s + (m?.count ?? 0), 0);
-      const moduleLabel = [...selected].map((k) => FINANCIAL_MODULE_LABELS[k]).join(", ");
+      const moduleLabel = [...selected].map((k) => SAFE_MODULE_LABELS[k] ?? k).join(", ");
       setHistory(pushHistory({
         at: new Date().toISOString(),
         user: userLabel,
@@ -328,7 +357,7 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
   const filesInBackup = useMemo(() => {
     const set = new Set<string>();
     for (const k of selected) {
-      for (const t of (MODULE_TO_TABLES[k] ?? [])) set.add(`${t}.csv`);
+      for (const t of (SAFE_MODULE_TO_TABLES[k] ?? [])) set.add(`${t}.csv`);
     }
     return [...set];
   }, [selected]);
@@ -371,12 +400,12 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
               return (
                 <div key={k} className="rounded-md border px-3 py-2">
                   <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                    {FINANCIAL_MODULE_LABELS[k]}
+                    {SAFE_MODULE_LABELS[k] ?? k}
                   </div>
                   <div className="text-xl font-black">
                     {s?.loading ? <Loader2 className="h-4 w-4 animate-spin inline" /> : (s?.count ?? 0).toLocaleString("pt-BR")}
                   </div>
-                  {FINANCIAL_TRANSACTIONAL.includes(k) && (
+                  {SAFE_TRANSACTIONAL.includes(k) && (
                     <div className="text-[10px] text-muted-foreground tabular-nums">
                       {money(s?.totalAmount ?? 0)}
                     </div>
@@ -403,8 +432,8 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
                   onChange={() => toggleModule(k)}
                   className="h-4 w-4"
                 />
-                <span className="text-sm font-medium">{FINANCIAL_MODULE_LABELS[k]}</span>
-                {FINANCIAL_TRANSACTIONAL.includes(k) && (
+                <span className="text-sm font-medium">{SAFE_MODULE_LABELS[k] ?? k}</span>
+                {SAFE_TRANSACTIONAL.includes(k) && (
                   <Badge variant="outline" className="ml-auto text-[9px]">filtros</Badge>
                 )}
               </label>
@@ -414,7 +443,7 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
       </Card>
 
       {/* Filtros específicos para módulos transacionais */}
-      {FINANCIAL_TRANSACTIONAL.filter((k) => selected.has(k)).map((k) => {
+      {SAFE_TRANSACTIONAL.filter((k) => selected.has(k)).map((k) => {
         const f = filters[k] ?? {};
         const s = summaries[k];
         const dateFields = MODULE_DATE_FIELDS[k] ?? [];
@@ -423,7 +452,7 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
         return (
           <Card key={k}>
             <CardHeader>
-              <CardTitle className="text-sm">Filtros — {FINANCIAL_MODULE_LABELS[k]}</CardTitle>
+              <CardTitle className="text-sm">Filtros — {SAFE_MODULE_LABELS[k] ?? k}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -516,8 +545,8 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
                 const s = summaries[k];
                 return (
                   <li key={k}>
-                    • {FINANCIAL_MODULE_LABELS[k]} — {(s?.count ?? 0).toLocaleString("pt-BR")} registros
-                    {FINANCIAL_TRANSACTIONAL.includes(k) ? ` · ${money(s?.totalAmount ?? 0)}` : ""}
+                    • {SAFE_MODULE_LABELS[k] ?? k} — {(s?.count ?? 0).toLocaleString("pt-BR")} registros
+                    {SAFE_TRANSACTIONAL.includes(k) ? ` · ${money(s?.totalAmount ?? 0)}` : ""}
                   </li>
                 );
               })}
