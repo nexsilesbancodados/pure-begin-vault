@@ -9,6 +9,7 @@ export type SalesExportMode = "padrao" | "expandida" | "premier";
 export interface SalesValidationReport {
   totalVendas: number;
   vendasSemCliente: number;
+  vendasSemVendedor: number;
   vendasSemItens: number;
   vendasCanceladas: number;
   valoresNegativos: number;
@@ -16,7 +17,18 @@ export interface SalesValidationReport {
   produtosInexistentes: number;
   imeisDuplicados: number;
   pagamentosOrfaos: number;
+  itensSemVenda: number;
+  totaisDivergentes: number;
+  pagamentosDivergentes: number;
+  itensNegativos: number;
+  quantidadeIncorreta: number;
+  erros: number;
+  avisos: number;
+  inconsistencias: number;
+  registrosAfetados: number;
+  percentualIntegridade: number;
   amostra: Array<{ sale_id?: string; problema: string; detalhe?: string }>;
+  detalhes?: Array<{ tipo: "erro" | "aviso" | "inconsistencia"; sale_id?: string; registro_id?: string; problema: string; detalhe?: string }>;
 }
 
 export interface SalesExportResult {
@@ -47,6 +59,156 @@ async function fetchAll(table: string, orgId: string | null, extra?: (q: any) =>
   return rows;
 }
 
+const num = (v: any) => {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+const round2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
+const closeMoney = (a: number, b: number) => Math.abs(round2(a) - round2(b)) <= 0.05;
+
+function pushIssue(
+  rep: SalesValidationReport,
+  tipo: "erro" | "aviso" | "inconsistencia",
+  issue: { sale_id?: string; registro_id?: string; problema: string; detalhe?: string },
+) {
+  rep.detalhes ||= [];
+  rep.detalhes.push({ tipo, ...issue });
+  if (rep.amostra.length < 20) rep.amostra.push({ sale_id: issue.sale_id, problema: issue.problema, detalhe: issue.detalhe });
+}
+
+function buildSalesValidationReport(
+  sales: any[],
+  items: any[],
+  payments: any[],
+  customers: any[],
+  products: any[],
+): SalesValidationReport {
+  const customerIds = new Set(customers.map((c: any) => c.id));
+  const productIds = new Set(products.map((p: any) => p.id));
+  const saleIds = new Set(sales.map((s: any) => s.id));
+
+  const rep: SalesValidationReport = {
+    totalVendas: sales.length,
+    vendasSemCliente: 0,
+    vendasSemVendedor: 0,
+    vendasSemItens: 0,
+    vendasCanceladas: 0,
+    valoresNegativos: 0,
+    clientesInexistentes: 0,
+    produtosInexistentes: 0,
+    imeisDuplicados: 0,
+    pagamentosOrfaos: 0,
+    itensSemVenda: 0,
+    totaisDivergentes: 0,
+    pagamentosDivergentes: 0,
+    itensNegativos: 0,
+    quantidadeIncorreta: 0,
+    erros: 0,
+    avisos: 0,
+    inconsistencias: 0,
+    registrosAfetados: 0,
+    percentualIntegridade: 100,
+    amostra: [],
+    detalhes: [],
+  };
+
+  const itemsBySale = new Map<string, any[]>();
+  for (const it of items) {
+    if (!saleIds.has(it.sale_id)) {
+      rep.itensSemVenda++;
+      pushIssue(rep, "erro", { sale_id: it.sale_id, registro_id: it.id, problema: "item sem venda", detalhe: it.product_name });
+      continue;
+    }
+    if (!itemsBySale.has(it.sale_id)) itemsBySale.set(it.sale_id, []);
+    itemsBySale.get(it.sale_id)!.push(it);
+  }
+
+  const paymentsBySale = new Map<string, any[]>();
+  for (const p of payments) {
+    if (!saleIds.has(p.sale_id)) {
+      rep.pagamentosOrfaos++;
+      pushIssue(rep, "erro", { sale_id: p.sale_id, registro_id: p.id, problema: "pagamento sem venda", detalhe: p.method });
+      continue;
+    }
+    if (!paymentsBySale.has(p.sale_id)) paymentsBySale.set(p.sale_id, []);
+    paymentsBySale.get(p.sale_id)!.push(p);
+  }
+
+  for (const s of sales) {
+    const saleItems = itemsBySale.get(s.id) ?? [];
+    const salePayments = paymentsBySale.get(s.id) ?? [];
+    const saleTotal = num(s.total_amount);
+    const itemsTotal = saleItems.reduce((sum, it) => sum + num(it.total || num(it.quantity) * num(it.unit_price)), 0);
+    const paymentsTotal = salePayments.reduce((sum, p) => sum + num(p.amount), 0);
+
+    if (!s.customer_id) {
+      rep.vendasSemCliente++;
+      pushIssue(rep, "aviso", { sale_id: s.id, problema: "venda sem cliente" });
+    } else if (!customerIds.has(s.customer_id)) {
+      rep.clientesInexistentes++;
+      pushIssue(rep, "erro", { sale_id: s.id, problema: "cliente inexistente", detalhe: s.customer_id });
+    }
+    if (!(s.seller_id || s.user_id)) {
+      rep.vendasSemVendedor++;
+      pushIssue(rep, "aviso", { sale_id: s.id, problema: "venda sem vendedor" });
+    }
+    if (saleItems.length === 0) {
+      rep.vendasSemItens++;
+      pushIssue(rep, "erro", { sale_id: s.id, problema: "venda sem itens" });
+    }
+    if (s.status === "cancelled" || s.status === "canceled" || s.status === "cancelada") rep.vendasCanceladas++;
+    if (saleTotal < 0) {
+      rep.valoresNegativos++;
+      pushIssue(rep, "erro", { sale_id: s.id, problema: "total negativo", detalhe: String(s.total_amount) });
+    }
+    for (const it of saleItems) {
+      if (it.product_id && !productIds.has(it.product_id)) {
+        rep.produtosInexistentes++;
+        pushIssue(rep, "aviso", { sale_id: it.sale_id, registro_id: it.id, problema: "produto inexistente", detalhe: it.product_id });
+      }
+      if (num(it.total) < 0 || num(it.unit_price) < 0 || num(it.unit_cost) < 0) {
+        rep.itensNegativos++;
+        pushIssue(rep, "erro", { sale_id: it.sale_id, registro_id: it.id, problema: "item com valor negativo", detalhe: it.product_name });
+      }
+      if (num(it.quantity) <= 0) {
+        rep.quantidadeIncorreta++;
+        pushIssue(rep, "erro", { sale_id: it.sale_id, registro_id: it.id, problema: "quantidade incorreta", detalhe: String(it.quantity) });
+      }
+      const expectedItemTotal = num(it.quantity) * num(it.unit_price) - num(it.discount);
+      if (it.total != null && !closeMoney(num(it.total), expectedItemTotal)) {
+        rep.totaisDivergentes++;
+        pushIssue(rep, "inconsistencia", { sale_id: it.sale_id, registro_id: it.id, problema: "total do item divergente", detalhe: `${round2(num(it.total))} ≠ ${round2(expectedItemTotal)}` });
+      }
+    }
+    if (saleItems.length > 0) {
+      const expectedSaleTotal = itemsTotal + num(s.addition) - num(s.discount);
+      if (!closeMoney(saleTotal, expectedSaleTotal)) {
+        rep.totaisDivergentes++;
+        pushIssue(rep, "inconsistencia", { sale_id: s.id, problema: "total da venda divergente", detalhe: `${round2(saleTotal)} ≠ ${round2(expectedSaleTotal)}` });
+      }
+    }
+    if (salePayments.length > 0 && !closeMoney(saleTotal, paymentsTotal)) {
+      rep.pagamentosDivergentes++;
+      pushIssue(rep, "inconsistencia", { sale_id: s.id, problema: "pagamentos diferentes do total da venda", detalhe: `${round2(paymentsTotal)} ≠ ${round2(saleTotal)}` });
+    }
+  }
+
+  const imeiMap = new Map<string, number>();
+  for (const it of items) if (it.imei) imeiMap.set(String(it.imei), (imeiMap.get(String(it.imei)) ?? 0) + 1);
+  rep.imeisDuplicados = [...imeiMap.values()].filter((n) => n > 1).reduce((s, n) => s + n, 0);
+  if (rep.imeisDuplicados > 0) {
+    pushIssue(rep, "aviso", { problema: "IMEIs duplicados", detalhe: `${rep.imeisDuplicados} ocorrências` });
+  }
+
+  rep.erros = (rep.detalhes ?? []).filter((d) => d.tipo === "erro").length;
+  rep.avisos = (rep.detalhes ?? []).filter((d) => d.tipo === "aviso").length;
+  rep.inconsistencias = (rep.detalhes ?? []).filter((d) => d.tipo === "inconsistencia").length;
+  rep.registrosAfetados = new Set((rep.detalhes ?? []).map((d) => d.registro_id || d.sale_id || d.problema)).size;
+  const base = Math.max(sales.length + items.length + payments.length, 1);
+  rep.percentualIntegridade = Math.max(0, round2(100 - (rep.registrosAfetados / base) * 100));
+  return rep;
+}
+
 // ── Validação ─────────────────────────────────────────
 export async function validateSales(orgId: string | null): Promise<SalesValidationReport> {
   const [sales, items, payments, customers, products] = await Promise.all([
@@ -56,70 +218,7 @@ export async function validateSales(orgId: string | null): Promise<SalesValidati
     fetchAll("customers", orgId),
     fetchAll("products", orgId),
   ]);
-  const customerIds = new Set(customers.map((c: any) => c.id));
-  const productIds = new Set(products.map((p: any) => p.id));
-  const saleIds = new Set(sales.map((s: any) => s.id));
-
-  const rep: SalesValidationReport = {
-    totalVendas: sales.length,
-    vendasSemCliente: 0,
-    vendasSemItens: 0,
-    vendasCanceladas: 0,
-    valoresNegativos: 0,
-    clientesInexistentes: 0,
-    produtosInexistentes: 0,
-    imeisDuplicados: 0,
-    pagamentosOrfaos: 0,
-    amostra: [],
-  };
-  const push = (o: any) => rep.amostra.length < 15 && rep.amostra.push(o);
-
-  const itemsBySale = new Map<string, any[]>();
-  for (const it of items) {
-    if (!itemsBySale.has(it.sale_id)) itemsBySale.set(it.sale_id, []);
-    itemsBySale.get(it.sale_id)!.push(it);
-  }
-
-  for (const s of sales) {
-    if (!s.customer_id) {
-      rep.vendasSemCliente++;
-      push({ sale_id: s.id, problema: "sem cliente" });
-    } else if (!customerIds.has(s.customer_id)) {
-      rep.clientesInexistentes++;
-      push({ sale_id: s.id, problema: "cliente inexistente", detalhe: s.customer_id });
-    }
-    if (!itemsBySale.has(s.id)) {
-      rep.vendasSemItens++;
-      push({ sale_id: s.id, problema: "sem itens" });
-    }
-    if (s.status === "cancelled" || s.status === "canceled" || s.status === "cancelada") {
-      rep.vendasCanceladas++;
-    }
-    if (Number(s.total_amount ?? 0) < 0) {
-      rep.valoresNegativos++;
-      push({ sale_id: s.id, problema: "total negativo", detalhe: String(s.total_amount) });
-    }
-  }
-
-  for (const it of items) {
-    if (it.product_id && !productIds.has(it.product_id)) {
-      rep.produtosInexistentes++;
-      push({ sale_id: it.sale_id, problema: "produto inexistente", detalhe: it.product_id });
-    }
-  }
-  const imeiMap = new Map<string, number>();
-  for (const it of items) {
-    if (it.imei) imeiMap.set(String(it.imei), (imeiMap.get(String(it.imei)) ?? 0) + 1);
-  }
-  rep.imeisDuplicados = [...imeiMap.values()].filter((n) => n > 1).reduce((s, n) => s + n, 0);
-
-  for (const p of payments) {
-    if (!saleIds.has(p.sale_id)) {
-      rep.pagamentosOrfaos++;
-      push({ sale_id: p.sale_id, problema: "pagamento órfão", detalhe: p.id });
-    }
-  }
-  return rep;
+  return buildSalesValidationReport(sales, items, payments, customers, products);
 }
 
 // ── Expansão JSON ─────────────────────────────────────
