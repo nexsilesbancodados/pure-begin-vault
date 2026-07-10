@@ -289,11 +289,92 @@ function meta(obj: any, ...keys: string[]) {
 }
 function safeJson(s: string) { try { return JSON.parse(s); } catch { return null; } }
 
+function saleUuid(s: any) {
+  const stableKey = s.import_id || s.sale_number || s.id;
+  return `conecta:${s.organization_id ?? "sem-empresa"}:sale:${stableKey}`;
+}
+
+function yesNo(v: boolean) {
+  return v ? "Sim" : "Não";
+}
+
+function productKind(product: any, item: any) {
+  const text = `${product?.category ?? ""} ${product?.name ?? ""} ${item?.product_name ?? ""}`.toLowerCase();
+  if (text.includes("servi") || text.includes("reparo") || text.includes("assistência") || text.includes("mao de obra") || text.includes("mão de obra")) return "servico";
+  if (product?.has_imei || item?.imei || text.includes("iphone") || text.includes("samsung") || text.includes("galaxy") || text.includes("smartphone") || text.includes("celular")) return "aparelho";
+  return "acessorio";
+}
+
+function buildSaleAnalytics(sales: any[], items: any[], payments: any[], prodMap: Map<string, any>) {
+  const itemsBySale = new Map<string, any[]>();
+  for (const it of items) {
+    if (!itemsBySale.has(it.sale_id)) itemsBySale.set(it.sale_id, []);
+    itemsBySale.get(it.sale_id)!.push(it);
+  }
+  const paymentsBySale = new Map<string, any[]>();
+  for (const p of payments) {
+    if (!paymentsBySale.has(p.sale_id)) paymentsBySale.set(p.sale_id, []);
+    paymentsBySale.get(p.sale_id)!.push(p);
+  }
+  const stats = new Map<string, any>();
+  for (const s of sales) {
+    const saleItems = itemsBySale.get(s.id) ?? [];
+    const salePayments = paymentsBySale.get(s.id) ?? [];
+    let quantidadeItens = 0;
+    let quantidadeAparelhos = 0;
+    let quantidadeAcessorios = 0;
+    let totalProdutos = 0;
+    let totalServicos = 0;
+    let totalDescontosItens = 0;
+    let totalCusto = 0;
+    for (const it of saleItems) {
+      const q = num(it.quantity);
+      const total = num(it.total || q * num(it.unit_price));
+      const p = it.product_id ? prodMap.get(it.product_id) : null;
+      const kind = productKind(p, it);
+      quantidadeItens += q;
+      if (kind === "aparelho") quantidadeAparelhos += q;
+      else if (kind === "servico") totalServicos += total;
+      else quantidadeAcessorios += q;
+      if (kind !== "servico") totalProdutos += total;
+      totalDescontosItens += num(it.discount);
+      totalCusto += num(it.unit_cost ?? p?.cost_price) * q;
+    }
+    const total = num(s.total_amount);
+    const totalPagamentos = salePayments.reduce((sum, p) => sum + num(p.amount), 0);
+    const paymentTotals = new Map<string, number>();
+    for (const p of salePayments) paymentTotals.set(p.method, (paymentTotals.get(p.method) ?? 0) + num(p.amount));
+    const principalCode = [...paymentTotals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? s.payment_method ?? "";
+    const formas = new Set(salePayments.map((p) => p.method).filter(Boolean));
+    const lucro = s.profit != null ? num(s.profit) : total - totalCusto;
+    stats.set(s.id, {
+      items: saleItems,
+      payments: salePayments,
+      quantidadeItens,
+      quantidadeAparelhos,
+      quantidadeAcessorios,
+      totalProdutos,
+      totalServicos,
+      totalDescontos: num(s.discount) + totalDescontosItens,
+      totalPagamentos,
+      saldo: total - totalPagamentos,
+      lucro,
+      margem: total ? (lucro / total) * 100 : 0,
+      pagamentoPrincipal: humanPayment(principalCode),
+      quantidadeFormasPagamento: formas.size || (s.payment_method ? 1 : 0),
+      pagamentoMisto: formas.size > 1,
+      vendaParcelada: salePayments.some((p) => num(p.installments) > 1),
+    });
+  }
+  return { stats, itemsBySale, paymentsBySale };
+}
+
 function toPremierSales(
   sales: any[],
   custMap: Map<string, any>,
   sellerMap: Map<string, any>,
   orgMap: Map<string, any>,
+  analytics: Map<string, any>,
 ) {
   const cols = [
     // legado (mantido para compatibilidade)
@@ -301,10 +382,14 @@ function toPremierSales(
     "cliente_documento", "vendedor_id", "empresa_id", "loja_id", "canal_venda", "origem",
     "subtotal", "desconto", "acrescimo", "frete", "total", "lucro", "margem", "observacoes",
     // novos campos (opcionais / humanizados)
+    "sale_uuid",
     "status_codigo", "status_nome",
     "vendedor_nome", "empresa_nome", "loja_nome",
     "cliente_telefone", "cliente_email", "cliente_cidade", "cliente_estado", "cliente_cpf_cnpj",
     "forma_pagamento_codigo", "forma_pagamento_nome",
+    "quantidade_itens", "quantidade_aparelhos", "quantidade_acessorios",
+    "total_produtos", "total_servicos", "total_descontos", "total_pagamentos", "saldo",
+    "pagamento_principal", "quantidade_formas_pagamento", "pagamento_misto", "venda_parcelada",
   ];
   const rows = sales.map((s) => {
     const c = s.customer_id ? custMap.get(s.customer_id) : null;
@@ -316,6 +401,7 @@ function toPremierSales(
     const dt = s.created_at ? new Date(s.created_at) : null;
     const rawStatus = s.status ?? "";
     const rawPay = s.payment_method ?? "";
+    const a = analytics.get(s.id) ?? {};
     return {
       sale_id: s.id,
       numero_venda: s.sale_number ?? "",
@@ -351,24 +437,52 @@ function toPremierSales(
       cliente_cpf_cnpj: c?.document ?? "",
       forma_pagamento_codigo: rawPay,
       forma_pagamento_nome: humanPayment(rawPay),
+      sale_uuid: saleUuid(s),
+      quantidade_itens: a.quantidadeItens ?? 0,
+      quantidade_aparelhos: a.quantidadeAparelhos ?? 0,
+      quantidade_acessorios: a.quantidadeAcessorios ?? 0,
+      total_produtos: round2(a.totalProdutos ?? 0),
+      total_servicos: round2(a.totalServicos ?? 0),
+      total_descontos: round2(a.totalDescontos ?? num(s.discount)),
+      total_pagamentos: round2(a.totalPagamentos ?? 0),
+      saldo: round2(a.saldo ?? num(s.total_amount)),
+      lucro: s.profit ?? round2(a.lucro ?? 0),
+      margem: s.margin ?? round2(a.margem ?? 0),
+      pagamento_principal: a.pagamentoPrincipal ?? humanPayment(rawPay),
+      quantidade_formas_pagamento: a.quantidadeFormasPagamento ?? (rawPay ? 1 : 0),
+      pagamento_misto: yesNo(!!a.pagamentoMisto),
+      venda_parcelada: yesNo(!!a.vendaParcelada),
     };
   });
   return { rows, columns: cols };
 }
 
-function toPremierItems(items: any[], prodMap: Map<string, any>) {
+function toPremierItems(
+  items: any[],
+  prodMap: Map<string, any>,
+  supplierMap: Map<string, any>,
+  saleMap: Map<string, any>,
+) {
   const cols = [
     // legado
     "item_id", "sale_id", "produto_id", "produto_nome", "sku", "imei", "categoria",
     "marca", "quantidade", "valor_unitario", "custo_unitario", "desconto", "acrescimo",
     "subtotal", "garantia_meses",
     // novos
-    "modelo", "capacidade", "cor", "serial", "garantia",
+    "sale_uuid", "empresa_id", "loja_id", "cliente_id", "vendedor_id",
+    "fornecedor_nome", "fornecedor_documento", "categoria_nome",
+    "modelo", "capacidade", "cor", "código_barras", "serial", "garantia",
+    "custo", "preço_venda", "lucro_item", "margem_item",
   ];
   const rows = items.map((it) => {
     const p = it.product_id ? prodMap.get(it.product_id) : null;
+    const s = it.sale_id ? saleMap.get(it.sale_id) : null;
+    const supplier = p?.supplier_id ? supplierMap.get(p.supplier_id) : null;
     const q = Number(it.quantity ?? 0);
     const u = Number(it.unit_price ?? 0);
+    const cost = num(it.unit_cost ?? p?.cost_price);
+    const subtotal = num(it.total ?? q * u);
+    const lucroItem = subtotal - cost * q;
     const md = it.metadata ?? {};
     const cor = meta(md, "cor", "color") || (p?.color ?? "");
     const cap = meta(md, "capacidade", "gb", "storage") || (p?.storage ?? p?.capacity ?? "");
@@ -386,33 +500,48 @@ function toPremierItems(items: any[], prodMap: Map<string, any>) {
       marca: p?.brand ?? "",
       quantidade: q,
       valor_unitario: u,
-      custo_unitario: it.unit_cost ?? 0,
+      custo_unitario: cost,
       desconto: it.discount ?? 0,
       acrescimo: it.addition ?? 0,
-      subtotal: it.total ?? q * u,
+      subtotal,
       garantia_meses: garantiaMeses,
       // novos
+      sale_uuid: s ? saleUuid(s) : "",
+      empresa_id: it.organization_id ?? s?.organization_id ?? "",
+      loja_id: s?.store_id ?? s?.organization_id ?? it.organization_id ?? "",
+      cliente_id: s?.customer_id ?? "",
+      vendedor_id: s?.seller_id ?? s?.user_id ?? "",
+      fornecedor_nome: supplier?.name ?? p?.supplier ?? "",
+      fornecedor_documento: supplier?.document ?? supplier?.cnpj ?? "",
+      categoria_nome: p?.category ?? "",
       modelo,
       capacidade: cap,
       cor,
+      "código_barras": p?.ean ?? meta(md, "ean", "barcode", "codigo_barras") ?? "",
       serial,
       garantia: garantiaMeses ? `${garantiaMeses} meses` : "",
+      custo: cost,
+      preço_venda: u,
+      lucro_item: round2(lucroItem),
+      margem_item: subtotal ? round2((lucroItem / subtotal) * 100) : 0,
     };
   });
   return { rows, columns: cols };
 }
 
-function toPremierPayments(payments: any[]) {
+function toPremierPayments(payments: any[], saleMap: Map<string, any>) {
   const cols = [
     // legado
     "pagamento_id", "sale_id", "forma_pagamento", "parcelas", "valor", "taxa",
     "data", "status", "autorizacao", "nsu",
     // novos
+    "sale_uuid", "empresa_id", "loja_id", "cliente_id", "vendedor_id",
     "forma_pagamento_codigo", "forma_pagamento_nome",
     "adquirente", "bandeira",
   ];
   const rows = payments.map((p) => {
     const raw = p.method ?? "";
+    const s = p.sale_id ? saleMap.get(p.sale_id) : null;
     return {
       pagamento_id: p.id,
       sale_id: p.sale_id,
@@ -425,6 +554,11 @@ function toPremierPayments(payments: any[]) {
       autorizacao: p.authorization ?? "",
       nsu: p.nsu ?? p.reference ?? "",
       // novos
+      sale_uuid: s ? saleUuid(s) : "",
+      empresa_id: p.organization_id ?? s?.organization_id ?? "",
+      loja_id: s?.store_id ?? s?.organization_id ?? p.organization_id ?? "",
+      cliente_id: s?.customer_id ?? "",
+      vendedor_id: s?.seller_id ?? s?.user_id ?? "",
       forma_pagamento_codigo: raw,
       forma_pagamento_nome: humanPayment(raw),
       adquirente: p.acquirer ?? p.provider ?? "",
