@@ -293,6 +293,14 @@ function saleUuid(s: any) {
   const stableKey = s.import_id || s.sale_number || s.id;
   return `conecta:${s.organization_id ?? "sem-empresa"}:sale:${stableKey}`;
 }
+function itemUuid(it: any, s: any) {
+  const base = s ? saleUuid(s) : `conecta:${it.organization_id ?? "sem-empresa"}:sale:${it.sale_id}`;
+  return `${base}:item:${it.id}`;
+}
+function paymentUuid(p: any, s: any) {
+  const base = s ? saleUuid(s) : `conecta:${p.organization_id ?? "sem-empresa"}:sale:${p.sale_id}`;
+  return `${base}:pay:${p.id}`;
+}
 
 function yesNo(v: boolean) {
   return v ? "Sim" : "Não";
@@ -467,7 +475,7 @@ function toPremierItems(
     "marca", "quantidade", "valor_unitario", "custo_unitario", "desconto", "acrescimo",
     "subtotal", "garantia_meses",
     // novos
-    "sale_uuid", "empresa_id", "loja_id", "cliente_id", "vendedor_id",
+    "item_uuid", "sale_uuid", "empresa_id", "loja_id", "cliente_id", "vendedor_id",
     "fornecedor_nome", "fornecedor_documento", "categoria_nome",
     "modelo", "capacidade", "cor", "código_barras", "serial", "garantia",
     "custo", "preço_venda", "lucro_item", "margem_item",
@@ -504,6 +512,7 @@ function toPremierItems(
       subtotal,
       garantia_meses: garantiaMeses,
       // novos
+      item_uuid: itemUuid(it, s),
       sale_uuid: s ? saleUuid(s) : "",
       empresa_id: it.organization_id ?? s?.organization_id ?? "",
       loja_id: s?.store_id ?? s?.organization_id ?? it.organization_id ?? "",
@@ -533,13 +542,17 @@ function toPremierPayments(payments: any[], saleMap: Map<string, any>) {
     "pagamento_id", "sale_id", "forma_pagamento", "parcelas", "valor", "taxa",
     "data", "status", "autorizacao", "nsu",
     // novos
-    "sale_uuid", "empresa_id", "loja_id", "cliente_id", "vendedor_id",
-    "forma_pagamento_codigo", "forma_pagamento_nome",
-    "adquirente", "bandeira",
+    "payment_uuid", "sale_uuid", "empresa_id", "loja_id", "cliente_id", "vendedor_id",
+    "sequencia", "forma_pagamento_codigo", "forma_pagamento_nome",
+    "adquirente", "bandeira", "tid", "data_pagamento",
   ];
+  const seq = new Map<string, number>();
   const rows = payments.map((p) => {
     const raw = p.method ?? "";
     const s = p.sale_id ? saleMap.get(p.sale_id) : null;
+    const n = (seq.get(p.sale_id) ?? 0) + 1;
+    seq.set(p.sale_id, n);
+    const dt = p.paid_at ?? p.created_at ?? "";
     return {
       pagamento_id: p.id,
       sale_id: p.sale_id,
@@ -547,20 +560,24 @@ function toPremierPayments(payments: any[], saleMap: Map<string, any>) {
       parcelas: p.installments ?? 1,
       valor: p.amount ?? 0,
       taxa: p.fee_amount ?? 0,
-      data: p.paid_at ?? p.created_at ?? "",
+      data: dt,
       status: p.status ?? (p.paid_at ? "pago" : "pendente"),
       autorizacao: p.authorization ?? "",
       nsu: p.nsu ?? p.reference ?? "",
       // novos
+      payment_uuid: paymentUuid(p, s),
       sale_uuid: s ? saleUuid(s) : "",
       empresa_id: p.organization_id ?? s?.organization_id ?? "",
       loja_id: s?.store_id ?? s?.organization_id ?? p.organization_id ?? "",
       cliente_id: s?.customer_id ?? "",
       vendedor_id: s?.seller_id ?? s?.user_id ?? "",
+      sequencia: n,
       forma_pagamento_codigo: raw,
       forma_pagamento_nome: humanPayment(raw),
       adquirente: p.acquirer ?? p.provider ?? "",
       bandeira: p.brand ?? p.card_brand ?? "",
+      tid: p.tid ?? p.transaction_id ?? "",
+      data_pagamento: dt ? String(dt).slice(0, 10) : "",
     };
   });
   return { rows, columns: cols };
@@ -748,10 +765,70 @@ export async function exportSales(
   let suffix = mode;
 
   if (mode === "premier") {
+    // Reduzimos aos IDs efetivamente usados nas vendas para manter o pacote enxuto.
+    const usedCustomerIds = new Set(sales.map((s: any) => s.customer_id).filter(Boolean));
+    const usedProductIds = new Set(items.map((it: any) => it.product_id).filter(Boolean));
+    const usedSellerIds = new Set(sales.map((s: any) => s.seller_id ?? s.user_id).filter(Boolean));
+    const usedStoreIds = new Set(sales.map((s: any) => s.store_id ?? s.organization_id).filter(Boolean));
+
+    const customersRows = customers
+      .filter((c: any) => usedCustomerIds.has(c.id))
+      .map((c: any) => ({
+        cliente_id: c.id,
+        nome: c.name ?? "",
+        documento: c.document ?? "",
+        cpf_cnpj: c.document ?? "",
+        email: c.email ?? "",
+        telefone: c.phone ?? "",
+        cidade: c.city ?? "",
+        estado: c.state ?? "",
+        endereco: c.address ?? "",
+        cep: c.zip_code ?? c.cep ?? "",
+        empresa_id: c.organization_id ?? "",
+      }));
+
+    const productsRows = products
+      .filter((p: any) => usedProductIds.has(p.id))
+      .map((p: any) => ({
+        produto_id: p.id,
+        sku: p.sku ?? "",
+        codigo_barras: p.ean ?? "",
+        nome: p.name ?? "",
+        marca: p.brand ?? "",
+        modelo: p.model ?? "",
+        categoria: p.category ?? "",
+        capacidade: p.storage ?? p.capacity ?? "",
+        cor: p.color ?? "",
+        custo: p.cost_price ?? 0,
+        preco_venda: p.sale_price ?? p.price ?? 0,
+        estoque: p.stock_quantity ?? 0,
+        fornecedor_id: p.supplier_id ?? "",
+        empresa_id: p.organization_id ?? "",
+      }));
+
+    const sellersRows = (sellers as any[])
+      .filter((s: any) => usedSellerIds.has(s.id))
+      .map((s: any) => ({
+        vendedor_id: s.id,
+        nome: s.display_name ?? s.nome ?? s.email ?? "",
+        email: s.email ?? "",
+      }));
+
+    const storesRows = (orgs as any[])
+      .filter((o: any) => usedStoreIds.has(o.id))
+      .map((o: any) => ({
+        loja_id: o.id,
+        nome: o.name ?? "",
+      }));
+
     sheets = [
-      { name: "vendas", ...toPremierSales(sales, custMap, sellerMap, orgMap, saleAnalytics) },
-      { name: "itens", ...toPremierItems(items, prodMap, supplierMap, saleMap) },
-      { name: "pagamentos", ...toPremierPayments(payments, saleMap) },
+      { name: "sales", ...toPremierSales(sales, custMap, sellerMap, orgMap, saleAnalytics) },
+      { name: "sale_items", ...toPremierItems(items, prodMap, supplierMap, saleMap) },
+      { name: "sale_payments", ...toPremierPayments(payments, saleMap) },
+      { name: "customers", rows: customersRows, columns: customersRows.length ? Object.keys(customersRows[0]) : ["cliente_id","nome","documento","cpf_cnpj","email","telefone","cidade","estado","endereco","cep","empresa_id"] },
+      { name: "products", rows: productsRows, columns: productsRows.length ? Object.keys(productsRows[0]) : ["produto_id","sku","codigo_barras","nome","marca","modelo","categoria","capacidade","cor","custo","preco_venda","estoque","fornecedor_id","empresa_id"] },
+      { name: "sellers", rows: sellersRows, columns: sellersRows.length ? Object.keys(sellersRows[0]) : ["vendedor_id","nome","email"] },
+      { name: "stores", rows: storesRows, columns: storesRows.length ? Object.keys(storesRows[0]) : ["loja_id","nome"] },
     ];
     suffix = "premier";
   } else if (mode === "expandida") {
@@ -857,6 +934,24 @@ export async function exportSales(
     if (mode === "premier") {
       zip.file("validation_report.json", JSON.stringify(validationReport, null, 2));
       zip.file("import_map.json", JSON.stringify(buildPremierImportMap(), null, 2));
+      const customersSheet = csvFiles.find((s) => s.name === "customers");
+      const productsSheet = csvFiles.find((s) => s.name === "products");
+      const premierReady = {
+        versao_layout: "premier-erp/plug-and-play-1.0",
+        hash: integrityHash,
+        empresa: empresaAtual,
+        empresa_id: orgId ?? null,
+        periodo,
+        quantidade_vendas: sales.length,
+        quantidade_itens: items.length,
+        quantidade_pagamentos: payments.length,
+        quantidade_clientes: customersSheet?.rows.length ?? 0,
+        quantidade_produtos: productsSheet?.rows.length ?? 0,
+        integridade_percentual: validationReport.percentualIntegridade,
+        data_exportacao: new Date().toISOString(),
+        arquivos: csvFiles.map((s) => s.arquivo),
+      };
+      zip.file("premier_ready.json", JSON.stringify(premierReady, null, 2));
       zip.file("README.md", buildReadme({
         suffix,
         vendas: sales.length,
