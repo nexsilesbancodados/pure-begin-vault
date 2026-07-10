@@ -45,7 +45,8 @@ import {
   CustomerIntegrityReport,
   CustomerExportMode,
 } from "@/lib/export/customers";
-import { validateSales, exportSales, SalesValidationReport, SalesExportMode, SalesExportResult } from "@/lib/export/sales";
+import { validateSales, exportSales, SalesValidationReport, SalesExportMode, SalesExportResult, SalesSanitizeFilters, DEFAULT_SANITIZE, computeExcludedSales } from "@/lib/export/sales";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   validateFinancialExport,
   exportFinancial,
