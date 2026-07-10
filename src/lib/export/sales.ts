@@ -403,23 +403,40 @@ export async function exportSales(
   format: "csv" | "xlsx" | "zip",
 ): Promise<SalesExportResult> {
   const t0 = performance.now();
-  const [sales, items, payments, customers, products] = await Promise.all([
+  const [sales, items, payments, customers, products, sellers, orgs] = await Promise.all([
     fetchAll("sales_orders", orgId),
     fetchAll("sale_items", orgId),
     fetchAll("sale_payments", orgId),
     fetchAll("customers", orgId),
     fetchAll("products", orgId),
+    // vendedores e organizações — não têm organization_id da mesma forma; ignoramos orgId
+    (async () => {
+      const { data } = await (supabase as any).from("profiles").select("id, nome, display_name, email");
+      return data ?? [];
+    })(),
+    (async () => {
+      const { data } = await (supabase as any).from("organizations").select("id, name");
+      return data ?? [];
+    })(),
   ]);
   const custMap = new Map(customers.map((c: any) => [c.id, c]));
   const prodMap = new Map(products.map((p: any) => [p.id, p]));
+  const sellerMap = new Map((sellers as any[]).map((s: any) => [s.id, s]));
+  const orgMap = new Map((orgs as any[]).map((o: any) => [o.id, o]));
   const totalVendido = sales.reduce((s: number, r: any) => s + Number(r.total_amount ?? 0), 0);
+
+  const empresaAtual = orgId ? (orgMap.get(orgId)?.name ?? orgId) : "todas as lojas";
+  const datas = sales.map((s: any) => s.created_at).filter(Boolean).sort();
+  const periodo = datas.length
+    ? `${new Date(datas[0]).toLocaleDateString("pt-BR")} → ${new Date(datas[datas.length - 1]).toLocaleDateString("pt-BR")}`
+    : "todo o histórico";
 
   let sheets: Array<{ name: string; rows: any[]; columns: string[] }>;
   let suffix = mode;
 
   if (mode === "premier") {
     sheets = [
-      { name: "vendas", ...toPremierSales(sales, custMap) },
+      { name: "vendas", ...toPremierSales(sales, custMap, sellerMap, orgMap) },
       { name: "itens", ...toPremierItems(items, prodMap) },
       { name: "pagamentos", ...toPremierPayments(payments) },
     ];
@@ -445,6 +462,37 @@ export async function exportSales(
   let filename = "";
   let bytes = 0;
 
+  // Usuário atual (para manifest / README)
+  let usuarioLabel = "—";
+  try {
+    const { data } = await supabase.auth.getUser();
+    usuarioLabel = (data?.user as any)?.user_metadata?.full_name || data?.user?.email || "usuário";
+  } catch { /* ignore */ }
+
+  // Hash de integridade simples (fnv-1a sobre concatenação de sale_ids)
+  const integrityHash = fnv1a(sales.map((s: any) => s.id).join("|"));
+
+  const manifest = {
+    versao_exportador: "3.5",
+    versao_schema: "premier-erp/1.1",
+    modo: suffix,
+    empresa: empresaAtual,
+    empresa_id: orgId ?? null,
+    periodo,
+    data_exportacao: new Date().toISOString(),
+    usuario: usuarioLabel,
+    quantidade_vendas: sales.length,
+    quantidade_itens: items.length,
+    quantidade_pagamentos: payments.length,
+    total_vendido: totalVendido,
+    hash_integridade: integrityHash,
+    // Legado
+    gerado_em: new Date().toISOString(),
+    vendas: sales.length,
+    itens: items.length,
+    pagamentos: payments.length,
+  };
+
   if (format === "xlsx") {
     // 3 abas em 1 workbook
     const XLSX = await import("xlsx");
@@ -453,14 +501,7 @@ export async function exportSales(
       const ws = XLSX.utils.json_to_sheet(sh.rows, { header: sh.columns });
       XLSX.utils.book_append_sheet(wb, ws, sh.name.slice(0, 31));
     }
-    const readmeRows = [
-      { campo: "modo", valor: suffix },
-      { campo: "gerado_em", valor: new Date().toISOString() },
-      { campo: "vendas", valor: sales.length },
-      { campo: "itens", valor: items.length },
-      { campo: "pagamentos", valor: payments.length },
-      { campo: "total_vendido", valor: totalVendido },
-    ];
+    const readmeRows = Object.entries(manifest).map(([campo, valor]) => ({ campo, valor: String(valor) }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(readmeRows), "README");
     filename = `vendas-${suffix}-${stamp}.xlsx`;
     XLSX.writeFile(wb, filename);
@@ -468,21 +509,19 @@ export async function exportSales(
   } else if (format === "zip") {
     const zip = new JSZip();
     for (const sh of sheets) zip.file(`${sh.name}.csv`, rowsToCsv(sh.rows, sh.columns));
-    zip.file(
-      "manifest.json",
-      JSON.stringify(
-        {
-          modo: suffix,
-          gerado_em: new Date().toISOString(),
-          vendas: sales.length,
-          itens: items.length,
-          pagamentos: payments.length,
-          total_vendido: totalVendido,
-        },
-        null,
-        2,
-      ),
-    );
+    zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+    if (mode === "premier") {
+      zip.file("README.md", buildReadme({
+        suffix,
+        vendas: sales.length,
+        itens: items.length,
+        pagamentos: payments.length,
+        totalVendido,
+        empresa: empresaAtual,
+        usuario: usuarioLabel,
+        periodo,
+      }));
+    }
     const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
     bytes = blob.size;
     filename = `vendas-${suffix}-${stamp}.zip`;
