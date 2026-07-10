@@ -7,6 +7,35 @@ import JSZip from "jszip";
 
 export type SalesExportMode = "padrao" | "expandida" | "premier";
 
+export interface SalesSanitizeFilters {
+  onlyValid?: boolean;
+  excludeSemItens?: boolean;
+  excludeTotalDivergente?: boolean;
+  excludeSemCliente?: boolean;
+  excludeImeiDuplicado?: boolean;
+  excludePagamentoDivergente?: boolean;
+  excludeCanceladas?: boolean;
+}
+
+export const DEFAULT_SANITIZE: SalesSanitizeFilters = {
+  onlyValid: true,
+  excludeSemItens: true,
+  excludeTotalDivergente: true,
+  excludeSemCliente: true,
+  excludeImeiDuplicado: true,
+  excludePagamentoDivergente: true,
+  excludeCanceladas: true,
+};
+
+export interface SalesSanitizeCandidates {
+  semItens: string[];
+  totalDivergente: string[];
+  semCliente: string[];
+  imeiDuplicado: string[];
+  pagamentoDivergente: string[];
+  canceladas: string[];
+}
+
 export interface SalesValidationReport {
   totalVendas: number;
   vendasSemCliente: number;
@@ -30,6 +59,42 @@ export interface SalesValidationReport {
   percentualIntegridade: number;
   amostra: Array<{ sale_id?: string; problema: string; detalhe?: string }>;
   detalhes?: Array<{ tipo: "erro" | "aviso" | "inconsistencia"; sale_id?: string; registro_id?: string; problema: string; detalhe?: string }>;
+  candidates: SalesSanitizeCandidates;
+  salesIndex: Array<{ id: string; sale_number?: any; customer_id?: string | null; created_at?: string | null }>;
+}
+
+const SANITIZE_LABELS: Record<keyof SalesSanitizeCandidates, string> = {
+  semItens: "Venda sem itens",
+  totalDivergente: "Total divergente",
+  semCliente: "Cliente inexistente / sem cliente",
+  imeiDuplicado: "IMEI duplicado",
+  pagamentoDivergente: "Pagamento divergente",
+  canceladas: "Venda cancelada",
+};
+
+export function computeExcludedSales(
+  report: Pick<SalesValidationReport, "candidates">,
+  filters: SalesSanitizeFilters,
+): { excluded: Set<string>; reasonsBySale: Map<string, string[]> } {
+  const excluded = new Set<string>();
+  const reasonsBySale = new Map<string, string[]>();
+  const c = report.candidates;
+  const add = (ids: string[], label: string) => {
+    for (const id of ids) {
+      if (!id) continue;
+      excluded.add(id);
+      if (!reasonsBySale.has(id)) reasonsBySale.set(id, []);
+      const arr = reasonsBySale.get(id)!;
+      if (!arr.includes(label)) arr.push(label);
+    }
+  };
+  if (filters.excludeSemItens) add(c.semItens, SANITIZE_LABELS.semItens);
+  if (filters.excludeTotalDivergente) add(c.totalDivergente, SANITIZE_LABELS.totalDivergente);
+  if (filters.excludeSemCliente) add(c.semCliente, SANITIZE_LABELS.semCliente);
+  if (filters.excludeImeiDuplicado) add(c.imeiDuplicado, SANITIZE_LABELS.imeiDuplicado);
+  if (filters.excludePagamentoDivergente) add(c.pagamentoDivergente, SANITIZE_LABELS.pagamentoDivergente);
+  if (filters.excludeCanceladas) add(c.canceladas, SANITIZE_LABELS.canceladas);
+  return { excluded, reasonsBySale };
 }
 
 export interface SalesExportResult {
