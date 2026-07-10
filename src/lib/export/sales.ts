@@ -145,27 +145,90 @@ function expandRows(rows: any[]): { rows: any[]; columns: string[] } {
 }
 
 // ── Layouts Premier ERP ───────────────────────────────
-function toPremierSales(sales: any[], custMap: Map<string, any>) {
+// Humanização de valores enumerados (padrão de migração ERP → ERP)
+const STATUS_MAP: Record<string, string> = {
+  completed: "Concluída",
+  completa: "Concluída",
+  paid: "Paga",
+  pending: "Pendente",
+  pendente: "Pendente",
+  canceled: "Cancelada",
+  cancelled: "Cancelada",
+  cancelada: "Cancelada",
+  refunded: "Estornada",
+  draft: "Rascunho",
+  open: "Em aberto",
+};
+const PAYMENT_MAP: Record<string, string> = {
+  cash: "Dinheiro",
+  dinheiro: "Dinheiro",
+  pix: "Pix",
+  credit_card: "Cartão de Crédito",
+  credit: "Cartão de Crédito",
+  cartao_credito: "Cartão de Crédito",
+  debit_card: "Cartão de Débito",
+  debit: "Cartão de Débito",
+  cartao_debito: "Cartão de Débito",
+  boleto: "Boleto",
+  transfer: "Transferência",
+  transferencia: "Transferência",
+  crediario: "Crediário",
+  voucher: "Voucher",
+  other: "Outros",
+};
+const humanStatus = (v: any) => STATUS_MAP[String(v ?? "").toLowerCase()] ?? (v ? String(v) : "");
+const humanPayment = (v: any) => PAYMENT_MAP[String(v ?? "").toLowerCase()] ?? (v ? String(v) : "");
+
+// Extrai um campo de metadata JSON (usado para variação: cor, capacidade, etc.)
+function meta(obj: any, ...keys: string[]) {
+  if (!obj) return "";
+  const m = typeof obj === "string" ? safeJson(obj) : obj;
+  for (const k of keys) {
+    if (m && m[k] != null && m[k] !== "") return String(m[k]);
+  }
+  return "";
+}
+function safeJson(s: string) { try { return JSON.parse(s); } catch { return null; } }
+
+function toPremierSales(
+  sales: any[],
+  custMap: Map<string, any>,
+  sellerMap: Map<string, any>,
+  orgMap: Map<string, any>,
+) {
   const cols = [
+    // legado (mantido para compatibilidade)
     "sale_id", "numero_venda", "data", "hora", "status", "cliente_id", "cliente_nome",
     "cliente_documento", "vendedor_id", "empresa_id", "loja_id", "canal_venda", "origem",
     "subtotal", "desconto", "acrescimo", "frete", "total", "lucro", "margem", "observacoes",
+    // novos campos (opcionais / humanizados)
+    "status_codigo", "status_nome",
+    "vendedor_nome", "empresa_nome", "loja_nome",
+    "cliente_telefone", "cliente_email", "cliente_cidade", "cliente_estado", "cliente_cpf_cnpj",
+    "forma_pagamento_codigo", "forma_pagamento_nome",
   ];
   const rows = sales.map((s) => {
     const c = s.customer_id ? custMap.get(s.customer_id) : null;
+    const sellerId = s.seller_id ?? s.user_id ?? "";
+    const seller = sellerId ? sellerMap.get(sellerId) : null;
+    const org = s.organization_id ? orgMap.get(s.organization_id) : null;
+    const storeId = s.store_id ?? s.organization_id ?? "";
+    const store = storeId ? orgMap.get(storeId) : null;
     const dt = s.created_at ? new Date(s.created_at) : null;
+    const rawStatus = s.status ?? "";
+    const rawPay = s.payment_method ?? "";
     return {
       sale_id: s.id,
       numero_venda: s.sale_number ?? "",
       data: dt ? dt.toISOString().slice(0, 10) : "",
       hora: dt ? dt.toISOString().slice(11, 19) : "",
-      status: s.status ?? "",
+      status: rawStatus,
       cliente_id: s.customer_id ?? "",
       cliente_nome: c?.name ?? "",
       cliente_documento: c?.document ?? "",
-      vendedor_id: s.seller_id ?? s.user_id ?? "",
+      vendedor_id: sellerId,
       empresa_id: s.organization_id ?? "",
-      loja_id: s.store_id ?? s.organization_id ?? "",
+      loja_id: storeId,
       canal_venda: s.channel ?? "loja",
       origem: s.origin ?? s.source ?? "",
       subtotal: s.subtotal ?? 0,
@@ -176,6 +239,19 @@ function toPremierSales(sales: any[], custMap: Map<string, any>) {
       lucro: s.profit ?? "",
       margem: s.margin ?? "",
       observacoes: s.notes ?? "",
+      // novos
+      status_codigo: rawStatus,
+      status_nome: humanStatus(rawStatus),
+      vendedor_nome: seller?.display_name ?? seller?.nome ?? seller?.email ?? "",
+      empresa_nome: org?.name ?? "",
+      loja_nome: store?.name ?? org?.name ?? "",
+      cliente_telefone: c?.phone ?? "",
+      cliente_email: c?.email ?? "",
+      cliente_cidade: c?.city ?? "",
+      cliente_estado: c?.state ?? "",
+      cliente_cpf_cnpj: c?.document ?? "",
+      forma_pagamento_codigo: rawPay,
+      forma_pagamento_nome: humanPayment(rawPay),
     };
   });
   return { rows, columns: cols };
@@ -183,14 +259,23 @@ function toPremierSales(sales: any[], custMap: Map<string, any>) {
 
 function toPremierItems(items: any[], prodMap: Map<string, any>) {
   const cols = [
+    // legado
     "item_id", "sale_id", "produto_id", "produto_nome", "sku", "imei", "categoria",
     "marca", "quantidade", "valor_unitario", "custo_unitario", "desconto", "acrescimo",
     "subtotal", "garantia_meses",
+    // novos
+    "modelo", "capacidade", "cor", "serial", "garantia",
   ];
   const rows = items.map((it) => {
     const p = it.product_id ? prodMap.get(it.product_id) : null;
     const q = Number(it.quantity ?? 0);
     const u = Number(it.unit_price ?? 0);
+    const md = it.metadata ?? {};
+    const cor = meta(md, "cor", "color") || (p?.color ?? "");
+    const cap = meta(md, "capacidade", "gb", "storage") || (p?.storage ?? p?.capacity ?? "");
+    const modelo = meta(md, "modelo", "model") || (p?.model ?? "");
+    const serial = meta(md, "serial", "sn") || (it.serial ?? "");
+    const garantiaMeses = it.warranty_months ?? p?.warranty_months ?? "";
     return {
       item_id: it.id,
       sale_id: it.sale_id,
@@ -206,7 +291,13 @@ function toPremierItems(items: any[], prodMap: Map<string, any>) {
       desconto: it.discount ?? 0,
       acrescimo: it.addition ?? 0,
       subtotal: it.total ?? q * u,
-      garantia_meses: it.warranty_months ?? p?.warranty_months ?? "",
+      garantia_meses: garantiaMeses,
+      // novos
+      modelo,
+      capacidade: cap,
+      cor,
+      serial,
+      garantia: garantiaMeses ? `${garantiaMeses} meses` : "",
     };
   });
   return { rows, columns: cols };
@@ -214,22 +305,105 @@ function toPremierItems(items: any[], prodMap: Map<string, any>) {
 
 function toPremierPayments(payments: any[]) {
   const cols = [
+    // legado
     "pagamento_id", "sale_id", "forma_pagamento", "parcelas", "valor", "taxa",
     "data", "status", "autorizacao", "nsu",
+    // novos
+    "forma_pagamento_codigo", "forma_pagamento_nome",
+    "adquirente", "bandeira",
   ];
-  const rows = payments.map((p) => ({
-    pagamento_id: p.id,
-    sale_id: p.sale_id,
-    forma_pagamento: p.method ?? "",
-    parcelas: p.installments ?? 1,
-    valor: p.amount ?? 0,
-    taxa: p.fee_amount ?? 0,
-    data: p.paid_at ?? p.created_at ?? "",
-    status: p.status ?? (p.paid_at ? "pago" : "pendente"),
-    autorizacao: p.authorization ?? "",
-    nsu: p.nsu ?? p.reference ?? "",
-  }));
+  const rows = payments.map((p) => {
+    const raw = p.method ?? "";
+    return {
+      pagamento_id: p.id,
+      sale_id: p.sale_id,
+      forma_pagamento: raw,
+      parcelas: p.installments ?? 1,
+      valor: p.amount ?? 0,
+      taxa: p.fee_amount ?? 0,
+      data: p.paid_at ?? p.created_at ?? "",
+      status: p.status ?? (p.paid_at ? "pago" : "pendente"),
+      autorizacao: p.authorization ?? "",
+      nsu: p.nsu ?? p.reference ?? "",
+      // novos
+      forma_pagamento_codigo: raw,
+      forma_pagamento_nome: humanPayment(raw),
+      adquirente: p.acquirer ?? p.provider ?? "",
+      bandeira: p.brand ?? p.card_brand ?? "",
+    };
+  });
   return { rows, columns: cols };
+}
+
+// README humanizado para o pacote Premier
+function buildReadme(meta: {
+  suffix: string;
+  vendas: number;
+  itens: number;
+  pagamentos: number;
+  totalVendido: number;
+  empresa: string;
+  usuario: string;
+  periodo: string;
+}) {
+  return `# Exportação ConectaPhone → Premier ERP
+
+**Modo:** ${meta.suffix}
+**Gerado em:** ${new Date().toLocaleString("pt-BR")}
+**Empresa:** ${meta.empresa}
+**Usuário:** ${meta.usuario}
+**Período:** ${meta.periodo}
+
+## Arquivos incluídos
+
+| Arquivo          | Descrição                                                       |
+|------------------|-----------------------------------------------------------------|
+| \`vendas.csv\`     | Cabeçalho das vendas (${meta.vendas} registros).                    |
+| \`itens.csv\`      | Itens vendidos, com produto, IMEI, cor, capacidade (${meta.itens}). |
+| \`pagamentos.csv\` | Formas de pagamento aplicadas a cada venda (${meta.pagamentos}).    |
+| \`manifest.json\`  | Metadados da exportação e totais.                                 |
+| \`README.md\`      | Este arquivo.                                                     |
+
+## Relacionamentos
+
+Todos os arquivos são ligados pela coluna **\`sale_id\`** (UUID único da venda).
+
+\`\`\`
+vendas.sale_id  ──┬──  itens.sale_id
+                  └──  pagamentos.sale_id
+\`\`\`
+
+Colunas adicionais para localização cruzada:
+- \`cliente_id\` + \`cliente_nome\` + \`cliente_documento\`
+- \`vendedor_id\` + \`vendedor_nome\`
+- \`empresa_id\` + \`empresa_nome\`
+- \`loja_id\` + \`loja_nome\`
+- \`produto_id\` + \`produto_nome\` + \`sku\` + \`imei\`
+
+## Humanização de códigos
+
+Valores internos (ex.: \`completed\`, \`pix\`, \`credit_card\`) são exportados
+tanto na coluna original quanto em uma coluna \`*_nome\` legível
+(\`status_nome\`, \`forma_pagamento_nome\`).
+
+## Compatibilidade
+
+- Todas as colunas antigas foram preservadas.
+- Novas colunas são opcionais — imports antigos continuam funcionando.
+- Encoding: UTF-8 com BOM. Separador: \`;\`. Excel BR abre direto.
+
+Total geral vendido: **${meta.totalVendido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}**
+`;
+}
+
+// FNV-1a 32-bit → hex de 8 chars. Suficiente como "checksum" leve para o manifest.
+function fnv1a(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+  }
+  return h.toString(16).padStart(8, "0");
 }
 
 // ── Export principal ──────────────────────────────────
@@ -239,23 +413,40 @@ export async function exportSales(
   format: "csv" | "xlsx" | "zip",
 ): Promise<SalesExportResult> {
   const t0 = performance.now();
-  const [sales, items, payments, customers, products] = await Promise.all([
+  const [sales, items, payments, customers, products, sellers, orgs] = await Promise.all([
     fetchAll("sales_orders", orgId),
     fetchAll("sale_items", orgId),
     fetchAll("sale_payments", orgId),
     fetchAll("customers", orgId),
     fetchAll("products", orgId),
+    // vendedores e organizações — não têm organization_id da mesma forma; ignoramos orgId
+    (async () => {
+      const { data } = await (supabase as any).from("profiles").select("id, nome, display_name, email");
+      return data ?? [];
+    })(),
+    (async () => {
+      const { data } = await (supabase as any).from("organizations").select("id, name");
+      return data ?? [];
+    })(),
   ]);
   const custMap = new Map(customers.map((c: any) => [c.id, c]));
   const prodMap = new Map(products.map((p: any) => [p.id, p]));
+  const sellerMap = new Map((sellers as any[]).map((s: any) => [s.id, s]));
+  const orgMap = new Map((orgs as any[]).map((o: any) => [o.id, o]));
   const totalVendido = sales.reduce((s: number, r: any) => s + Number(r.total_amount ?? 0), 0);
+
+  const empresaAtual = orgId ? (orgMap.get(orgId)?.name ?? orgId) : "todas as lojas";
+  const datas = sales.map((s: any) => s.created_at).filter(Boolean).sort();
+  const periodo = datas.length
+    ? `${new Date(datas[0]).toLocaleDateString("pt-BR")} → ${new Date(datas[datas.length - 1]).toLocaleDateString("pt-BR")}`
+    : "todo o histórico";
 
   let sheets: Array<{ name: string; rows: any[]; columns: string[] }>;
   let suffix = mode;
 
   if (mode === "premier") {
     sheets = [
-      { name: "vendas", ...toPremierSales(sales, custMap) },
+      { name: "vendas", ...toPremierSales(sales, custMap, sellerMap, orgMap) },
       { name: "itens", ...toPremierItems(items, prodMap) },
       { name: "pagamentos", ...toPremierPayments(payments) },
     ];
@@ -281,6 +472,37 @@ export async function exportSales(
   let filename = "";
   let bytes = 0;
 
+  // Usuário atual (para manifest / README)
+  let usuarioLabel = "—";
+  try {
+    const { data } = await supabase.auth.getUser();
+    usuarioLabel = (data?.user as any)?.user_metadata?.full_name || data?.user?.email || "usuário";
+  } catch { /* ignore */ }
+
+  // Hash de integridade simples (fnv-1a sobre concatenação de sale_ids)
+  const integrityHash = fnv1a(sales.map((s: any) => s.id).join("|"));
+
+  const manifest = {
+    versao_exportador: "3.5",
+    versao_schema: "premier-erp/1.1",
+    modo: suffix,
+    empresa: empresaAtual,
+    empresa_id: orgId ?? null,
+    periodo,
+    data_exportacao: new Date().toISOString(),
+    usuario: usuarioLabel,
+    quantidade_vendas: sales.length,
+    quantidade_itens: items.length,
+    quantidade_pagamentos: payments.length,
+    total_vendido: totalVendido,
+    hash_integridade: integrityHash,
+    // Legado
+    gerado_em: new Date().toISOString(),
+    vendas: sales.length,
+    itens: items.length,
+    pagamentos: payments.length,
+  };
+
   if (format === "xlsx") {
     // 3 abas em 1 workbook
     const XLSX = await import("xlsx");
@@ -289,14 +511,7 @@ export async function exportSales(
       const ws = XLSX.utils.json_to_sheet(sh.rows, { header: sh.columns });
       XLSX.utils.book_append_sheet(wb, ws, sh.name.slice(0, 31));
     }
-    const readmeRows = [
-      { campo: "modo", valor: suffix },
-      { campo: "gerado_em", valor: new Date().toISOString() },
-      { campo: "vendas", valor: sales.length },
-      { campo: "itens", valor: items.length },
-      { campo: "pagamentos", valor: payments.length },
-      { campo: "total_vendido", valor: totalVendido },
-    ];
+    const readmeRows = Object.entries(manifest).map(([campo, valor]) => ({ campo, valor: String(valor) }));
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(readmeRows), "README");
     filename = `vendas-${suffix}-${stamp}.xlsx`;
     XLSX.writeFile(wb, filename);
@@ -304,21 +519,19 @@ export async function exportSales(
   } else if (format === "zip") {
     const zip = new JSZip();
     for (const sh of sheets) zip.file(`${sh.name}.csv`, rowsToCsv(sh.rows, sh.columns));
-    zip.file(
-      "manifest.json",
-      JSON.stringify(
-        {
-          modo: suffix,
-          gerado_em: new Date().toISOString(),
-          vendas: sales.length,
-          itens: items.length,
-          pagamentos: payments.length,
-          total_vendido: totalVendido,
-        },
-        null,
-        2,
-      ),
-    );
+    zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+    if (mode === "premier") {
+      zip.file("README.md", buildReadme({
+        suffix,
+        vendas: sales.length,
+        itens: items.length,
+        pagamentos: payments.length,
+        totalVendido,
+        empresa: empresaAtual,
+        usuario: usuarioLabel,
+        periodo,
+      }));
+    }
     const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
     bytes = blob.size;
     filename = `vendas-${suffix}-${stamp}.zip`;
