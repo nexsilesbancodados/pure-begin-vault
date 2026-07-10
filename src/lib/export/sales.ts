@@ -475,7 +475,7 @@ function toPremierItems(
     "marca", "quantidade", "valor_unitario", "custo_unitario", "desconto", "acrescimo",
     "subtotal", "garantia_meses",
     // novos
-    "sale_uuid", "empresa_id", "loja_id", "cliente_id", "vendedor_id",
+    "item_uuid", "sale_uuid", "empresa_id", "loja_id", "cliente_id", "vendedor_id",
     "fornecedor_nome", "fornecedor_documento", "categoria_nome",
     "modelo", "capacidade", "cor", "código_barras", "serial", "garantia",
     "custo", "preço_venda", "lucro_item", "margem_item",
