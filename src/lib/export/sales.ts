@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { rowsToCsv } from "./csv";
 import { downloadXlsx } from "./xlsx";
+import type { BackupPeriod } from "./backup";
 import JSZip from "jszip";
 
 export type SalesExportMode = "padrao" | "expandida" | "premier";
