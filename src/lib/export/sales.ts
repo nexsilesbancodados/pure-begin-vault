@@ -877,9 +877,56 @@ export async function exportSales(
   const saleMap = new Map(sales.map((s: any) => [s.id, s]));
   const sellerMap = new Map((sellers as any[]).map((s: any) => [s.id, s]));
   const orgMap = new Map((orgs as any[]).map((o: any) => [o.id, o]));
-  const { stats: saleAnalytics } = buildSaleAnalytics(sales, items, payments, prodMap);
-  const validationReport = buildSalesValidationReport(sales, items, payments, customers, products);
-  const totalVendido = sales.reduce((s: number, r: any) => s + Number(r.total_amount ?? 0), 0);
+  const { stats: saleAnalyticsPre } = buildSaleAnalytics(sales, items, payments, prodMap);
+  const validationReportPre = buildSalesValidationReport(sales, items, payments, customers, products);
+
+  // ── Saneamento: filtrar vendas conforme sanitize ─────────────
+  const active = sanitize && (
+    sanitize.excludeSemItens || sanitize.excludeTotalDivergente || sanitize.excludeSemCliente ||
+    sanitize.excludeImeiDuplicado || sanitize.excludePagamentoDivergente || sanitize.excludeCanceladas
+  );
+  let excludedRecordsRows: Array<{ sale_id: string; sale_number: any; cliente: string; data: string; motivo_exclusao: string }> = [];
+  let salesFiltered = sales;
+  let itemsFiltered = items;
+  let paymentsFiltered = payments;
+  const totalBanco = sales.length;
+
+  if (active) {
+    const { excluded, reasonsBySale } = computeExcludedSales(validationReportPre, sanitize!);
+    if (excluded.size > 0) {
+      excludedRecordsRows = sales
+        .filter((s: any) => excluded.has(s.id))
+        .map((s: any) => {
+          const cust = s.customer_id ? (custMap.get(s.customer_id) as any) : null;
+          return {
+            sale_id: s.id,
+            sale_number: s.sale_number ?? "",
+            cliente: cust?.name ?? (s.customer_id ? `id:${s.customer_id}` : "—"),
+            data: s.created_at ?? "",
+            motivo_exclusao: (reasonsBySale.get(s.id) ?? []).join(" | "),
+          };
+        });
+      salesFiltered = sales.filter((s: any) => !excluded.has(s.id));
+      const keepIds = new Set(salesFiltered.map((s: any) => s.id));
+      itemsFiltered = items.filter((it: any) => keepIds.has(it.sale_id));
+      paymentsFiltered = payments.filter((p: any) => keepIds.has(p.sale_id));
+    }
+  }
+
+  // Rebuild derivativos com o dataset saneado
+  const salesBase = salesFiltered;
+  const itemsBase = itemsFiltered;
+  const paymentsBase = paymentsFiltered;
+  // Substituímos referências abaixo usando as versões *Base
+  const { stats: saleAnalytics } = active ? buildSaleAnalytics(salesBase, itemsBase, paymentsBase, prodMap) : { stats: saleAnalyticsPre };
+  const validationReport = active ? buildSalesValidationReport(salesBase, itemsBase, paymentsBase, customers, products) : validationReportPre;
+  const totalVendido = salesBase.reduce((s: number, r: any) => s + Number(r.total_amount ?? 0), 0);
+  // Alias para o restante da função continuar chamando `sales`, `items`, `payments`
+  const _sales = salesBase; const _items = itemsBase; const _payments = paymentsBase;
+  // Reatribuições via `let` proxies simples:
+  (sales as any).length = 0; sales.push(..._sales);
+  (items as any).length = 0; items.push(..._items);
+  (payments as any).length = 0; payments.push(..._payments);
 
   const empresaAtual = orgId ? (orgMap.get(orgId)?.name ?? orgId) : "todas as lojas";
   const datas = sales.map((s: any) => s.created_at).filter(Boolean).sort();
