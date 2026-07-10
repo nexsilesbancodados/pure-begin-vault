@@ -60,7 +60,8 @@ export interface SalesValidationReport {
   amostra: Array<{ sale_id?: string; problema: string; detalhe?: string }>;
   detalhes?: Array<{ tipo: "erro" | "aviso" | "inconsistencia"; sale_id?: string; registro_id?: string; problema: string; detalhe?: string }>;
   candidates: SalesSanitizeCandidates;
-  salesIndex: Array<{ id: string; sale_number?: any; customer_id?: string | null; created_at?: string | null }>;
+  salesIndex: Array<{ id: string; sale_number?: any; customer_id?: string | null; customer_name?: string | null; created_at?: string | null; total_amount?: number | null }>;
+  totals: { itens: number; pagamentos: number; clientesReferenciados: number; produtosReferenciados: number };
 }
 
 const SANITIZE_LABELS: Record<keyof SalesSanitizeCandidates, string> = {
@@ -184,7 +185,23 @@ function buildSalesValidationReport(
       pagamentoDivergente: [],
       canceladas: [],
     },
-    salesIndex: sales.map((s: any) => ({ id: s.id, sale_number: s.sale_number, customer_id: s.customer_id ?? null, created_at: s.created_at ?? null })),
+    salesIndex: sales.map((s: any) => {
+      const c = customers.find((cu: any) => cu.id === s.customer_id);
+      return {
+        id: s.id,
+        sale_number: s.sale_number,
+        customer_id: s.customer_id ?? null,
+        customer_name: c?.name ?? c?.full_name ?? null,
+        created_at: s.created_at ?? null,
+        total_amount: num(s.total_amount),
+      };
+    }),
+    totals: {
+      itens: items.length,
+      pagamentos: payments.length,
+      clientesReferenciados: new Set(sales.map((s: any) => s.customer_id).filter(Boolean)).size,
+      produtosReferenciados: new Set(items.map((i: any) => i.product_id).filter(Boolean)).size,
+    },
   };
 
   const itemsBySale = new Map<string, any[]>();
