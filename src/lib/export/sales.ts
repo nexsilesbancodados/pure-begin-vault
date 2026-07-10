@@ -293,6 +293,14 @@ function saleUuid(s: any) {
   const stableKey = s.import_id || s.sale_number || s.id;
   return `conecta:${s.organization_id ?? "sem-empresa"}:sale:${stableKey}`;
 }
+function itemUuid(it: any, s: any) {
+  const base = s ? saleUuid(s) : `conecta:${it.organization_id ?? "sem-empresa"}:sale:${it.sale_id}`;
+  return `${base}:item:${it.id}`;
+}
+function paymentUuid(p: any, s: any) {
+  const base = s ? saleUuid(s) : `conecta:${p.organization_id ?? "sem-empresa"}:sale:${p.sale_id}`;
+  return `${base}:pay:${p.id}`;
+}
 
 function yesNo(v: boolean) {
   return v ? "Sim" : "Não";
