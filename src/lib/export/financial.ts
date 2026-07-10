@@ -659,7 +659,7 @@ export interface FinancialAssistantResult {
   modules: Array<{ key: FinancialModuleKey; count: number; totalAmount: number }>;
 }
 
-const MODULE_TO_TABLES: Record<FinancialModuleKey, string[]> = {
+export const MODULE_TO_TABLES: Record<FinancialModuleKey, string[]> = {
   accounts_payable: ["accounts_payable"],
   accounts_receivable: ["accounts_receivable"],
   finance_transactions: ["finance_transactions"],
