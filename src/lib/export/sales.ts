@@ -842,6 +842,7 @@ export async function exportSales(
   mode: SalesExportMode,
   format: "csv" | "xlsx" | "zip",
   period?: BackupPeriod | null,
+  sanitize?: SalesSanitizeFilters | null,
 ): Promise<SalesExportResult> {
   const t0 = performance.now();
   const salesFilter = (q: any) => {
