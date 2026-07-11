@@ -784,6 +784,14 @@ function BackupButton({ orgId, period }: { orgId: string | null; period?: Backup
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<BackupProgress | null>(null);
   const [result, setResult] = useState<BackupResult | null>(null);
+  const hasPeriod = !!(period?.from || period?.to);
+  const [customerMode, setCustomerMode] = useState<ExportScopeMode>(hasPeriod ? "REFERENCED_ONLY" : "ALL");
+  const [imeiMode, setImeiMode] = useState<ExportScopeMode>(hasPeriod ? "REFERENCED_ONLY" : "ALL");
+
+  useEffect(() => {
+    setCustomerMode(hasPeriod ? "REFERENCED_ONLY" : "ALL");
+    setImeiMode(hasPeriod ? "REFERENCED_ONLY" : "ALL");
+  }, [hasPeriod]);
 
   const run = async () => {
     if (!orgId) {
@@ -794,7 +802,10 @@ function BackupButton({ orgId, period }: { orgId: string | null; period?: Backup
     setResult(null);
     setProgress(null);
     try {
-      const res = await generateBackupZip(orgId, (p) => setProgress(p), period ?? null);
+      const res = await generateBackupZip(orgId, (p) => setProgress(p), period ?? null, {
+        customerExportMode: customerMode,
+        imeiExportMode: imeiMode,
+      });
       setResult(res);
       toast.success(
         `Backup gerado: ${res.totalRows.toLocaleString("pt-BR")} registros (${(res.bytes / 1024 / 1024).toFixed(2)} MB)`,
