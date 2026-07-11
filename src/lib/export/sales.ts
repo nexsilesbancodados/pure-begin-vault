@@ -1069,6 +1069,22 @@ export async function exportSales(
         estoque: p.stock_quantity ?? 0,
         fornecedor_id: p.supplier_id ?? "",
         empresa_id: p.organization_id ?? "",
+        // Sprint fidelidade — campos reais do banco
+        internal_code: p.reference ?? "",
+        external_code: "", // não existe no banco (ver fidelity_report.md)
+        reference: p.reference ?? "",
+        ncm: p.ncm ?? "",
+        has_imei: p.has_imei == null ? "" : yesNo(!!p.has_imei),
+        active: p.active == null ? "" : yesNo(!!p.active),
+        location: p.location ?? "",
+        image_url: p.image_url ?? "",
+        metadata: p.metadata ? JSON.stringify(p.metadata) : "",
+        unit: p.unit ?? "",
+        weight: p.weight ?? "",
+        min_stock: p.min_stock ?? "",
+        wholesale_price: p.wholesale_price ?? "",
+        created_at: p.created_at ?? "",
+        updated_at: p.updated_at ?? "",
       }));
 
     const sellersRows = (sellers as any[])
@@ -1086,12 +1102,31 @@ export async function exportSales(
         nome: o.name ?? "",
       }));
 
+    // Sprint fidelidade — product_imei.csv (rastreabilidade completa dos aparelhos)
+    const usedImeiProductIds = new Set(products.filter((p: any) => usedProductIds.has(p.id)).map((p: any) => p.id));
+    const imeiRows = (imeis as any[])
+      .filter((r: any) => usedImeiProductIds.has(r.product_id))
+      .map((r: any) => ({
+        product_id: r.product_id ?? "",
+        imei: r.imei ?? "",
+        imei2: "", // coluna inexistente em product_imei (ver fidelity_report.md)
+        serial: r.serial ?? "",
+        cost_price: r.cost_price ?? "",
+        sold_at: r.sold_at ?? "",
+        sale_id: r.sale_id ?? "",
+        status: r.status ?? "",
+        notes: r.notes ?? "",
+        empresa_id: r.organization_id ?? "",
+        created_at: r.created_at ?? "",
+      }));
+
     sheets = [
       { name: "sales", ...toPremierSales(sales, custMap, sellerMap, orgMap, saleAnalytics) },
       { name: "sale_items", ...toPremierItems(items, prodMap, supplierMap, saleMap) },
       { name: "sale_payments", ...toPremierPayments(payments, saleMap) },
       { name: "customers", rows: customersRows, columns: customersRows.length ? Object.keys(customersRows[0]) : ["cliente_id","nome","documento","cpf_cnpj","email","telefone","cidade","estado","endereco","cep","empresa_id"] },
-      { name: "products", rows: productsRows, columns: productsRows.length ? Object.keys(productsRows[0]) : ["produto_id","sku","codigo_barras","nome","marca","modelo","categoria","capacidade","cor","custo","preco_venda","estoque","fornecedor_id","empresa_id"] },
+      { name: "products", rows: productsRows, columns: productsRows.length ? Object.keys(productsRows[0]) : ["produto_id","sku","codigo_barras","nome","marca","modelo","categoria","capacidade","cor","custo","preco_venda","estoque","fornecedor_id","empresa_id","internal_code","external_code","reference","ncm","has_imei","active","location","image_url","metadata","unit","weight","min_stock","wholesale_price","created_at","updated_at"] },
+      { name: "product_imei", rows: imeiRows, columns: ["product_id","imei","imei2","serial","cost_price","sold_at","sale_id","status","notes","empresa_id","created_at"] },
       { name: "sellers", rows: sellersRows, columns: sellersRows.length ? Object.keys(sellersRows[0]) : ["vendedor_id","nome","email"] },
       { name: "stores", rows: storesRows, columns: storesRows.length ? Object.keys(storesRows[0]) : ["loja_id","nome"] },
     ];
