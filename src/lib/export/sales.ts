@@ -575,6 +575,9 @@ function toPremierSales(
     "quantidade_itens", "quantidade_aparelhos", "quantidade_acessorios",
     "total_produtos", "total_servicos", "total_descontos", "total_pagamentos", "saldo",
     "pagamento_principal", "quantidade_formas_pagamento", "pagamento_misto", "venda_parcelada",
+    // Sprint fidelidade — valores originais persistidos (nunca recalculados)
+    "created_at", "updated_at", "import_batch_id",
+    "subtotal_original", "desconto_original", "acrescimo_original", "total_original",
   ];
   const rows = sales.map((s) => {
     const c = s.customer_id ? custMap.get(s.customer_id) : null;
