@@ -83,6 +83,15 @@ function customerCode(c: { id?: string | null } | null | undefined) {
 
 type ContactFilter = "all" | "whatsapp" | "email" | "incomplete";
 
+function Field({ label, col, children }: { label: string; col?: string; children: React.ReactNode }) {
+  return (
+    <div className={cn("space-y-1.5", col)}>
+      <Label className="text-xs">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/clientes")({
   head: () => ({
     meta: [
