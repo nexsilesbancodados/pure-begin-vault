@@ -369,6 +369,7 @@ export async function generateBackupZip(
     to: period?.to || null,
   };
   const hasPeriod = !!(normalizedPeriod.from || normalizedPeriod.to);
+  const scope = resolveBackupOptions(options, hasPeriod);
 
   const addFile = (path: string, content: string) => {
     files.push({ path, content });
