@@ -353,6 +353,7 @@ export async function generateBackupZip(
   orgId: string | null,
   onProgress?: (p: BackupProgress) => void,
   period?: BackupPeriod | null,
+  options?: BackupOptions,
 ): Promise<BackupResult> {
   const t0 = performance.now();
   const backupUuid = makeBackupUuid();
