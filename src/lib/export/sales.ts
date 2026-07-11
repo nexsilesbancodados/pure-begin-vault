@@ -961,6 +961,7 @@ export async function exportSales(
       const { data } = await (supabase as any).from("organizations").select("id, name");
       return data ?? [];
     })(),
+    fetchAll("product_imei", orgId),
   ]);
   let sales = salesAll;
   const saleIds = new Set(sales.map((s: any) => s.id));
