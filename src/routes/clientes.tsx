@@ -265,25 +265,39 @@ function CustomersPage() {
     if (customer) {
       setEditingCustomer(customer);
       setFormData({
-        name: customer.name,
-        email: customer.email || "",
-        phone: customer.phone || "",
-        document: customer.document || "",
-        address: customer.address || "",
-        city: customer.city || "",
-        state: customer.state || "",
+        ...emptyForm,
+        name: customer.name ?? "",
+        document: customer.document ?? "",
+        rg: customer.rg ?? "",
+        ie: customer.ie ?? "",
+        im: customer.im ?? "",
+        company_name: customer.company_name ?? "",
+        profession: customer.profession ?? "",
+        birth_date: customer.birth_date ?? "",
+        gender: customer.gender ?? "",
+        person_type: customer.person_type ?? "pf",
+        email: customer.email ?? "",
+        phone: customer.phone ?? "",
+        whatsapp: customer.whatsapp ?? "",
+        phone_secondary: customer.phone_secondary ?? "",
+        zip_code: customer.zip_code ?? "",
+        street: customer.street ?? "",
+        number: customer.number ?? "",
+        complement: customer.complement ?? "",
+        neighborhood: customer.neighborhood ?? "",
+        city: customer.city ?? "",
+        state: customer.state ?? "",
+        address: customer.address ?? "",
+        credit_limit: customer.credit_limit != null ? String(customer.credit_limit) : "",
+        origin: customer.origin ?? "",
+        seller_id: customer.seller_id ?? "",
+        status: customer.status ?? "active",
+        tags: Array.isArray(customer.tags) ? customer.tags.join(", ") : (customer.tags ?? ""),
+        notes: customer.notes ?? "",
       });
     } else {
       setEditingCustomer(null);
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        document: "",
-        address: "",
-        city: "",
-        state: "",
-      });
+      setFormData({ ...emptyForm });
     }
     setIsModalOpen(true);
   };
@@ -292,31 +306,77 @@ function CustomersPage() {
     if (!user?.id || !orgId || !formData.name) return;
     setSaving(true);
     try {
-      const payload = {
+      // Sempre inclui os campos legados (existentes no schema atual)
+      const base: Record<string, any> = {
         user_id: user.id,
         organization_id: orgId,
-        ...formData,
+        name: formData.name,
+        email: formData.email || null,
+        phone: formData.phone || null,
+        document: formData.document || null,
+        address: formData.address || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        notes: formData.notes || null,
+      };
+      // Novos campos: só envia se preenchidos, pra não quebrar caso a migration
+      // ainda não tenha sido aplicada no banco.
+      const optional: Record<string, any> = {
+        zip_code: formData.zip_code || null,
+        street: formData.street || null,
+        number: formData.number || null,
+        complement: formData.complement || null,
+        neighborhood: formData.neighborhood || null,
+        whatsapp: formData.whatsapp || null,
+        phone_secondary: formData.phone_secondary || null,
+        person_type: formData.person_type || null,
+        rg: formData.rg || null,
+        ie: formData.ie || null,
+        im: formData.im || null,
+        company_name: formData.company_name || null,
+        profession: formData.profession || null,
+        birth_date: formData.birth_date || null,
+        gender: formData.gender || null,
+        credit_limit: formData.credit_limit ? Number(formData.credit_limit) : null,
+        origin: formData.origin || null,
+        seller_id: formData.seller_id || null,
+        status: formData.status || null,
+        tags: formData.tags
+          ? formData.tags.split(",").map((t) => t.trim()).filter(Boolean)
+          : null,
+      };
+      const payload = { ...base };
+      for (const [k, v] of Object.entries(optional)) {
+        if (v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)) payload[k] = v;
+      }
+
+      const trySave = async (p: Record<string, any>) => {
+        if (editingCustomer) {
+          return supabase
+            .from("customers")
+            .update(p)
+            .eq("id", editingCustomer.id)
+            .eq("organization_id", orgId);
+        }
+        return supabase.from("customers").insert(p);
       };
 
-      if (editingCustomer) {
-        const { error } = await supabase
-          .from("customers")
-          .update(payload)
-          .eq("id", editingCustomer.id)
-          .eq("organization_id", orgId);
-        if (error) throw error;
-        toast.success("Cliente atualizado!");
-      } else {
-        const { error } = await supabase.from("customers").insert(payload);
-        if (error) throw error;
-        toast.success("Cliente cadastrado!");
+      let { error } = await trySave(payload);
+      // Fallback automático: se algum campo novo não existe no schema (migration
+      // ainda não aplicada), refaz com apenas os campos legados.
+      if (error && /column .* does not exist|schema cache/i.test(error.message)) {
+        console.warn("Campos novos ausentes no schema, salvando apenas campos legados:", error.message);
+        ({ error } = await trySave(base));
+        if (!error) toast.info("Cliente salvo com campos básicos (aplique a migration para habilitar todos).");
       }
+      if (error) throw error;
+      toast.success(editingCustomer ? "Cliente atualizado!" : "Cliente cadastrado!");
 
       setIsModalOpen(false);
       fetchCustomers();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar:", error);
-      toast.error("Erro ao salvar cliente.");
+      toast.error("Erro ao salvar cliente: " + (error?.message ?? "desconhecido"));
     } finally {
       setSaving(false);
     }
