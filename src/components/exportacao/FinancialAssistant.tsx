@@ -201,7 +201,8 @@ function loadPersisted(): PersistedState | null {
   } catch { return null; }
 }
 
-export function FinancialAssistant({ orgId }: { orgId: string | null }) {
+export function FinancialAssistant(props: { orgId: string | null } = { orgId: null }) {
+  const orgId = props?.orgId ?? null;
   const persisted = useRef<PersistedState | null>(null);
   if (persisted.current === null) persisted.current = loadPersisted();
 

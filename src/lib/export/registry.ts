@@ -10,19 +10,30 @@ export type ExportGroup =
   | "servicos"
   | "sistema";
 
+export interface ParentRef {
+  dataset: string;      // key do dataset pai (ex: "sales_orders")
+  parentKey: string;    // coluna do pai (ex: "id")
+  childKey: string;     // coluna do filho (ex: "sale_id")
+}
+
 export interface DatasetDef {
   key: string;
   label: string;
   table: string;
   group: ExportGroup;
-  // Nome da coluna de organização (todas menos algumas devem ter organization_id).
-  orgColumn?: string | null; // null = tabela sem escopo de loja
-  // Coluna usada em filtro de período (se aplicável).
+  orgColumn?: string | null;
   dateColumn?: string;
-  // Lista whitelist de status suportados (para filtro), opcional.
   statusColumn?: string;
-  // Descrição curta pra UI.
   description?: string;
+  // Integridade referencial: se definido, o dataset só exporta linhas cujo
+  // childKey ∈ ids coletados do pai (parent-driven export).
+  parent?: ParentRef;
+  // Se true, mesmo sem `parent` o dataset é reduzido para as ids
+  // coletadas no pipeline (ex: customers ⊂ customer_ids ∪ os customer_ids).
+  derivedFrom?: {
+    // função de derivação identificada por chave (implementada no backup.ts)
+    kind: "customers_from_sales_and_os";
+  };
 }
 
 export const DATASETS: DatasetDef[] = [
