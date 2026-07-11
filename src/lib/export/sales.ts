@@ -667,6 +667,10 @@ function toPremierItems(
     "fornecedor_nome", "fornecedor_documento", "categoria_nome",
     "modelo", "capacidade", "cor", "código_barras", "serial", "garantia",
     "custo", "preço_venda", "lucro_item", "margem_item",
+    // Sprint fidelidade — códigos do produto e snapshot
+    "internal_code", "external_code", "barcode", "reference", "ncm",
+    "imei2", "unit_cost_original", "created_at", "import_batch_id",
+    "product_snapshot",
   ];
   const rows = items.map((it) => {
     const p = it.product_id ? prodMap.get(it.product_id) : null;
