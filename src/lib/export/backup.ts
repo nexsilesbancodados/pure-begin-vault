@@ -254,7 +254,7 @@ function buildReadme(params: {
     "- manifest.json — metadados técnicos, checksums e estatísticas do backup.",
     "- README.md — este guia de leitura do backup.",
     "- RELATORIO_COMPATIBILIDADE.md — relatório resumido para auditoria e migração.",
-    "- diagnostico/ — arquivos informativos de saúde, tabelas vazias, avisos e resumo.",
+    "- diagnostico/ — arquivos informativos de saúde, tabelas vazias, avisos, resumo e integrity_report.json (integridade referencial do ZIP).",
     ...params.modulosExportados.map(
       (m) => `- ${m.pasta}/ — ${m.tabelas.length} arquivo(s) CSV do módulo ${m.modulo}.`,
     ),
