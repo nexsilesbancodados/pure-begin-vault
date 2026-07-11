@@ -393,19 +393,64 @@ const STATUS_MAP: Record<string, string> = {
 const PAYMENT_MAP: Record<string, string> = {
   cash: "Dinheiro",
   dinheiro: "Dinheiro",
+  money: "Dinheiro",
+  especie: "Dinheiro",
   pix: "Pix",
+  pix_parcelado: "Pix Parcelado",
+  "pix parcelado": "Pix Parcelado",
+  pix_installments: "Pix Parcelado",
   credit_card: "Cartão de Crédito",
   credit: "Cartão de Crédito",
   cartao_credito: "Cartão de Crédito",
+  "cartão de crédito": "Cartão de Crédito",
   debit_card: "Cartão de Débito",
   debit: "Cartão de Débito",
   cartao_debito: "Cartão de Débito",
+  "cartão de débito": "Cartão de Débito",
   boleto: "Boleto",
+  bank_slip: "Boleto",
   transfer: "Transferência",
   transferencia: "Transferência",
+  ted: "Transferência",
+  doc: "Transferência",
   crediario: "Crediário",
+  carne: "Carnê",
+  "carnê": "Carnê",
+  entrada: "Entrada",
+  down_payment: "Entrada",
+  sinal: "Entrada",
+  troca: "Troca de Aparelho",
+  trade_in: "Troca de Aparelho",
+  "trade-in": "Troca de Aparelho",
+  aparelho: "Troca de Aparelho",
+  troca_aparelho: "Troca de Aparelho",
+  cashback: "Cashback",
+  credito_loja: "Crédito da Loja",
+  "crédito loja": "Crédito da Loja",
+  store_credit: "Crédito da Loja",
+  vale: "Vale",
+  vale_compra: "Vale",
   voucher: "Voucher",
+  gift_card: "Voucher",
+  permuta: "Permuta",
+  cheque: "Cheque",
+  check: "Cheque",
+  infinitypay: "InfinityPay",
+  infinity_pay: "InfinityPay",
+  "infinity pay": "InfinityPay",
+  stone: "Stone",
+  mercadopago: "Mercado Pago",
+  mercado_pago: "Mercado Pago",
+  "mercado pago": "Mercado Pago",
+  mp: "Mercado Pago",
+  seguro: "Seguro",
+  garantia_estendida: "Garantia Estendida",
+  cortesia: "Cortesia",
+  bonificacao: "Bonificação",
+  "bonificação": "Bonificação",
   other: "Outros",
+  outros: "Outros",
+  outro: "Outros",
 };
 const humanStatus = (v: any) => STATUS_MAP[String(v ?? "").toLowerCase()] ?? (v ? String(v) : "");
 const humanPayment = (v: any) => PAYMENT_MAP[String(v ?? "").toLowerCase()] ?? (v ? String(v) : "");
@@ -530,6 +575,9 @@ function toPremierSales(
     "quantidade_itens", "quantidade_aparelhos", "quantidade_acessorios",
     "total_produtos", "total_servicos", "total_descontos", "total_pagamentos", "saldo",
     "pagamento_principal", "quantidade_formas_pagamento", "pagamento_misto", "venda_parcelada",
+    // Sprint fidelidade — valores originais persistidos (nunca recalculados)
+    "created_at", "updated_at", "import_batch_id",
+    "subtotal_original", "desconto_original", "acrescimo_original", "total_original",
   ];
   const rows = sales.map((s) => {
     const c = s.customer_id ? custMap.get(s.customer_id) : null;
@@ -590,6 +638,14 @@ function toPremierSales(
       quantidade_formas_pagamento: a.quantidadeFormasPagamento ?? (rawPay ? 1 : 0),
       pagamento_misto: yesNo(!!a.pagamentoMisto),
       venda_parcelada: yesNo(!!a.vendaParcelada),
+      // Sprint fidelidade — sem recálculo
+      created_at: s.created_at ?? "",
+      updated_at: s.updated_at ?? "",
+      import_batch_id: s.import_job_id ?? "",
+      subtotal_original: s.subtotal ?? "",
+      desconto_original: s.discount ?? "",
+      acrescimo_original: s.addition ?? "",
+      total_original: s.total_amount ?? "",
     };
   });
   return { rows, columns: cols };
@@ -611,6 +667,10 @@ function toPremierItems(
     "fornecedor_nome", "fornecedor_documento", "categoria_nome",
     "modelo", "capacidade", "cor", "código_barras", "serial", "garantia",
     "custo", "preço_venda", "lucro_item", "margem_item",
+    // Sprint fidelidade — códigos do produto e snapshot
+    "internal_code", "external_code", "barcode", "reference", "ncm",
+    "imei2", "unit_cost_original", "created_at", "import_batch_id",
+    "product_snapshot",
   ];
   const rows = items.map((it) => {
     const p = it.product_id ? prodMap.get(it.product_id) : null;
@@ -663,6 +723,24 @@ function toPremierItems(
       preço_venda: u,
       lucro_item: round2(lucroItem),
       margem_item: subtotal ? round2((lucroItem / subtotal) * 100) : 0,
+      // Sprint fidelidade — sem recálculo, apenas espelhar o banco / snapshot
+      internal_code: p?.reference ?? "",
+      external_code: meta(md, "external_code", "codigo_externo") || "",
+      barcode: p?.ean ?? meta(md, "ean", "barcode", "codigo_barras") ?? "",
+      reference: p?.reference ?? "",
+      ncm: p?.ncm ?? "",
+      imei2: meta(md, "imei2", "imei_2") || "",
+      unit_cost_original: it.unit_cost ?? "",
+      created_at: it.created_at ?? "",
+      import_batch_id: it.import_job_id ?? "",
+      product_snapshot: p
+        ? JSON.stringify({
+            id: p.id, sku: p.sku, name: p.name, brand: p.brand, model: p.model,
+            category: p.category, ean: p.ean, ncm: p.ncm, reference: p.reference,
+            cost_price: p.cost_price, price: p.price, has_imei: p.has_imei,
+            metadata: p.metadata ?? null,
+          })
+        : "",
     };
   });
   return { rows, columns: cols };
@@ -853,6 +931,40 @@ function fnv1a(s: string): string {
   return h.toString(16).padStart(8, "0");
 }
 
+// Relatório de fidelidade — lista campos que o Premier espera mas não existem no banco.
+function buildFidelityReport(): string {
+  return `# Relatório de Fidelidade — Exportação Premier ERP
+
+Gerado em: ${new Date().toISOString()}
+
+Este pacote inclui todos os campos que **existem no banco** do Conecta.
+Campos abaixo foram deixados **vazios** porque a coluna correspondente
+não existe na origem — nenhum valor é inventado ou recalculado.
+
+## sales.csv
+- \`sale_date\` — não existe (use \`created_at\`).
+- \`source_original_id\` — não existe.
+- \`source\` — não existe (use \`canal_venda\`).
+- \`paid_total\` / \`balance_due\` — não persistidos; ver \`sale_payments.csv\`.
+
+## sale_items.csv
+- \`imei2\` — não existe em \`sale_items\` nem em \`product_imei\`.
+- \`serial\` dedicado — não persistido em \`sale_items\`; extraído do metadata quando disponível.
+- \`original_price\` — não persistido; \`unit_price\` já reflete o valor cobrado.
+
+## products.csv
+- \`external_code\` — não existe (mantido vazio para compatibilidade).
+
+## product_imei.csv
+- \`imei2\` — coluna inexistente na tabela \`product_imei\`.
+
+## sale_payments.csv
+- \`nsu\`, \`autorizacao\`, \`tid\`, \`bandeira\`, \`adquirente\` — não persistidos;
+  somente \`method\`, \`amount\`, \`installments\`, \`fee_amount\`, \`reference\` existem no banco.
+`;
+}
+
+
 // ── Export principal ──────────────────────────────────
 export async function exportSales(
   orgId: string | null,
@@ -867,7 +979,7 @@ export async function exportSales(
     if (period?.to) q = q.lte("created_at", period.to);
     return q;
   };
-  const [salesAll, itemsAll, paymentsAll, customers, products, suppliers, sellers, orgs] = await Promise.all([
+  const [salesAll, itemsAll, paymentsAll, customers, products, suppliers, sellers, orgs, imeis] = await Promise.all([
     fetchAll("sales_orders", orgId, salesFilter),
     fetchAll("sale_items", orgId),
     fetchAll("sale_payments", orgId),
@@ -883,6 +995,7 @@ export async function exportSales(
       const { data } = await (supabase as any).from("organizations").select("id, name");
       return data ?? [];
     })(),
+    fetchAll("product_imei", orgId),
   ]);
   let sales = salesAll;
   const saleIds = new Set(sales.map((s: any) => s.id));
@@ -990,6 +1103,22 @@ export async function exportSales(
         estoque: p.stock_quantity ?? 0,
         fornecedor_id: p.supplier_id ?? "",
         empresa_id: p.organization_id ?? "",
+        // Sprint fidelidade — campos reais do banco
+        internal_code: p.reference ?? "",
+        external_code: "", // não existe no banco (ver fidelity_report.md)
+        reference: p.reference ?? "",
+        ncm: p.ncm ?? "",
+        has_imei: p.has_imei == null ? "" : yesNo(!!p.has_imei),
+        active: p.active == null ? "" : yesNo(!!p.active),
+        location: p.location ?? "",
+        image_url: p.image_url ?? "",
+        metadata: p.metadata ? JSON.stringify(p.metadata) : "",
+        unit: p.unit ?? "",
+        weight: p.weight ?? "",
+        min_stock: p.min_stock ?? "",
+        wholesale_price: p.wholesale_price ?? "",
+        created_at: p.created_at ?? "",
+        updated_at: p.updated_at ?? "",
       }));
 
     const sellersRows = (sellers as any[])
@@ -1007,12 +1136,31 @@ export async function exportSales(
         nome: o.name ?? "",
       }));
 
+    // Sprint fidelidade — product_imei.csv (rastreabilidade completa dos aparelhos)
+    const usedImeiProductIds = new Set(products.filter((p: any) => usedProductIds.has(p.id)).map((p: any) => p.id));
+    const imeiRows = (imeis as any[])
+      .filter((r: any) => usedImeiProductIds.has(r.product_id))
+      .map((r: any) => ({
+        product_id: r.product_id ?? "",
+        imei: r.imei ?? "",
+        imei2: "", // coluna inexistente em product_imei (ver fidelity_report.md)
+        serial: r.serial ?? "",
+        cost_price: r.cost_price ?? "",
+        sold_at: r.sold_at ?? "",
+        sale_id: r.sale_id ?? "",
+        status: r.status ?? "",
+        notes: r.notes ?? "",
+        empresa_id: r.organization_id ?? "",
+        created_at: r.created_at ?? "",
+      }));
+
     sheets = [
       { name: "sales", ...toPremierSales(sales, custMap, sellerMap, orgMap, saleAnalytics) },
       { name: "sale_items", ...toPremierItems(items, prodMap, supplierMap, saleMap) },
       { name: "sale_payments", ...toPremierPayments(payments, saleMap) },
       { name: "customers", rows: customersRows, columns: customersRows.length ? Object.keys(customersRows[0]) : ["cliente_id","nome","documento","cpf_cnpj","email","telefone","cidade","estado","endereco","cep","empresa_id"] },
-      { name: "products", rows: productsRows, columns: productsRows.length ? Object.keys(productsRows[0]) : ["produto_id","sku","codigo_barras","nome","marca","modelo","categoria","capacidade","cor","custo","preco_venda","estoque","fornecedor_id","empresa_id"] },
+      { name: "products", rows: productsRows, columns: productsRows.length ? Object.keys(productsRows[0]) : ["produto_id","sku","codigo_barras","nome","marca","modelo","categoria","capacidade","cor","custo","preco_venda","estoque","fornecedor_id","empresa_id","internal_code","external_code","reference","ncm","has_imei","active","location","image_url","metadata","unit","weight","min_stock","wholesale_price","created_at","updated_at"] },
+      { name: "product_imei", rows: imeiRows, columns: ["product_id","imei","imei2","serial","cost_price","sold_at","sale_id","status","notes","empresa_id","created_at"] },
       { name: "sellers", rows: sellersRows, columns: sellersRows.length ? Object.keys(sellersRows[0]) : ["vendedor_id","nome","email"] },
       { name: "stores", rows: storesRows, columns: storesRows.length ? Object.keys(storesRows[0]) : ["loja_id","nome"] },
     ];
@@ -1160,6 +1308,7 @@ export async function exportSales(
         usuario: usuarioLabel,
         periodo,
       }));
+      zip.file("fidelity_report.md", buildFidelityReport());
     }
     const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
     bytes = blob.size;
