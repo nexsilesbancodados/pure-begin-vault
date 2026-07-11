@@ -5,7 +5,15 @@ import { downloadXlsx } from "./xlsx";
 import type { BackupPeriod } from "./backup";
 import JSZip from "jszip";
 
+// ── Versionamento global do exportador ────────────────
+// Utilizado por manifest.json, README.md, export_report.json e fidelity_report.md.
+export const EXPORT_FORMAT_VERSION = "premier-erp/1.2.0";
+export const EXPORTER_VERSION = "3.6";
+export const EXPORT_SCHEMA_VERSION_PREMIER = "premier-erp/plug-and-play-1.0";
+export const EXPORT_SCHEMA_VERSION_STANDARD = "premier-erp/1.1";
+
 export type SalesExportMode = "padrao" | "expandida" | "premier";
+
 
 export interface SalesSanitizeFilters {
   onlyValid?: boolean;
