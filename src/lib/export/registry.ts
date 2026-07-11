@@ -10,25 +10,36 @@ export type ExportGroup =
   | "servicos"
   | "sistema";
 
+export interface ParentRef {
+  dataset: string;      // key do dataset pai (ex: "sales_orders")
+  parentKey: string;    // coluna do pai (ex: "id")
+  childKey: string;     // coluna do filho (ex: "sale_id")
+}
+
 export interface DatasetDef {
   key: string;
   label: string;
   table: string;
   group: ExportGroup;
-  // Nome da coluna de organização (todas menos algumas devem ter organization_id).
-  orgColumn?: string | null; // null = tabela sem escopo de loja
-  // Coluna usada em filtro de período (se aplicável).
+  orgColumn?: string | null;
   dateColumn?: string;
-  // Lista whitelist de status suportados (para filtro), opcional.
   statusColumn?: string;
-  // Descrição curta pra UI.
   description?: string;
+  // Integridade referencial: se definido, o dataset só exporta linhas cujo
+  // childKey ∈ ids coletados do pai (parent-driven export).
+  parent?: ParentRef;
+  // Se true, mesmo sem `parent` o dataset é reduzido para as ids
+  // coletadas no pipeline (ex: customers ⊂ customer_ids ∪ os customer_ids).
+  derivedFrom?: {
+    // função de derivação identificada por chave (implementada no backup.ts)
+    kind: "customers_from_sales_and_os";
+  };
 }
 
 export const DATASETS: DatasetDef[] = [
   // ── Cadastros ───────────────────────────────────────
   { key: "products", label: "Produtos", table: "products", group: "cadastros", orgColumn: "organization_id", dateColumn: "created_at", description: "Catálogo completo de produtos (todas colunas)." },
-  { key: "customers", label: "Clientes", table: "customers", group: "cadastros", orgColumn: "organization_id", dateColumn: "created_at" },
+  { key: "customers", label: "Clientes", table: "customers", group: "cadastros", orgColumn: "organization_id", dateColumn: "created_at", derivedFrom: { kind: "customers_from_sales_and_os" } },
   { key: "suppliers", label: "Fornecedores", table: "suppliers", group: "cadastros", orgColumn: "organization_id", dateColumn: "created_at" },
   { key: "chart_of_accounts", label: "Plano de Contas / Categorias", table: "chart_of_accounts", group: "cadastros", orgColumn: "organization_id" },
   { key: "payment_terminals", label: "Maquininhas", table: "payment_terminals", group: "cadastros", orgColumn: "organization_id" },
@@ -40,8 +51,8 @@ export const DATASETS: DatasetDef[] = [
 
   // ── Vendas ──────────────────────────────────────────
   { key: "sales_orders", label: "Vendas (cabeçalho)", table: "sales_orders", group: "vendas", orgColumn: "organization_id", dateColumn: "created_at", statusColumn: "status" },
-  { key: "sale_items", label: "Itens de Vendas", table: "sale_items", group: "vendas", orgColumn: "organization_id" },
-  { key: "sale_payments", label: "Pagamentos de Vendas", table: "sale_payments", group: "vendas", orgColumn: "organization_id" },
+  { key: "sale_items", label: "Itens de Vendas", table: "sale_items", group: "vendas", orgColumn: "organization_id", parent: { dataset: "sales_orders", parentKey: "id", childKey: "sale_id" } },
+  { key: "sale_payments", label: "Pagamentos de Vendas", table: "sale_payments", group: "vendas", orgColumn: "organization_id", parent: { dataset: "sales_orders", parentKey: "id", childKey: "sale_id" } },
   { key: "quotations", label: "Orçamentos", table: "quotations", group: "vendas", orgColumn: "organization_id", dateColumn: "created_at", statusColumn: "status" },
   { key: "deliveries", label: "Entregas", table: "deliveries", group: "vendas", orgColumn: "organization_id", dateColumn: "created_at" },
 
@@ -65,8 +76,8 @@ export const DATASETS: DatasetDef[] = [
 
   // ── Serviços / OS ──────────────────────────────────
   { key: "service_orders", label: "Ordens de Serviço", table: "service_orders", group: "servicos", orgColumn: "organization_id", dateColumn: "created_at", statusColumn: "status" },
-  { key: "service_order_items", label: "Itens de OS", table: "service_order_items", group: "servicos", orgColumn: "organization_id" },
-  { key: "service_order_history", label: "Histórico de OS", table: "service_order_history", group: "servicos", orgColumn: "organization_id", dateColumn: "created_at" },
+  { key: "service_order_items", label: "Itens de OS", table: "service_order_items", group: "servicos", orgColumn: "organization_id", parent: { dataset: "service_orders", parentKey: "id", childKey: "service_order_id" } },
+  { key: "service_order_history", label: "Histórico de OS", table: "service_order_history", group: "servicos", orgColumn: "organization_id", dateColumn: "created_at", parent: { dataset: "service_orders", parentKey: "id", childKey: "service_order_id" } },
 
   // ── Sistema ─────────────────────────────────────────
   { key: "user_organizations", label: "Usuários da Loja", table: "user_organizations", group: "sistema", orgColumn: "organization_id" },

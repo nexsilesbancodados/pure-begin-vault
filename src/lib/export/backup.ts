@@ -1,9 +1,10 @@
 // Backup Completo — gera um ZIP com todos os datasets da empresa.
 // SOMENTE LEITURA: não altera tabela, RLS ou regra de negócio.
+// v3.2 — parent-driven export: ZIP autocontido e referencialmente íntegro.
 import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 import { DATASETS, DatasetDef, ExportGroup, isTransactionalDataset } from "./registry";
-import { fetchDataset, ExportFilters } from "./fetcher";
+import { fetchDataset, fetchDatasetIn, ExportFilters } from "./fetcher";
 import { rowsToCsv } from "./csv";
 
 // Mapeia grupos → pastas no ZIP (nomes em pt-BR conforme spec)
@@ -94,8 +95,8 @@ interface CompatibilityManifest {
   registros_por_tabela: Record<string, number>;
 }
 
-const BACKUP_FORMAT_VERSION = "3.1";
-const BACKUP_SCHEMA_VERSION = "1.1";
+const BACKUP_FORMAT_VERSION = "3.2";
+const BACKUP_SCHEMA_VERSION = "1.2";
 const COMPATIBILITY = {
   minimum_version: "1.0.0",
   maximum_validated_version: "3.1.0",
@@ -253,7 +254,7 @@ function buildReadme(params: {
     "- manifest.json — metadados técnicos, checksums e estatísticas do backup.",
     "- README.md — este guia de leitura do backup.",
     "- RELATORIO_COMPATIBILIDADE.md — relatório resumido para auditoria e migração.",
-    "- diagnostico/ — arquivos informativos de saúde, tabelas vazias, avisos e resumo.",
+    "- diagnostico/ — arquivos informativos de saúde, tabelas vazias, avisos, resumo e integrity_report.json (integridade referencial do ZIP).",
     ...params.modulosExportados.map(
       (m) => `- ${m.pasta}/ — ${m.tabelas.length} arquivo(s) CSV do módulo ${m.modulo}.`,
     ),
@@ -356,9 +357,15 @@ export async function generateBackupZip(
   addFile("empresa.json", toJson(organization ?? {}));
   addFile("configuracoes.json", toJson(settings ?? {}));
 
-  // 2) Datasets → CSV por grupo/pasta
-  for (let i = 0; i < DATASETS.length; i++) {
-    const ds: DatasetDef = DATASETS[i];
+  // 2) Datasets → CSV — PIPELINE PARENT-DRIVEN (v3.2)
+  //    Fase A: pais (com filtro de período)
+  //    Fase B: filhos (derivados de ids do pai)
+  //    Fase C: dimensões derivadas (customers ⊂ vendas ∪ OS)
+  //    Fase D: independentes
+  const rowsByKey: Record<string, any[]> = {};
+  const idsByKey: Record<string, string[]> = {};
+
+  const processDataset = async (ds: DatasetDef, i: number, ids?: string[]) => {
     onProgress?.({
       currentDataset: ds.label,
       currentIndex: i + 1,
@@ -366,13 +373,23 @@ export async function generateBackupZip(
       rowsSoFar: totalRows,
     });
     try {
-      // Cadastros/sistema sempre completos. Transacionais respeitam o período.
       const filters: ExportFilters = {};
       if (hasPeriod && isTransactionalDataset(ds)) {
         if (normalizedPeriod.from) filters.periodStart = normalizedPeriod.from;
         if (normalizedPeriod.to) filters.periodEnd = normalizedPeriod.to;
       }
-      const res = await fetchDataset(ds, orgId, filters);
+
+      let res;
+      if (ds.parent && ids) {
+        // Fase B: filho restrito às ids do pai — sem período (já filtrado via pai).
+        res = await fetchDatasetIn(ds, orgId, ds.parent.childKey, ids, {});
+      } else if (ds.derivedFrom?.kind === "customers_from_sales_and_os" && ids) {
+        // Fase C: customers derivados
+        res = await fetchDatasetIn(ds, orgId, "id", ids, {});
+      } else {
+        res = await fetchDataset(ds, orgId, filters);
+      }
+
       const folder = GROUP_FOLDER[ds.group] ?? ds.group;
       const csv = rowsToCsv(res.rows, res.columns);
       const file = `${folder}/${ds.key}.csv`;
@@ -380,45 +397,113 @@ export async function generateBackupZip(
       addFile(file, csv);
       perTable[ds.table] = res.count;
       totalRows += res.count;
-      if (res.warnings.length) {
-        warnings.push(...res.warnings.map((w) => `${ds.key}: ${w}`));
-      }
+      rowsByKey[ds.key] = res.rows;
+      idsByKey[ds.key] = res.rows.map((r: any) => r?.id).filter(Boolean);
+      if (res.warnings.length) warnings.push(...res.warnings.map((w) => `${ds.key}: ${w}`));
       metas.push({
-        key: ds.key,
-        label: ds.label,
-        table: ds.table,
-        group: ds.group,
-        folder,
-        file,
-        records: res.count,
-        columns: res.columns.length,
+        key: ds.key, label: ds.label, table: ds.table, group: ds.group, folder, file,
+        records: res.count, columns: res.columns.length,
         dateColumn: ds.dateColumn ?? null,
-        firstDate: bounds.firstDate,
-        lastDate: bounds.lastDate,
+        firstDate: bounds.firstDate, lastDate: bounds.lastDate,
         warnings: res.warnings,
       });
     } catch (e: unknown) {
       const message = `${ds.key}: ${getErrorMessage(e)}`;
       warnings.push(message);
       perTable[ds.table] = 0;
+      rowsByKey[ds.key] = [];
+      idsByKey[ds.key] = [];
       metas.push({
-        key: ds.key,
-        label: ds.label,
-        table: ds.table,
-        group: ds.group,
+        key: ds.key, label: ds.label, table: ds.table, group: ds.group,
         folder: GROUP_FOLDER[ds.group] ?? ds.group,
         file: `${GROUP_FOLDER[ds.group] ?? ds.group}/${ds.key}.csv`,
-        records: 0,
-        columns: 0,
-        dateColumn: ds.dateColumn ?? null,
-        firstDate: null,
-        lastDate: null,
-        warnings: [message],
+        records: 0, columns: 0, dateColumn: ds.dateColumn ?? null,
+        firstDate: null, lastDate: null, warnings: [message],
       });
+    }
+  };
+
+  // Fase A: pais + independentes (tudo que NÃO é parent-driven nem derivado)
+  const parentsAndIndep = DATASETS.filter((d) => !d.parent && !d.derivedFrom);
+  for (let i = 0; i < parentsAndIndep.length; i++) {
+    await processDataset(parentsAndIndep[i], DATASETS.indexOf(parentsAndIndep[i]));
+  }
+
+  // Fase B: filhos
+  const children = DATASETS.filter((d) => d.parent);
+  for (const ds of children) {
+    const parentIds = idsByKey[ds.parent!.dataset] ?? [];
+    await processDataset(ds, DATASETS.indexOf(ds), parentIds);
+  }
+
+  // Fase C: dimensões derivadas
+  const derived = DATASETS.filter((d) => d.derivedFrom);
+  for (const ds of derived) {
+    if (ds.derivedFrom!.kind === "customers_from_sales_and_os") {
+      const salesRows = rowsByKey["sales_orders"] ?? [];
+      const osRows = rowsByKey["service_orders"] ?? [];
+      const cids = new Set<string>();
+      for (const r of salesRows) if (r?.customer_id) cids.add(r.customer_id);
+      for (const r of osRows) if (r?.customer_id) cids.add(r.customer_id);
+      await processDataset(ds, DATASETS.indexOf(ds), Array.from(cids));
     }
   }
 
-  // 3) Metadados, README e diagnóstico — aproveitam apenas dados já carregados.
+  // 2.5) Validação de integridade referencial — ZIP autocontido
+  interface IntegrityCheck {
+    child: string; fk: string; parent: string; key: string;
+    nullable?: boolean; critical?: boolean;
+  }
+  const integrityChecks: IntegrityCheck[] = [
+    { child: "sale_items", fk: "sale_id", parent: "sales_orders", key: "id", critical: true },
+    { child: "sale_payments", fk: "sale_id", parent: "sales_orders", key: "id", critical: true },
+    { child: "service_order_items", fk: "service_order_id", parent: "service_orders", key: "id", critical: true },
+    { child: "service_order_history", fk: "service_order_id", parent: "service_orders", key: "id", critical: true },
+    { child: "sale_items", fk: "product_id", parent: "products", key: "id", nullable: true },
+    { child: "sales_orders", fk: "customer_id", parent: "customers", key: "id", nullable: true },
+    { child: "service_orders", fk: "customer_id", parent: "customers", key: "id", nullable: true },
+  ];
+  const integrityResults = integrityChecks.map((c) => {
+    const childRows = rowsByKey[c.child] ?? [];
+    const parentIds = new Set((rowsByKey[c.parent] ?? []).map((r: any) => r?.[c.key]).filter(Boolean));
+    const orphans: string[] = [];
+    let checked = 0;
+    for (const r of childRows) {
+      const v = r?.[c.fk];
+      if (v == null || v === "") { if (!c.nullable) checked++; continue; }
+      checked++;
+      if (!parentIds.has(v)) orphans.push(String(v));
+    }
+    const status = orphans.length === 0 ? "pass" : c.nullable ? "warning" : "fail";
+    return {
+      child: c.child, fk: c.fk, parent: c.parent, parent_key: c.key,
+      nullable: !!c.nullable, critical: !!c.critical,
+      total_rows: childRows.length, checked_rows: checked,
+      orphan_count: orphans.length, orphan_ids_sample: orphans.slice(0, 20),
+      status,
+    };
+  });
+  const integrityStatus =
+    integrityResults.some((r) => r.status === "fail") ? "fail"
+    : integrityResults.some((r) => r.status === "warning") ? "warning" : "pass";
+  addFile("diagnostico/integrity_report.json", toJson({
+    generated_at: exportedAt,
+    format_version: BACKUP_FORMAT_VERSION,
+    status: integrityStatus,
+    total_checks: integrityResults.length,
+    passed: integrityResults.filter((r) => r.status === "pass").length,
+    warnings: integrityResults.filter((r) => r.status === "warning").length,
+    failures: integrityResults.filter((r) => r.status === "fail").length,
+    checks: integrityResults,
+    note: "Parent-driven export (v3.2): filhos derivados de ids do pai. Nenhum FK crítico deve apontar para fora do ZIP.",
+  }));
+  if (integrityStatus !== "pass") {
+    warnings.push(
+      `Integridade referencial: ${integrityStatus} — ver diagnostico/integrity_report.json`,
+    );
+  }
+
+
   const modulosExportados = Array.from(new Set(DATASETS.map((d) => d.group))).map((g) => ({
     modulo: g,
     pasta: GROUP_FOLDER[g] ?? g,
@@ -544,8 +629,15 @@ export async function generateBackupZip(
     checksums,
     tempo_total_ms: durationMs,
     avisos: warnings,
+    integridade_referencial: {
+      status: integrityStatus,
+      total_checks: integrityResults.length,
+      failures: integrityResults.filter((r) => r.status === "fail").length,
+      warnings: integrityResults.filter((r) => r.status === "warning").length,
+      report_file: "diagnostico/integrity_report.json",
+    },
     observacoes:
-      "Backup somente-leitura gerado pela Central de Exportação. Nenhum dado do sistema foi alterado.",
+      "Backup v3.2 parent-driven: ZIP autocontido. Filhos derivados dos ids do pai (sale_items, sale_payments, service_order_items, service_order_history) e customers restrito às vendas/OS do período.",
   });
 
   const buildZip = (zipBytes: number | null) => {
