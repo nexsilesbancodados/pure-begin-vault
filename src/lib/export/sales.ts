@@ -1650,6 +1650,8 @@ export async function exportSales(
     quantidade_pagamentos: payments.length,
     total_vendido: totalVendido,
     hash_integridade: integrityHash,
+    customer_export_mode: customerExportMode,
+    customer_export_audit: auditoriaClientes,
     validacao: {
       erros: validationReport.erros,
       avisos: validationReport.avisos,
