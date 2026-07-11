@@ -83,6 +83,15 @@ function customerCode(c: { id?: string | null } | null | undefined) {
 
 type ContactFilter = "all" | "whatsapp" | "email" | "incomplete";
 
+function Field({ label, col, children }: { label: string; col?: string; children: React.ReactNode }) {
+  return (
+    <div className={cn("space-y-1.5", col)}>
+      <Label className="text-xs">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
 export const Route = createFileRoute("/clientes")({
   head: () => ({
     meta: [
@@ -177,15 +186,41 @@ function CustomersPage() {
     };
   }, [viewingCustomer?.id, viewingCustomer?.name, orgId]);
 
-  const [formData, setFormData] = useState({
+  const emptyForm = {
+    // Dados
     name: "",
+    document: "",
+    rg: "",
+    ie: "",
+    im: "",
+    company_name: "",
+    profession: "",
+    birth_date: "",
+    gender: "",
+    person_type: "pf",
+    // Contato
     email: "",
     phone: "",
-    document: "",
-    address: "",
+    whatsapp: "",
+    phone_secondary: "",
+    // Endereço estruturado
+    zip_code: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
     city: "",
     state: "",
-  });
+    address: "", // legado
+    // Comercial
+    credit_limit: "",
+    origin: "",
+    seller_id: "",
+    status: "active",
+    tags: "" as string, // csv
+    notes: "",
+  };
+  const [formData, setFormData] = useState<Record<string, string>>({ ...emptyForm });
 
   const fetchCustomers = useCallback(async () => {
     if (!user?.id || !orgId) return;
@@ -239,25 +274,39 @@ function CustomersPage() {
     if (customer) {
       setEditingCustomer(customer);
       setFormData({
-        name: customer.name,
-        email: customer.email || "",
-        phone: customer.phone || "",
-        document: customer.document || "",
-        address: customer.address || "",
-        city: customer.city || "",
-        state: customer.state || "",
+        ...emptyForm,
+        name: customer.name ?? "",
+        document: customer.document ?? "",
+        rg: customer.rg ?? "",
+        ie: customer.ie ?? "",
+        im: customer.im ?? "",
+        company_name: customer.company_name ?? "",
+        profession: customer.profession ?? "",
+        birth_date: customer.birth_date ?? "",
+        gender: customer.gender ?? "",
+        person_type: customer.person_type ?? "pf",
+        email: customer.email ?? "",
+        phone: customer.phone ?? "",
+        whatsapp: customer.whatsapp ?? "",
+        phone_secondary: customer.phone_secondary ?? "",
+        zip_code: customer.zip_code ?? "",
+        street: customer.street ?? "",
+        number: customer.number ?? "",
+        complement: customer.complement ?? "",
+        neighborhood: customer.neighborhood ?? "",
+        city: customer.city ?? "",
+        state: customer.state ?? "",
+        address: customer.address ?? "",
+        credit_limit: customer.credit_limit != null ? String(customer.credit_limit) : "",
+        origin: customer.origin ?? "",
+        seller_id: customer.seller_id ?? "",
+        status: customer.status ?? "active",
+        tags: Array.isArray(customer.tags) ? customer.tags.join(", ") : (customer.tags ?? ""),
+        notes: customer.notes ?? "",
       });
     } else {
       setEditingCustomer(null);
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        document: "",
-        address: "",
-        city: "",
-        state: "",
-      });
+      setFormData({ ...emptyForm });
     }
     setIsModalOpen(true);
   };
@@ -266,31 +315,77 @@ function CustomersPage() {
     if (!user?.id || !orgId || !formData.name) return;
     setSaving(true);
     try {
-      const payload = {
+      // Sempre inclui os campos legados (existentes no schema atual)
+      const base: Record<string, any> = {
         user_id: user.id,
         organization_id: orgId,
-        ...formData,
+        name: formData.name,
+        email: formData.email || null,
+        phone: formData.phone || null,
+        document: formData.document || null,
+        address: formData.address || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        notes: formData.notes || null,
+      };
+      // Novos campos: só envia se preenchidos, pra não quebrar caso a migration
+      // ainda não tenha sido aplicada no banco.
+      const optional: Record<string, any> = {
+        zip_code: formData.zip_code || null,
+        street: formData.street || null,
+        number: formData.number || null,
+        complement: formData.complement || null,
+        neighborhood: formData.neighborhood || null,
+        whatsapp: formData.whatsapp || null,
+        phone_secondary: formData.phone_secondary || null,
+        person_type: formData.person_type || null,
+        rg: formData.rg || null,
+        ie: formData.ie || null,
+        im: formData.im || null,
+        company_name: formData.company_name || null,
+        profession: formData.profession || null,
+        birth_date: formData.birth_date || null,
+        gender: formData.gender || null,
+        credit_limit: formData.credit_limit ? Number(formData.credit_limit) : null,
+        origin: formData.origin || null,
+        seller_id: formData.seller_id || null,
+        status: formData.status || null,
+        tags: formData.tags
+          ? formData.tags.split(",").map((t) => t.trim()).filter(Boolean)
+          : null,
+      };
+      const payload = { ...base };
+      for (const [k, v] of Object.entries(optional)) {
+        if (v !== null && v !== "" && !(Array.isArray(v) && v.length === 0)) payload[k] = v;
+      }
+
+      const trySave = async (p: Record<string, any>) => {
+        if (editingCustomer) {
+          return supabase
+            .from("customers")
+            .update(p)
+            .eq("id", editingCustomer.id)
+            .eq("organization_id", orgId);
+        }
+        return supabase.from("customers").insert(p);
       };
 
-      if (editingCustomer) {
-        const { error } = await supabase
-          .from("customers")
-          .update(payload)
-          .eq("id", editingCustomer.id)
-          .eq("organization_id", orgId);
-        if (error) throw error;
-        toast.success("Cliente atualizado!");
-      } else {
-        const { error } = await supabase.from("customers").insert(payload);
-        if (error) throw error;
-        toast.success("Cliente cadastrado!");
+      let { error } = await trySave(payload);
+      // Fallback automático: se algum campo novo não existe no schema (migration
+      // ainda não aplicada), refaz com apenas os campos legados.
+      if (error && /column .* does not exist|schema cache/i.test(error.message)) {
+        console.warn("Campos novos ausentes no schema, salvando apenas campos legados:", error.message);
+        ({ error } = await trySave(base));
+        if (!error) toast.info("Cliente salvo com campos básicos (aplique a migration para habilitar todos).");
       }
+      if (error) throw error;
+      toast.success(editingCustomer ? "Cliente atualizado!" : "Cliente cadastrado!");
 
       setIsModalOpen(false);
       fetchCustomers();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar:", error);
-      toast.error("Erro ao salvar cliente.");
+      toast.error("Erro ao salvar cliente: " + (error?.message ?? "desconhecido"));
     } finally {
       setSaving(false);
     }
@@ -631,73 +726,140 @@ function CustomersPage() {
       </Dialog>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[720px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingCustomer ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: João da Silva"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="joao@exemplo.com"
-                />
+          <div className="grid gap-6 py-4">
+            {/* DADOS */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Dados</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Nome Completo *" col="col-span-2">
+                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: João da Silva" />
+                </Field>
+                <Field label="Tipo de pessoa">
+                  <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={formData.person_type} onChange={(e) => setFormData({ ...formData, person_type: e.target.value })}>
+                    <option value="pf">Pessoa Física</option>
+                    <option value="pj">Pessoa Jurídica</option>
+                  </select>
+                </Field>
+                <Field label="CPF / CNPJ">
+                  <Input value={formData.document} onChange={(e) => setFormData({ ...formData, document: e.target.value })} placeholder="000.000.000-00" />
+                </Field>
+                <Field label="RG">
+                  <Input value={formData.rg} onChange={(e) => setFormData({ ...formData, rg: e.target.value })} />
+                </Field>
+                <Field label="Inscrição Estadual">
+                  <Input value={formData.ie} onChange={(e) => setFormData({ ...formData, ie: e.target.value })} />
+                </Field>
+                <Field label="Inscrição Municipal">
+                  <Input value={formData.im} onChange={(e) => setFormData({ ...formData, im: e.target.value })} />
+                </Field>
+                <Field label="Empresa">
+                  <Input value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} />
+                </Field>
+                <Field label="Profissão">
+                  <Input value={formData.profession} onChange={(e) => setFormData({ ...formData, profession: e.target.value })} />
+                </Field>
+                <Field label="Data de nascimento">
+                  <Input type="date" value={formData.birth_date} onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })} />
+                </Field>
+                <Field label="Sexo">
+                  <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value })}>
+                    <option value="">—</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Feminino</option>
+                    <option value="O">Outro</option>
+                  </select>
+                </Field>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">WhatsApp / Celular</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="(11) 99999-9999"
-                />
+            </section>
+
+            {/* CONTATO */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Contato</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Telefone">
+                  <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="(11) 3333-4444" />
+                </Field>
+                <Field label="WhatsApp">
+                  <Input value={formData.whatsapp} onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(11) 99999-9999" />
+                </Field>
+                <Field label="Telefone secundário">
+                  <Input value={formData.phone_secondary} onChange={(e) => setFormData({ ...formData, phone_secondary: e.target.value })} />
+                </Field>
+                <Field label="E-mail">
+                  <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="joao@exemplo.com" />
+                </Field>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="document">CPF / CNPJ</Label>
-              <Input
-                id="document"
-                value={formData.document}
-                onChange={(e) => setFormData({ ...formData, document: e.target.value })}
-                placeholder="000.000.000-00"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="street">Endereço (Rua)</Label>
-                <Input
-                  id="street"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                />
+            </section>
+
+            {/* ENDEREÇO */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Endereço</h3>
+              <div className="grid grid-cols-6 gap-3">
+                <Field label="CEP" col="col-span-2">
+                  <Input value={formData.zip_code} onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })} placeholder="00000-000" />
+                </Field>
+                <Field label="Rua" col="col-span-4">
+                  <Input value={formData.street} onChange={(e) => setFormData({ ...formData, street: e.target.value })} />
+                </Field>
+                <Field label="Número" col="col-span-1">
+                  <Input value={formData.number} onChange={(e) => setFormData({ ...formData, number: e.target.value })} />
+                </Field>
+                <Field label="Complemento" col="col-span-3">
+                  <Input value={formData.complement} onChange={(e) => setFormData({ ...formData, complement: e.target.value })} />
+                </Field>
+                <Field label="Bairro" col="col-span-2">
+                  <Input value={formData.neighborhood} onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })} />
+                </Field>
+                <Field label="Cidade" col="col-span-4">
+                  <Input value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} />
+                </Field>
+                <Field label="Estado" col="col-span-2">
+                  <Input value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} maxLength={2} placeholder="SP" />
+                </Field>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">Cidade</Label>
-                <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                />
+              {(formData.address || (!formData.street && editingCustomer)) && (
+                <Field label="Endereço legado (texto livre — compatibilidade)">
+                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Mantido apenas para clientes antigos." />
+                </Field>
+              )}
+            </section>
+
+            {/* COMERCIAL */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Comercial</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Limite de crédito (R$)">
+                  <Input type="number" step="0.01" value={formData.credit_limit} onChange={(e) => setFormData({ ...formData, credit_limit: e.target.value })} />
+                </Field>
+                <Field label="Origem">
+                  <Input value={formData.origin} onChange={(e) => setFormData({ ...formData, origin: e.target.value })} placeholder="Indicação, Instagram..." />
+                </Field>
+                <Field label="Vendedor responsável (ID)">
+                  <Input value={formData.seller_id} onChange={(e) => setFormData({ ...formData, seller_id: e.target.value })} placeholder="UUID do vendedor" />
+                </Field>
+                <Field label="Status">
+                  <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                    <option value="active">Ativo</option>
+                    <option value="inactive">Inativo</option>
+                    <option value="blocked">Bloqueado</option>
+                    <option value="lead">Lead</option>
+                  </select>
+                </Field>
+                <Field label="Tags (separadas por vírgula)" col="col-span-2">
+                  <Input value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="vip, atacado, fidelizado" />
+                </Field>
+                <Field label="Observações" col="col-span-2">
+                  <textarea className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
+                </Field>
               </div>
-            </div>
+            </section>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Cliente"}
             </Button>
