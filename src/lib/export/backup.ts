@@ -629,8 +629,15 @@ export async function generateBackupZip(
     checksums,
     tempo_total_ms: durationMs,
     avisos: warnings,
+    integridade_referencial: {
+      status: integrityStatus,
+      total_checks: integrityResults.length,
+      failures: integrityResults.filter((r) => r.status === "fail").length,
+      warnings: integrityResults.filter((r) => r.status === "warning").length,
+      report_file: "diagnostico/integrity_report.json",
+    },
     observacoes:
-      "Backup somente-leitura gerado pela Central de Exportação. Nenhum dado do sistema foi alterado.",
+      "Backup v3.2 parent-driven: ZIP autocontido. Filhos derivados dos ids do pai (sale_items, sale_payments, service_order_items, service_order_history) e customers restrito às vendas/OS do período.",
   });
 
   const buildZip = (zipBytes: number | null) => {
