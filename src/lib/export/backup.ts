@@ -666,6 +666,24 @@ export async function generateBackupZip(
       mode: "transactional_only" as const,
       applied: hasPeriod,
     },
+    customer_export_mode: scope.customerExportMode,
+    imei_export_mode: scope.imeiExportMode,
+    export_scope: {
+      customers: {
+        mode: scope.customerExportMode,
+        description:
+          scope.customerExportMode === "ALL"
+            ? "Todos os clientes cadastrados na empresa."
+            : "Somente clientes referenciados por vendas ou ordens de serviço do período exportado.",
+      },
+      product_imei: {
+        mode: scope.imeiExportMode,
+        description:
+          scope.imeiExportMode === "ALL"
+            ? "Todos os IMEIs/séries cadastrados."
+            : "Somente IMEIs vinculados a vendas do período exportado (sale_id ∈ vendas exportadas).",
+      },
+    },
     modulos_exportados: modulosExportados,
     total_registros: totalRows,
     total_records: totalRows,
@@ -683,8 +701,34 @@ export async function generateBackupZip(
       warnings: integrityResults.filter((r) => r.status === "warning").length,
       report_file: "diagnostico/integrity_report.json",
     },
+    breaking_changes: {
+      from_version: "3.2",
+      to_version: BACKUP_FORMAT_VERSION,
+      changes: [
+        {
+          area: "customers.csv",
+          change:
+            "Comportamento agora é opt-in via customer_export_mode (ALL | REFERENCED_ONLY).",
+          impact:
+            "Antes (3.2) customers era sempre REFERENCED_ONLY. A partir do 3.3 é ALL por padrão em backup completo e REFERENCED_ONLY quando há período.",
+          reason:
+            "Suportar dois casos de uso legítimos (backup mestre vs. migração parcial) sem mudar comportamento silenciosamente.",
+          revert_to_old:
+            "Passar { customerExportMode: 'REFERENCED_ONLY' } em generateBackupZip.",
+        },
+        {
+          area: "product_imei.csv",
+          change:
+            "Novo modo imei_export_mode (ALL | REFERENCED_ONLY). Em REFERENCED_ONLY filtra por sale_id ∈ vendas exportadas.",
+          impact:
+            "Reduz ZIP em migrações parciais; backup completo mantém todos os IMEIs.",
+          reason: "Coerência com customers e integridade do escopo exportado.",
+          revert_to_old: "Passar { imeiExportMode: 'ALL' } em generateBackupZip.",
+        },
+      ],
+    },
     observacoes:
-      "Backup v3.2 parent-driven: ZIP autocontido. Filhos derivados dos ids do pai (sale_items, sale_payments, service_order_items, service_order_history) e customers restrito às vendas/OS do período.",
+      `Backup v${BACKUP_FORMAT_VERSION} parent-driven: ZIP autocontido. Filhos derivados dos ids do pai (sale_items, sale_payments, service_order_items, service_order_history). customers=${scope.customerExportMode}, product_imei=${scope.imeiExportMode}.`,
   });
 
   const buildZip = (zipBytes: number | null) => {
