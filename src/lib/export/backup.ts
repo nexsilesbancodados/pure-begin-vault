@@ -447,7 +447,11 @@ export async function generateBackupZip(
   };
 
   // Fase A: pais + independentes (tudo que NÃO é parent-driven nem derivado)
-  const parentsAndIndep = DATASETS.filter((d) => !d.parent && !d.derivedFrom);
+  // product_imei em modo REFERENCED_ONLY é adiado para Fase C (precisa dos ids de vendas).
+  const deferImei = scope.imeiExportMode === "REFERENCED_ONLY";
+  const parentsAndIndep = DATASETS.filter(
+    (d) => !d.parent && !d.derivedFrom && !(deferImei && d.key === "product_imei"),
+  );
   for (let i = 0; i < parentsAndIndep.length; i++) {
     await processDataset(parentsAndIndep[i], DATASETS.indexOf(parentsAndIndep[i]));
   }
@@ -459,18 +463,38 @@ export async function generateBackupZip(
     await processDataset(ds, DATASETS.indexOf(ds), parentIds);
   }
 
-  // Fase C: dimensões derivadas
+  // Fase C: dimensões derivadas / opt-in
   const derived = DATASETS.filter((d) => d.derivedFrom);
   for (const ds of derived) {
     if (ds.derivedFrom!.kind === "customers_from_sales_and_os") {
-      const salesRows = rowsByKey["sales_orders"] ?? [];
-      const osRows = rowsByKey["service_orders"] ?? [];
-      const cids = new Set<string>();
-      for (const r of salesRows) if (r?.customer_id) cids.add(r.customer_id);
-      for (const r of osRows) if (r?.customer_id) cids.add(r.customer_id);
-      await processDataset(ds, DATASETS.indexOf(ds), Array.from(cids));
+      if (scope.customerExportMode === "ALL") {
+        // Modo ALL: catálogo completo, ignora ids do pai.
+        await processDataset(ds, DATASETS.indexOf(ds));
+      } else {
+        const salesRows = rowsByKey["sales_orders"] ?? [];
+        const osRows = rowsByKey["service_orders"] ?? [];
+        const cids = new Set<string>();
+        for (const r of salesRows) if (r?.customer_id) cids.add(r.customer_id);
+        for (const r of osRows) if (r?.customer_id) cids.add(r.customer_id);
+        await processDataset(ds, DATASETS.indexOf(ds), Array.from(cids));
+      }
     }
   }
+
+  // product_imei em modo REFERENCED_ONLY: filtra por sale_id ∈ vendas do período.
+  if (deferImei) {
+    const imeiDs = DATASETS.find((d) => d.key === "product_imei");
+    if (imeiDs) {
+      const saleIds = idsByKey["sales_orders"] ?? [];
+      // Reusa processDataset via override temporário: trata como filho de sales_orders.
+      const virtualChild: DatasetDef = {
+        ...imeiDs,
+        parent: { dataset: "sales_orders", parentKey: "id", childKey: "sale_id" },
+      };
+      await processDataset(virtualChild, DATASETS.indexOf(imeiDs), saleIds);
+    }
+  }
+
 
   // 2.5) Validação de integridade referencial — ZIP autocontido
   interface IntegrityCheck {
