@@ -177,15 +177,41 @@ function CustomersPage() {
     };
   }, [viewingCustomer?.id, viewingCustomer?.name, orgId]);
 
-  const [formData, setFormData] = useState({
+  const emptyForm = {
+    // Dados
     name: "",
+    document: "",
+    rg: "",
+    ie: "",
+    im: "",
+    company_name: "",
+    profession: "",
+    birth_date: "",
+    gender: "",
+    person_type: "pf",
+    // Contato
     email: "",
     phone: "",
-    document: "",
-    address: "",
+    whatsapp: "",
+    phone_secondary: "",
+    // Endereço estruturado
+    zip_code: "",
+    street: "",
+    number: "",
+    complement: "",
+    neighborhood: "",
     city: "",
     state: "",
-  });
+    address: "", // legado
+    // Comercial
+    credit_limit: "",
+    origin: "",
+    seller_id: "",
+    status: "active",
+    tags: "" as string, // csv
+    notes: "",
+  };
+  const [formData, setFormData] = useState<Record<string, string>>({ ...emptyForm });
 
   const fetchCustomers = useCallback(async () => {
     if (!user?.id || !orgId) return;
