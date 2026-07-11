@@ -1548,15 +1548,23 @@ export async function exportSales(
   // Hash de integridade simples (fnv-1a sobre concatenação de sale_ids)
   const integrityHash = fnv1a(sales.map((s: any) => s.id).join("|"));
 
-  const manifest = {
-    versao_exportador: "3.5",
-    versao_schema: mode === "premier" ? "premier-erp/plug-and-play-1.0" : "premier-erp/1.1",
+  const timezone = (() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; }
+  })();
+
+  const manifest: any = {
+    versao_formato: EXPORT_FORMAT_VERSION,
+    versao_exportador: EXPORTER_VERSION,
+    versao_schema: mode === "premier" ? EXPORT_SCHEMA_VERSION_PREMIER : EXPORT_SCHEMA_VERSION_STANDARD,
     modo: suffix,
     formato: format,
+    encoding: "utf-8-bom",
+    delimitador: ";",
     empresa: empresaAtual,
     empresa_id: orgId ?? null,
     periodo,
     data_exportacao: new Date().toISOString(),
+    timezone,
     usuario: usuarioLabel,
     quantidade_vendas: sales.length,
     quantidade_itens: items.length,
@@ -1590,7 +1598,6 @@ export async function exportSales(
   };
 
   if (format === "xlsx") {
-    // 3 abas em 1 workbook
     const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
     for (const sh of sheets) {
@@ -1604,38 +1611,133 @@ export async function exportSales(
     bytes = sales.length * 300;
   } else if (format === "zip") {
     const zip = new JSZip();
-    const csvFiles = sheets.map((sh) => ({ ...sh, arquivo: `${sh.name}.csv`, csv: rowsToCsv(sh.rows, sh.columns) }));
+    // 1. Gera CSVs (formato INALTERADO — mesma estrutura, mesmo delimitador, mesmos nomes)
+    const csvFiles = sheets.map((sh) => ({
+      ...sh,
+      arquivo: `${sh.name}.csv`,
+      csv: rowsToCsv(sh.rows, sh.columns),
+    }));
     for (const sh of csvFiles) zip.file(sh.arquivo, sh.csv);
-    const zipManifest = {
-      ...manifest,
-      arquivos: csvFiles.map((sh) => ({
+
+    // 2. Validações automáticas (nunca interrompem a exportação)
+    const packageIssues = runPackageValidations(csvFiles);
+
+    // 3. Hashes SHA-256 + tamanhos em bytes reais
+    const enc = new TextEncoder();
+    const perFile = await Promise.all(csvFiles.map(async (sh) => {
+      const bytesEnc = enc.encode(sh.csv);
+      const sha = await sha256Hex(bytesEnc);
+      return {
         nome: sh.arquivo,
         registros: sh.rows.length,
         colunas: sh.columns.length,
+        tamanho_bytes: bytesEnc.byteLength,
+        encoding: "utf-8-bom",
+        delimitador: ";",
+        sha256: sha,
         checksum_fnv1a: fnv1a(sh.csv),
         colunas_lista: sh.columns,
-      })),
+      };
+    }));
+
+    // 4. Manifest expandido
+    const zipManifest = {
+      ...manifest,
+      arquivos: perFile,
+      total_bytes: perFile.reduce((a, f) => a + f.tamanho_bytes, 0),
+      total_arquivos: perFile.length,
+      validacoes_pacote: {
+        total: packageIssues.length,
+        erros: packageIssues.filter((i) => i.tipo === "erro").length,
+        avisos: packageIssues.filter((i) => i.tipo === "aviso").length,
+      },
     };
     zip.file("manifest.json", JSON.stringify(zipManifest, null, 2));
-    // Registros excluídos pelos filtros de saneamento (sempre presente, mesmo vazio, para rastreabilidade)
+
+    // 5. Registros excluídos (sempre presente, mesmo vazio)
     zip.file(
       "excluded_records.csv",
       rowsToCsv(excludedRecordsRows, ["sale_id", "sale_number", "cliente", "data", "motivo_exclusao"]),
     );
     zip.file("sanitize_summary.json", JSON.stringify({
+      versao_formato: EXPORT_FORMAT_VERSION,
       filtros_aplicados: sanitize ?? null,
       total_banco: totalBanco,
       total_exportado: sales.length,
       total_excluido: excludedRecordsRows.length,
       integridade_percentual: validationReport.percentualIntegridade,
     }, null, 2));
+
+    // 6. Data Dictionary + README enriquecido + Fidelity Report — sempre incluídos
+    const durationMsSoFar = Math.round(performance.now() - t0);
+    zip.file("data_dictionary.json", JSON.stringify(buildDataDictionary(csvFiles), null, 2));
+    const readmeArquivos = perFile.map((f) => ({ nome: f.nome, registros: f.registros, colunas: f.colunas }));
+    zip.file("README.md", buildEnrichedReadme({
+      suffix,
+      vendas: sales.length,
+      itens: items.length,
+      pagamentos: payments.length,
+      totalVendido,
+      empresa: empresaAtual,
+      usuario: usuarioLabel,
+      periodo,
+      arquivos: readmeArquivos,
+    }));
+    const customersSheetAll = csvFiles.find((s) => s.name === "customers");
+    const productsSheetAll = csvFiles.find((s) => s.name === "products");
+    const imeiSheetAll = csvFiles.find((s) => s.name === "product_imei");
+    zip.file("fidelity_report.md", buildFidelityReport({
+      vendas: sales.length,
+      itens: items.length,
+      pagamentos: payments.length,
+      clientes: customersSheetAll?.rows.length ?? 0,
+      produtos: productsSheetAll?.rows.length ?? 0,
+      imeis: imeiSheetAll?.rows.length ?? 0,
+      vendasValidas: sales.length,
+      validacaoIntegridade: validationReport.percentualIntegridade,
+    }));
+
+    // 7. Export report — auditoria da execução
+    const exportReport = {
+      versao_formato: EXPORT_FORMAT_VERSION,
+      versao_exportador: EXPORTER_VERSION,
+      modo: suffix,
+      empresa: empresaAtual,
+      empresa_id: orgId ?? null,
+      gerado_em: new Date().toISOString(),
+      timezone,
+      duracao_ms: durationMsSoFar,
+      arquivos_gerados: perFile.map((f) => f.nome),
+      arquivos_vazios: perFile.filter((f) => f.registros === 0).map((f) => f.nome),
+      totais: {
+        vendas: sales.length,
+        itens: items.length,
+        pagamentos: payments.length,
+        clientes: customersSheetAll?.rows.length ?? 0,
+        produtos: productsSheetAll?.rows.length ?? 0,
+        imeis: imeiSheetAll?.rows.length ?? 0,
+      },
+      validacoes_executadas: [
+        "UTF-8 (BOM) por arquivo",
+        "cabeçalhos duplicados",
+        "colunas obrigatórias por CSV",
+        "IDs duplicados na chave primária",
+        "referências sale_items/sale_payments → sales.sale_uuid",
+        "arquivos vazios",
+        "integridade de valores (totais, pagamentos, itens)",
+      ],
+      avisos: packageIssues.filter((i) => i.tipo === "aviso"),
+      inconsistencias: packageIssues.filter((i) => i.tipo === "erro"),
+      integridade_percentual: validationReport.percentualIntegridade,
+    };
+    zip.file("export_report.json", JSON.stringify(exportReport, null, 2));
+
     if (mode === "premier") {
       zip.file("validation_report.json", JSON.stringify(validationReport, null, 2));
       zip.file("import_map.json", JSON.stringify(buildPremierImportMap(), null, 2));
-      const customersSheet = csvFiles.find((s) => s.name === "customers");
-      const productsSheet = csvFiles.find((s) => s.name === "products");
       const premierReady = {
-        versao_layout: "premier-erp/plug-and-play-1.0",
+        versao_layout: EXPORT_SCHEMA_VERSION_PREMIER,
+        versao_formato: EXPORT_FORMAT_VERSION,
         hash: integrityHash,
         empresa: empresaAtual,
         empresa_id: orgId ?? null,
@@ -1643,29 +1745,19 @@ export async function exportSales(
         quantidade_vendas: sales.length,
         quantidade_itens: items.length,
         quantidade_pagamentos: payments.length,
-        quantidade_clientes: customersSheet?.rows.length ?? 0,
-        quantidade_produtos: productsSheet?.rows.length ?? 0,
+        quantidade_clientes: customersSheetAll?.rows.length ?? 0,
+        quantidade_produtos: productsSheetAll?.rows.length ?? 0,
         integridade_percentual: validationReport.percentualIntegridade,
         data_exportacao: new Date().toISOString(),
         arquivos: csvFiles.map((s) => s.arquivo),
       };
       zip.file("premier_ready.json", JSON.stringify(premierReady, null, 2));
-      zip.file("README.md", buildReadme({
-        suffix,
-        vendas: sales.length,
-        itens: items.length,
-        pagamentos: payments.length,
-        totalVendido,
-        empresa: empresaAtual,
-        usuario: usuarioLabel,
-        periodo,
-      }));
-      zip.file("fidelity_report.md", buildFidelityReport());
     }
     const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
     bytes = blob.size;
     filename = `vendas-${suffix}-${stamp}.zip`;
     triggerBlob(filename, blob);
+
   } else {
     // CSV único = concatena as 3 abas em 1 (não ideal); melhor exportar apenas "vendas"
     const csv = rowsToCsv(sheets[0].rows, sheets[0].columns);
