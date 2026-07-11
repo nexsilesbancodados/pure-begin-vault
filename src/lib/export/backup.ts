@@ -116,16 +116,16 @@ interface CompatibilityManifest {
   registros_por_tabela: Record<string, number>;
 }
 
-const BACKUP_FORMAT_VERSION = "3.2";
-const BACKUP_SCHEMA_VERSION = "1.2";
+const BACKUP_FORMAT_VERSION = "3.3";
+const BACKUP_SCHEMA_VERSION = "1.3";
 const COMPATIBILITY = {
   minimum_version: "1.0.0",
-  maximum_validated_version: "3.1.0",
+  maximum_validated_version: "3.2.0",
   level: "full",
 };
 const COMPATIBLE_WITH = {
   premier: ">=1.0.0",
-  conecta_backup: ">=1.0.0 <=3.1.0",
+  conecta_backup: ">=1.0.0 <=3.2.0",
 };
 
 async function fetchOrgInfo(orgId: string | null) {
