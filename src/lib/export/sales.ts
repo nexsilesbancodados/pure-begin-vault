@@ -638,6 +638,14 @@ function toPremierSales(
       quantidade_formas_pagamento: a.quantidadeFormasPagamento ?? (rawPay ? 1 : 0),
       pagamento_misto: yesNo(!!a.pagamentoMisto),
       venda_parcelada: yesNo(!!a.vendaParcelada),
+      // Sprint fidelidade — sem recálculo
+      created_at: s.created_at ?? "",
+      updated_at: s.updated_at ?? "",
+      import_batch_id: s.import_job_id ?? "",
+      subtotal_original: s.subtotal ?? "",
+      desconto_original: s.discount ?? "",
+      acrescimo_original: s.addition ?? "",
+      total_original: s.total_amount ?? "",
     };
   });
   return { rows, columns: cols };
