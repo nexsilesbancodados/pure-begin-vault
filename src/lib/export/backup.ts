@@ -114,6 +114,8 @@ interface CompatibilityManifest {
   total_records: number;
   total_modules: number;
   registros_por_tabela: Record<string, number>;
+  customer_export_mode?: ExportScopeMode;
+  imei_export_mode?: ExportScopeMode;
 }
 
 const BACKUP_FORMAT_VERSION = "3.3";
