@@ -153,8 +153,21 @@ async function fetchSalesAggregate(orgId: string | null): Promise<
 }
 
 // ── Integridade ───────────────────────────────────────
-export async function checkCustomerIntegrity(orgId: string | null): Promise<CustomerIntegrityReport> {
-  const rows = await fetchAllCustomers(orgId);
+export async function checkCustomerIntegrity(
+  orgId: string | null,
+  opts: CustomerAuditOptions = {},
+): Promise<CustomerIntegrityReport> {
+  const scope: CustomerAuditScope = opts.scope ?? "ALL";
+  const allRows = await fetchAllCustomers(orgId);
+
+  let rows = allRows;
+  let referencedIds: string[] | undefined;
+  if (scope === "REFERENCED_ONLY") {
+    const refSet = await fetchReferencedCustomerIds(orgId, opts.period ?? null);
+    referencedIds = [...refSet];
+    rows = allRows.filter((r) => refSet.has(r.id));
+  }
+
   const report: CustomerIntegrityReport = {
     total: rows.length,
     cpfDuplicado: 0,
@@ -165,6 +178,8 @@ export async function checkCustomerIntegrity(orgId: string | null): Promise<Cust
     semCidade: 0,
     semNome: 0,
     amostraProblemas: [],
+    scope,
+    referencedIds,
   };
   const cpfMap = new Map<string, number>();
   const cnpjMap = new Map<string, number>();
@@ -176,12 +191,8 @@ export async function checkCustomerIntegrity(orgId: string | null): Promise<Cust
       report.semNome++;
       push(r.id, "sem nome");
     }
-    if (!r.phone) {
-      report.semTelefone++;
-    }
-    if (!r.city) {
-      report.semCidade++;
-    }
+    if (!r.phone) report.semTelefone++;
+    if (!r.city) report.semCidade++;
     const doc = String(r.document ?? "").trim();
     if (doc) {
       if (isCpf(doc)) {
