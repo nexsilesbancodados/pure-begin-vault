@@ -1,110 +1,141 @@
-## Sobre o erro "Element type is invalid" no TodaySalesModal
 
-Revisei o arquivo `src/components/dashboard/TodaySalesModal.tsx` linha a linha:
-- Todos os imports (`Dialog`, `Button`, `Calendar`, `Popover`, `ScrollArea`, `Badge`) existem e exportam nomes corretos em `src/components/ui/*`.
-- Todos os ícones do `lucide-react` (`ShoppingBag`, `Coins`, `Hash`, `Smartphone`, etc.) estão presentes na versão instalada.
-- O único subcomponente `KPI` está definido no próprio arquivo e recebe ícones válidos.
+# Plano — Integridade Referencial do ZIP de Exportação
 
-Não há import quebrado no código atual. Esse erro casa com o padrão dos anteriores desta thread — **service worker / cache antigo** servindo um bundle onde o arquivo ainda importava algo removido. Recarregar com Ctrl+Shift+R (ou aba anônima) em `pure-begin-vault.lovable.app` costuma resolver. Não vou alterar o modal — a Sprint pediu explicitamente para não mexer em lógica existente.
-
-Se depois do hard-refresh o erro persistir, me mande um print do modal aberto (ou o conteúdo real da linha reportada no bundle publicado) que eu ajusto pontualmente.
+Objetivo: garantir que o pacote gerado (`sales.csv`, `sale_items.csv`, `sale_payments.csv`, `customers.csv`, `products.csv`, `service_orders.csv`, `service_order_items.csv`, `service_order_history.csv`, `product_imei.csv`) seja **autocontido**: nenhum filho referencia um pai ausente, nenhum FK aponta para fora do ZIP.
 
 ---
 
-## Sprint: Central de Exportação de Dados
+## 1. Arquitetura atual (diagnóstico)
 
-Módulo **somente leitura**. Nada de alterar cadastros, RLS, triggers ou lógica de negócio. Apenas consultar, agregar e gerar arquivos.
+- `src/lib/export/backup.ts` percorre o `registry.ts` dataset a dataset. Cada dataset é buscado por `fetchDataset()` de forma **independente**, aplicando `periodStart/periodEnd` só quando o registry declara `dateColumn`.
+- Consequência: `sales_orders` tem `dateColumn = created_at`, mas `sale_items` / `sale_payments` **não têm** — são exportados inteiros da org.
+- Mesmo problema em `service_order_items`, `service_order_history` e — para o pacote Premier (`src/lib/export/sales.ts`) — `customers.csv` / `products.csv` que hoje puxam catálogo completo.
 
-### Rota e navegação
-- Nova rota: `src/routes/sistema.exportacao.tsx` (TanStack Start).
-- Item no Sidebar em "Sistema" → "Exportação de Dados" (ícone `Download`), visível só para role `admin`/`owner` via `RequirePermission`.
+## 2. Nova arquitetura — "Parent-Driven Export"
 
-### Camada Export Service (nova, isolada)
-Diretório novo: `src/lib/export/`
-- `export/registry.ts` — lista de datasets exportáveis. Cada entry:
-  ```ts
-  { key, label, table, defaultColumns, filters: [...], relations?: [...], group: "produtos"|"clientes"|"financeiro"|... }
-  ```
-- `export/fetcher.ts` — `fetchDataset(key, filters, orgId)` paginando via Supabase (batches de 1000, `.range()`), respeitando `organization_id = orgId` (nunca cruza lojas — regra core).
-- `export/csv.ts` — reaproveita `src/lib/exportCsv.ts` (BOM UTF-8, escape de vírgulas/aspas). Preserva nomes de colunas originais.
-- `export/xlsx.ts` — usa `xlsx` (SheetJS). Se ainda não estiver, adicionar com `bun add xlsx`.
-- `export/diagnostics.ts` — funções puras de diagnóstico (contagens, órfãos, duplicados, CPF/CNPJ/IMEI inválidos). Retorna relatório, não escreve nada.
-- `export/report.ts` — gera o relatório final (registros exportados, tempo, tamanho, inconsistências).
+Substituir o loop cego por um **pipeline em fases** dentro de `backup.ts` e replicar em `sales.ts` (pacote Premier):
 
-Todo dataset **passa pela Export Service** — a UI nunca chama Supabase direto.
-
-### Datasets do registry (fase 1)
-Mapear cada um para a tabela real do schema:
-- `products` → produtos (todas colunas)
-- `customers` → clientes
-- `suppliers` → fornecedores
-- `products` (view estoque atual: id, sku, name, stock_quantity, category, brand)
-- `stock_movements` → movimentações
-- `purchase_notes` → compras (header)
-- `purchase_notes.items` (jsonb) achatado → itens de compras
-- `sales_orders` → vendas (header)
-- `sale_items` → itens das vendas
-- `sale_payments` → pagamentos das vendas
-- `finance_transactions` → financeiro geral
-- `accounts_receivable` → contas a receber
-- `accounts_payable` → contas a pagar
-- `chart_of_accounts` → plano de contas / categorias financeiras
-- `payment_terminals` → maquininhas
-- `profiles` + `user_organizations` → usuários da loja
-- `leads` + `pipeline_leads` → CRM
-- `service_orders` + `service_order_items` + `service_order_history` → OS
-
-Para cada exportação: preserva IDs originais (`id`, `organization_id`, `customer_id`, `product_id`, `sale_id`, etc.) — sem renomear, sem transformar tipos.
-
-### UI da tela `sistema.exportacao.tsx`
-Três abas em `<Tabs>`:
-
-**1. Dashboard**
-- 10+ `KpiCard`s com contagens (`select count(*)` por tabela filtrado por `organization_id`).
-- Loading skeleton, refetch button.
-
-**2. Exportar**
-- Sidebar esquerda: grupos (Cadastros, Estoque, Vendas, Compras, Financeiro, CRM, OS).
-- Painel direito: dataset selecionado + filtros (período `DateRangePicker`, status `Select`, categoria/marca `Combobox`, loja fixa na loja ativa).
-- Botões: `Exportar CSV` / `Exportar Excel`.
-- Progress bar durante paginação.
-- Ao final: toast + card com relatório (qtd registros, tempo, tamanho, arquivo baixado).
-
-**3. Diagnóstico**
-- Tabela: nome da tabela · qtd registros · última atualização (`max(updated_at)`) · nº colunas.
-- Botão "Rodar checagem de integridade" → lista órfãos, duplicados, CPFs/CNPJs/IMEIs inválidos, campos obrigatórios vazios.
-- Só relatório visual — nenhuma alteração no banco.
-
-### Filtros suportados
-Implementados no `fetcher.ts` de forma genérica:
-- `period` (start/end em `created_at` ou `transaction_date` conforme dataset)
-- `status` (quando a tabela tiver)
-- `organization_id` (sempre a loja ativa — nunca override)
-- `category`, `brand` (produtos)
-
-### Formatos
-- CSV: UTF-8 com BOM, `;` como separador (compatível Excel BR), `\n` LF.
-- XLSX: um sheet por dataset. Sheet extra "README" com data/hora, versão, filtros aplicados, contagens.
-
-### Relatório final por exportação
-Objeto salvo em memória (não persiste em banco):
 ```
-{ dataset, format, filters, rows, columns, bytes, durationMs, warnings: [...] }
+Fase A — PAIS (filtrados por período)
+  sales_orders      → set S = {sale_id}
+  service_orders    → set O = {os_id}
+
+Fase B — FILHOS (derivados de S / O)
+  sale_items         WHERE sale_id      IN S
+  sale_payments      WHERE sale_id      IN S
+  product_imei       WHERE sale_id      IN S     (ou status='sold' ∈ S)
+  service_order_items    WHERE service_order_id IN O
+  service_order_history  WHERE service_order_id IN O
+
+Fase C — DIMENSÕES (derivadas dos pais)
+  customers  WHERE id IN (customer_id de S ∪ O)
+  products   → ver decisão em §3
+  suppliers  WHERE id IN (supplier_id de products exportados)
+
+Fase D — INDEPENDENTES (permanecem escopo-org, sem filtro relacional)
+  accounts_payable / accounts_receivable / finance_transactions
+  (têm seus próprios dateColumn e não são filhos de sales)
 ```
-Mostrado em card + opção "Baixar relatório .json".
 
-### O que NÃO faz nesta Sprint
-- Não altera nenhuma tabela.
-- Não cria migrations, RLS, triggers, funções SQL.
-- Não modifica venda, PDV, financeiro, estoque, OS.
-- Não implementa importação para o Premier ERP (fase posterior).
-- Não expõe rota pública — tudo atrás do `_authenticated` + role admin.
+### Mudança concreta no `registry.ts`
+Adicionar metadados relacionais:
 
-### Ordem de entrega
-1. `export/registry.ts` + `fetcher.ts` + `csv.ts` (fase mínima).
-2. Rota + aba Dashboard + aba Exportar (apenas Produtos e Clientes) → validar formato.
-3. Adicionar `xlsx.ts` + demais datasets.
-4. Aba Diagnóstico + relatório final.
-5. Polimento: filtros avançados, progress bar, README sheet.
+```ts
+type DatasetDef = {
+  ...,
+  parent?: {
+    dataset: string;         // 'sales_orders'
+    parentKey: string;       // 'id'
+    childKey: string;        // 'sale_id'
+  }
+}
+```
 
-Confirma que posso seguir com essa estrutura? Se preferir, começo pela fase mínima (passos 1–2) e você valida o CSV antes de eu adicionar os outros datasets.
+O `backup.ts` faz **topological sort** pelo grafo `parent → child` e usa os IDs coletados na Fase A como `filters.extra` (via `.in()`) para a Fase B.
+
+### Novo helper em `fetcher.ts`
+`fetchDatasetIn(ds, orgId, column, ids, chunkSize=500)` — quebra o `IN` em lotes de 500 para não estourar o limite de URL do PostgREST.
+
+## 3. Decisão sobre `products.csv`
+
+**Recomendação: Estratégia B (catálogo completo da org), documentada.**
+
+Justificativa:
+- O Premier importa catálogo como dimensão mestre; ativos zerados de estoque ainda precisam existir para relatórios históricos e recompras.
+- Produtos são low-cardinality (média < 5k linhas por org) — impacto de tamanho desprezível.
+- Restringir a "produtos vendidos no período" quebraria: (a) reimportação parcial, (b) leitura de `stock_movements` fora do período, (c) auditoria de estoque.
+- Integridade referencial fica garantida porque `sale_items.product_id` sempre estará contido no catálogo completo (superset).
+
+Mesma lógica para `suppliers`: exportar completo (dimensão mestre pequena).
+
+`customers` **é diferente** — cresce linearmente com histórico e a maioria não participa do período. Filtrar por `IN (customer_id de S ∪ O)` reduz ZIP substancialmente e mantém integridade.
+
+## 4. Validação automática (bloco novo no `sales.ts` / `backup.ts`)
+
+Após montar todos os CSVs em memória, rodar `validateReferentialIntegrity()`:
+
+```
+checks = [
+  { child:'sale_items',           fk:'sale_id',           parent:'sales.csv',           key:'id' },
+  { child:'sale_payments',        fk:'sale_id',           parent:'sales.csv',           key:'id' },
+  { child:'product_imei',         fk:'sale_id',           parent:'sales.csv',           key:'id', nullable:true },
+  { child:'service_order_items',  fk:'service_order_id',  parent:'service_orders.csv',  key:'id' },
+  { child:'service_order_history',fk:'service_order_id',  parent:'service_orders.csv',  key:'id' },
+  { child:'sale_items',           fk:'product_id',        parent:'products.csv',        key:'id', nullable:true },
+  { child:'sales',                fk:'customer_id',       parent:'customers.csv',       key:'id', nullable:true },
+]
+```
+
+Cada resultado vira uma linha em `integrity_report.json` + seção em `fidelity_report.md`:
+- `total_rows`, `orphans`, `orphan_ids` (top 20), `status: pass|fail`.
+- Se qualquer check crítico falhar → `export_report.json.status = "warning"` e banner vermelho no `MigrationPreviewModal`.
+
+## 5. Impacto
+
+| Arquivo | Mudança |
+|---|---|
+| `src/lib/export/registry.ts` | + campo `parent`, marcar 5 datasets como filhos |
+| `src/lib/export/fetcher.ts` | + `fetchDatasetIn()` com chunking |
+| `src/lib/export/backup.ts` | reescrever loop → pipeline em fases (A/B/C/D) |
+| `src/lib/export/sales.ts` | usar mesma pipeline; adicionar validador |
+| `src/lib/export/customers.ts` | receber `customerIdSet` opcional |
+| `src/components/exportacao/MigrationPreviewModal.tsx` | novo card "Integridade referencial" |
+| `EXPORT_FORMAT_VERSION` | bump `1.x → 2.0` (mudança semântica no conteúdo) |
+
+Componentes de UI/PDV/OS **não são afetados** — só o exportador.
+
+## 6. Desempenho
+
+- Fase A idêntica ao hoje.
+- Fase B: 1 query extra por dataset filho, mas com `IN (...)` — normalmente **mais rápida** que puxar toda a tabela.
+- Chunking em 500 evita URI too long; para 10k vendas → 20 requisições paralelizáveis (`Promise.all`).
+- Estimativa: exportador ~10–20% mais rápido em orgs grandes (menos linhas trafegadas).
+
+## 7. Riscos
+
+1. **IDs muito volumosos** (>50k vendas): mitigado por chunking + `Promise.all` com concorrência 4.
+2. **Registros órfãos legítimos** (ex.: `sale_items` com `product_id` de produto deletado): validador marca como `nullable:true` — warning, não fail.
+3. **Compatibilidade Premier**: bump para `EXPORT_FORMAT_VERSION=2.0` sinaliza para o importador que o conjunto é agora coerente; importador antigo continua lendo (colunas idênticas).
+4. **Datasets sem `dateColumn` e sem parent** (independentes financeiros): manter comportamento atual — documentado no `README.md` do ZIP.
+
+## 8. Rollback
+
+- Toda a mudança fica atrás de um flag `EXPORT_REFERENTIAL_INTEGRITY` (default `true`) lido de `organization_settings` ou constante.
+- `false` → volta ao loop antigo do `backup.ts`.
+- `EXPORT_FORMAT_VERSION` no manifest permite ao Premier detectar e tratar ambos.
+- Nenhuma migração de schema; rollback é troca de flag + deploy.
+
+## 9. Entregáveis por fase (quando aprovado)
+
+- **Fase 1:** `registry.ts` + `fetcher.ts` (helper, sem uso) — zero impacto runtime.
+- **Fase 2:** `backup.ts` pipeline + validador — atrás do flag.
+- **Fase 3:** `sales.ts` (Premier) + `MigrationPreviewModal` — bump versão.
+- **Fase 4:** Ativar flag por padrão + remover código legado.
+
+## 10. Nota sobre o crash `FinancialAssistant`
+
+Erro `Rendered more hooks than during the previous render` vem de um `return` condicional **antes** de um `useEffect`/`useMemo`. Fora do escopo deste plano; corrijo em PR separado se quiser (1 linha: mover early-return para depois de todos os hooks).
+
+---
+
+**Aguardando aprovação para começar pela Fase 1.**
