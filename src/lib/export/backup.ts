@@ -449,8 +449,61 @@ export async function generateBackupZip(
     }
   }
 
+  // 2.5) Validação de integridade referencial — ZIP autocontido
+  interface IntegrityCheck {
+    child: string; fk: string; parent: string; key: string;
+    nullable?: boolean; critical?: boolean;
+  }
+  const integrityChecks: IntegrityCheck[] = [
+    { child: "sale_items", fk: "sale_id", parent: "sales_orders", key: "id", critical: true },
+    { child: "sale_payments", fk: "sale_id", parent: "sales_orders", key: "id", critical: true },
+    { child: "service_order_items", fk: "service_order_id", parent: "service_orders", key: "id", critical: true },
+    { child: "service_order_history", fk: "service_order_id", parent: "service_orders", key: "id", critical: true },
+    { child: "sale_items", fk: "product_id", parent: "products", key: "id", nullable: true },
+    { child: "sales_orders", fk: "customer_id", parent: "customers", key: "id", nullable: true },
+    { child: "service_orders", fk: "customer_id", parent: "customers", key: "id", nullable: true },
+  ];
+  const integrityResults = integrityChecks.map((c) => {
+    const childRows = rowsByKey[c.child] ?? [];
+    const parentIds = new Set((rowsByKey[c.parent] ?? []).map((r: any) => r?.[c.key]).filter(Boolean));
+    const orphans: string[] = [];
+    let checked = 0;
+    for (const r of childRows) {
+      const v = r?.[c.fk];
+      if (v == null || v === "") { if (!c.nullable) checked++; continue; }
+      checked++;
+      if (!parentIds.has(v)) orphans.push(String(v));
+    }
+    const status = orphans.length === 0 ? "pass" : c.nullable ? "warning" : "fail";
+    return {
+      child: c.child, fk: c.fk, parent: c.parent, parent_key: c.key,
+      nullable: !!c.nullable, critical: !!c.critical,
+      total_rows: childRows.length, checked_rows: checked,
+      orphan_count: orphans.length, orphan_ids_sample: orphans.slice(0, 20),
+      status,
+    };
+  });
+  const integrityStatus =
+    integrityResults.some((r) => r.status === "fail") ? "fail"
+    : integrityResults.some((r) => r.status === "warning") ? "warning" : "pass";
+  addFile("diagnostico/integrity_report.json", toJson({
+    generated_at: exportedAt,
+    format_version: BACKUP_FORMAT_VERSION,
+    status: integrityStatus,
+    total_checks: integrityResults.length,
+    passed: integrityResults.filter((r) => r.status === "pass").length,
+    warnings: integrityResults.filter((r) => r.status === "warning").length,
+    failures: integrityResults.filter((r) => r.status === "fail").length,
+    checks: integrityResults,
+    note: "Parent-driven export (v3.2): filhos derivados de ids do pai. Nenhum FK crítico deve apontar para fora do ZIP.",
+  }));
+  if (integrityStatus !== "pass") {
+    warnings.push(
+      `Integridade referencial: ${integrityStatus} — ver diagnostico/integrity_report.json`,
+    );
+  }
 
-  // 3) Metadados, README e diagnóstico — aproveitam apenas dados já carregados.
+
   const modulosExportados = Array.from(new Set(DATASETS.map((d) => d.group))).map((g) => ({
     modulo: g,
     pasta: GROUP_FOLDER[g] ?? g,
