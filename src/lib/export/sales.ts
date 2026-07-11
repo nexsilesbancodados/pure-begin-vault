@@ -931,6 +931,40 @@ function fnv1a(s: string): string {
   return h.toString(16).padStart(8, "0");
 }
 
+// Relatório de fidelidade — lista campos que o Premier espera mas não existem no banco.
+function buildFidelityReport(): string {
+  return `# Relatório de Fidelidade — Exportação Premier ERP
+
+Gerado em: ${new Date().toISOString()}
+
+Este pacote inclui todos os campos que **existem no banco** do Conecta.
+Campos abaixo foram deixados **vazios** porque a coluna correspondente
+não existe na origem — nenhum valor é inventado ou recalculado.
+
+## sales.csv
+- \`sale_date\` — não existe (use \`created_at\`).
+- \`source_original_id\` — não existe.
+- \`source\` — não existe (use \`canal_venda\`).
+- \`paid_total\` / \`balance_due\` — não persistidos; ver \`sale_payments.csv\`.
+
+## sale_items.csv
+- \`imei2\` — não existe em \`sale_items\` nem em \`product_imei\`.
+- \`serial\` dedicado — não persistido em \`sale_items\`; extraído do metadata quando disponível.
+- \`original_price\` — não persistido; \`unit_price\` já reflete o valor cobrado.
+
+## products.csv
+- \`external_code\` — não existe (mantido vazio para compatibilidade).
+
+## product_imei.csv
+- \`imei2\` — coluna inexistente na tabela \`product_imei\`.
+
+## sale_payments.csv
+- \`nsu\`, \`autorizacao\`, \`tid\`, \`bandeira\`, \`adquirente\` — não persistidos;
+  somente \`method\`, \`amount\`, \`installments\`, \`fee_amount\`, \`reference\` existem no banco.
+`;
+}
+
+
 // ── Export principal ──────────────────────────────────
 export async function exportSales(
   orgId: string | null,
