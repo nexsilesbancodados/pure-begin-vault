@@ -40,6 +40,27 @@ export interface BackupPeriod {
   to: string | null;   // ISO or null
 }
 
+export type ExportScopeMode = "ALL" | "REFERENCED_ONLY";
+
+export interface BackupOptions {
+  /** ALL = todos os clientes da empresa. REFERENCED_ONLY = apenas os usados em vendas/OS do período. */
+  customerExportMode?: ExportScopeMode;
+  /** ALL = todos IMEIs. REFERENCED_ONLY = apenas IMEIs vinculados a vendas do período. */
+  imeiExportMode?: ExportScopeMode;
+}
+
+/** Default: quando há período aplicado, restringe; sem período, exporta tudo (backup completo). */
+export function resolveBackupOptions(
+  opts: BackupOptions | undefined,
+  hasPeriod: boolean,
+): Required<BackupOptions> {
+  const fallback: ExportScopeMode = hasPeriod ? "REFERENCED_ONLY" : "ALL";
+  return {
+    customerExportMode: opts?.customerExportMode ?? fallback,
+    imeiExportMode: opts?.imeiExportMode ?? fallback,
+  };
+}
+
 interface BackupFile {
   path: string;
   content: string;
