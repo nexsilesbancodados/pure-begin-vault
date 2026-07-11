@@ -746,16 +746,16 @@ export function FinancialAssistant({ orgId }: { orgId: string | null }) {
                   </div>
                 ))}
               </div>
-              {(report.warnings ?? []).length > 0 && (
-                <div className="text-[11px] text-muted-foreground">Avisos: {report.warnings.join(" · ")}</div>
+              {(report?.warnings?.length ?? 0) > 0 && (
+                <div className="text-[11px] text-muted-foreground">Avisos: {(report?.warnings ?? []).join(" · ")}</div>
               )}
-              {(report.amostra ?? []).length > 0 && (
+              {(report?.amostra?.length ?? 0) > 0 && (
                 <details className="text-xs">
                   <summary className="cursor-pointer text-muted-foreground">
-                    Ver amostra de inconsistências ({report.amostra.length})
+                    Ver amostra de inconsistências ({report?.amostra?.length ?? 0})
                   </summary>
                   <pre className="mt-2 p-2 bg-muted/40 rounded text-[10px] overflow-x-auto">
-                    {JSON.stringify(report.amostra, null, 2)}
+                    {JSON.stringify(report?.amostra ?? [], null, 2)}
                   </pre>
                 </details>
               )}
