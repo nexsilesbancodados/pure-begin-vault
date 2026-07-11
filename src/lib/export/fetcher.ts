@@ -87,3 +87,56 @@ export async function fetchDataset(
     warnings,
   };
 }
+
+// Busca linhas cujo `column` está em `ids`, com chunking para não estourar
+// o limite de URL do PostgREST. Usado no export parent-driven.
+export async function fetchDatasetIn(
+  ds: DatasetDef,
+  orgId: string | null,
+  column: string,
+  ids: string[],
+  filters: ExportFilters = {},
+  chunkSize = 400,
+): Promise<FetchResult> {
+  const t0 = performance.now();
+  const warnings: string[] = [];
+  const rows: any[] = [];
+
+  if (!ids.length) {
+    return { rows, columns: [], count: 0, durationMs: 0, warnings };
+  }
+
+  const uniq = Array.from(new Set(ids.filter(Boolean)));
+  for (let i = 0; i < uniq.length; i += chunkSize) {
+    const slice = uniq.slice(i, i + chunkSize);
+    let q: any = (supabase as any).from(ds.table).select("*");
+    if (ds.orgColumn && orgId) q = q.eq(ds.orgColumn, orgId);
+    if (filters.periodStart && ds.dateColumn) q = q.gte(ds.dateColumn, filters.periodStart);
+    if (filters.periodEnd && ds.dateColumn) q = q.lte(ds.dateColumn, filters.periodEnd);
+    if (filters.status && ds.statusColumn) q = q.eq(ds.statusColumn, filters.status);
+    q = q.in(column, slice);
+    // paginação interna por chunk (raramente >1000 linhas por 400 ids, mas seguro)
+    let from = 0;
+    while (from < 100000) {
+      const to = from + PAGE - 1;
+      const { data, error } = await q.range(from, to);
+      if (error) {
+        warnings.push(`Erro IN ${ds.table}[${column}] chunk ${i}: ${error.message}`);
+        break;
+      }
+      const batch = (data ?? []) as any[];
+      rows.push(...batch);
+      if (batch.length < PAGE) break;
+      from += PAGE;
+    }
+  }
+
+  const columns = rows.length ? Object.keys(rows[0]) : [];
+  return {
+    rows,
+    columns,
+    count: rows.length,
+    durationMs: Math.round(performance.now() - t0),
+    warnings,
+  };
+}
