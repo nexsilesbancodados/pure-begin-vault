@@ -1795,6 +1795,8 @@ export async function exportSales(
       imeis: imeiSheetAll?.rows.length ?? 0,
       vendasValidas: sales.length,
       validacaoIntegridade: validationReport.percentualIntegridade,
+      customerExportMode,
+      customerAudit: auditoriaClientes,
     }));
 
     // 7. Export report — auditoria da execução
