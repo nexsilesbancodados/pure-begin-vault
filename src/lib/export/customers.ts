@@ -6,6 +6,13 @@ import { downloadXlsx } from "./xlsx";
 
 export type CustomerExportMode = "padrao" | "expandida" | "premier";
 
+export type CustomerAuditScope = "ALL" | "REFERENCED_ONLY";
+
+export interface CustomerAuditOptions {
+  scope?: CustomerAuditScope;
+  period?: { from?: string | null; to?: string | null } | null;
+}
+
 export interface CustomerIntegrityReport {
   total: number;
   cpfDuplicado: number;
@@ -16,6 +23,39 @@ export interface CustomerIntegrityReport {
   semCidade: number;
   semNome: number;
   amostraProblemas: Array<{ id: string; problema: string; valor?: string }>;
+  scope: CustomerAuditScope;
+  referencedIds?: string[];
+}
+
+// Coleta os customer_id efetivamente usados em vendas + OS do período.
+// Esta é EXATAMENTE a mesma regra aplicada pelo exportador Premier em sales.ts.
+export async function fetchReferencedCustomerIds(
+  orgId: string | null,
+  period?: { from?: string | null; to?: string | null } | null,
+): Promise<Set<string>> {
+  const ids = new Set<string>();
+  const collect = async (table: "sales_orders" | "service_orders") => {
+    let from = 0;
+    const PAGE = 1000;
+    while (true) {
+      let q: any = (supabase as any)
+        .from(table)
+        .select("customer_id, created_at")
+        .range(from, from + PAGE - 1);
+      if (orgId) q = q.eq("organization_id", orgId);
+      if (period?.from) q = q.gte("created_at", period.from);
+      if (period?.to) q = q.lte("created_at", period.to);
+      const { data, error } = await q;
+      if (error) break;
+      const batch = (data ?? []) as any[];
+      for (const r of batch) if (r?.customer_id) ids.add(r.customer_id);
+      if (batch.length < PAGE) break;
+      from += PAGE;
+    }
+  };
+  await collect("sales_orders");
+  try { await collect("service_orders"); } catch { /* opcional */ }
+  return ids;
 }
 
 // ── Validação ─────────────────────────────────────────
