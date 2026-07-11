@@ -1274,6 +1274,7 @@ export async function exportSales(
         usuario: usuarioLabel,
         periodo,
       }));
+      zip.file("fidelity_report.md", buildFidelityReport());
     }
     const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
     bytes = blob.size;
