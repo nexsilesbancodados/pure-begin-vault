@@ -342,6 +342,13 @@ function buildCompatibilityReport(params: {
     `- Quantidade de registros: ${params.manifest.total_records.toLocaleString("pt-BR")}`,
     `- Módulos exportados: ${params.manifest.total_modules}`,
     `- Avisos encontrados: ${params.warnings.length}`,
+    `- customers.csv: **${params.manifest.customer_export_mode ?? "-"}**`,
+    `- product_imei.csv: **${params.manifest.imei_export_mode ?? "-"}**`,
+    "",
+    "## Breaking Changes (3.2 → 3.3)",
+    "- customers.csv: opt-in via customer_export_mode (ALL | REFERENCED_ONLY). No 3.2 sempre REFERENCED_ONLY.",
+    "- product_imei.csv: novo imei_export_mode. REFERENCED_ONLY = sale_id ∈ vendas exportadas.",
+    "- Reverter: passar { customerExportMode: 'REFERENCED_ONLY', imeiExportMode: 'ALL' } em generateBackupZip.",
     "",
     "## Módulos exportados",
     ...params.moduleStatistics.map(
