@@ -1186,7 +1186,21 @@ function buildFidelityReport(coverage?: {
 
 - Vendas válidas após saneamento: **${cov.vendasValidas}** de ${cov.vendas}.
 - Integridade global do pacote: **${cov.validacaoIntegridade}%**.
-` : "";
+${cov.customerExportMode ? `
+## Escopo de clientes
+
+- **customer_export_mode:** \`${cov.customerExportMode}\`
+${cov.customerExportMode === "REFERENCED_ONLY"
+  ? "- Apenas clientes referenciados em vendas do período (∪ ordens de serviço) foram incluídos em `customers.csv`."
+  : "- Todos os clientes da empresa foram incluídos (backup completo / sem filtro de período)."}
+${cov.customerAudit ? `- Clientes no banco: **${cov.customerAudit.total_banco}**
+- Referenciados por vendas: **${cov.customerAudit.referenciados_vendas}**
+- Referenciados por OS: **${cov.customerAudit.referenciados_os}**
+- Referenciados únicos (união): **${cov.customerAudit.referenciados_unicos}**
+- Exportados em \`customers.csv\`: **${cov.customerAudit.exportados}**
+- Redução vs. total do banco: **${cov.customerAudit.reducao_percentual}%**
+- customer_id em vendas ausentes de customers.csv: **${cov.customerAudit.faltantes.length}** (garantido 0 pós-salvaguarda)` : ""}
+` : ""}` : "";
   return `# Relatório de Fidelidade — Exportação Premier ERP
 
 Versão do formato: **${EXPORT_FORMAT_VERSION}**
