@@ -1163,6 +1163,11 @@ function runPackageValidations(
 function buildFidelityReport(coverage?: {
   vendas: number; itens: number; pagamentos: number; clientes: number; produtos: number; imeis: number;
   vendasValidas: number; validacaoIntegridade: number;
+  customerExportMode?: "ALL" | "REFERENCED_ONLY";
+  customerAudit?: {
+    total_banco: number; referenciados_vendas: number; referenciados_os: number;
+    referenciados_unicos: number; exportados: number; reducao_percentual: number; faltantes: string[];
+  } | null;
 }): string {
   const cov = coverage;
   const cobertura = cov ? `
