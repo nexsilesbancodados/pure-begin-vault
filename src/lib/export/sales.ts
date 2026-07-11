@@ -1415,15 +1415,52 @@ export async function exportSales(
   let sheets: Array<{ name: string; rows: any[]; columns: string[] }>;
   let suffix = mode;
 
+  // Modo de exportação de clientes (apenas Premier):
+  //   - com período selecionado → REFERENCED_ONLY (apenas clientes usados em vendas/OS do período)
+  //   - sem período (backup completo) → ALL (todos os clientes da empresa)
+  const hasPeriodFilter = !!(period?.from || period?.to);
+  const customerExportMode: "ALL" | "REFERENCED_ONLY" =
+    mode === "premier" && hasPeriodFilter ? "REFERENCED_ONLY" : "ALL";
+  let osCustomerIds: string[] = [];
+  if (customerExportMode === "REFERENCED_ONLY") {
+    try {
+      let osq: any = (supabase as any)
+        .from("service_orders")
+        .select("customer_id, created_at");
+      if (orgId) osq = osq.eq("organization_id", orgId);
+      if (period?.from) osq = osq.gte("created_at", period.from);
+      if (period?.to) osq = osq.lte("created_at", period.to);
+      const { data: osRows } = await osq;
+      osCustomerIds = (osRows ?? [])
+        .map((r: any) => r.customer_id)
+        .filter(Boolean);
+    } catch { /* OS opcional — não bloqueia exportação */ }
+  }
+  let auditoriaClientes: {
+    modo: "ALL" | "REFERENCED_ONLY";
+    total_banco: number;
+    vendas: number;
+    referenciados_vendas: number;
+    referenciados_os: number;
+    referenciados_unicos: number;
+    exportados: number;
+    reducao_percentual: number;
+    faltantes: string[];
+  } | null = null;
+
   if (mode === "premier") {
     // Reduzimos aos IDs efetivamente usados nas vendas para manter o pacote enxuto.
-    const usedCustomerIds = new Set(sales.map((s: any) => s.customer_id).filter(Boolean));
+    const usedCustomerIdsFromSales = new Set(sales.map((s: any) => s.customer_id).filter(Boolean));
+    const usedCustomerIds =
+      customerExportMode === "ALL"
+        ? null
+        : new Set<string>([...usedCustomerIdsFromSales, ...osCustomerIds]);
     const usedProductIds = new Set(items.map((it: any) => it.product_id).filter(Boolean));
     const usedSellerIds = new Set(sales.map((s: any) => s.seller_id ?? s.user_id).filter(Boolean));
     const usedStoreIds = new Set(sales.map((s: any) => s.store_id ?? s.organization_id).filter(Boolean));
 
     const customersRows = customers
-      .filter((c: any) => usedCustomerIds.has(c.id))
+      .filter((c: any) => usedCustomerIds === null || usedCustomerIds.has(c.id))
       .map((c: any) => ({
         cliente_id: c.id,
         nome: c.name ?? "",
@@ -1437,6 +1474,48 @@ export async function exportSales(
         cep: c.zip_code ?? c.cep ?? "",
         empresa_id: c.organization_id ?? "",
       }));
+
+    // Auditoria referencial: 100% dos customer_id em sales.csv devem existir em customers.csv
+    const exportedIds = new Set(customersRows.map((r: any) => r.cliente_id));
+    const faltantes = [...usedCustomerIdsFromSales].filter((id) => !exportedIds.has(id as string));
+    auditoriaClientes = {
+      modo: customerExportMode,
+      total_banco: customers.length,
+      vendas: sales.length,
+      referenciados_vendas: usedCustomerIdsFromSales.size,
+      referenciados_os: new Set(osCustomerIds).size,
+      referenciados_unicos: usedCustomerIds === null ? customers.length : usedCustomerIds.size,
+      exportados: customersRows.length,
+      reducao_percentual: customers.length
+        ? Number((((customers.length - customersRows.length) / customers.length) * 100).toFixed(1))
+        : 0,
+      faltantes: faltantes as string[],
+    };
+    if (faltantes.length > 0) {
+      // Salvaguarda: se algum customer_id de sales.csv não estiver em customers.csv,
+      // reincluímos esses registros para preservar integridade referencial do pacote.
+      const extras = customers
+        .filter((c: any) => faltantes.includes(c.id))
+        .map((c: any) => ({
+          cliente_id: c.id,
+          nome: c.name ?? "",
+          documento: c.document ?? "",
+          cpf_cnpj: c.document ?? "",
+          email: c.email ?? "",
+          telefone: c.phone ?? "",
+          cidade: c.city ?? "",
+          estado: c.state ?? "",
+          endereco: c.address ?? "",
+          cep: c.zip_code ?? c.cep ?? "",
+          empresa_id: c.organization_id ?? "",
+        }));
+      customersRows.push(...extras);
+      auditoriaClientes.exportados = customersRows.length;
+      auditoriaClientes.faltantes = [];
+    }
+    // eslint-disable-next-line no-console
+    console.info("[Premier] Auditoria customers.csv", auditoriaClientes);
+
 
     const productsRows = products
       .filter((p: any) => usedProductIds.has(p.id))
