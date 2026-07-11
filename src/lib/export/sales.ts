@@ -723,6 +723,24 @@ function toPremierItems(
       preço_venda: u,
       lucro_item: round2(lucroItem),
       margem_item: subtotal ? round2((lucroItem / subtotal) * 100) : 0,
+      // Sprint fidelidade — sem recálculo, apenas espelhar o banco / snapshot
+      internal_code: p?.reference ?? "",
+      external_code: meta(md, "external_code", "codigo_externo") || "",
+      barcode: p?.ean ?? meta(md, "ean", "barcode", "codigo_barras") ?? "",
+      reference: p?.reference ?? "",
+      ncm: p?.ncm ?? "",
+      imei2: meta(md, "imei2", "imei_2") || "",
+      unit_cost_original: it.unit_cost ?? "",
+      created_at: it.created_at ?? "",
+      import_batch_id: it.import_job_id ?? "",
+      product_snapshot: p
+        ? JSON.stringify({
+            id: p.id, sku: p.sku, name: p.name, brand: p.brand, model: p.model,
+            category: p.category, ean: p.ean, ncm: p.ncm, reference: p.reference,
+            cost_price: p.cost_price, price: p.price, has_imei: p.has_imei,
+            metadata: p.metadata ?? null,
+          })
+        : "",
     };
   });
   return { rows, columns: cols };
