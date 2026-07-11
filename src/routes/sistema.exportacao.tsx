@@ -146,7 +146,7 @@ function ExportacaoPage() {
           <CompatibilityTab orgId={orgId} />
         </TabsContent>
         <TabsContent value="clientes">
-          <CustomersTab orgId={orgId} />
+          <CustomersTab orgId={orgId} period={period} />
         </TabsContent>
         <TabsContent value="vendas">
           <SalesTab orgId={orgId} period={period} />
