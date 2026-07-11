@@ -823,7 +823,33 @@ function BackupButton({ orgId, period }: { orgId: string | null; period?: Backup
     : null;
 
   return (
-    <div className="flex flex-col items-end gap-1 min-w-[260px]">
+    <div className="flex flex-col items-end gap-2 min-w-[280px]">
+      <div className="flex flex-col gap-1 w-full text-[10px]">
+        <label className="flex items-center justify-between gap-2">
+          <span className="text-muted-foreground">Clientes:</span>
+          <select
+            className="border rounded px-1 py-0.5 bg-background"
+            value={customerMode}
+            onChange={(e) => setCustomerMode(e.target.value as ExportScopeMode)}
+            disabled={busy}
+          >
+            <option value="ALL">Todos (ALL)</option>
+            <option value="REFERENCED_ONLY">Só referenciados (REFERENCED_ONLY)</option>
+          </select>
+        </label>
+        <label className="flex items-center justify-between gap-2">
+          <span className="text-muted-foreground">IMEIs:</span>
+          <select
+            className="border rounded px-1 py-0.5 bg-background"
+            value={imeiMode}
+            onChange={(e) => setImeiMode(e.target.value as ExportScopeMode)}
+            disabled={busy}
+          >
+            <option value="ALL">Todos (ALL)</option>
+            <option value="REFERENCED_ONLY">Só vendidos no período (REFERENCED_ONLY)</option>
+          </select>
+        </label>
+      </div>
       <Button onClick={run} disabled={busy} size="lg" className="gap-2">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
         Exportar Backup Completo
