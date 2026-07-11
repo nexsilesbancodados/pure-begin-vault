@@ -941,10 +941,12 @@ function fnv1a(s: string): string {
 
 // ── SHA-256 (Web Crypto) ──────────────────────────────
 async function sha256Hex(input: string | Uint8Array): Promise<string> {
-  const data = typeof input === "string" ? new TextEncoder().encode(input) : input;
-  const buf = await crypto.subtle.digest("SHA-256", data);
+  const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
+  const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const buf = await crypto.subtle.digest("SHA-256", ab);
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+
 
 // ── Data Dictionary ───────────────────────────────────
 // Dicionário completo de todos os CSVs conhecidos exportados no modo Premier.
