@@ -140,47 +140,50 @@ export function TodaySalesModal({ open, onOpenChange }: Props) {
   }, [open, orgId, date]);
 
   const stats = useMemo(() => {
-    const total = sales.reduce((a, s) => a + Number(s.total_amount || 0), 0);
-    const cost = sales.reduce(
+    const list = Array.isArray(sales) ? sales : [];
+    const total = list.reduce((a, s) => a + Number(s?.total_amount || 0), 0);
+    const cost = list.reduce(
       (a, s) =>
         a +
-        (Array.isArray(s.sale_items)
+        (Array.isArray(s?.sale_items)
           ? s.sale_items.reduce(
               (x: number, i: any) =>
-                x + Number(i.unit_cost || 0) * Number(i.quantity || 0),
+                x + Number(i?.unit_cost || 0) * Number(i?.quantity || 0),
               0,
             )
           : 0),
       0,
     );
-    const units = sales.reduce(
+    const units = list.reduce(
       (a, s) =>
         a +
-        (Array.isArray(s.sale_items)
-          ? s.sale_items.reduce((x: number, i: any) => x + Number(i.quantity || 0), 0)
+        (Array.isArray(s?.sale_items)
+          ? s.sale_items.reduce((x: number, i: any) => x + Number(i?.quantity || 0), 0)
           : 0),
       0,
     );
-    const ticket = sales.length ? total / sales.length : 0;
+    const ticket = list.length ? total / list.length : 0;
     const profit = total - cost;
-    return { total, units, ticket, profit, count: sales.length };
+    return { total, units, ticket, profit, count: list.length };
   }, [sales]);
 
   const payments = useMemo(() => {
     const map = new Map<string, number>();
-    sales.forEach((s) => {
-      if (Array.isArray(s.sale_payments) && s.sale_payments.length) {
+    const list = Array.isArray(sales) ? sales : [];
+    list.forEach((s) => {
+      if (Array.isArray(s?.sale_payments) && s.sale_payments.length) {
         s.sale_payments.forEach((p: any) => {
-          const k = methodLabel(p.method);
-          map.set(k, (map.get(k) || 0) + Number(p.amount || 0));
+          const k = methodLabel(p?.method);
+          map.set(k, (map.get(k) || 0) + Number(p?.amount || 0));
         });
       } else {
-        const k = methodLabel(s.payment_method);
-        map.set(k, (map.get(k) || 0) + Number(s.total_amount || 0));
+        const k = methodLabel(s?.payment_method);
+        map.set(k, (map.get(k) || 0) + Number(s?.total_amount || 0));
       }
     });
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
   }, [sales]);
+
 
   const isToday = format(date, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
 

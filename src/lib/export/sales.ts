@@ -5,7 +5,15 @@ import { downloadXlsx } from "./xlsx";
 import type { BackupPeriod } from "./backup";
 import JSZip from "jszip";
 
+// ── Versionamento global do exportador ────────────────
+// Utilizado por manifest.json, README.md, export_report.json e fidelity_report.md.
+export const EXPORT_FORMAT_VERSION = "premier-erp/1.2.0";
+export const EXPORTER_VERSION = "3.6";
+export const EXPORT_SCHEMA_VERSION_PREMIER = "premier-erp/plug-and-play-1.0";
+export const EXPORT_SCHEMA_VERSION_STANDARD = "premier-erp/1.1";
+
 export type SalesExportMode = "padrao" | "expandida" | "premier";
+
 
 export interface SalesSanitizeFilters {
   onlyValid?: boolean;
@@ -931,38 +939,382 @@ function fnv1a(s: string): string {
   return h.toString(16).padStart(8, "0");
 }
 
-// Relatório de fidelidade — lista campos que o Premier espera mas não existem no banco.
-function buildFidelityReport(): string {
+// ── SHA-256 (Web Crypto) ──────────────────────────────
+async function sha256Hex(input: string | Uint8Array): Promise<string> {
+  const bytes = typeof input === "string" ? new TextEncoder().encode(input) : input;
+  const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const buf = await crypto.subtle.digest("SHA-256", ab);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+
+// ── Data Dictionary ───────────────────────────────────
+// Dicionário completo de todos os CSVs conhecidos exportados no modo Premier.
+// Descreve tipo, obrigatoriedade, origem, exemplo e observações por coluna.
+function buildDataDictionary(csvFiles: Array<{ name: string; arquivo: string; columns: string[]; rows: any[] }>) {
+  type Field = { coluna: string; tipo: string; obrigatorio: boolean; descricao: string; origem: string; exemplo?: any; observacoes?: string };
+  const KNOWN: Record<string, Record<string, Omit<Field, "coluna">>> = {
+    sales: {
+      sale_uuid: { tipo: "string", obrigatorio: true, descricao: "Chave estável global da venda.", origem: "conecta:{empresa_id}:sale:{numero/import_id/id}", exemplo: "conecta:org1:sale:1024" },
+      sale_id: { tipo: "uuid", obrigatorio: true, descricao: "ID interno da venda.", origem: "sales_orders.id" },
+      numero_venda: { tipo: "string", obrigatorio: false, descricao: "Número humano da venda.", origem: "sales_orders.sale_number" },
+      data: { tipo: "date", obrigatorio: true, descricao: "Data da venda (YYYY-MM-DD).", origem: "sales_orders.created_at" },
+      hora: { tipo: "time", obrigatorio: false, descricao: "Hora da venda (HH:mm).", origem: "sales_orders.created_at" },
+      created_at: { tipo: "timestamp", obrigatorio: true, descricao: "Timestamp bruto de criação.", origem: "sales_orders.created_at" },
+      status_codigo: { tipo: "string", obrigatorio: true, descricao: "Status original (código).", origem: "sales_orders.status" },
+      status_nome: { tipo: "string", obrigatorio: false, descricao: "Status humanizado.", origem: "STATUS_MAP" },
+      cliente_id: { tipo: "uuid", obrigatorio: false, descricao: "Cliente associado à venda.", origem: "sales_orders.customer_id" },
+      cliente_nome: { tipo: "string", obrigatorio: false, descricao: "Nome do cliente.", origem: "customers.name" },
+      cliente_documento: { tipo: "string", obrigatorio: false, descricao: "CPF/CNPJ do cliente.", origem: "customers.document" },
+      vendedor_id: { tipo: "uuid", obrigatorio: false, descricao: "Vendedor responsável.", origem: "sales_orders.seller_id" },
+      vendedor_nome: { tipo: "string", obrigatorio: false, descricao: "Nome do vendedor.", origem: "profiles.display_name" },
+      empresa_id: { tipo: "uuid", obrigatorio: true, descricao: "Organização/empresa.", origem: "sales_orders.organization_id" },
+      empresa_nome: { tipo: "string", obrigatorio: false, descricao: "Nome da empresa.", origem: "organizations.name" },
+      loja_id: { tipo: "uuid", obrigatorio: false, descricao: "Loja/filial.", origem: "sales_orders.store_id" },
+      total: { tipo: "decimal", obrigatorio: true, descricao: "Total da venda (BRL).", origem: "sales_orders.total_amount" },
+      total_amount: { tipo: "decimal", obrigatorio: true, descricao: "Total bruto (compat).", origem: "sales_orders.total_amount" },
+      lucro: { tipo: "decimal", obrigatorio: false, descricao: "Lucro calculado.", origem: "calc: total - custo" },
+      margem: { tipo: "decimal", obrigatorio: false, descricao: "Margem percentual.", origem: "calc" },
+      total_pagamentos: { tipo: "decimal", obrigatorio: false, descricao: "Somatório de sale_payments.", origem: "calc" },
+      saldo: { tipo: "decimal", obrigatorio: false, descricao: "Diferença total - pagamentos.", origem: "calc" },
+      pagamento_misto: { tipo: "boolean", obrigatorio: false, descricao: "Mais de uma forma de pagamento.", origem: "calc" },
+      venda_parcelada: { tipo: "boolean", obrigatorio: false, descricao: "Possui parcelas.", origem: "calc" },
+      import_job_id: { tipo: "uuid", obrigatorio: false, descricao: "Job de importação de origem, se houver.", origem: "sales_orders.import_job_id" },
+    },
+    sale_items: {
+      item_id: { tipo: "string", obrigatorio: true, descricao: "Chave estável do item.", origem: "conecta:...:item:{id}" },
+      sale_uuid: { tipo: "string", obrigatorio: true, descricao: "FK para sales.sale_uuid.", origem: "join" },
+      sale_id: { tipo: "uuid", obrigatorio: true, descricao: "FK bruta.", origem: "sale_items.sale_id" },
+      produto_id: { tipo: "uuid", obrigatorio: false, descricao: "Produto vendido.", origem: "sale_items.product_id" },
+      produto_nome: { tipo: "string", obrigatorio: true, descricao: "Nome do produto (snapshot).", origem: "sale_items.product_name" },
+      sku: { tipo: "string", obrigatorio: false, descricao: "SKU do produto.", origem: "products.sku" },
+      imei: { tipo: "string", obrigatorio: false, descricao: "IMEI do aparelho vendido.", origem: "sale_items.imei" },
+      imei2: { tipo: "string", obrigatorio: false, descricao: "Segundo IMEI (não persistido).", origem: "N/A", observacoes: "Sempre vazio — ver fidelity_report.md" },
+      quantidade: { tipo: "int", obrigatorio: true, descricao: "Quantidade vendida.", origem: "sale_items.quantity" },
+      valor_unitario: { tipo: "decimal", obrigatorio: true, descricao: "Preço unitário.", origem: "sale_items.unit_price" },
+      custo_unitario: { tipo: "decimal", obrigatorio: false, descricao: "Custo unitário.", origem: "sale_items.unit_cost" },
+      subtotal: { tipo: "decimal", obrigatorio: true, descricao: "Subtotal do item.", origem: "calc: qtd * preço" },
+      product_snapshot: { tipo: "json", obrigatorio: false, descricao: "Snapshot do produto na hora da venda.", origem: "sale_items.metadata" },
+    },
+    sale_payments: {
+      pagamento_id: { tipo: "string", obrigatorio: true, descricao: "Chave estável.", origem: "sale_payments.id" },
+      sale_uuid: { tipo: "string", obrigatorio: true, descricao: "FK para sales.sale_uuid.", origem: "join" },
+      sale_id: { tipo: "uuid", obrigatorio: true, descricao: "FK bruta.", origem: "sale_payments.sale_id" },
+      forma_pagamento_codigo: { tipo: "string", obrigatorio: true, descricao: "Método bruto.", origem: "sale_payments.method" },
+      forma_pagamento_nome: { tipo: "string", obrigatorio: false, descricao: "Método humanizado.", origem: "PAYMENT_MAP" },
+      valor: { tipo: "decimal", obrigatorio: true, descricao: "Valor pago.", origem: "sale_payments.amount" },
+      parcelas: { tipo: "int", obrigatorio: false, descricao: "Nº de parcelas.", origem: "sale_payments.installments" },
+      taxa: { tipo: "decimal", obrigatorio: false, descricao: "Taxa cobrada.", origem: "sale_payments.fee_amount" },
+    },
+    customers: {
+      cliente_id: { tipo: "uuid", obrigatorio: true, descricao: "ID do cliente.", origem: "customers.id" },
+      nome: { tipo: "string", obrigatorio: true, descricao: "Nome/razão social.", origem: "customers.name" },
+      documento: { tipo: "string", obrigatorio: false, descricao: "CPF/CNPJ.", origem: "customers.document" },
+      email: { tipo: "string", obrigatorio: false, descricao: "E-mail.", origem: "customers.email" },
+      telefone: { tipo: "string", obrigatorio: false, descricao: "Telefone.", origem: "customers.phone" },
+      cidade: { tipo: "string", obrigatorio: false, descricao: "Cidade.", origem: "customers.city" },
+      estado: { tipo: "string", obrigatorio: false, descricao: "UF.", origem: "customers.state" },
+      endereco: { tipo: "string", obrigatorio: false, descricao: "Endereço.", origem: "customers.address" },
+      cep: { tipo: "string", obrigatorio: false, descricao: "CEP.", origem: "customers.zip_code" },
+    },
+    products: {
+      produto_id: { tipo: "uuid", obrigatorio: true, descricao: "ID do produto.", origem: "products.id" },
+      sku: { tipo: "string", obrigatorio: false, descricao: "SKU.", origem: "products.sku" },
+      codigo_barras: { tipo: "string", obrigatorio: false, descricao: "EAN/barras.", origem: "products.ean" },
+      nome: { tipo: "string", obrigatorio: true, descricao: "Nome do produto.", origem: "products.name" },
+      preco_venda: { tipo: "decimal", obrigatorio: true, descricao: "Preço de venda.", origem: "products.sale_price" },
+      custo: { tipo: "decimal", obrigatorio: false, descricao: "Custo.", origem: "products.cost_price" },
+      estoque: { tipo: "int", obrigatorio: false, descricao: "Estoque atual.", origem: "products.stock_quantity" },
+      ncm: { tipo: "string", obrigatorio: false, descricao: "Código NCM.", origem: "products.ncm" },
+      has_imei: { tipo: "boolean", obrigatorio: false, descricao: "Produto usa IMEI.", origem: "products.has_imei" },
+      active: { tipo: "boolean", obrigatorio: false, descricao: "Produto ativo.", origem: "products.active" },
+      metadata: { tipo: "json", obrigatorio: false, descricao: "Metadados livres.", origem: "products.metadata" },
+    },
+    product_imei: {
+      product_id: { tipo: "uuid", obrigatorio: true, descricao: "FK products.", origem: "product_imei.product_id" },
+      imei: { tipo: "string", obrigatorio: true, descricao: "IMEI do aparelho.", origem: "product_imei.imei" },
+      imei2: { tipo: "string", obrigatorio: false, descricao: "Segundo IMEI (não persistido).", origem: "N/A", observacoes: "Sempre vazio — ver fidelity_report.md" },
+      serial: { tipo: "string", obrigatorio: false, descricao: "Nº de série.", origem: "product_imei.serial" },
+      status: { tipo: "string", obrigatorio: false, descricao: "Estado do aparelho.", origem: "product_imei.status" },
+      sale_id: { tipo: "uuid", obrigatorio: false, descricao: "Venda que baixou o IMEI.", origem: "product_imei.sale_id" },
+      cost_price: { tipo: "decimal", obrigatorio: false, descricao: "Custo do aparelho.", origem: "product_imei.cost_price" },
+    },
+    sellers: {
+      vendedor_id: { tipo: "uuid", obrigatorio: true, descricao: "ID do vendedor.", origem: "profiles.id" },
+      nome: { tipo: "string", obrigatorio: true, descricao: "Nome do vendedor.", origem: "profiles.display_name" },
+      email: { tipo: "string", obrigatorio: false, descricao: "E-mail.", origem: "profiles.email" },
+    },
+    stores: {
+      loja_id: { tipo: "uuid", obrigatorio: true, descricao: "ID da loja/organização.", origem: "organizations.id" },
+      nome: { tipo: "string", obrigatorio: true, descricao: "Nome da loja.", origem: "organizations.name" },
+    },
+  };
+  const files: Record<string, { arquivo: string; total_colunas: number; total_registros: number; campos: Field[] }> = {};
+  for (const f of csvFiles) {
+    const known = KNOWN[f.name] ?? {};
+    files[f.arquivo] = {
+      arquivo: f.arquivo,
+      total_colunas: f.columns.length,
+      total_registros: f.rows.length,
+      campos: f.columns.map<Field>((c) => ({
+        coluna: c,
+        tipo: known[c]?.tipo ?? "string",
+        obrigatorio: known[c]?.obrigatorio ?? false,
+        descricao: known[c]?.descricao ?? "—",
+        origem: known[c]?.origem ?? "—",
+        exemplo: known[c]?.exemplo,
+        observacoes: known[c]?.observacoes,
+      })),
+    };
+  }
+  return {
+    versao_formato: EXPORT_FORMAT_VERSION,
+    versao_exportador: EXPORTER_VERSION,
+    gerado_em: new Date().toISOString(),
+    arquivos: files,
+  };
+}
+
+// ── Validação de integridade do pacote (antes de gerar o ZIP) ─
+interface PackageValidation {
+  tipo: "erro" | "aviso";
+  arquivo?: string;
+  problema: string;
+  detalhe?: string;
+}
+function runPackageValidations(
+  csvFiles: Array<{ name: string; arquivo: string; columns: string[]; rows: any[]; csv: string }>,
+): PackageValidation[] {
+  const issues: PackageValidation[] = [];
+  // Campos obrigatórios mínimos por arquivo Premier
+  const REQUIRED: Record<string, string[]> = {
+    sales: ["sale_uuid", "sale_id", "total"],
+    sale_items: ["item_id", "sale_uuid", "produto_nome", "quantidade", "valor_unitario"],
+    sale_payments: ["pagamento_id", "sale_uuid", "forma_pagamento_codigo", "valor"],
+    customers: ["cliente_id", "nome"],
+    products: ["produto_id", "nome"],
+    product_imei: ["product_id", "imei"],
+    sellers: ["vendedor_id", "nome"],
+    stores: ["loja_id", "nome"],
+  };
+  for (const f of csvFiles) {
+    // UTF-8: rowsToCsv já emite BOM UTF-8 explicitamente.
+    if (!f.csv.startsWith("\uFEFF")) {
+      issues.push({ tipo: "aviso", arquivo: f.arquivo, problema: "BOM UTF-8 ausente" });
+    }
+    // Cabeçalhos duplicados
+    const seen = new Set<string>();
+    for (const col of f.columns) {
+      if (seen.has(col)) issues.push({ tipo: "erro", arquivo: f.arquivo, problema: "cabeçalho duplicado", detalhe: col });
+      seen.add(col);
+    }
+    // Colunas obrigatórias
+    const req = REQUIRED[f.name] ?? [];
+    for (const col of req) {
+      if (!f.columns.includes(col)) {
+        issues.push({ tipo: "erro", arquivo: f.arquivo, problema: "coluna obrigatória ausente", detalhe: col });
+      }
+    }
+    // Arquivo vazio (só cabeçalho)
+    if (f.rows.length === 0) {
+      issues.push({ tipo: "aviso", arquivo: f.arquivo, problema: "arquivo sem registros" });
+    }
+    // IDs duplicados na primeira coluna de identificação
+    const pk = req[0];
+    if (pk && f.rows.length > 0) {
+      const dup = new Set<string>();
+      const s = new Set<string>();
+      for (const r of f.rows) {
+        const v = r?.[pk];
+        if (v == null || v === "") continue;
+        const key = String(v);
+        if (s.has(key)) dup.add(key);
+        else s.add(key);
+      }
+      if (dup.size > 0) {
+        issues.push({ tipo: "erro", arquivo: f.arquivo, problema: `IDs duplicados em ${pk}`, detalhe: `${dup.size} ocorrências` });
+      }
+    }
+  }
+  // Referências quebradas: sale_items.sale_uuid ∈ sales.sale_uuid
+  const sales = csvFiles.find((c) => c.name === "sales");
+  const items = csvFiles.find((c) => c.name === "sale_items");
+  const pays = csvFiles.find((c) => c.name === "sale_payments");
+  if (sales && (items || pays)) {
+    const salesKeys = new Set(sales.rows.map((r) => String(r.sale_uuid ?? "")).filter(Boolean));
+    const checkRef = (child?: typeof sales) => {
+      if (!child) return;
+      let broken = 0;
+      for (const r of child.rows) {
+        const k = String(r.sale_uuid ?? "");
+        if (k && !salesKeys.has(k)) broken++;
+      }
+      if (broken > 0) {
+        issues.push({ tipo: "erro", arquivo: child.arquivo, problema: "referência quebrada para sales.sale_uuid", detalhe: `${broken} linha(s)` });
+      }
+    };
+    checkRef(items);
+    checkRef(pays);
+  }
+  return issues;
+}
+
+// Relatório de fidelidade — cobertura por entidade + limitações + recomendações.
+function buildFidelityReport(coverage?: {
+  vendas: number; itens: number; pagamentos: number; clientes: number; produtos: number; imeis: number;
+  vendasValidas: number; validacaoIntegridade: number;
+}): string {
+  const cov = coverage;
+  const cobertura = cov ? `
+## Cobertura por entidade
+
+| Entidade         | Registros exportados |
+|------------------|----------------------|
+| Vendas           | ${cov.vendas}        |
+| Itens de venda   | ${cov.itens}         |
+| Pagamentos       | ${cov.pagamentos}    |
+| Clientes         | ${cov.clientes}      |
+| Produtos         | ${cov.produtos}      |
+| IMEIs            | ${cov.imeis}         |
+
+## Cobertura geral
+
+- Vendas válidas após saneamento: **${cov.vendasValidas}** de ${cov.vendas}.
+- Integridade global do pacote: **${cov.validacaoIntegridade}%**.
+` : "";
   return `# Relatório de Fidelidade — Exportação Premier ERP
 
+Versão do formato: **${EXPORT_FORMAT_VERSION}**
+Versão do exportador: **${EXPORTER_VERSION}**
 Gerado em: ${new Date().toISOString()}
 
 Este pacote inclui todos os campos que **existem no banco** do Conecta.
 Campos abaixo foram deixados **vazios** porque a coluna correspondente
 não existe na origem — nenhum valor é inventado ou recalculado.
+${cobertura}
+## Limitações e impacto
 
-## sales.csv
-- \`sale_date\` — não existe (use \`created_at\`).
-- \`source_original_id\` — não existe.
-- \`source\` — não existe (use \`canal_venda\`).
-- \`paid_total\` / \`balance_due\` — não persistidos; ver \`sale_payments.csv\`.
+### sales.csv
+- \`sale_date\` — não existe. **Impacto:** use \`created_at\` como data oficial.
+- \`source_original_id\` — não existe. **Impacto:** rastreabilidade cross-ERP limitada.
+- \`paid_total\` / \`balance_due\` — não persistidos. **Impacto:** derivar a partir de \`sale_payments.csv\`.
 
-## sale_items.csv
-- \`imei2\` — não existe em \`sale_items\` nem em \`product_imei\`.
-- \`serial\` dedicado — não persistido em \`sale_items\`; extraído do metadata quando disponível.
-- \`original_price\` — não persistido; \`unit_price\` já reflete o valor cobrado.
+### sale_items.csv
+- \`imei2\` — não existe. **Impacto:** aparelhos dual-SIM importados sem 2º IMEI.
+- \`original_price\` — não persistido. **Impacto:** desconto histórico não recuperável.
 
-## products.csv
-- \`external_code\` — não existe (mantido vazio para compatibilidade).
+### products.csv
+- \`external_code\` — não existe. **Impacto:** vínculo com códigos de outros ERPs deve ser criado manualmente.
 
-## product_imei.csv
-- \`imei2\` — coluna inexistente na tabela \`product_imei\`.
+### product_imei.csv
+- \`imei2\` — coluna inexistente. **Impacto:** mesmo caso acima.
 
-## sale_payments.csv
-- \`nsu\`, \`autorizacao\`, \`tid\`, \`bandeira\`, \`adquirente\` — não persistidos;
-  somente \`method\`, \`amount\`, \`installments\`, \`fee_amount\`, \`reference\` existem no banco.
+### sale_payments.csv
+- \`nsu\`, \`autorizacao\`, \`tid\`, \`bandeira\`, \`adquirente\` — não persistidos.
+  **Impacto:** conciliação fina com adquirente não é possível sem exportação
+  complementar do gateway.
+
+## Recomendações
+
+1. Utilizar \`sale_uuid\` como chave estável em reimportações.
+2. Antes de importar em produção, revisar \`export_report.json\` para
+   validações executadas e \`sanitize_summary.json\` para exclusões.
+3. Preservar \`manifest.json\` como comprovante de integridade (SHA-256 por arquivo).
+4. Para lacunas críticas (NSU/TID), planejar exportação complementar do adquirente.
 `;
 }
+
+// README enriquecido — sempre incluído no ZIP, mesmo fora do modo Premier.
+function buildEnrichedReadme(ctx: {
+  suffix: string;
+  vendas: number;
+  itens: number;
+  pagamentos: number;
+  clientes?: number;
+  produtos?: number;
+  totalVendido: number;
+  empresa: string;
+  usuario: string;
+  periodo: string;
+  arquivos: Array<{ nome: string; registros: number; colunas: number }>;
+}) {
+  const filesTable = ctx.arquivos
+    .map((a) => `| \`${a.nome}\` | ${a.registros} | ${a.colunas} |`)
+    .join("\n");
+  return `# Pacote de Exportação ConectaPhone → Premier ERP
+
+**Versão do formato:** ${EXPORT_FORMAT_VERSION}
+**Versão do exportador:** ${EXPORTER_VERSION}
+**Modo:** ${ctx.suffix}
+**Gerado em:** ${new Date().toLocaleString("pt-BR")}
+**Empresa:** ${ctx.empresa}
+**Usuário:** ${ctx.usuario}
+**Período:** ${ctx.periodo}
+
+## Objetivo
+
+Pacote autocontido, auditável e versionado para migração de vendas,
+itens, pagamentos, clientes, produtos e IMEIs do ConectaPhone para o
+Premier ERP (ou qualquer ERP compatível com CSV UTF-8/;).
+
+## Estrutura do pacote
+
+| Arquivo | Registros | Colunas |
+|---------|-----------|---------|
+${filesTable}
+
+Arquivos de metadados:
+- \`manifest.json\` — versionamento, hashes SHA-256, tamanhos, encoding, delimitador.
+- \`data_dictionary.json\` — dicionário de dados por CSV.
+- \`export_report.json\` — auditoria: duração, validações, avisos.
+- \`fidelity_report.md\` — cobertura por entidade, limitações e recomendações.
+- \`sanitize_summary.json\` — resumo dos filtros de saneamento aplicados.
+- \`excluded_records.csv\` — vendas excluídas pelos filtros (com motivo).
+- \`validation_report.json\` — relatório completo de validação (modo Premier).
+- \`import_map.json\` — mapa de importação para Premier (modo Premier).
+- \`premier_ready.json\` — selo de prontidão para o importador Premier.
+
+## Ordem recomendada de importação
+
+1. \`stores.csv\` (lojas/empresas)
+2. \`sellers.csv\` (vendedores)
+3. \`customers.csv\` (clientes)
+4. \`products.csv\` (produtos)
+5. \`product_imei.csv\` (IMEIs)
+6. \`sales.csv\` (vendas — cabeçalho)
+7. \`sale_items.csv\` (itens)
+8. \`sale_payments.csv\` (pagamentos)
+
+## Relacionamentos
+
+\`\`\`
+sales.sale_uuid ──┬── sale_items.sale_uuid
+                  └── sale_payments.sale_uuid
+sales.cliente_id  ── customers.cliente_id
+sale_items.produto_id ── products.produto_id
+product_imei.product_id ── products.produto_id
+sales.vendedor_id ── sellers.vendedor_id
+sales.loja_id    ── stores.loja_id
+\`\`\`
+
+## Campos obrigatórios vs opcionais
+
+Ver \`data_dictionary.json\` — cada campo é anotado com \`obrigatorio: true|false\`,
+tipo, origem no banco, exemplo e observações.
+
+## Compatibilidade
+
+- Encoding: **UTF-8 com BOM**.
+- Delimitador: **\`;\`** (ponto-e-vírgula).
+- Estrutura de CSVs, nomes de arquivos e colunas: **inalterada** entre versões
+  do formato — arquivos novos são adicionados como metadados. Importadores
+  antigos continuam funcionando ignorando o que não conhecem.
+
+Total geral vendido: **${ctx.totalVendido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}**
+`;
+}
+
+
 
 
 // ── Export principal ──────────────────────────────────
@@ -1196,15 +1548,23 @@ export async function exportSales(
   // Hash de integridade simples (fnv-1a sobre concatenação de sale_ids)
   const integrityHash = fnv1a(sales.map((s: any) => s.id).join("|"));
 
-  const manifest = {
-    versao_exportador: "3.5",
-    versao_schema: mode === "premier" ? "premier-erp/plug-and-play-1.0" : "premier-erp/1.1",
+  const timezone = (() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; }
+  })();
+
+  const manifest: any = {
+    versao_formato: EXPORT_FORMAT_VERSION,
+    versao_exportador: EXPORTER_VERSION,
+    versao_schema: mode === "premier" ? EXPORT_SCHEMA_VERSION_PREMIER : EXPORT_SCHEMA_VERSION_STANDARD,
     modo: suffix,
     formato: format,
+    encoding: "utf-8-bom",
+    delimitador: ";",
     empresa: empresaAtual,
     empresa_id: orgId ?? null,
     periodo,
     data_exportacao: new Date().toISOString(),
+    timezone,
     usuario: usuarioLabel,
     quantidade_vendas: sales.length,
     quantidade_itens: items.length,
@@ -1238,7 +1598,6 @@ export async function exportSales(
   };
 
   if (format === "xlsx") {
-    // 3 abas em 1 workbook
     const XLSX = await import("xlsx");
     const wb = XLSX.utils.book_new();
     for (const sh of sheets) {
@@ -1252,38 +1611,133 @@ export async function exportSales(
     bytes = sales.length * 300;
   } else if (format === "zip") {
     const zip = new JSZip();
-    const csvFiles = sheets.map((sh) => ({ ...sh, arquivo: `${sh.name}.csv`, csv: rowsToCsv(sh.rows, sh.columns) }));
+    // 1. Gera CSVs (formato INALTERADO — mesma estrutura, mesmo delimitador, mesmos nomes)
+    const csvFiles = sheets.map((sh) => ({
+      ...sh,
+      arquivo: `${sh.name}.csv`,
+      csv: rowsToCsv(sh.rows, sh.columns),
+    }));
     for (const sh of csvFiles) zip.file(sh.arquivo, sh.csv);
-    const zipManifest = {
-      ...manifest,
-      arquivos: csvFiles.map((sh) => ({
+
+    // 2. Validações automáticas (nunca interrompem a exportação)
+    const packageIssues = runPackageValidations(csvFiles);
+
+    // 3. Hashes SHA-256 + tamanhos em bytes reais
+    const enc = new TextEncoder();
+    const perFile = await Promise.all(csvFiles.map(async (sh) => {
+      const bytesEnc = enc.encode(sh.csv);
+      const sha = await sha256Hex(bytesEnc);
+      return {
         nome: sh.arquivo,
         registros: sh.rows.length,
         colunas: sh.columns.length,
+        tamanho_bytes: bytesEnc.byteLength,
+        encoding: "utf-8-bom",
+        delimitador: ";",
+        sha256: sha,
         checksum_fnv1a: fnv1a(sh.csv),
         colunas_lista: sh.columns,
-      })),
+      };
+    }));
+
+    // 4. Manifest expandido
+    const zipManifest = {
+      ...manifest,
+      arquivos: perFile,
+      total_bytes: perFile.reduce((a, f) => a + f.tamanho_bytes, 0),
+      total_arquivos: perFile.length,
+      validacoes_pacote: {
+        total: packageIssues.length,
+        erros: packageIssues.filter((i) => i.tipo === "erro").length,
+        avisos: packageIssues.filter((i) => i.tipo === "aviso").length,
+      },
     };
     zip.file("manifest.json", JSON.stringify(zipManifest, null, 2));
-    // Registros excluídos pelos filtros de saneamento (sempre presente, mesmo vazio, para rastreabilidade)
+
+    // 5. Registros excluídos (sempre presente, mesmo vazio)
     zip.file(
       "excluded_records.csv",
       rowsToCsv(excludedRecordsRows, ["sale_id", "sale_number", "cliente", "data", "motivo_exclusao"]),
     );
     zip.file("sanitize_summary.json", JSON.stringify({
+      versao_formato: EXPORT_FORMAT_VERSION,
       filtros_aplicados: sanitize ?? null,
       total_banco: totalBanco,
       total_exportado: sales.length,
       total_excluido: excludedRecordsRows.length,
       integridade_percentual: validationReport.percentualIntegridade,
     }, null, 2));
+
+    // 6. Data Dictionary + README enriquecido + Fidelity Report — sempre incluídos
+    const durationMsSoFar = Math.round(performance.now() - t0);
+    zip.file("data_dictionary.json", JSON.stringify(buildDataDictionary(csvFiles), null, 2));
+    const readmeArquivos = perFile.map((f) => ({ nome: f.nome, registros: f.registros, colunas: f.colunas }));
+    zip.file("README.md", buildEnrichedReadme({
+      suffix,
+      vendas: sales.length,
+      itens: items.length,
+      pagamentos: payments.length,
+      totalVendido,
+      empresa: empresaAtual,
+      usuario: usuarioLabel,
+      periodo,
+      arquivos: readmeArquivos,
+    }));
+    const customersSheetAll = csvFiles.find((s) => s.name === "customers");
+    const productsSheetAll = csvFiles.find((s) => s.name === "products");
+    const imeiSheetAll = csvFiles.find((s) => s.name === "product_imei");
+    zip.file("fidelity_report.md", buildFidelityReport({
+      vendas: sales.length,
+      itens: items.length,
+      pagamentos: payments.length,
+      clientes: customersSheetAll?.rows.length ?? 0,
+      produtos: productsSheetAll?.rows.length ?? 0,
+      imeis: imeiSheetAll?.rows.length ?? 0,
+      vendasValidas: sales.length,
+      validacaoIntegridade: validationReport.percentualIntegridade,
+    }));
+
+    // 7. Export report — auditoria da execução
+    const exportReport = {
+      versao_formato: EXPORT_FORMAT_VERSION,
+      versao_exportador: EXPORTER_VERSION,
+      modo: suffix,
+      empresa: empresaAtual,
+      empresa_id: orgId ?? null,
+      gerado_em: new Date().toISOString(),
+      timezone,
+      duracao_ms: durationMsSoFar,
+      arquivos_gerados: perFile.map((f) => f.nome),
+      arquivos_vazios: perFile.filter((f) => f.registros === 0).map((f) => f.nome),
+      totais: {
+        vendas: sales.length,
+        itens: items.length,
+        pagamentos: payments.length,
+        clientes: customersSheetAll?.rows.length ?? 0,
+        produtos: productsSheetAll?.rows.length ?? 0,
+        imeis: imeiSheetAll?.rows.length ?? 0,
+      },
+      validacoes_executadas: [
+        "UTF-8 (BOM) por arquivo",
+        "cabeçalhos duplicados",
+        "colunas obrigatórias por CSV",
+        "IDs duplicados na chave primária",
+        "referências sale_items/sale_payments → sales.sale_uuid",
+        "arquivos vazios",
+        "integridade de valores (totais, pagamentos, itens)",
+      ],
+      avisos: packageIssues.filter((i) => i.tipo === "aviso"),
+      inconsistencias: packageIssues.filter((i) => i.tipo === "erro"),
+      integridade_percentual: validationReport.percentualIntegridade,
+    };
+    zip.file("export_report.json", JSON.stringify(exportReport, null, 2));
+
     if (mode === "premier") {
       zip.file("validation_report.json", JSON.stringify(validationReport, null, 2));
       zip.file("import_map.json", JSON.stringify(buildPremierImportMap(), null, 2));
-      const customersSheet = csvFiles.find((s) => s.name === "customers");
-      const productsSheet = csvFiles.find((s) => s.name === "products");
       const premierReady = {
-        versao_layout: "premier-erp/plug-and-play-1.0",
+        versao_layout: EXPORT_SCHEMA_VERSION_PREMIER,
+        versao_formato: EXPORT_FORMAT_VERSION,
         hash: integrityHash,
         empresa: empresaAtual,
         empresa_id: orgId ?? null,
@@ -1291,29 +1745,19 @@ export async function exportSales(
         quantidade_vendas: sales.length,
         quantidade_itens: items.length,
         quantidade_pagamentos: payments.length,
-        quantidade_clientes: customersSheet?.rows.length ?? 0,
-        quantidade_produtos: productsSheet?.rows.length ?? 0,
+        quantidade_clientes: customersSheetAll?.rows.length ?? 0,
+        quantidade_produtos: productsSheetAll?.rows.length ?? 0,
         integridade_percentual: validationReport.percentualIntegridade,
         data_exportacao: new Date().toISOString(),
         arquivos: csvFiles.map((s) => s.arquivo),
       };
       zip.file("premier_ready.json", JSON.stringify(premierReady, null, 2));
-      zip.file("README.md", buildReadme({
-        suffix,
-        vendas: sales.length,
-        itens: items.length,
-        pagamentos: payments.length,
-        totalVendido,
-        empresa: empresaAtual,
-        usuario: usuarioLabel,
-        periodo,
-      }));
-      zip.file("fidelity_report.md", buildFidelityReport());
     }
     const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
     bytes = blob.size;
     filename = `vendas-${suffix}-${stamp}.zip`;
     triggerBlob(filename, blob);
+
   } else {
     // CSV único = concatena as 3 abas em 1 (não ideal); melhor exportar apenas "vendas"
     const csv = rowsToCsv(sheets[0].rows, sheets[0].columns);
