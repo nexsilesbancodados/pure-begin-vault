@@ -945,7 +945,7 @@ export async function exportSales(
     if (period?.to) q = q.lte("created_at", period.to);
     return q;
   };
-  const [salesAll, itemsAll, paymentsAll, customers, products, suppliers, sellers, orgs] = await Promise.all([
+  const [salesAll, itemsAll, paymentsAll, customers, products, suppliers, sellers, orgs, imeis] = await Promise.all([
     fetchAll("sales_orders", orgId, salesFilter),
     fetchAll("sale_items", orgId),
     fetchAll("sale_payments", orgId),
