@@ -1790,6 +1790,8 @@ export async function exportSales(
       duracao_ms: durationMsSoFar,
       arquivos_gerados: perFile.map((f) => f.nome),
       arquivos_vazios: perFile.filter((f) => f.registros === 0).map((f) => f.nome),
+      customer_export_mode: customerExportMode,
+      customer_export_audit: auditoriaClientes,
       totais: {
         vendas: sales.length,
         itens: items.length,
