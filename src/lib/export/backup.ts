@@ -40,6 +40,27 @@ export interface BackupPeriod {
   to: string | null;   // ISO or null
 }
 
+export type ExportScopeMode = "ALL" | "REFERENCED_ONLY";
+
+export interface BackupOptions {
+  /** ALL = todos os clientes da empresa. REFERENCED_ONLY = apenas os usados em vendas/OS do período. */
+  customerExportMode?: ExportScopeMode;
+  /** ALL = todos IMEIs. REFERENCED_ONLY = apenas IMEIs vinculados a vendas do período. */
+  imeiExportMode?: ExportScopeMode;
+}
+
+/** Default: quando há período aplicado, restringe; sem período, exporta tudo (backup completo). */
+export function resolveBackupOptions(
+  opts: BackupOptions | undefined,
+  hasPeriod: boolean,
+): Required<BackupOptions> {
+  const fallback: ExportScopeMode = hasPeriod ? "REFERENCED_ONLY" : "ALL";
+  return {
+    customerExportMode: opts?.customerExportMode ?? fallback,
+    imeiExportMode: opts?.imeiExportMode ?? fallback,
+  };
+}
+
 interface BackupFile {
   path: string;
   content: string;
@@ -93,18 +114,20 @@ interface CompatibilityManifest {
   total_records: number;
   total_modules: number;
   registros_por_tabela: Record<string, number>;
+  customer_export_mode?: ExportScopeMode;
+  imei_export_mode?: ExportScopeMode;
 }
 
-const BACKUP_FORMAT_VERSION = "3.2";
-const BACKUP_SCHEMA_VERSION = "1.2";
+const BACKUP_FORMAT_VERSION = "3.3";
+const BACKUP_SCHEMA_VERSION = "1.3";
 const COMPATIBILITY = {
   minimum_version: "1.0.0",
-  maximum_validated_version: "3.1.0",
+  maximum_validated_version: "3.2.0",
   level: "full",
 };
 const COMPATIBLE_WITH = {
   premier: ">=1.0.0",
-  conecta_backup: ">=1.0.0 <=3.1.0",
+  conecta_backup: ">=1.0.0 <=3.2.0",
 };
 
 async function fetchOrgInfo(orgId: string | null) {
@@ -225,6 +248,7 @@ function buildReadme(params: {
   warnings: string[];
   period: BackupPeriod;
   hasPeriod: boolean;
+  scope: Required<BackupOptions>;
 }) {
   const companyName = getOrganizationName(params.organization) ?? "Empresa não identificada";
   return [
@@ -247,6 +271,20 @@ function buildReadme(params: {
     params.hasPeriod
       ? `- Transações: ${(params.period.from ?? "início").slice(0, 10)} até ${(params.period.to ?? "hoje").slice(0, 10)}`
       : "- Transações: Todo o período (sem filtro aplicado)",
+    "",
+    "## Escopo da Exportação",
+    `- customers.csv: **${params.scope.customerExportMode}** — ${params.scope.customerExportMode === "ALL" ? "todos os clientes cadastrados." : "apenas clientes referenciados em vendas/OS do período."}`,
+    `- product_imei.csv: **${params.scope.imeiExportMode}** — ${params.scope.imeiExportMode === "ALL" ? "todos os IMEIs cadastrados." : "apenas IMEIs vinculados a vendas do período (sale_id ∈ vendas exportadas)."}`,
+    "",
+    "## Breaking Changes (3.2 → 3.3)",
+    "- **customers.csv**: agora opt-in via `customer_export_mode`. No 3.2 sempre saía como REFERENCED_ONLY; no 3.3 o default é ALL em backup completo e REFERENCED_ONLY quando há período.",
+    "  - Impacto: backups completos voltam a conter o catálogo total de clientes (comportamento pré-3.2).",
+    "  - Motivo: separar os casos de uso *backup mestre* e *migração parcial* sem mudanças silenciosas.",
+    "  - Reproduzir o comportamento anterior: passar `{ customerExportMode: 'REFERENCED_ONLY' }`.",
+    "- **product_imei.csv**: novo modo `imei_export_mode`. Em REFERENCED_ONLY filtra por `sale_id` ∈ vendas exportadas.",
+    "  - Impacto: ZIPs por período ficam menores e coerentes; backup completo mantém todos os IMEIs.",
+    "  - Motivo: coerência com customers e escopo do período.",
+    "  - Reproduzir o comportamento 3.2: passar `{ imeiExportMode: 'ALL' }`.",
     "",
     "## Estrutura do ZIP",
     "- empresa.json — dados cadastrais da empresa.",
@@ -304,6 +342,13 @@ function buildCompatibilityReport(params: {
     `- Quantidade de registros: ${params.manifest.total_records.toLocaleString("pt-BR")}`,
     `- Módulos exportados: ${params.manifest.total_modules}`,
     `- Avisos encontrados: ${params.warnings.length}`,
+    `- customers.csv: **${params.manifest.customer_export_mode ?? "-"}**`,
+    `- product_imei.csv: **${params.manifest.imei_export_mode ?? "-"}**`,
+    "",
+    "## Breaking Changes (3.2 → 3.3)",
+    "- customers.csv: opt-in via customer_export_mode (ALL | REFERENCED_ONLY). No 3.2 sempre REFERENCED_ONLY.",
+    "- product_imei.csv: novo imei_export_mode. REFERENCED_ONLY = sale_id ∈ vendas exportadas.",
+    "- Reverter: passar { customerExportMode: 'REFERENCED_ONLY', imeiExportMode: 'ALL' } em generateBackupZip.",
     "",
     "## Módulos exportados",
     ...params.moduleStatistics.map(
@@ -332,6 +377,7 @@ export async function generateBackupZip(
   orgId: string | null,
   onProgress?: (p: BackupProgress) => void,
   period?: BackupPeriod | null,
+  options?: BackupOptions,
 ): Promise<BackupResult> {
   const t0 = performance.now();
   const backupUuid = makeBackupUuid();
@@ -347,6 +393,7 @@ export async function generateBackupZip(
     to: period?.to || null,
   };
   const hasPeriod = !!(normalizedPeriod.from || normalizedPeriod.to);
+  const scope = resolveBackupOptions(options, hasPeriod);
 
   const addFile = (path: string, content: string) => {
     files.push({ path, content });
@@ -424,7 +471,11 @@ export async function generateBackupZip(
   };
 
   // Fase A: pais + independentes (tudo que NÃO é parent-driven nem derivado)
-  const parentsAndIndep = DATASETS.filter((d) => !d.parent && !d.derivedFrom);
+  // product_imei em modo REFERENCED_ONLY é adiado para Fase C (precisa dos ids de vendas).
+  const deferImei = scope.imeiExportMode === "REFERENCED_ONLY";
+  const parentsAndIndep = DATASETS.filter(
+    (d) => !d.parent && !d.derivedFrom && !(deferImei && d.key === "product_imei"),
+  );
   for (let i = 0; i < parentsAndIndep.length; i++) {
     await processDataset(parentsAndIndep[i], DATASETS.indexOf(parentsAndIndep[i]));
   }
@@ -436,18 +487,38 @@ export async function generateBackupZip(
     await processDataset(ds, DATASETS.indexOf(ds), parentIds);
   }
 
-  // Fase C: dimensões derivadas
+  // Fase C: dimensões derivadas / opt-in
   const derived = DATASETS.filter((d) => d.derivedFrom);
   for (const ds of derived) {
     if (ds.derivedFrom!.kind === "customers_from_sales_and_os") {
-      const salesRows = rowsByKey["sales_orders"] ?? [];
-      const osRows = rowsByKey["service_orders"] ?? [];
-      const cids = new Set<string>();
-      for (const r of salesRows) if (r?.customer_id) cids.add(r.customer_id);
-      for (const r of osRows) if (r?.customer_id) cids.add(r.customer_id);
-      await processDataset(ds, DATASETS.indexOf(ds), Array.from(cids));
+      if (scope.customerExportMode === "ALL") {
+        // Modo ALL: catálogo completo, ignora ids do pai.
+        await processDataset(ds, DATASETS.indexOf(ds));
+      } else {
+        const salesRows = rowsByKey["sales_orders"] ?? [];
+        const osRows = rowsByKey["service_orders"] ?? [];
+        const cids = new Set<string>();
+        for (const r of salesRows) if (r?.customer_id) cids.add(r.customer_id);
+        for (const r of osRows) if (r?.customer_id) cids.add(r.customer_id);
+        await processDataset(ds, DATASETS.indexOf(ds), Array.from(cids));
+      }
     }
   }
+
+  // product_imei em modo REFERENCED_ONLY: filtra por sale_id ∈ vendas do período.
+  if (deferImei) {
+    const imeiDs = DATASETS.find((d) => d.key === "product_imei");
+    if (imeiDs) {
+      const saleIds = idsByKey["sales_orders"] ?? [];
+      // Reusa processDataset via override temporário: trata como filho de sales_orders.
+      const virtualChild: DatasetDef = {
+        ...imeiDs,
+        parent: { dataset: "sales_orders", parentKey: "id", childKey: "sale_id" },
+      };
+      await processDataset(virtualChild, DATASETS.indexOf(imeiDs), saleIds);
+    }
+  }
+
 
   // 2.5) Validação de integridade referencial — ZIP autocontido
   interface IntegrityCheck {
@@ -588,6 +659,7 @@ export async function generateBackupZip(
       warnings,
       period: normalizedPeriod,
       hasPeriod,
+      scope,
     }),
   );
 
@@ -619,6 +691,24 @@ export async function generateBackupZip(
       mode: "transactional_only" as const,
       applied: hasPeriod,
     },
+    customer_export_mode: scope.customerExportMode,
+    imei_export_mode: scope.imeiExportMode,
+    export_scope: {
+      customers: {
+        mode: scope.customerExportMode,
+        description:
+          scope.customerExportMode === "ALL"
+            ? "Todos os clientes cadastrados na empresa."
+            : "Somente clientes referenciados por vendas ou ordens de serviço do período exportado.",
+      },
+      product_imei: {
+        mode: scope.imeiExportMode,
+        description:
+          scope.imeiExportMode === "ALL"
+            ? "Todos os IMEIs/séries cadastrados."
+            : "Somente IMEIs vinculados a vendas do período exportado (sale_id ∈ vendas exportadas).",
+      },
+    },
     modulos_exportados: modulosExportados,
     total_registros: totalRows,
     total_records: totalRows,
@@ -636,8 +726,34 @@ export async function generateBackupZip(
       warnings: integrityResults.filter((r) => r.status === "warning").length,
       report_file: "diagnostico/integrity_report.json",
     },
+    breaking_changes: {
+      from_version: "3.2",
+      to_version: BACKUP_FORMAT_VERSION,
+      changes: [
+        {
+          area: "customers.csv",
+          change:
+            "Comportamento agora é opt-in via customer_export_mode (ALL | REFERENCED_ONLY).",
+          impact:
+            "Antes (3.2) customers era sempre REFERENCED_ONLY. A partir do 3.3 é ALL por padrão em backup completo e REFERENCED_ONLY quando há período.",
+          reason:
+            "Suportar dois casos de uso legítimos (backup mestre vs. migração parcial) sem mudar comportamento silenciosamente.",
+          revert_to_old:
+            "Passar { customerExportMode: 'REFERENCED_ONLY' } em generateBackupZip.",
+        },
+        {
+          area: "product_imei.csv",
+          change:
+            "Novo modo imei_export_mode (ALL | REFERENCED_ONLY). Em REFERENCED_ONLY filtra por sale_id ∈ vendas exportadas.",
+          impact:
+            "Reduz ZIP em migrações parciais; backup completo mantém todos os IMEIs.",
+          reason: "Coerência com customers e integridade do escopo exportado.",
+          revert_to_old: "Passar { imeiExportMode: 'ALL' } em generateBackupZip.",
+        },
+      ],
+    },
     observacoes:
-      "Backup v3.2 parent-driven: ZIP autocontido. Filhos derivados dos ids do pai (sale_items, sale_payments, service_order_items, service_order_history) e customers restrito às vendas/OS do período.",
+      `Backup v${BACKUP_FORMAT_VERSION} parent-driven: ZIP autocontido. Filhos derivados dos ids do pai (sale_items, sale_payments, service_order_items, service_order_history). customers=${scope.customerExportMode}, product_imei=${scope.imeiExportMode}.`,
   });
 
   const buildZip = (zipBytes: number | null) => {

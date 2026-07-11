@@ -37,7 +37,7 @@ import { fetchDataset, countDataset, ExportFilters } from "@/lib/export/fetcher"
 import { downloadCsv } from "@/lib/export/csv";
 import { downloadXlsx } from "@/lib/export/xlsx";
 import { collectTableStats, runIntegrityChecks, TableStat, IntegrityIssue } from "@/lib/export/diagnostics";
-import { generateBackupZip, BackupProgress, BackupResult, BackupPeriod } from "@/lib/export/backup";
+import { generateBackupZip, BackupProgress, BackupResult, BackupPeriod, ExportScopeMode } from "@/lib/export/backup";
 import { runCompatibilityAnalysis, exportCompatibilityPdf, CompatibilityReport, Severity } from "@/lib/export/compatibility";
 import {
   checkCustomerIntegrity,
@@ -784,6 +784,14 @@ function BackupButton({ orgId, period }: { orgId: string | null; period?: Backup
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<BackupProgress | null>(null);
   const [result, setResult] = useState<BackupResult | null>(null);
+  const hasPeriod = !!(period?.from || period?.to);
+  const [customerMode, setCustomerMode] = useState<ExportScopeMode>(hasPeriod ? "REFERENCED_ONLY" : "ALL");
+  const [imeiMode, setImeiMode] = useState<ExportScopeMode>(hasPeriod ? "REFERENCED_ONLY" : "ALL");
+
+  useEffect(() => {
+    setCustomerMode(hasPeriod ? "REFERENCED_ONLY" : "ALL");
+    setImeiMode(hasPeriod ? "REFERENCED_ONLY" : "ALL");
+  }, [hasPeriod]);
 
   const run = async () => {
     if (!orgId) {
@@ -794,7 +802,10 @@ function BackupButton({ orgId, period }: { orgId: string | null; period?: Backup
     setResult(null);
     setProgress(null);
     try {
-      const res = await generateBackupZip(orgId, (p) => setProgress(p), period ?? null);
+      const res = await generateBackupZip(orgId, (p) => setProgress(p), period ?? null, {
+        customerExportMode: customerMode,
+        imeiExportMode: imeiMode,
+      });
       setResult(res);
       toast.success(
         `Backup gerado: ${res.totalRows.toLocaleString("pt-BR")} registros (${(res.bytes / 1024 / 1024).toFixed(2)} MB)`,
@@ -812,7 +823,33 @@ function BackupButton({ orgId, period }: { orgId: string | null; period?: Backup
     : null;
 
   return (
-    <div className="flex flex-col items-end gap-1 min-w-[260px]">
+    <div className="flex flex-col items-end gap-2 min-w-[280px]">
+      <div className="flex flex-col gap-1 w-full text-[10px]">
+        <label className="flex items-center justify-between gap-2">
+          <span className="text-muted-foreground">Clientes:</span>
+          <select
+            className="border rounded px-1 py-0.5 bg-background"
+            value={customerMode}
+            onChange={(e) => setCustomerMode(e.target.value as ExportScopeMode)}
+            disabled={busy}
+          >
+            <option value="ALL">Todos (ALL)</option>
+            <option value="REFERENCED_ONLY">Só referenciados (REFERENCED_ONLY)</option>
+          </select>
+        </label>
+        <label className="flex items-center justify-between gap-2">
+          <span className="text-muted-foreground">IMEIs:</span>
+          <select
+            className="border rounded px-1 py-0.5 bg-background"
+            value={imeiMode}
+            onChange={(e) => setImeiMode(e.target.value as ExportScopeMode)}
+            disabled={busy}
+          >
+            <option value="ALL">Todos (ALL)</option>
+            <option value="REFERENCED_ONLY">Só vendidos no período (REFERENCED_ONLY)</option>
+          </select>
+        </label>
+      </div>
       <Button onClick={run} disabled={busy} size="lg" className="gap-2">
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
         Exportar Backup Completo
