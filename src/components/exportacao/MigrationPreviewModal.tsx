@@ -61,12 +61,19 @@ export function MigrationPreviewModal({
 }) {
   const data = useMemo(() => {
     if (!report) return null;
-    const { excluded, reasonsBySale } = computeExcludedSales(report, sanitize);
+    let excluded = new Set<string>();
+    let reasonsBySale = new Map<string, string[]>();
+    try {
+      const r = computeExcludedSales(report, sanitize);
+      excluded = r.excluded ?? excluded;
+      reasonsBySale = r.reasonsBySale ?? reasonsBySale;
+    } catch {}
     const totalVendas = report.totalVendas ?? 0;
     const exportadas = Math.max(0, totalVendas - excluded.size);
     const integridade = totalVendas > 0 ? (exportadas / totalVendas) * 100 : 100;
 
-    const excludedList = report.salesIndex
+    const salesIndex = Array.isArray(report.salesIndex) ? report.salesIndex : [];
+    const excludedList = salesIndex
       .filter((s) => excluded.has(s.id))
       .map((s) => ({
         id: s.id,
@@ -77,13 +84,15 @@ export function MigrationPreviewModal({
         motivo: (reasonsBySale.get(s.id) ?? []).join(" · ") || "—",
       }));
 
+    const c = report.candidates ?? ({} as any);
+    const len = (x: any) => (Array.isArray(x) ? x.length : 0);
     const resumo = {
-      semItens: sanitize.excludeSemItens ? report.candidates.semItens.length : 0,
-      totalDivergente: sanitize.excludeTotalDivergente ? report.candidates.totalDivergente.length : 0,
-      semCliente: sanitize.excludeSemCliente ? report.candidates.semCliente.length : 0,
-      imeiDuplicado: sanitize.excludeImeiDuplicado ? report.candidates.imeiDuplicado.length : 0,
-      pagamentoDivergente: sanitize.excludePagamentoDivergente ? report.candidates.pagamentoDivergente.length : 0,
-      canceladas: sanitize.excludeCanceladas ? report.candidates.canceladas.length : 0,
+      semItens: sanitize.excludeSemItens ? len(c.semItens) : 0,
+      totalDivergente: sanitize.excludeTotalDivergente ? len(c.totalDivergente) : 0,
+      semCliente: sanitize.excludeSemCliente ? len(c.semCliente) : 0,
+      imeiDuplicado: sanitize.excludeImeiDuplicado ? len(c.imeiDuplicado) : 0,
+      pagamentoDivergente: sanitize.excludePagamentoDivergente ? len(c.pagamentoDivergente) : 0,
+      canceladas: sanitize.excludeCanceladas ? len(c.canceladas) : 0,
     };
     const outros = Math.max(
       0,
