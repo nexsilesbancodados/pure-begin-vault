@@ -1006,15 +1006,28 @@ function CompatibilityTab({ orgId }: { orgId: string | null }) {
   );
 }
 
-function CustomersTab({ orgId }: { orgId: string | null }) {
+function CustomersTab({ orgId, period }: { orgId: string | null; period: BackupPeriod }) {
   const [report, setReport] = useState<CustomerIntegrityReport | null>(null);
   const [checking, setChecking] = useState(false);
   const [busy, setBusy] = useState<CustomerExportMode | null>(null);
 
+  const hasPeriod = !!(period?.from || period?.to);
+  const [scope, setScope] = useState<CustomerAuditScope>(hasPeriod ? "REFERENCED_ONLY" : "ALL");
+
+  // Alinha o modo ao filtro de período automaticamente quando o usuário mexe no período
+  useEffect(() => {
+    setScope(hasPeriod ? "REFERENCED_ONLY" : "ALL");
+  }, [hasPeriod]);
+
   const check = async () => {
     setChecking(true);
     try {
-      setReport(await checkCustomerIntegrity(orgId));
+      setReport(
+        await checkCustomerIntegrity(orgId, {
+          scope,
+          period: scope === "REFERENCED_ONLY" ? { from: period?.from, to: period?.to } : null,
+        }),
+      );
     } catch (e: any) {
       toast.error(`Falha na verificação: ${e?.message ?? e}`);
     } finally {
@@ -1025,7 +1038,7 @@ function CustomersTab({ orgId }: { orgId: string | null }) {
   useEffect(() => {
     void check();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId]);
+  }, [orgId, scope, period?.from, period?.to]);
 
   const doExport = async (mode: CustomerExportMode, format: "csv" | "xlsx") => {
     setBusy(mode);
@@ -1048,6 +1061,11 @@ function CustomersTab({ orgId }: { orgId: string | null }) {
     </div>
   );
 
+  const scopeBadge =
+    scope === "REFERENCED_ONLY"
+      ? "Auditoria baseada em clientes exportados"
+      : "Auditoria baseada em todos os clientes";
+
   return (
     <div className="space-y-4">
       <Card>
@@ -1055,12 +1073,36 @@ function CustomersTab({ orgId }: { orgId: string | null }) {
           <CardTitle className="text-base flex items-center gap-2">
             <Users className="h-4 w-4" /> Integridade do cadastro de clientes
           </CardTitle>
-          <Button size="sm" variant="outline" onClick={check} disabled={checking} className="gap-1.5">
-            {checking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-            Reverificar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={scope} onValueChange={(v) => setScope(v as CustomerAuditScope)}>
+              <SelectTrigger className="h-8 w-[220px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos os clientes</SelectItem>
+                <SelectItem value="REFERENCED_ONLY">Somente clientes exportados (período)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="outline" onClick={check} disabled={checking} className="gap-1.5">
+              {checking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Reverificar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <Badge variant={scope === "REFERENCED_ONLY" ? "default" : "outline"} className="text-[10px]">
+              {scopeBadge}
+            </Badge>
+            {scope === "REFERENCED_ONLY" && hasPeriod && (
+              <span className="text-[10px] text-muted-foreground">
+                Período: {period.from?.slice(0, 10) ?? "—"} → {period.to?.slice(0, 10) ?? "—"}
+              </span>
+            )}
+            {scope === "REFERENCED_ONLY" && !hasPeriod && (
+              <span className="text-[10px] text-amber-600">Sem período: nenhum cliente referenciado.</span>
+            )}
+          </div>
           {!report ? (
             <p className="text-xs text-muted-foreground">Analisando base…</p>
           ) : (
@@ -1075,8 +1117,13 @@ function CustomersTab({ orgId }: { orgId: string | null }) {
                 <IntegRow label="CPF duplicado" value={report.cpfDuplicado} danger />
                 <IntegRow label="CNPJ duplicado" value={report.cnpjDuplicado} danger />
               </div>
+              <div className="text-[11px] text-muted-foreground">
+                {scope === "REFERENCED_ONLY"
+                  ? `Auditados = Exportados (Premier com período): ${report.total.toLocaleString("pt-BR")} clientes`
+                  : `Auditoria completa da tabela customers: ${report.total.toLocaleString("pt-BR")} clientes`}
+              </div>
               {report.amostraProblemas.length > 0 && (
-                <details className="text-xs">
+                <details className="text-xs mt-2">
                   <summary className="cursor-pointer text-muted-foreground">Ver amostra ({report.amostraProblemas.length})</summary>
                   <pre className="mt-2 p-2 bg-muted/40 rounded text-[10px] overflow-x-auto">
                     {JSON.stringify(report.amostraProblemas, null, 2)}
@@ -1087,6 +1134,7 @@ function CustomersTab({ orgId }: { orgId: string | null }) {
           )}
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader>
