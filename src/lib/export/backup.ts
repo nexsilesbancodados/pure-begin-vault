@@ -650,6 +650,7 @@ export async function generateBackupZip(
       warnings,
       period: normalizedPeriod,
       hasPeriod,
+      scope,
     }),
   );
 
