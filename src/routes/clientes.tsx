@@ -717,73 +717,140 @@ function CustomersPage() {
       </Dialog>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[720px] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingCustomer ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: João da Silva"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="joao@exemplo.com"
-                />
+          <div className="grid gap-6 py-4">
+            {/* DADOS */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Dados</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Nome Completo *" col="col-span-2">
+                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: João da Silva" />
+                </Field>
+                <Field label="Tipo de pessoa">
+                  <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={formData.person_type} onChange={(e) => setFormData({ ...formData, person_type: e.target.value })}>
+                    <option value="pf">Pessoa Física</option>
+                    <option value="pj">Pessoa Jurídica</option>
+                  </select>
+                </Field>
+                <Field label="CPF / CNPJ">
+                  <Input value={formData.document} onChange={(e) => setFormData({ ...formData, document: e.target.value })} placeholder="000.000.000-00" />
+                </Field>
+                <Field label="RG">
+                  <Input value={formData.rg} onChange={(e) => setFormData({ ...formData, rg: e.target.value })} />
+                </Field>
+                <Field label="Inscrição Estadual">
+                  <Input value={formData.ie} onChange={(e) => setFormData({ ...formData, ie: e.target.value })} />
+                </Field>
+                <Field label="Inscrição Municipal">
+                  <Input value={formData.im} onChange={(e) => setFormData({ ...formData, im: e.target.value })} />
+                </Field>
+                <Field label="Empresa">
+                  <Input value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} />
+                </Field>
+                <Field label="Profissão">
+                  <Input value={formData.profession} onChange={(e) => setFormData({ ...formData, profession: e.target.value })} />
+                </Field>
+                <Field label="Data de nascimento">
+                  <Input type="date" value={formData.birth_date} onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })} />
+                </Field>
+                <Field label="Sexo">
+                  <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={formData.gender} onChange={(e) => setFormData({ ...formData, gender: e.target.value })}>
+                    <option value="">—</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Feminino</option>
+                    <option value="O">Outro</option>
+                  </select>
+                </Field>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">WhatsApp / Celular</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="(11) 99999-9999"
-                />
+            </section>
+
+            {/* CONTATO */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Contato</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Telefone">
+                  <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="(11) 3333-4444" />
+                </Field>
+                <Field label="WhatsApp">
+                  <Input value={formData.whatsapp} onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(11) 99999-9999" />
+                </Field>
+                <Field label="Telefone secundário">
+                  <Input value={formData.phone_secondary} onChange={(e) => setFormData({ ...formData, phone_secondary: e.target.value })} />
+                </Field>
+                <Field label="E-mail">
+                  <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="joao@exemplo.com" />
+                </Field>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="document">CPF / CNPJ</Label>
-              <Input
-                id="document"
-                value={formData.document}
-                onChange={(e) => setFormData({ ...formData, document: e.target.value })}
-                placeholder="000.000.000-00"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="street">Endereço (Rua)</Label>
-                <Input
-                  id="street"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                />
+            </section>
+
+            {/* ENDEREÇO */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Endereço</h3>
+              <div className="grid grid-cols-6 gap-3">
+                <Field label="CEP" col="col-span-2">
+                  <Input value={formData.zip_code} onChange={(e) => setFormData({ ...formData, zip_code: e.target.value })} placeholder="00000-000" />
+                </Field>
+                <Field label="Rua" col="col-span-4">
+                  <Input value={formData.street} onChange={(e) => setFormData({ ...formData, street: e.target.value })} />
+                </Field>
+                <Field label="Número" col="col-span-1">
+                  <Input value={formData.number} onChange={(e) => setFormData({ ...formData, number: e.target.value })} />
+                </Field>
+                <Field label="Complemento" col="col-span-3">
+                  <Input value={formData.complement} onChange={(e) => setFormData({ ...formData, complement: e.target.value })} />
+                </Field>
+                <Field label="Bairro" col="col-span-2">
+                  <Input value={formData.neighborhood} onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })} />
+                </Field>
+                <Field label="Cidade" col="col-span-4">
+                  <Input value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} />
+                </Field>
+                <Field label="Estado" col="col-span-2">
+                  <Input value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} maxLength={2} placeholder="SP" />
+                </Field>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">Cidade</Label>
-                <Input
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                />
+              {(formData.address || (!formData.street && editingCustomer)) && (
+                <Field label="Endereço legado (texto livre — compatibilidade)">
+                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Mantido apenas para clientes antigos." />
+                </Field>
+              )}
+            </section>
+
+            {/* COMERCIAL */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Comercial</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Limite de crédito (R$)">
+                  <Input type="number" step="0.01" value={formData.credit_limit} onChange={(e) => setFormData({ ...formData, credit_limit: e.target.value })} />
+                </Field>
+                <Field label="Origem">
+                  <Input value={formData.origin} onChange={(e) => setFormData({ ...formData, origin: e.target.value })} placeholder="Indicação, Instagram..." />
+                </Field>
+                <Field label="Vendedor responsável (ID)">
+                  <Input value={formData.seller_id} onChange={(e) => setFormData({ ...formData, seller_id: e.target.value })} placeholder="UUID do vendedor" />
+                </Field>
+                <Field label="Status">
+                  <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
+                    <option value="active">Ativo</option>
+                    <option value="inactive">Inativo</option>
+                    <option value="blocked">Bloqueado</option>
+                    <option value="lead">Lead</option>
+                  </select>
+                </Field>
+                <Field label="Tags (separadas por vírgula)" col="col-span-2">
+                  <Input value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} placeholder="vip, atacado, fidelizado" />
+                </Field>
+                <Field label="Observações" col="col-span-2">
+                  <textarea className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} />
+                </Field>
               </div>
-            </div>
+            </section>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Cliente"}
             </Button>
