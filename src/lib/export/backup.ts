@@ -1,9 +1,10 @@
 // Backup Completo — gera um ZIP com todos os datasets da empresa.
 // SOMENTE LEITURA: não altera tabela, RLS ou regra de negócio.
+// v3.2 — parent-driven export: ZIP autocontido e referencialmente íntegro.
 import JSZip from "jszip";
 import { supabase } from "@/integrations/supabase/client";
 import { DATASETS, DatasetDef, ExportGroup, isTransactionalDataset } from "./registry";
-import { fetchDataset, ExportFilters } from "./fetcher";
+import { fetchDataset, fetchDatasetIn, ExportFilters } from "./fetcher";
 import { rowsToCsv } from "./csv";
 
 // Mapeia grupos → pastas no ZIP (nomes em pt-BR conforme spec)
@@ -94,8 +95,8 @@ interface CompatibilityManifest {
   registros_por_tabela: Record<string, number>;
 }
 
-const BACKUP_FORMAT_VERSION = "3.1";
-const BACKUP_SCHEMA_VERSION = "1.1";
+const BACKUP_FORMAT_VERSION = "3.2";
+const BACKUP_SCHEMA_VERSION = "1.2";
 const COMPATIBILITY = {
   minimum_version: "1.0.0",
   maximum_validated_version: "3.1.0",
