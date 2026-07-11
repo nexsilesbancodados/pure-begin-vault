@@ -246,6 +246,7 @@ function buildReadme(params: {
   warnings: string[];
   period: BackupPeriod;
   hasPeriod: boolean;
+  scope: Required<BackupOptions>;
 }) {
   const companyName = getOrganizationName(params.organization) ?? "Empresa não identificada";
   return [
