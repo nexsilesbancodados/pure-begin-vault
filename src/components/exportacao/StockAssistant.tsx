@@ -360,7 +360,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
-  const previewRows = useMemo(() => {
+  const filteredProducts = useMemo<ProductRow[]>(() => {
     if (!snapshot) return [];
     const qMin = num(filters.qtyMin);
     const qMax = num(filters.qtyMax);
@@ -372,7 +372,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
 
     let list = snapshot.products.filter((p) => !snapshot.ignoredIds.has(p.id));
 
-    // Estoque
     list = list.filter((p) => {
       const q = Number(p.stock_quantity ?? 0);
       if (!Number.isFinite(q)) return false;
@@ -382,7 +381,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
-    // Status
     list = list.filter((p) => {
       const active = p.active !== false;
       if (active && !filters.onlyActive) return false;
@@ -390,14 +388,12 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
-    // IMEI
     if (filters.imei !== "all") {
       list = list.filter((p) =>
         filters.imei === "with" ? !!p.has_imei : !p.has_imei,
       );
     }
 
-    // Categoria / Marca / Local (vazio = todos)
     if (filters.categories.length)
       list = list.filter((p) => filters.categories.includes((p.category ?? "").trim()));
     if (filters.brands.length)
@@ -405,7 +401,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     if (filters.locations.length)
       list = list.filter((p) => filters.locations.includes((p.location ?? "").trim()));
 
-    // Faixa de quantidade
     list = list.filter((p) => {
       const q = Number(p.stock_quantity ?? 0);
       if (qMin != null && q < qMin) return false;
@@ -413,7 +408,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
-    // Faixa de preços
     list = list.filter((p) => {
       const cost = Number(p.cost_price ?? 0);
       const price = Number(p.price ?? 0);
@@ -424,7 +418,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
-    // Busca
     if (search) {
       list = list.filter((p) =>
         [p.sku, p.name, p.ean, p.model]
@@ -433,7 +426,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       );
     }
 
-    // Duplicados
     if (filters.dedupe || filters.latestOnly) {
       const byKey = new Map<string, ProductRow>();
       for (const p of list) {
@@ -450,8 +442,47 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       list = [...byKey.values()];
     }
 
-    return list.map(toPremierRow);
+    return list;
   }, [snapshot, filters]);
+
+  const previewRows = useMemo(() => filteredProducts.map(toPremierRow), [filteredProducts]);
+
+  const telefoniaAudit = useMemo(() => {
+    const smartphones = filteredProducts.filter((p) => !!p.has_imei);
+    const accessories = filteredProducts.filter((p) => !p.has_imei);
+    const smartphonesWithImei = smartphones.filter(
+      (p) => (p.metadata && typeof p.metadata === "object" && String((p.metadata as any).imei ?? "").trim() !== "")
+        || Number((p.metadata as any)?.imei_count ?? 0) > 0,
+    );
+    // Fallback: assume smartphone tem IMEI se o snapshot marcar; caso contrário usar metadata
+    const withImei = smartphones.filter((p) => {
+      const md: any = p.metadata ?? {};
+      const val = String(md.imei ?? md.imei_1 ?? "").trim();
+      return val !== "" || Number(md.imei_count ?? 0) > 0;
+    });
+    const withoutImei = smartphones.filter((p) => !withImei.includes(p));
+    const totalUnits = filteredProducts.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
+    const smartphoneUnits = smartphones.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
+    const accessoryUnits = accessories.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
+    const zeroCount = filteredProducts.filter((p) => Number(p.stock_quantity ?? 0) === 0).length;
+    const negativeCount = filteredProducts.filter((p) => Number(p.stock_quantity ?? 0) < 0).length;
+    const coverage = smartphones.length === 0 ? 100 : (withImei.length / smartphones.length) * 100;
+    void smartphonesWithImei;
+    return {
+      totalFound: snapshot?.products.length ?? 0,
+      totalExported: filteredProducts.length,
+      smartphonesCount: smartphones.length,
+      accessoriesCount: accessories.length,
+      totalUnits,
+      smartphoneUnits,
+      accessoryUnits,
+      zeroCount,
+      negativeCount,
+      withImei,
+      withoutImei,
+      coverage,
+    };
+  }, [filteredProducts, snapshot]);
 
   const previewStockSum = useMemo(
     () => previewRows.reduce((s, r) => s + Number(r.estoque || 0), 0),
@@ -758,6 +789,100 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
               </Badge>
               <span className="text-muted-foreground">{PREMIER_STOCK_COLUMNS.length} colunas</span>
             </div>
+
+            {/* Resumo da Exportação — auditoria de telefonia */}
+            <div className="rounded-md border border-primary/30 bg-background p-3 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-bold">
+                <ShieldCheck className="h-4 w-4 text-primary" /> Resumo da Exportação (Telefonia)
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <Sum label="Encontrados" value={telefoniaAudit.totalFound.toLocaleString("pt-BR")} />
+                <Sum label="Exportados" value={telefoniaAudit.totalExported.toLocaleString("pt-BR")} />
+                <Sum label="Smartphones" value={telefoniaAudit.smartphonesCount.toLocaleString("pt-BR")} />
+                <Sum label="Acessórios" value={telefoniaAudit.accessoriesCount.toLocaleString("pt-BR")} />
+                <Sum label="Unidades exportadas" value={telefoniaAudit.totalUnits.toLocaleString("pt-BR")} />
+                <Sum label="Produtos zerados" value={telefoniaAudit.zeroCount.toLocaleString("pt-BR")} />
+                <Sum label="Produtos negativos" value={telefoniaAudit.negativeCount.toLocaleString("pt-BR")} />
+                <Sum label="Cobertura IMEI" value={`${telefoniaAudit.coverage.toFixed(1)}%`} />
+              </div>
+
+              {telefoniaAudit.smartphonesCount > 0 && (
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <Sum label="Smartphones c/ IMEI" value={telefoniaAudit.withImei.length.toLocaleString("pt-BR")} />
+                  <Sum label="Smartphones s/ IMEI" value={telefoniaAudit.withoutImei.length.toLocaleString("pt-BR")} />
+                  <Sum label="Unid. smartphones" value={telefoniaAudit.smartphoneUnits.toLocaleString("pt-BR")} />
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="text-left px-2 py-1 border-b">Categoria</th>
+                      <th className="text-right px-2 py-1 border-b">Produtos</th>
+                      <th className="text-right px-2 py-1 border-b">Unidades</th>
+                      <th className="text-right px-2 py-1 border-b">IMEIs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="px-2 py-1 border-b">Smartphones</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartphonesCount}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartphoneUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.withImei.length}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 border-b">Acessórios</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.accessoriesCount}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.accessoryUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
+                    </tr>
+                    <tr className="font-bold bg-muted/30">
+                      <td className="px-2 py-1">Total</td>
+                      <td className="text-right tabular-nums px-2 py-1">{telefoniaAudit.totalExported}</td>
+                      <td className="text-right tabular-nums px-2 py-1">{telefoniaAudit.totalUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1">{telefoniaAudit.withImei.length}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {telefoniaAudit.withoutImei.length > 0 && (
+                <div className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+                  <div className="flex items-center gap-2 font-bold">
+                    <AlertTriangle className="h-4 w-4" />
+                    {telefoniaAudit.withoutImei.length} smartphone(s) sem IMEI
+                  </div>
+                  <ul className="list-disc pl-5 max-h-40 overflow-auto">
+                    {telefoniaAudit.withoutImei.slice(0, 50).map((p) => (
+                      <li key={p.id}>
+                        <span className="font-medium">{p.name ?? "—"}</span>
+                        <span className="text-muted-foreground"> · SKU: {p.sku ?? "—"}</span>
+                      </li>
+                    ))}
+                    {telefoniaAudit.withoutImei.length > 50 && (
+                      <li className="text-muted-foreground">
+                        …e mais {telefoniaAudit.withoutImei.length - 50} produto(s).
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {telefoniaAudit.smartphonesCount > 0 && telefoniaAudit.withoutImei.length === 0 ? (
+                <div className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Todos os smartphones possuem IMEI e podem ser migrados com segurança.
+                </div>
+              ) : telefoniaAudit.withoutImei.length > 0 ? (
+                <div className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Existem smartphones sem IMEI. Recomenda-se corrigir antes da migração.
+                </div>
+              ) : null}
+            </div>
+
 
 
             <Button
