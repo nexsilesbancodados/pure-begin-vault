@@ -249,18 +249,6 @@ type StockFilters = {
   onlyActive: boolean;
   includeInactive: boolean;
   imei: "all" | "with" | "without";
-  categories: string[];
-  brands: string[];
-  locations: string[];
-  qtyMin: string;
-  qtyMax: string;
-  costMin: string;
-  costMax: string;
-  priceMin: string;
-  priceMax: string;
-  search: string;
-  dedupe: boolean;
-  latestOnly: boolean;
 };
 
 const DEFAULT_FILTERS: StockFilters = {
@@ -270,19 +258,8 @@ const DEFAULT_FILTERS: StockFilters = {
   onlyActive: true,
   includeInactive: false,
   imei: "all",
-  categories: [],
-  brands: [],
-  locations: [],
-  qtyMin: "",
-  qtyMax: "",
-  costMin: "",
-  costMax: "",
-  priceMin: "",
-  priceMax: "",
-  search: "",
-  dedupe: false,
-  latestOnly: false,
 };
+
 
 export function StockAssistant({ orgId }: { orgId: string | null }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
@@ -291,8 +268,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
   const [filters, setFilters] = useState<StockFilters>(DEFAULT_FILTERS);
   const setF = <K extends keyof StockFilters>(k: K, v: StockFilters[K]) =>
     setFilters((prev) => ({ ...prev, [k]: v }));
-  const toggleInList = (list: string[], v: string) =>
-    list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
+
   const [lastReport, setLastReport] = useState<null | {
     exportedCount: number;
     exportedStockSum: number;
@@ -343,36 +319,13 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId]);
 
-  const facets = useMemo(() => {
-    const cats = new Set<string>();
-    const brs = new Set<string>();
-    const locs = new Set<string>();
-    for (const p of snapshot?.products ?? []) {
-      if (p.category && p.category.trim()) cats.add(p.category.trim());
-      if (p.brand && p.brand.trim()) brs.add(p.brand.trim());
-      if (p.location && p.location.trim()) locs.add(p.location.trim());
-    }
-    return {
-      categories: [...cats].sort(),
-      brands: [...brs].sort(),
-      locations: [...locs].sort(),
-    };
-  }, [snapshot]);
-
-  const num = (s: string) => (s.trim() === "" ? null : Number(s));
+  const num = (_: string) => null; // legado — filtros de faixa removidos
 
   const filteredProducts = useMemo<ProductRow[]>(() => {
     if (!snapshot) return [];
-    const qMin = num(filters.qtyMin);
-    const qMax = num(filters.qtyMax);
-    const cMin = num(filters.costMin);
-    const cMax = num(filters.costMax);
-    const pMin = num(filters.priceMin);
-    const pMax = num(filters.priceMax);
-    const search = filters.search.trim().toLowerCase();
-
     let list = snapshot.products.filter((p) => !snapshot.ignoredIds.has(p.id));
 
+    // Estoque
     list = list.filter((p) => {
       const q = Number(p.stock_quantity ?? 0);
       if (!Number.isFinite(q)) return false;
@@ -382,6 +335,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
+    // Status
     list = list.filter((p) => {
       const active = p.active !== false;
       if (active && !filters.onlyActive) return false;
@@ -389,62 +343,19 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
+    // IMEI — só afeta aparelhos (smartphone/tablet/smartwatch). Acessórios passam sempre.
     if (filters.imei !== "all") {
-      list = list.filter((p) =>
-        filters.imei === "with" ? !!p.has_imei : !p.has_imei,
-      );
-    }
-
-    if (filters.categories.length)
-      list = list.filter((p) => filters.categories.includes((p.category ?? "").trim()));
-    if (filters.brands.length)
-      list = list.filter((p) => filters.brands.includes((p.brand ?? "").trim()));
-    if (filters.locations.length)
-      list = list.filter((p) => filters.locations.includes((p.location ?? "").trim()));
-
-    list = list.filter((p) => {
-      const q = Number(p.stock_quantity ?? 0);
-      if (qMin != null && q < qMin) return false;
-      if (qMax != null && q > qMax) return false;
-      return true;
-    });
-
-    list = list.filter((p) => {
-      const cost = Number(p.cost_price ?? 0);
-      const price = Number(p.price ?? 0);
-      if (cMin != null && cost < cMin) return false;
-      if (cMax != null && cost > cMax) return false;
-      if (pMin != null && price < pMin) return false;
-      if (pMax != null && price > pMax) return false;
-      return true;
-    });
-
-    if (search) {
-      list = list.filter((p) =>
-        [p.sku, p.name, p.ean, p.model]
-          .map((s) => (s ?? "").toLowerCase())
-          .some((s) => s.includes(search)),
-      );
-    }
-
-    if (filters.dedupe || filters.latestOnly) {
-      const byKey = new Map<string, ProductRow>();
-      for (const p of list) {
-        const key = (p.sku && p.sku.trim()) || (p.ean && p.ean.trim()) || p.id;
-        const existing = byKey.get(key);
-        if (!existing) {
-          byKey.set(key, p);
-        } else if (filters.latestOnly) {
-          const a = new Date(existing.updated_at ?? existing.created_at ?? 0).getTime();
-          const b = new Date(p.updated_at ?? p.created_at ?? 0).getTime();
-          if (b > a) byKey.set(key, p);
-        }
-      }
-      list = [...byKey.values()];
+      list = list.filter((p) => {
+        const cls = classifyProduct(p as any);
+        const isDevice = cls === "smartphone" || cls === "tablet" || cls === "smartwatch";
+        if (!isDevice) return true;
+        return filters.imei === "with" ? !!p.has_imei : !p.has_imei;
+      });
     }
 
     return list;
   }, [snapshot, filters]);
+
 
   const previewRows = useMemo(() => filteredProducts.map(toPremierRow), [filteredProducts]);
 
