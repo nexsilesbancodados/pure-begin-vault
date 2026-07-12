@@ -1193,6 +1193,112 @@ Total exportado....${telefoniaAudit.totalExported}`}
               )}
             </div>
 
+            {/* ── Conferência Final da Exportação ─────────────────────── */}
+            <div
+              className={`rounded-md border px-3 py-2 ${
+                lastReport.result === "ok"
+                  ? "border-emerald-500/40 bg-emerald-500/10"
+                  : "border-destructive/50 bg-destructive/10"
+              }`}
+            >
+              <div className="flex items-center gap-2 font-bold text-xs">
+                {lastReport.result === "ok" ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                )}
+                Conferência Final da Exportação
+                <Badge variant="outline" className="text-[9px] ml-auto">
+                  Regra única: resolveHasImei()
+                </Badge>
+              </div>
+
+              <div className="overflow-x-auto mt-2">
+                <table className="w-full text-[11px]">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="text-left px-2 py-1 border-b">Métrica</th>
+                      <th className="text-right px-2 py-1 border-b">Auditoria</th>
+                      <th className="text-right px-2 py-1 border-b">CSV</th>
+                      <th className="text-center px-2 py-1 border-b">OK</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-mono">
+                    <ConfRow label="Produtos encontrados" a={lastReport.auditFound} c={lastReport.csvLines || lastReport.auditExported} skipCheck />
+                    <ConfRow label="Produtos exportados" a={lastReport.auditExported} c={lastReport.csvLines} />
+                    <ConfRow label="Smartphones" a={lastReport.auditSmartphones} c={lastReport.csvSmartphones} />
+                    <ConfRow label="Smartphones c/ IMEI" a={lastReport.auditWithImei} c={lastReport.csvWithImei} />
+                    <ConfRow label="Smartphones s/ IMEI" a={lastReport.auditWithoutImei} c={lastReport.csvWithoutImei} />
+                    <ConfRow label="Tablets" a={lastReport.auditTablets} c={lastReport.csvTablets} />
+                    <ConfRow label="Smartwatches" a={lastReport.auditSmartwatches} c={lastReport.csvSmartwatches} />
+                    <ConfRow label="Acessórios" a={lastReport.auditAccessories} c={lastReport.csvAccessories} />
+                    <ConfRow label="Outros" a={lastReport.auditOthers} c={lastReport.csvOthers} />
+                    <tr>
+                      <td className="px-2 py-1 border-t font-bold">Linhas do CSV</td>
+                      <td className="px-2 py-1 text-right tabular-nums border-t" colSpan={2}>{lastReport.csvLines}</td>
+                      <td className="px-2 py-1 text-center border-t">—</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 font-bold">Paridade Auditoria</td>
+                      <td className="px-2 py-1 text-right" colSpan={2}>
+                        {lastReport.parityAudit ? "conferido" : "divergente"}
+                      </td>
+                      <td className="px-2 py-1 text-center">{lastReport.parityAudit ? "✔" : "✖"}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 font-bold">Paridade CSV</td>
+                      <td className="px-2 py-1 text-right" colSpan={2}>
+                        {lastReport.parityCsv ? "conferido" : "divergente"}
+                      </td>
+                      <td className="px-2 py-1 text-center">{lastReport.parityCsv ? "✔" : "✖"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div
+                className={`mt-2 rounded-md px-2 py-1 text-xs font-bold ${
+                  lastReport.result === "ok"
+                    ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300"
+                    : "bg-destructive/20 text-destructive"
+                }`}
+              >
+                Resultado: {lastReport.result === "ok" ? "✔ OK" : "✖ Divergência encontrada"}
+              </div>
+
+              {lastReport.divergences.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-[11px] font-bold mb-1">Divergências ({lastReport.divergences.length})</div>
+                  <div className="overflow-x-auto max-h-56">
+                    <table className="w-full text-[11px]">
+                      <thead className="bg-muted/40 sticky top-0">
+                        <tr>
+                          <th className="text-left px-2 py-1 border-b">Produto</th>
+                          <th className="text-left px-2 py-1 border-b">SKU</th>
+                          <th className="text-left px-2 py-1 border-b">IMEI encontrado</th>
+                          <th className="text-left px-2 py-1 border-b">Fonte</th>
+                          <th className="text-left px-2 py-1 border-b">Motivo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lastReport.divergences.slice(0, 200).map((d, i) => (
+                          <tr key={i} className="border-b last:border-0">
+                            <td className="px-2 py-1">{d.produto || "—"}</td>
+                            <td className="px-2 py-1 font-mono">{d.sku || "—"}</td>
+                            <td className="px-2 py-1 font-mono">{d.imei || "—"}</td>
+                            <td className="px-2 py-1">{d.fonte}</td>
+                            <td className="px-2 py-1">{d.motivo}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+
+
           </CardContent>
         </Card>
       )}
