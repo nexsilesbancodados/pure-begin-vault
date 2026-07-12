@@ -249,18 +249,6 @@ type StockFilters = {
   onlyActive: boolean;
   includeInactive: boolean;
   imei: "all" | "with" | "without";
-  categories: string[];
-  brands: string[];
-  locations: string[];
-  qtyMin: string;
-  qtyMax: string;
-  costMin: string;
-  costMax: string;
-  priceMin: string;
-  priceMax: string;
-  search: string;
-  dedupe: boolean;
-  latestOnly: boolean;
 };
 
 const DEFAULT_FILTERS: StockFilters = {
@@ -270,19 +258,8 @@ const DEFAULT_FILTERS: StockFilters = {
   onlyActive: true,
   includeInactive: false,
   imei: "all",
-  categories: [],
-  brands: [],
-  locations: [],
-  qtyMin: "",
-  qtyMax: "",
-  costMin: "",
-  costMax: "",
-  priceMin: "",
-  priceMax: "",
-  search: "",
-  dedupe: false,
-  latestOnly: false,
 };
+
 
 export function StockAssistant({ orgId }: { orgId: string | null }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
@@ -291,8 +268,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
   const [filters, setFilters] = useState<StockFilters>(DEFAULT_FILTERS);
   const setF = <K extends keyof StockFilters>(k: K, v: StockFilters[K]) =>
     setFilters((prev) => ({ ...prev, [k]: v }));
-  const toggleInList = (list: string[], v: string) =>
-    list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
+
   const [lastReport, setLastReport] = useState<null | {
     exportedCount: number;
     exportedStockSum: number;
@@ -343,36 +319,13 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId]);
 
-  const facets = useMemo(() => {
-    const cats = new Set<string>();
-    const brs = new Set<string>();
-    const locs = new Set<string>();
-    for (const p of snapshot?.products ?? []) {
-      if (p.category && p.category.trim()) cats.add(p.category.trim());
-      if (p.brand && p.brand.trim()) brs.add(p.brand.trim());
-      if (p.location && p.location.trim()) locs.add(p.location.trim());
-    }
-    return {
-      categories: [...cats].sort(),
-      brands: [...brs].sort(),
-      locations: [...locs].sort(),
-    };
-  }, [snapshot]);
-
-  const num = (s: string) => (s.trim() === "" ? null : Number(s));
+  const num = (_: string) => null; // legado — filtros de faixa removidos
 
   const filteredProducts = useMemo<ProductRow[]>(() => {
     if (!snapshot) return [];
-    const qMin = num(filters.qtyMin);
-    const qMax = num(filters.qtyMax);
-    const cMin = num(filters.costMin);
-    const cMax = num(filters.costMax);
-    const pMin = num(filters.priceMin);
-    const pMax = num(filters.priceMax);
-    const search = filters.search.trim().toLowerCase();
-
     let list = snapshot.products.filter((p) => !snapshot.ignoredIds.has(p.id));
 
+    // Estoque
     list = list.filter((p) => {
       const q = Number(p.stock_quantity ?? 0);
       if (!Number.isFinite(q)) return false;
@@ -382,6 +335,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
+    // Status
     list = list.filter((p) => {
       const active = p.active !== false;
       if (active && !filters.onlyActive) return false;
@@ -389,62 +343,19 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
+    // IMEI — só afeta aparelhos (smartphone/tablet/smartwatch). Acessórios passam sempre.
     if (filters.imei !== "all") {
-      list = list.filter((p) =>
-        filters.imei === "with" ? !!p.has_imei : !p.has_imei,
-      );
-    }
-
-    if (filters.categories.length)
-      list = list.filter((p) => filters.categories.includes((p.category ?? "").trim()));
-    if (filters.brands.length)
-      list = list.filter((p) => filters.brands.includes((p.brand ?? "").trim()));
-    if (filters.locations.length)
-      list = list.filter((p) => filters.locations.includes((p.location ?? "").trim()));
-
-    list = list.filter((p) => {
-      const q = Number(p.stock_quantity ?? 0);
-      if (qMin != null && q < qMin) return false;
-      if (qMax != null && q > qMax) return false;
-      return true;
-    });
-
-    list = list.filter((p) => {
-      const cost = Number(p.cost_price ?? 0);
-      const price = Number(p.price ?? 0);
-      if (cMin != null && cost < cMin) return false;
-      if (cMax != null && cost > cMax) return false;
-      if (pMin != null && price < pMin) return false;
-      if (pMax != null && price > pMax) return false;
-      return true;
-    });
-
-    if (search) {
-      list = list.filter((p) =>
-        [p.sku, p.name, p.ean, p.model]
-          .map((s) => (s ?? "").toLowerCase())
-          .some((s) => s.includes(search)),
-      );
-    }
-
-    if (filters.dedupe || filters.latestOnly) {
-      const byKey = new Map<string, ProductRow>();
-      for (const p of list) {
-        const key = (p.sku && p.sku.trim()) || (p.ean && p.ean.trim()) || p.id;
-        const existing = byKey.get(key);
-        if (!existing) {
-          byKey.set(key, p);
-        } else if (filters.latestOnly) {
-          const a = new Date(existing.updated_at ?? existing.created_at ?? 0).getTime();
-          const b = new Date(p.updated_at ?? p.created_at ?? 0).getTime();
-          if (b > a) byKey.set(key, p);
-        }
-      }
-      list = [...byKey.values()];
+      list = list.filter((p) => {
+        const cls = classifyProduct(p as any);
+        const isDevice = cls === "smartphone" || cls === "tablet" || cls === "smartwatch";
+        if (!isDevice) return true;
+        return filters.imei === "with" ? !!p.has_imei : !p.has_imei;
+      });
     }
 
     return list;
   }, [snapshot, filters]);
+
 
   const previewRows = useMemo(() => filteredProducts.map(toPremierRow), [filteredProducts]);
 
@@ -610,15 +521,13 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       {/* Filtros da Exportação */}
       {snapshot && (
         <Card className="border-primary/30">
-          <CardHeader className="flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" /> Filtros da Exportação
               <Badge variant="outline" className="text-[10px]">Layout do CSV inalterado</Badge>
             </CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => setFilters(DEFAULT_FILTERS)}>
-              Restaurar padrão
-            </Button>
           </CardHeader>
+
           <CardContent className="space-y-4 text-xs">
             {/* Estoque + Status + IMEI */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -638,67 +547,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
               </FilterBox>
             </div>
 
-            {/* Categoria / Marca / Local */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <ChipMulti
-                title={`Categoria (${filters.categories.length || "todas"})`}
-                options={facets.categories}
-                selected={filters.categories}
-                onToggle={(v) => setF("categories", toggleInList(filters.categories, v))}
-                onClear={() => setF("categories", [])}
-              />
-              <ChipMulti
-                title={`Marca (${filters.brands.length || "todas"})`}
-                options={facets.brands}
-                selected={filters.brands}
-                onToggle={(v) => setF("brands", toggleInList(filters.brands, v))}
-                onClear={() => setF("brands", [])}
-              />
-              <ChipMulti
-                title={`Local (${filters.locations.length || "todos"})`}
-                options={facets.locations}
-                selected={filters.locations}
-                onToggle={(v) => setF("locations", toggleInList(filters.locations, v))}
-                onClear={() => setF("locations", [])}
-              />
-            </div>
 
-            {/* Faixas + busca */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <FilterBox title="Faixa de quantidade">
-                <div className="flex gap-2">
-                  <NumIn label="Mín" v={filters.qtyMin} on={(x) => setF("qtyMin", x)} />
-                  <NumIn label="Máx" v={filters.qtyMax} on={(x) => setF("qtyMax", x)} />
-                </div>
-              </FilterBox>
-              <FilterBox title="Preço de custo">
-                <div className="flex gap-2">
-                  <NumIn label="Mín" v={filters.costMin} on={(x) => setF("costMin", x)} />
-                  <NumIn label="Máx" v={filters.costMax} on={(x) => setF("costMax", x)} />
-                </div>
-              </FilterBox>
-              <FilterBox title="Preço de venda">
-                <div className="flex gap-2">
-                  <NumIn label="Mín" v={filters.priceMin} on={(x) => setF("priceMin", x)} />
-                  <NumIn label="Máx" v={filters.priceMax} on={(x) => setF("priceMax", x)} />
-                </div>
-              </FilterBox>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <FilterBox title="Busca (SKU, nome, código de barras, modelo)">
-                <input
-                  className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
-                  placeholder="Digite para filtrar..."
-                  value={filters.search}
-                  onChange={(e) => setF("search", e.target.value)}
-                />
-              </FilterBox>
-              <FilterBox title="Duplicados">
-                <Chk label="Ignorar produtos duplicados (mesmo SKU/EAN)" v={filters.dedupe} on={(x) => setF("dedupe", x)} />
-                <Chk label="Exportar apenas o registro mais recente" v={filters.latestOnly} on={(x) => setF("latestOnly", x)} />
-              </FilterBox>
-            </div>
 
             {/* Resumo em tempo real */}
             <div className="rounded-md border bg-primary/5 px-3 py-2 grid grid-cols-2 md:grid-cols-5 gap-2">
