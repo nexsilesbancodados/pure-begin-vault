@@ -640,18 +640,10 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
               </div>
             )}
 
-            <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs cursor-pointer hover:bg-muted/40">
-              <input
-                type="checkbox"
-                className="h-4 w-4"
-                checked={includeZeroStock}
-                onChange={(e) => setIncludeZeroStock(e.target.checked)}
-              />
-              <span>
-                <strong>Exportar estoque completo</strong> — inclui produtos com quantidade 0
-                {" "}(desmarque para exportar apenas itens com saldo).
-              </span>
-            </label>
+            <div className="text-[11px] text-muted-foreground">
+              Ajuste as regras no card <strong>Filtros da Exportação</strong> acima
+              para alterar quais registros entram no CSV.
+            </div>
 
             <div className="flex items-center gap-2 text-xs">
               <span className="font-bold">Compatível com:</span>
