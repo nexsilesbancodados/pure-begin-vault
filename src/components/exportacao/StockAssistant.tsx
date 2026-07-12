@@ -408,7 +408,11 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
   }, [snapshot, filters]);
 
 
-  const previewRows = useMemo(() => filteredProducts.map(toPremierRow), [filteredProducts]);
+  const sortedFiltered = useMemo(
+    () => sortForExport(filteredProducts.map((p) => ({ p }))).map((x) => x.p as ProductRow),
+    [filteredProducts],
+  );
+  const previewRows = useMemo(() => sortedFiltered.map(toPremierRow), [sortedFiltered]);
 
   const telefoniaAudit = useMemo(() => {
     // Classificação inteligente (não altera o CSV — apenas auditoria/estatística).
