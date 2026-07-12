@@ -1431,3 +1431,17 @@ function Sum({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ConfRow({ label, a, c, skipCheck }: { label: string; a: number; c: number; skipCheck?: boolean }) {
+  const ok = skipCheck ? true : a === c;
+  return (
+    <tr>
+      <td className="px-2 py-1 border-b">{label}</td>
+      <td className="px-2 py-1 text-right tabular-nums border-b">{a.toLocaleString("pt-BR")}</td>
+      <td className="px-2 py-1 text-right tabular-nums border-b">{c.toLocaleString("pt-BR")}</td>
+      <td className={`px-2 py-1 text-center border-b ${ok ? "text-emerald-600" : "text-destructive font-bold"}`}>
+        {skipCheck ? "—" : ok ? "✔" : "✖"}
+      </td>
+    </tr>
+  );
+}
+
