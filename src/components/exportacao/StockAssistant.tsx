@@ -360,7 +360,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
 
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
-  const previewRows = useMemo(() => {
+  const filteredProducts = useMemo<ProductRow[]>(() => {
     if (!snapshot) return [];
     const qMin = num(filters.qtyMin);
     const qMax = num(filters.qtyMax);
@@ -372,7 +372,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
 
     let list = snapshot.products.filter((p) => !snapshot.ignoredIds.has(p.id));
 
-    // Estoque
     list = list.filter((p) => {
       const q = Number(p.stock_quantity ?? 0);
       if (!Number.isFinite(q)) return false;
@@ -382,7 +381,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
-    // Status
     list = list.filter((p) => {
       const active = p.active !== false;
       if (active && !filters.onlyActive) return false;
@@ -390,14 +388,12 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
-    // IMEI
     if (filters.imei !== "all") {
       list = list.filter((p) =>
         filters.imei === "with" ? !!p.has_imei : !p.has_imei,
       );
     }
 
-    // Categoria / Marca / Local (vazio = todos)
     if (filters.categories.length)
       list = list.filter((p) => filters.categories.includes((p.category ?? "").trim()));
     if (filters.brands.length)
@@ -405,7 +401,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     if (filters.locations.length)
       list = list.filter((p) => filters.locations.includes((p.location ?? "").trim()));
 
-    // Faixa de quantidade
     list = list.filter((p) => {
       const q = Number(p.stock_quantity ?? 0);
       if (qMin != null && q < qMin) return false;
@@ -413,7 +408,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
-    // Faixa de preços
     list = list.filter((p) => {
       const cost = Number(p.cost_price ?? 0);
       const price = Number(p.price ?? 0);
@@ -424,7 +418,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       return true;
     });
 
-    // Busca
     if (search) {
       list = list.filter((p) =>
         [p.sku, p.name, p.ean, p.model]
@@ -433,7 +426,6 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       );
     }
 
-    // Duplicados
     if (filters.dedupe || filters.latestOnly) {
       const byKey = new Map<string, ProductRow>();
       for (const p of list) {
@@ -450,8 +442,47 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       list = [...byKey.values()];
     }
 
-    return list.map(toPremierRow);
+    return list;
   }, [snapshot, filters]);
+
+  const previewRows = useMemo(() => filteredProducts.map(toPremierRow), [filteredProducts]);
+
+  const telefoniaAudit = useMemo(() => {
+    const smartphones = filteredProducts.filter((p) => !!p.has_imei);
+    const accessories = filteredProducts.filter((p) => !p.has_imei);
+    const smartphonesWithImei = smartphones.filter(
+      (p) => (p.metadata && typeof p.metadata === "object" && String((p.metadata as any).imei ?? "").trim() !== "")
+        || Number((p.metadata as any)?.imei_count ?? 0) > 0,
+    );
+    // Fallback: assume smartphone tem IMEI se o snapshot marcar; caso contrário usar metadata
+    const withImei = smartphones.filter((p) => {
+      const md: any = p.metadata ?? {};
+      const val = String(md.imei ?? md.imei_1 ?? "").trim();
+      return val !== "" || Number(md.imei_count ?? 0) > 0;
+    });
+    const withoutImei = smartphones.filter((p) => !withImei.includes(p));
+    const totalUnits = filteredProducts.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
+    const smartphoneUnits = smartphones.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
+    const accessoryUnits = accessories.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
+    const zeroCount = filteredProducts.filter((p) => Number(p.stock_quantity ?? 0) === 0).length;
+    const negativeCount = filteredProducts.filter((p) => Number(p.stock_quantity ?? 0) < 0).length;
+    const coverage = smartphones.length === 0 ? 100 : (withImei.length / smartphones.length) * 100;
+    void smartphonesWithImei;
+    return {
+      totalFound: snapshot?.products.length ?? 0,
+      totalExported: filteredProducts.length,
+      smartphonesCount: smartphones.length,
+      accessoriesCount: accessories.length,
+      totalUnits,
+      smartphoneUnits,
+      accessoryUnits,
+      zeroCount,
+      negativeCount,
+      withImei,
+      withoutImei,
+      coverage,
+    };
+  }, [filteredProducts, snapshot]);
 
   const previewStockSum = useMemo(
     () => previewRows.reduce((s, r) => s + Number(r.estoque || 0), 0),
