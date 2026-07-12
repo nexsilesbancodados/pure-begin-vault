@@ -829,7 +829,10 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
                 <Sum label="Encontrados" value={telefoniaAudit.totalFound.toLocaleString("pt-BR")} />
                 <Sum label="Exportados" value={telefoniaAudit.totalExported.toLocaleString("pt-BR")} />
                 <Sum label="Smartphones" value={telefoniaAudit.smartphonesCount.toLocaleString("pt-BR")} />
+                <Sum label="Tablets" value={telefoniaAudit.tabletsCount.toLocaleString("pt-BR")} />
+                <Sum label="Smartwatches" value={telefoniaAudit.smartwatchesCount.toLocaleString("pt-BR")} />
                 <Sum label="Acessórios" value={telefoniaAudit.accessoriesCount.toLocaleString("pt-BR")} />
+                <Sum label="Outros" value={telefoniaAudit.othersCount.toLocaleString("pt-BR")} />
                 <Sum label="Unidades exportadas" value={telefoniaAudit.totalUnits.toLocaleString("pt-BR")} />
                 <Sum label="Produtos zerados" value={telefoniaAudit.zeroCount.toLocaleString("pt-BR")} />
                 <Sum label="Produtos negativos" value={telefoniaAudit.negativeCount.toLocaleString("pt-BR")} />
@@ -862,9 +865,27 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
                       <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.withImei.length}</td>
                     </tr>
                     <tr>
+                      <td className="px-2 py-1 border-b">Tablets</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.tabletsCount}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.tabletUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 border-b">Smartwatches</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartwatchesCount}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartwatchUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
+                    </tr>
+                    <tr>
                       <td className="px-2 py-1 border-b">Acessórios</td>
                       <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.accessoriesCount}</td>
                       <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.accessoryUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 border-b">Outros</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.othersCount}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.otherUnits}</td>
                       <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
                     </tr>
                     <tr className="font-bold bg-muted/30">
@@ -875,6 +896,15 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* Comparativo antes vs depois (só auditoria, não afeta o CSV) */}
+              <div className="rounded-md border border-border bg-muted/20 p-2 text-[11px] space-y-1">
+                <div className="font-bold text-xs mb-1">Comparativo de classificação</div>
+                <div>Antes (apenas has_imei): <b>{telefoniaAudit.legacySmartphonesCount}</b> smartphones · <b>{telefoniaAudit.legacyAccessoriesCount}</b> acessórios</div>
+                <div>Depois (classificação inteligente): <b>{telefoniaAudit.smartphonesCount}</b> smartphones · <b>{telefoniaAudit.accessoriesCount}</b> acessórios · <b>{telefoniaAudit.tabletsCount}</b> tablets · <b>{telefoniaAudit.smartwatchesCount}</b> smartwatches · <b>{telefoniaAudit.othersCount}</b> outros</div>
+                <div>Produtos que mudaram de categoria: <b>{telefoniaAudit.changedCount}</b></div>
+                <div className="text-muted-foreground">O layout do CSV (29 colunas + status) permanece inalterado — apenas a auditoria usa esta classificação.</div>
               </div>
 
               {telefoniaAudit.withoutImei.length > 0 && (
