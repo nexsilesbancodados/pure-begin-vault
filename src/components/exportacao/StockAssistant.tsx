@@ -22,6 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { downloadCsv } from "@/lib/export/csv";
+import { classifyProduct, type ProductClass } from "@/lib/product-classification";
 
 // ── Colunas EXATAS do products.csv Premier (não renomear, não reordenar) ──
 const PREMIER_STOCK_COLUMNS = [
