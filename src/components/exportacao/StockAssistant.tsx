@@ -159,6 +159,7 @@ function toPremierRow(p: ProductRow) {
     reference: p.reference ?? "",
     ncm: p.ncm ?? "",
     has_imei: yesNo(resolveHasImei(p)),
+    imei: resolveImei(p),
     active: p.active == null ? "" : yesNo(!!p.active),
     location: p.location ?? "",
     image_url: p.image_url ?? "",
