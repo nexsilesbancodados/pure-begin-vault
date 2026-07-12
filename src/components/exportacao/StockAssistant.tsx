@@ -241,11 +241,57 @@ function analyze(products: ProductRow[]): Pick<Snapshot, "issues" | "duplicatedS
   return { issues, duplicatedSkus, duplicatedEans, ignoredIds, dbStockSum };
 }
 
+type StockFilters = {
+  stockPositive: boolean;
+  includeZero: boolean;
+  includeNegative: boolean;
+  onlyActive: boolean;
+  includeInactive: boolean;
+  imei: "all" | "with" | "without";
+  categories: string[];
+  brands: string[];
+  locations: string[];
+  qtyMin: string;
+  qtyMax: string;
+  costMin: string;
+  costMax: string;
+  priceMin: string;
+  priceMax: string;
+  search: string;
+  dedupe: boolean;
+  latestOnly: boolean;
+};
+
+const DEFAULT_FILTERS: StockFilters = {
+  stockPositive: true,
+  includeZero: false,
+  includeNegative: false,
+  onlyActive: true,
+  includeInactive: false,
+  imei: "all",
+  categories: [],
+  brands: [],
+  locations: [],
+  qtyMin: "",
+  qtyMax: "",
+  costMin: "",
+  costMax: "",
+  priceMin: "",
+  priceMax: "",
+  search: "",
+  dedupe: false,
+  latestOnly: false,
+};
+
 export function StockAssistant({ orgId }: { orgId: string | null }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [includeZeroStock, setIncludeZeroStock] = useState(true);
+  const [filters, setFilters] = useState<StockFilters>(DEFAULT_FILTERS);
+  const setF = <K extends keyof StockFilters>(k: K, v: StockFilters[K]) =>
+    setFilters((prev) => ({ ...prev, [k]: v }));
+  const toggleInList = (list: string[], v: string) =>
+    list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
   const [lastReport, setLastReport] = useState<null | {
     exportedCount: number;
     exportedStockSum: number;
@@ -296,22 +342,130 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId]);
 
+  const facets = useMemo(() => {
+    const cats = new Set<string>();
+    const brs = new Set<string>();
+    const locs = new Set<string>();
+    for (const p of snapshot?.products ?? []) {
+      if (p.category && p.category.trim()) cats.add(p.category.trim());
+      if (p.brand && p.brand.trim()) brs.add(p.brand.trim());
+      if (p.location && p.location.trim()) locs.add(p.location.trim());
+    }
+    return {
+      categories: [...cats].sort(),
+      brands: [...brs].sort(),
+      locations: [...locs].sort(),
+    };
+  }, [snapshot]);
+
+  const num = (s: string) => (s.trim() === "" ? null : Number(s));
+
   const previewRows = useMemo(() => {
     if (!snapshot) return [];
-    return snapshot.products
-      .filter((p) => !snapshot.ignoredIds.has(p.id))
-      .filter((p) => {
-        if (includeZeroStock) return true;
-        const q = Number(p.stock_quantity ?? 0);
-        return Number.isFinite(q) && q !== 0;
-      })
-      .map(toPremierRow);
-  }, [snapshot, includeZeroStock]);
+    const qMin = num(filters.qtyMin);
+    const qMax = num(filters.qtyMax);
+    const cMin = num(filters.costMin);
+    const cMax = num(filters.costMax);
+    const pMin = num(filters.priceMin);
+    const pMax = num(filters.priceMax);
+    const search = filters.search.trim().toLowerCase();
+
+    let list = snapshot.products.filter((p) => !snapshot.ignoredIds.has(p.id));
+
+    // Estoque
+    list = list.filter((p) => {
+      const q = Number(p.stock_quantity ?? 0);
+      if (!Number.isFinite(q)) return false;
+      if (q > 0 && !filters.stockPositive) return false;
+      if (q === 0 && !filters.includeZero) return false;
+      if (q < 0 && !filters.includeNegative) return false;
+      return true;
+    });
+
+    // Status
+    list = list.filter((p) => {
+      const active = p.active !== false;
+      if (active && !filters.onlyActive) return false;
+      if (!active && !filters.includeInactive) return false;
+      return true;
+    });
+
+    // IMEI
+    if (filters.imei !== "all") {
+      list = list.filter((p) =>
+        filters.imei === "with" ? !!p.has_imei : !p.has_imei,
+      );
+    }
+
+    // Categoria / Marca / Local (vazio = todos)
+    if (filters.categories.length)
+      list = list.filter((p) => filters.categories.includes((p.category ?? "").trim()));
+    if (filters.brands.length)
+      list = list.filter((p) => filters.brands.includes((p.brand ?? "").trim()));
+    if (filters.locations.length)
+      list = list.filter((p) => filters.locations.includes((p.location ?? "").trim()));
+
+    // Faixa de quantidade
+    list = list.filter((p) => {
+      const q = Number(p.stock_quantity ?? 0);
+      if (qMin != null && q < qMin) return false;
+      if (qMax != null && q > qMax) return false;
+      return true;
+    });
+
+    // Faixa de preços
+    list = list.filter((p) => {
+      const cost = Number(p.cost_price ?? 0);
+      const price = Number(p.price ?? 0);
+      if (cMin != null && cost < cMin) return false;
+      if (cMax != null && cost > cMax) return false;
+      if (pMin != null && price < pMin) return false;
+      if (pMax != null && price > pMax) return false;
+      return true;
+    });
+
+    // Busca
+    if (search) {
+      list = list.filter((p) =>
+        [p.sku, p.name, p.ean, p.model]
+          .map((s) => (s ?? "").toLowerCase())
+          .some((s) => s.includes(search)),
+      );
+    }
+
+    // Duplicados
+    if (filters.dedupe || filters.latestOnly) {
+      const byKey = new Map<string, ProductRow>();
+      for (const p of list) {
+        const key = (p.sku && p.sku.trim()) || (p.ean && p.ean.trim()) || p.id;
+        const existing = byKey.get(key);
+        if (!existing) {
+          byKey.set(key, p);
+        } else if (filters.latestOnly) {
+          const a = new Date(existing.updated_at ?? existing.created_at ?? 0).getTime();
+          const b = new Date(p.updated_at ?? p.created_at ?? 0).getTime();
+          if (b > a) byKey.set(key, p);
+        }
+      }
+      list = [...byKey.values()];
+    }
+
+    return list.map(toPremierRow);
+  }, [snapshot, filters]);
 
   const previewStockSum = useMemo(
     () => previewRows.reduce((s, r) => s + Number(r.estoque || 0), 0),
     [previewRows],
   );
+  const previewCostSum = useMemo(
+    () => previewRows.reduce((s, r) => s + Number(r.custo || 0) * Number(r.estoque || 0), 0),
+    [previewRows],
+  );
+  const previewPriceSum = useMemo(
+    () => previewRows.reduce((s, r) => s + Number(r.preco_venda || 0) * Number(r.estoque || 0), 0),
+    [previewRows],
+  );
+  const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const doExport = async () => {
     if (!snapshot) return;
@@ -392,6 +546,112 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Filtros da Exportação */}
+      {snapshot && (
+        <Card className="border-primary/30">
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Filtros da Exportação
+              <Badge variant="outline" className="text-[10px]">Layout do CSV inalterado</Badge>
+            </CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => setFilters(DEFAULT_FILTERS)}>
+              Restaurar padrão
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4 text-xs">
+            {/* Estoque + Status + IMEI */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <FilterBox title="Estoque">
+                <Chk label="Somente estoque positivo (> 0)" v={filters.stockPositive} on={(x) => setF("stockPositive", x)} />
+                <Chk label="Incluir produtos zerados" v={filters.includeZero} on={(x) => setF("includeZero", x)} />
+                <Chk label="Incluir estoque negativo" v={filters.includeNegative} on={(x) => setF("includeNegative", x)} />
+              </FilterBox>
+              <FilterBox title="Status do produto">
+                <Chk label="Apenas produtos ativos" v={filters.onlyActive} on={(x) => setF("onlyActive", x)} />
+                <Chk label="Incluir inativos" v={filters.includeInactive} on={(x) => setF("includeInactive", x)} />
+              </FilterBox>
+              <FilterBox title="IMEI">
+                <Rad name="imei" label="Todos" v={filters.imei === "all"} on={() => setF("imei", "all")} />
+                <Rad name="imei" label="Apenas com IMEI" v={filters.imei === "with"} on={() => setF("imei", "with")} />
+                <Rad name="imei" label="Apenas sem IMEI" v={filters.imei === "without"} on={() => setF("imei", "without")} />
+              </FilterBox>
+            </div>
+
+            {/* Categoria / Marca / Local */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <ChipMulti
+                title={`Categoria (${filters.categories.length || "todas"})`}
+                options={facets.categories}
+                selected={filters.categories}
+                onToggle={(v) => setF("categories", toggleInList(filters.categories, v))}
+                onClear={() => setF("categories", [])}
+              />
+              <ChipMulti
+                title={`Marca (${filters.brands.length || "todas"})`}
+                options={facets.brands}
+                selected={filters.brands}
+                onToggle={(v) => setF("brands", toggleInList(filters.brands, v))}
+                onClear={() => setF("brands", [])}
+              />
+              <ChipMulti
+                title={`Local (${filters.locations.length || "todos"})`}
+                options={facets.locations}
+                selected={filters.locations}
+                onToggle={(v) => setF("locations", toggleInList(filters.locations, v))}
+                onClear={() => setF("locations", [])}
+              />
+            </div>
+
+            {/* Faixas + busca */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <FilterBox title="Faixa de quantidade">
+                <div className="flex gap-2">
+                  <NumIn label="Mín" v={filters.qtyMin} on={(x) => setF("qtyMin", x)} />
+                  <NumIn label="Máx" v={filters.qtyMax} on={(x) => setF("qtyMax", x)} />
+                </div>
+              </FilterBox>
+              <FilterBox title="Preço de custo">
+                <div className="flex gap-2">
+                  <NumIn label="Mín" v={filters.costMin} on={(x) => setF("costMin", x)} />
+                  <NumIn label="Máx" v={filters.costMax} on={(x) => setF("costMax", x)} />
+                </div>
+              </FilterBox>
+              <FilterBox title="Preço de venda">
+                <div className="flex gap-2">
+                  <NumIn label="Mín" v={filters.priceMin} on={(x) => setF("priceMin", x)} />
+                  <NumIn label="Máx" v={filters.priceMax} on={(x) => setF("priceMax", x)} />
+                </div>
+              </FilterBox>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <FilterBox title="Busca (SKU, nome, código de barras, modelo)">
+                <input
+                  className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+                  placeholder="Digite para filtrar..."
+                  value={filters.search}
+                  onChange={(e) => setF("search", e.target.value)}
+                />
+              </FilterBox>
+              <FilterBox title="Duplicados">
+                <Chk label="Ignorar produtos duplicados (mesmo SKU/EAN)" v={filters.dedupe} on={(x) => setF("dedupe", x)} />
+                <Chk label="Exportar apenas o registro mais recente" v={filters.latestOnly} on={(x) => setF("latestOnly", x)} />
+              </FilterBox>
+            </div>
+
+            {/* Resumo em tempo real */}
+            <div className="rounded-md border bg-primary/5 px-3 py-2 grid grid-cols-2 md:grid-cols-5 gap-2">
+              <Sum label="Encontrados" value={previewRows.length.toLocaleString("pt-BR")} />
+              <Sum label="Serão exportados" value={previewRows.length.toLocaleString("pt-BR")} />
+              <Sum label="Qtd. total" value={previewStockSum.toLocaleString("pt-BR")} />
+              <Sum label="Valor custo" value={brl(previewCostSum)} />
+              <Sum label="Valor venda" value={brl(previewPriceSum)} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Integridade */}
       {snapshot && (
@@ -486,18 +746,10 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
               </div>
             )}
 
-            <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs cursor-pointer hover:bg-muted/40">
-              <input
-                type="checkbox"
-                className="h-4 w-4"
-                checked={includeZeroStock}
-                onChange={(e) => setIncludeZeroStock(e.target.checked)}
-              />
-              <span>
-                <strong>Exportar estoque completo</strong> — inclui produtos com quantidade 0
-                {" "}(desmarque para exportar apenas itens com saldo).
-              </span>
-            </label>
+            <div className="text-[11px] text-muted-foreground">
+              Ajuste as regras no card <strong>Filtros da Exportação</strong> acima
+              para alterar quais registros entram no CSV.
+            </div>
 
             <div className="flex items-center gap-2 text-xs">
               <span className="font-bold">Compatível com:</span>
@@ -607,3 +859,97 @@ function Kpi({
     </div>
   );
 }
+
+function FilterBox({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-md border px-3 py-2 space-y-1.5">
+      <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function Chk({ label, v, on }: { label: string; v: boolean; on: (x: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" className="h-3.5 w-3.5" checked={v} onChange={(e) => on(e.target.checked)} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+function Rad({ name, label, v, on }: { name: string; label: string; v: boolean; on: () => void }) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input type="radio" name={name} className="h-3.5 w-3.5" checked={v} onChange={on} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+function NumIn({ label, v, on }: { label: string; v: string; on: (x: string) => void }) {
+  return (
+    <label className="flex-1 flex flex-col gap-1">
+      <span className="text-[10px] text-muted-foreground">{label}</span>
+      <input
+        type="number"
+        className="w-full rounded-md border bg-background px-2 py-1 text-xs"
+        value={v}
+        onChange={(e) => on(e.target.value)}
+      />
+    </label>
+  );
+}
+
+function ChipMulti({
+  title, options, selected, onToggle, onClear,
+}: {
+  title: string;
+  options: string[];
+  selected: string[];
+  onToggle: (v: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="rounded-md border px-3 py-2 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{title}</div>
+        {selected.length > 0 && (
+          <button className="text-[10px] underline text-muted-foreground" onClick={onClear}>
+            limpar
+          </button>
+        )}
+      </div>
+      {options.length === 0 ? (
+        <div className="text-[11px] text-muted-foreground italic">Sem valores no snapshot.</div>
+      ) : (
+        <div className="flex flex-wrap gap-1 max-h-28 overflow-auto">
+          {options.map((op) => {
+            const on = selected.includes(op);
+            return (
+              <button
+                key={op}
+                onClick={() => onToggle(op)}
+                className={`text-[11px] px-2 py-0.5 rounded-full border ${
+                  on ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
+                }`}
+              >
+                {op}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Sum({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-sm font-black tabular-nums">{value}</div>
+    </div>
+  );
+}
+
