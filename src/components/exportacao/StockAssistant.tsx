@@ -22,7 +22,58 @@ import {
   XCircle,
 } from "lucide-react";
 import { downloadCsv } from "@/lib/export/csv";
-import { classifyProduct, type ProductClass } from "@/lib/product-classification";
+import { classifyProduct, type ProductClass, CLASS_ORDER } from "@/lib/product-classification";
+
+// Coerção segura para React children — nunca renderiza objeto cru.
+const s = (v: unknown): string => {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return "";
+};
+
+// Extrai IMEI(s) do metadata ou campos comuns
+const extractImei = (p: any): string => {
+  const md: any = p?.metadata && typeof p.metadata === "object" ? p.metadata : {};
+  const raw =
+    md.imei ?? md.imei_1 ?? md.imei1 ?? md.IMEI ??
+    (Array.isArray(md.imeis) ? md.imeis.join(", ") : "") ??
+    p?.imei ?? "";
+  return s(raw).trim();
+};
+const hasImeiValue = (p: any): boolean => {
+  const md: any = p?.metadata && typeof p.metadata === "object" ? p.metadata : {};
+  return extractImei(p) !== "" || Number(md.imei_count ?? 0) > 0 || p?.has_imei === true;
+};
+
+// Ordenação por classe (smartphones c/ IMEI → s/ IMEI → tablet → watch → acessório → outro)
+// e dentro de cada grupo por marca, modelo, nome.
+const CLASS_WEIGHT: Record<string, number> = {
+  smartphone_with: 0,
+  smartphone_without: 1,
+  tablet: 2,
+  smartwatch: 3,
+  acessorio: 4,
+  outro: 5,
+};
+function classKey(p: any): keyof typeof CLASS_WEIGHT {
+  const c = classifyProduct(p);
+  if (c === "smartphone") return hasImeiValue(p) ? "smartphone_with" : "smartphone_without";
+  return c;
+}
+function sortForExport<T extends { p: any }>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => {
+    const wa = CLASS_WEIGHT[classKey(a.p)];
+    const wb = CLASS_WEIGHT[classKey(b.p)];
+    if (wa !== wb) return wa - wb;
+    const cmp = (x: unknown, y: unknown) => s(x).localeCompare(s(y), "pt-BR", { sensitivity: "base" });
+    return (
+      cmp(a.p.brand, b.p.brand) ||
+      cmp(a.p.model, b.p.model) ||
+      cmp(a.p.name, b.p.name)
+    );
+  });
+}
 
 // ── Colunas EXATAS do products.csv Premier (não renomear, não reordenar) ──
 const PREMIER_STOCK_COLUMNS = [
