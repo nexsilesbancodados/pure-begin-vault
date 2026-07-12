@@ -29,7 +29,7 @@ const PREMIER_STOCK_COLUMNS = [
   "capacidade","cor","custo","preco_venda","estoque","fornecedor_id","empresa_id",
   "internal_code","external_code","reference","ncm","has_imei","active","location",
   "image_url","metadata","unit","weight","min_stock","wholesale_price",
-  "created_at","updated_at",
+  "created_at","updated_at","status",
 ] as const;
 
 type ProductRow = {
