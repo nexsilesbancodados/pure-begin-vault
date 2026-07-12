@@ -82,6 +82,13 @@ const metaVal = (md: any, ...keys: string[]): string => {
 
 function toPremierRow(p: ProductRow) {
   const md = p.metadata;
+  const qtyRaw = p.stock_quantity;
+  const qty = Number(qtyRaw ?? 0);
+  const status =
+    !Number.isFinite(qty) ? "INVALID_STOCK"
+    : qty < 0 ? "NEGATIVE_STOCK"
+    : qty === 0 ? "ZERO_STOCK"
+    : "OK";
   return {
     produto_id: p.id,
     sku: p.sku ?? "",
@@ -94,7 +101,7 @@ function toPremierRow(p: ProductRow) {
     cor: metaVal(md, "cor", "color"),
     custo: p.cost_price ?? 0,
     preco_venda: p.price ?? 0,
-    estoque: p.stock_quantity ?? 0,
+    estoque: Number.isFinite(qty) ? qty : 0,
     fornecedor_id: p.supplier_id ?? "",
     empresa_id: p.organization_id ?? "",
     internal_code: p.reference ?? "",
@@ -112,6 +119,7 @@ function toPremierRow(p: ProductRow) {
     wholesale_price: p.wholesale_price ?? "",
     created_at: p.created_at ?? "",
     updated_at: p.updated_at ?? "",
+    status,
   };
 }
 
