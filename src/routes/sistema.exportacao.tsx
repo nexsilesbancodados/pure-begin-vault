@@ -159,6 +159,9 @@ function ExportacaoPage() {
         <TabsContent value="financeiro">
           <FinancialTab orgId={orgId} />
         </TabsContent>
+        <TabsContent value="estoque">
+          <StockAssistant orgId={orgId} />
+        </TabsContent>
       </Tabs>
     </div>
   );
