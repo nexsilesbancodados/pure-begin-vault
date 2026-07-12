@@ -21,8 +21,8 @@ import {
   ShieldCheck,
   XCircle,
 } from "lucide-react";
-import { downloadCsv } from "@/lib/export/csv";
-import { classifyProduct, type ProductClass, CLASS_ORDER } from "@/lib/product-classification";
+import { rowsToCsv } from "@/lib/export/csv";
+import { classifyProduct, resolveHasImei, type ProductClass, CLASS_ORDER } from "@/lib/product-classification";
 
 // Coerção segura para React children — nunca renderiza objeto cru.
 const s = (v: unknown): string => {
@@ -32,19 +32,17 @@ const s = (v: unknown): string => {
   return "";
 };
 
-// Extrai IMEI(s) do metadata ou campos comuns
+// Extrai IMEI(s) do metadata ou campos comuns (apenas exibição).
 const extractImei = (p: any): string => {
   const md: any = p?.metadata && typeof p.metadata === "object" ? p.metadata : {};
   const raw =
     md.imei ?? md.imei_1 ?? md.imei1 ?? md.IMEI ??
     (Array.isArray(md.imeis) ? md.imeis.join(", ") : "") ??
-    p?.imei ?? "";
+    p?.imei ?? p?.imei1 ?? p?.serial_number ?? md.serial_number ?? "";
   return s(raw).trim();
 };
-const hasImeiValue = (p: any): boolean => {
-  const md: any = p?.metadata && typeof p.metadata === "object" ? p.metadata : {};
-  return extractImei(p) !== "" || Number(md.imei_count ?? 0) > 0 || p?.has_imei === true;
-};
+// Regra ÚNICA em todo o módulo (auditoria + CSV).
+const hasImeiValue = (p: any): boolean => resolveHasImei(p);
 
 // Ordenação por classe (smartphones c/ IMEI → s/ IMEI → tablet → watch → acessório → outro)
 // e dentro de cada grupo por marca, modelo, nome.
