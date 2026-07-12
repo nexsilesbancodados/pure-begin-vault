@@ -147,61 +147,76 @@ function Login() {
       if (remember) localStorage.setItem("conecta:lastEmail", cleanEmail);
       else localStorage.removeItem("conecta:lastEmail");
 
-      const { data: authUserData } = await supabase.auth.getUser();
-      const userId = authUserData.user?.id;
-
-      // Busca lojas vinculadas (user_organizations + profile.organization_id como fallback)
       let orgs: StoreOpt[] = [];
-      if (userId) {
-        const [{ data: uo }, { data: prof }] = await Promise.all([
-          (supabase as any)
-            .from("user_organizations")
-            .select("organization_id, role")
-            .eq("user_id", userId),
-          (supabase as any)
-            .from("profiles")
-            .select("organization_id")
-            .eq("id", userId)
-            .maybeSingle(),
-        ]);
+      let authUser: any = null;
+      try {
+        const { data: authUserData } = await supabase.auth.getUser();
+        authUser = authUserData?.user ?? null;
+        const userId = authUser?.id;
 
-        const map = new Map<string, { role: string | null }>();
-        for (const r of (uo as any[]) ?? []) {
-          map.set(r.organization_id, { role: r.role ?? null });
-        }
-        const profOrg = (prof as any)?.organization_id as string | undefined;
-        if (profOrg && !map.has(profOrg)) map.set(profOrg, { role: null });
+        if (userId) {
+          const [uoRes, profRes] = await Promise.all([
+            (supabase as any)
+              .from("user_organizations")
+              .select("organization_id, role")
+              .eq("user_id", userId),
+            (supabase as any)
+              .from("profiles")
+              .select("organization_id")
+              .eq("id", userId)
+              .maybeSingle(),
+          ]);
 
-        const ids = Array.from(map.keys());
-        let nameMap: Record<string, { name: string | null; logo_url: string | null }> = {};
-        if (ids.length > 0) {
-          try {
-            const res = await fetchOrgSummaries({ data: { orgIds: ids } });
-            nameMap = (res?.organizations ?? {}) as any;
-          } catch (e) {
-            console.warn("getOrgSummaries falhou:", e);
+          const uo = Array.isArray(uoRes?.data) ? uoRes.data : [];
+          const prof = profRes?.data ?? null;
+
+          const map = new Map<string, { role: string | null }>();
+          for (const r of uo) {
+            if (r?.organization_id) {
+              map.set(r.organization_id, { role: r?.role ?? null });
+            }
           }
+          const profOrg = (prof as any)?.organization_id as string | undefined;
+          if (profOrg && !map.has(profOrg)) map.set(profOrg, { role: null });
+
+          const ids = Array.from(map.keys());
+          let nameMap: Record<string, { name: string | null; logo_url: string | null }> = {};
+          if (ids.length > 0) {
+            try {
+              const res = await fetchOrgSummaries({ data: { orgIds: ids } });
+              nameMap = ((res && (res as any).organizations) || {}) as any;
+            } catch (e) {
+              console.warn("getOrgSummaries falhou:", e);
+            }
+          }
+          orgs = ids.map((id) => ({
+            id,
+            name: nameMap[id]?.name || "Loja",
+            role: map.get(id)?.role ?? null,
+            logo: nameMap[id]?.logo_url ?? null,
+          }));
         }
-        orgs = ids.map((id) => ({
-          id,
-          name: nameMap[id]?.name || "Loja",
-          role: map.get(id)?.role ?? null,
-          logo: nameMap[id]?.logo_url ?? null,
-        }));
+      } catch (orgErr) {
+        console.warn("Falha ao carregar lojas do usuário:", orgErr);
       }
 
-
-      if (orgs.length > 1) {
+      if (Array.isArray(orgs) && orgs.length > 1) {
         setStores(orgs);
         setPickingStore(true);
         setLoading(false);
         return;
       }
 
-      const { getHomeRouteForUser } = await import("@/lib/homeScreen");
-      const target = getHomeRouteForUser(authUserData.user, cleanEmail);
-      navigate({ to: target, replace: true });
+      try {
+        const { getHomeRouteForUser } = await import("@/lib/homeScreen");
+        const target = getHomeRouteForUser(authUser, cleanEmail) || "/painel";
+        navigate({ to: target, replace: true });
+      } catch (navErr) {
+        console.warn("Falha ao resolver tela inicial, indo para /painel:", navErr);
+        navigate({ to: "/painel", replace: true });
+      }
     } catch (err: unknown) {
+      console.error("Erro no login:", err);
       showLoginError(readableAuthError(err instanceof Error ? err.message : undefined));
     }
   };
