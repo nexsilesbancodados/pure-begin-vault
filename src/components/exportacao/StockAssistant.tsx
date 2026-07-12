@@ -429,13 +429,8 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     const accessories = byClass("acessorio");
     const others = byClass("outro");
 
-    const hasImeiValue = (p: any) => {
-      const md: any = p.metadata ?? {};
-      const val = String(md.imei ?? md.imei_1 ?? "").trim();
-      return val !== "" || Number(md.imei_count ?? 0) > 0 || p.has_imei === true;
-    };
-    const withImei = smartphones.filter(hasImeiValue);
-    const withoutImei = smartphones.filter((p) => !withImei.includes(p));
+    const withImei = smartphones.filter((p) => resolveHasImei(p));
+    const withoutImei = smartphones.filter((p) => !resolveHasImei(p));
 
     const units = (arr: any[]) => arr.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
     const totalUnits = units(filteredProducts);
@@ -449,11 +444,11 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     const negativeCount = filteredProducts.filter((p) => Number(p.stock_quantity ?? 0) < 0).length;
     const coverage = smartphones.length === 0 ? 100 : (withImei.length / smartphones.length) * 100;
 
-    // Comparação "antes vs depois": legado usava apenas has_imei.
-    const legacySmartphones = filteredProducts.filter((p) => !!p.has_imei);
-    const legacyAccessories = filteredProducts.filter((p) => !p.has_imei);
+    // Comparação "antes vs depois": legado usava apenas has_imei bruto.
+    const legacySmartphones = filteredProducts.filter((p) => p.has_imei === true);
+    const legacyAccessories = filteredProducts.filter((p) => p.has_imei !== true);
     const changedCount = filteredProducts.filter((p) => {
-      const wasSmart = !!p.has_imei;
+      const wasSmart = p.has_imei === true;
       const isSmart = classifyProduct(p as any) === "smartphone";
       return wasSmart !== isSmart;
     }).length;
