@@ -519,19 +519,45 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     try {
       const t0 = performance.now();
 
-      // ── Guarda de paridade Auditoria ↔ CSV ─────────────────────────────
-      // O CSV DEVE exportar exatamente o mesmo conjunto usado na auditoria
-      // (sortedFiltered → previewRows). Verificamos antes de baixar o arquivo:
-      // todo smartphone com IMEI listado na tela precisa estar no CSV.
+      // ── Auditoria (fonte oficial: telefoniaAudit) ─────────────────────
+      const auditFound = telefoniaAudit.totalFound;
+      const auditExported = telefoniaAudit.totalExported;
+      const auditSmartphones = telefoniaAudit.smartphonesCount;
+      const auditWithImei = telefoniaAudit.withImei.length;
+      const auditWithoutImei = telefoniaAudit.withoutImei.length;
+      const auditAccessories = telefoniaAudit.accessoriesCount;
+      const auditTablets = telefoniaAudit.tabletsCount;
+      const auditSmartwatches = telefoniaAudit.smartwatchesCount;
+      const auditOthers = telefoniaAudit.othersCount;
+
+      // ── Guarda de paridade Auditoria ↔ conjunto exportado ─────────────
       const exportedIds = new Set(sortedFiltered.map((p) => p.id));
-      const auditWithImeiIds = telefoniaAudit.withImei.map((p) => p.id);
       const missing = telefoniaAudit.withImei.filter((p) => !exportedIds.has(p.id));
+      const divergences: Array<{ produto: string; sku: string; imei: string; fonte: string; motivo: string }> = [];
       if (missing.length > 0) {
+        for (const p of missing) {
+          const imei = extractImei(p);
+          const md: any = (p as any).metadata ?? {};
+          const fonte =
+            (p as any).has_imei === true ? "has_imei"
+            : (p as any).imei ? "imei"
+            : md.imei || md.imei_1 || md.imei1 ? "metadata.imei"
+            : md.imeis ? "metadata.imeis"
+            : md.serial_number ? "metadata.serial_number"
+            : (p as any).serial_number ? "serial_number"
+            : "desconhecida";
+          divergences.push({
+            produto: s(p.name),
+            sku: s(p.sku) || s(p.ean) || s(p.id),
+            imei,
+            fonte,
+            motivo: "Filtros removeram o registro do conjunto exportado.",
+          });
+        }
         const skus = missing.map((p) => s(p.sku) || s(p.ean) || s(p.id));
         console.error("[Estoque] divergência auditoria↔CSV", { missing: skus });
         toast.error(
-          `Exportação bloqueada: ${missing.length} smartphone(s) com IMEI da auditoria não entrariam no CSV. ` +
-          `SKUs: ${skus.slice(0, 5).join(", ")}${skus.length > 5 ? "…" : ""}`,
+          `Exportação bloqueada: ${missing.length} smartphone(s) com IMEI da auditoria não entrariam no CSV.`,
           { duration: 8000 },
         );
         setLastReport({
@@ -540,26 +566,133 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
           ms: Math.round(performance.now() - t0), kb: 0,
           reconcileOk: false, diffCount: 0, diffStock: 0,
           filename: "(exportação bloqueada)",
-          auditWithImei: auditWithImeiIds.length,
-          exportedWithImei: auditWithImeiIds.length - missing.length,
+          auditFound, auditExported, auditSmartphones, auditWithImei, auditWithoutImei,
+          auditAccessories, auditTablets, auditSmartwatches, auditOthers,
+          csvLines: 0, csvSmartphones: 0, csvWithImei: 0, csvWithoutImei: 0,
+          csvAccessories: 0, csvTablets: 0, csvSmartwatches: 0, csvOthers: 0,
+          parityAudit: false, parityCsv: false, result: "diverg",
+          exportedWithImei: auditWithImei - missing.length,
           imeiDiff: missing.length,
           missingSkus: skus,
+          divergences,
         });
         return;
       }
 
+      // ── Monta CSV em memória (mesma função usada no download) ─────────
       const filename = `estoque_premier_${new Date().toISOString().slice(0, 10)}.csv`;
-      const bytes = downloadCsv(filename, previewRows, [...PREMIER_STOCK_COLUMNS]);
+      const csvText = rowsToCsv(previewRows, [...PREMIER_STOCK_COLUMNS]);
+
+      // ── Validação: lê o próprio CSV e reclassifica pelo NOME (mesma
+      // função de classificação usada na auditoria). has_imei do CSV foi
+      // gerado com resolveHasImei — regra única. ────────────────────────
+      const stripped = csvText.replace(/^\uFEFF/, "");
+      const allLines = stripped.split("\n").filter((l) => l.length > 0);
+      const header = allLines[0]?.split(";") ?? [];
+      const dataLines = allLines.slice(1);
+      const csvLines = dataLines.length;
+      const idxNome = header.indexOf("nome");
+      const idxMarca = header.indexOf("marca");
+      const idxModelo = header.indexOf("modelo");
+      const idxCategoria = header.indexOf("categoria");
+      const idxHasImei = header.indexOf("has_imei");
+
+      // parser CSV simples respeitando aspas
+      const parseLine = (line: string): string[] => {
+        const out: string[] = []; let cur = ""; let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (inQ) {
+            if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+            else if (ch === '"') inQ = false;
+            else cur += ch;
+          } else {
+            if (ch === '"') inQ = true;
+            else if (ch === ";") { out.push(cur); cur = ""; }
+            else cur += ch;
+          }
+        }
+        out.push(cur);
+        return out;
+      };
+
+      let csvSmartphones = 0, csvWithImei = 0, csvWithoutImei = 0;
+      let csvAccessories = 0, csvTablets = 0, csvSmartwatches = 0, csvOthers = 0;
+      for (const line of dataLines) {
+        const cols = parseLine(line);
+        const fake = {
+          name: cols[idxNome] ?? "",
+          brand: cols[idxMarca] ?? "",
+          model: cols[idxModelo] ?? "",
+          category: cols[idxCategoria] ?? "",
+        };
+        const cls = classifyProduct(fake as any);
+        const hasImei = (cols[idxHasImei] ?? "").toLowerCase() === "sim";
+        if (cls === "smartphone") {
+          csvSmartphones++;
+          if (hasImei) csvWithImei++; else csvWithoutImei++;
+        } else if (cls === "tablet") csvTablets++;
+        else if (cls === "smartwatch") csvSmartwatches++;
+        else if (cls === "acessorio") csvAccessories++;
+        else csvOthers++;
+      }
+
+      const parityAudit = csvLines === auditExported;
+      const parityCsv =
+        csvSmartphones === auditSmartphones &&
+        csvWithImei === auditWithImei &&
+        csvWithoutImei === auditWithoutImei &&
+        csvAccessories === auditAccessories &&
+        csvTablets === auditTablets &&
+        csvSmartwatches === auditSmartwatches &&
+        csvOthers === auditOthers;
+
+      if (!parityAudit || !parityCsv) {
+        console.error("[Estoque] divergência CSV↔Auditoria", {
+          auditExported, csvLines,
+          auditSmartphones, csvSmartphones,
+          auditWithImei, csvWithImei,
+          auditWithoutImei, csvWithoutImei,
+          auditAccessories, csvAccessories,
+          auditTablets, csvTablets,
+          auditSmartwatches, csvSmartwatches,
+          auditOthers, csvOthers,
+        });
+        toast.error("Exportação bloqueada: CSV divergente da auditoria. Veja Conferência Final.", { duration: 8000 });
+        setLastReport({
+          exportedCount: 0, exportedStockSum: 0, withoutStock: 0,
+          ignored: snapshot.ignoredIds.size, inconsistencies: 0,
+          ms: Math.round(performance.now() - t0), kb: 0,
+          reconcileOk: false, diffCount: 0, diffStock: 0,
+          filename: "(exportação bloqueada)",
+          auditFound, auditExported, auditSmartphones, auditWithImei, auditWithoutImei,
+          auditAccessories, auditTablets, auditSmartwatches, auditOthers,
+          csvLines, csvSmartphones, csvWithImei, csvWithoutImei,
+          csvAccessories, csvTablets, csvSmartwatches, csvOthers,
+          parityAudit, parityCsv, result: "diverg",
+          exportedWithImei: csvWithImei,
+          imeiDiff: Math.abs(auditWithImei - csvWithImei),
+          missingSkus: [],
+          divergences,
+        });
+        return;
+      }
+
+      // ── Paridade OK: dispara o download real ──────────────────────────
+      const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      const bytes = blob.size;
       const ms = performance.now() - t0;
 
       const exportedCount = previewRows.length;
       const exportedStockSum = previewStockSum;
       const withoutStock = previewRows.filter((r) => Number(r.estoque || 0) === 0).length;
       const ignored = snapshot.ignoredIds.size;
-      const inconsistencies = snapshot.issues
-        .filter((i) => i.bloqueia)
-        .reduce((s, i) => s + i.quantidade, 0);
-
+      const inconsistencies = snapshot.issues.filter((i) => i.bloqueia).reduce((s, i) => s + i.quantidade, 0);
       const diffCount = snapshot.dbCount - (exportedCount + ignored);
       const diffStock = snapshot.dbStockSum - exportedStockSum;
       const reconcileOk = ignored === 0 && diffCount === 0 && diffStock === 0;
@@ -568,16 +701,19 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         exportedCount, exportedStockSum, withoutStock, ignored, inconsistencies,
         ms: Math.round(ms), kb: Number((bytes / 1024).toFixed(1)),
         reconcileOk, diffCount, diffStock, filename,
-        auditWithImei: auditWithImeiIds.length,
-        exportedWithImei: auditWithImeiIds.length,
+        auditFound, auditExported, auditSmartphones, auditWithImei, auditWithoutImei,
+        auditAccessories, auditTablets, auditSmartwatches, auditOthers,
+        csvLines, csvSmartphones, csvWithImei, csvWithoutImei,
+        csvAccessories, csvTablets, csvSmartwatches, csvOthers,
+        parityAudit: true, parityCsv: true, result: "ok" as const,
+        exportedWithImei: csvWithImei,
         imeiDiff: 0,
         missingSkus: [] as string[],
+        divergences: [] as Array<{ produto: string; sku: string; imei: string; fonte: string; motivo: string }>,
       };
       setLastReport(report);
       console.info("[Estoque] relatório final", report);
-      toast.success(
-        `Estoque exportado: ${filename} · ${auditWithImeiIds.length}/${auditWithImeiIds.length} smartphones c/ IMEI conferidos.`,
-      );
+      toast.success(`Estoque exportado: ${filename} · ${csvWithImei}/${auditWithImei} c/ IMEI conferidos.`);
     } catch (e: any) {
       toast.error(`Falha na exportação: ${e?.message ?? e}`);
     } finally {
