@@ -241,77 +241,183 @@ function analyze(products: ProductRow[]): Pick<Snapshot, "issues" | "duplicatedS
   return { issues, duplicatedSkus, duplicatedEans, ignoredIds, dbStockSum };
 }
 
+type StockFilters = {
+  stockPositive: boolean;
+  includeZero: boolean;
+  includeNegative: boolean;
+  onlyActive: boolean;
+  includeInactive: boolean;
+  imei: "all" | "with" | "without";
+  categories: string[];
+  brands: string[];
+  locations: string[];
+  qtyMin: string;
+  qtyMax: string;
+  costMin: string;
+  costMax: string;
+  priceMin: string;
+  priceMax: string;
+  search: string;
+  dedupe: boolean;
+  latestOnly: boolean;
+};
+
+const DEFAULT_FILTERS: StockFilters = {
+  stockPositive: true,
+  includeZero: false,
+  includeNegative: false,
+  onlyActive: true,
+  includeInactive: false,
+  imei: "all",
+  categories: [],
+  brands: [],
+  locations: [],
+  qtyMin: "",
+  qtyMax: "",
+  costMin: "",
+  costMax: "",
+  priceMin: "",
+  priceMax: "",
+  search: "",
+  dedupe: false,
+  latestOnly: false,
+};
+
 export function StockAssistant({ orgId }: { orgId: string | null }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [includeZeroStock, setIncludeZeroStock] = useState(true);
+  const [filters, setFilters] = useState<StockFilters>(DEFAULT_FILTERS);
+  const setF = <K extends keyof StockFilters>(k: K, v: StockFilters[K]) =>
+    setFilters((prev) => ({ ...prev, [k]: v }));
+  const toggleInList = (list: string[], v: string) =>
+    list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
   const [lastReport, setLastReport] = useState<null | {
-    exportedCount: number;
-    exportedStockSum: number;
-    withoutStock: number;
-    ignored: number;
-    inconsistencies: number;
-    ms: number;
-    kb: number;
-    reconcileOk: boolean;
-    diffCount: number;
-    diffStock: number;
-    filename: string;
-  }>(null);
-
-  const loadSnapshot = async () => {
-    if (!orgId) return;
-    setLoading(true);
-    setLastReport(null);
-    try {
-      const t0 = performance.now();
-      const [products, totals] = await Promise.all([
-        fetchAllProducts(orgId),
-        fetchDbTotals(orgId),
-      ]);
-      const a = analyze(products);
-      const snap: Snapshot = {
-        loadedAt: Date.now(),
-        products,
-        dbCount: totals.dbCount || products.length,
-        ...a,
-      };
-      setSnapshot(snap);
-      // eslint-disable-next-line no-console
-      console.info(`[Estoque] snapshot carregado em ${((performance.now() - t0) / 1000).toFixed(2)}s`, {
-        produtos: snap.products.length,
-        banco: snap.dbCount,
-        soma_estoque: snap.dbStockSum,
-      });
-    } catch (e: any) {
-      toast.error(`Falha ao carregar estoque: ${e?.message ?? e}`);
-    } finally {
-      setLoading(false);
+...
+  const facets = useMemo(() => {
+    const cats = new Set<string>();
+    const brs = new Set<string>();
+    const locs = new Set<string>();
+    for (const p of snapshot?.products ?? []) {
+      if (p.category && p.category.trim()) cats.add(p.category.trim());
+      if (p.brand && p.brand.trim()) brs.add(p.brand.trim());
+      if (p.location && p.location.trim()) locs.add(p.location.trim());
     }
-  };
+    return {
+      categories: [...cats].sort(),
+      brands: [...brs].sort(),
+      locations: [...locs].sort(),
+    };
+  }, [snapshot]);
 
-  useEffect(() => {
-    if (orgId) void loadSnapshot();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orgId]);
+  const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
   const previewRows = useMemo(() => {
     if (!snapshot) return [];
-    return snapshot.products
-      .filter((p) => !snapshot.ignoredIds.has(p.id))
-      .filter((p) => {
-        if (includeZeroStock) return true;
-        const q = Number(p.stock_quantity ?? 0);
-        return Number.isFinite(q) && q !== 0;
-      })
-      .map(toPremierRow);
-  }, [snapshot, includeZeroStock]);
+    const qMin = num(filters.qtyMin);
+    const qMax = num(filters.qtyMax);
+    const cMin = num(filters.costMin);
+    const cMax = num(filters.costMax);
+    const pMin = num(filters.priceMin);
+    const pMax = num(filters.priceMax);
+    const search = filters.search.trim().toLowerCase();
+
+    let list = snapshot.products.filter((p) => !snapshot.ignoredIds.has(p.id));
+
+    // Estoque
+    list = list.filter((p) => {
+      const q = Number(p.stock_quantity ?? 0);
+      if (!Number.isFinite(q)) return false;
+      if (q > 0 && !filters.stockPositive) return false;
+      if (q === 0 && !filters.includeZero) return false;
+      if (q < 0 && !filters.includeNegative) return false;
+      return true;
+    });
+
+    // Status
+    list = list.filter((p) => {
+      const active = p.active !== false;
+      if (active && !filters.onlyActive) return false;
+      if (!active && !filters.includeInactive) return false;
+      return true;
+    });
+
+    // IMEI
+    if (filters.imei !== "all") {
+      list = list.filter((p) =>
+        filters.imei === "with" ? !!p.has_imei : !p.has_imei,
+      );
+    }
+
+    // Categoria / Marca / Local (vazio = todos)
+    if (filters.categories.length)
+      list = list.filter((p) => filters.categories.includes((p.category ?? "").trim()));
+    if (filters.brands.length)
+      list = list.filter((p) => filters.brands.includes((p.brand ?? "").trim()));
+    if (filters.locations.length)
+      list = list.filter((p) => filters.locations.includes((p.location ?? "").trim()));
+
+    // Faixa de quantidade
+    list = list.filter((p) => {
+      const q = Number(p.stock_quantity ?? 0);
+      if (qMin != null && q < qMin) return false;
+      if (qMax != null && q > qMax) return false;
+      return true;
+    });
+
+    // Faixa de preços
+    list = list.filter((p) => {
+      const cost = Number(p.cost_price ?? 0);
+      const price = Number(p.price ?? 0);
+      if (cMin != null && cost < cMin) return false;
+      if (cMax != null && cost > cMax) return false;
+      if (pMin != null && price < pMin) return false;
+      if (pMax != null && price > pMax) return false;
+      return true;
+    });
+
+    // Busca
+    if (search) {
+      list = list.filter((p) =>
+        [p.sku, p.name, p.ean, p.model]
+          .map((s) => (s ?? "").toLowerCase())
+          .some((s) => s.includes(search)),
+      );
+    }
+
+    // Duplicados
+    if (filters.dedupe || filters.latestOnly) {
+      const byKey = new Map<string, ProductRow>();
+      for (const p of list) {
+        const key = (p.sku && p.sku.trim()) || (p.ean && p.ean.trim()) || p.id;
+        const existing = byKey.get(key);
+        if (!existing) {
+          byKey.set(key, p);
+        } else if (filters.latestOnly) {
+          const a = new Date(existing.updated_at ?? existing.created_at ?? 0).getTime();
+          const b = new Date(p.updated_at ?? p.created_at ?? 0).getTime();
+          if (b > a) byKey.set(key, p);
+        }
+      }
+      list = [...byKey.values()];
+    }
+
+    return list.map(toPremierRow);
+  }, [snapshot, filters]);
 
   const previewStockSum = useMemo(
     () => previewRows.reduce((s, r) => s + Number(r.estoque || 0), 0),
     [previewRows],
   );
+  const previewCostSum = useMemo(
+    () => previewRows.reduce((s, r) => s + Number(r.custo || 0) * Number(r.estoque || 0), 0),
+    [previewRows],
+  );
+  const previewPriceSum = useMemo(
+    () => previewRows.reduce((s, r) => s + Number(r.preco_venda || 0) * Number(r.estoque || 0), 0),
+    [previewRows],
+  );
+  const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   const doExport = async () => {
     if (!snapshot) return;
