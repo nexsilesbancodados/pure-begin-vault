@@ -22,7 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { rowsToCsv, downloadCsv } from "@/lib/export/csv";
-import { classifyProduct, resolveHasImei, type ProductClass, CLASS_ORDER } from "@/lib/product-classification";
+import { classifyProduct, resolveHasImei, resolveImei, type ProductClass, CLASS_ORDER } from "@/lib/product-classification";
 
 // Coerção segura para React children — nunca renderiza objeto cru.
 const s = (v: unknown): string => {
