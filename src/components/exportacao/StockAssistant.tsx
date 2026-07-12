@@ -21,8 +21,8 @@ import {
   ShieldCheck,
   XCircle,
 } from "lucide-react";
-import { downloadCsv } from "@/lib/export/csv";
-import { classifyProduct, type ProductClass, CLASS_ORDER } from "@/lib/product-classification";
+import { rowsToCsv, downloadCsv } from "@/lib/export/csv";
+import { classifyProduct, resolveHasImei, type ProductClass, CLASS_ORDER } from "@/lib/product-classification";
 
 // Coerção segura para React children — nunca renderiza objeto cru.
 const s = (v: unknown): string => {
@@ -32,19 +32,17 @@ const s = (v: unknown): string => {
   return "";
 };
 
-// Extrai IMEI(s) do metadata ou campos comuns
+// Extrai IMEI(s) do metadata ou campos comuns (apenas exibição).
 const extractImei = (p: any): string => {
   const md: any = p?.metadata && typeof p.metadata === "object" ? p.metadata : {};
   const raw =
     md.imei ?? md.imei_1 ?? md.imei1 ?? md.IMEI ??
     (Array.isArray(md.imeis) ? md.imeis.join(", ") : "") ??
-    p?.imei ?? "";
+    p?.imei ?? p?.imei1 ?? p?.serial_number ?? md.serial_number ?? "";
   return s(raw).trim();
 };
-const hasImeiValue = (p: any): boolean => {
-  const md: any = p?.metadata && typeof p.metadata === "object" ? p.metadata : {};
-  return extractImei(p) !== "" || Number(md.imei_count ?? 0) > 0 || p?.has_imei === true;
-};
+// Regra ÚNICA em todo o módulo (auditoria + CSV).
+const hasImeiValue = (p: any): boolean => resolveHasImei(p);
 
 // Ordenação por classe (smartphones c/ IMEI → s/ IMEI → tablet → watch → acessório → outro)
 // e dentro de cada grupo por marca, modelo, nome.
@@ -160,7 +158,7 @@ function toPremierRow(p: ProductRow) {
     external_code: "",
     reference: p.reference ?? "",
     ncm: p.ncm ?? "",
-    has_imei: p.has_imei == null ? "" : yesNo(!!p.has_imei),
+    has_imei: yesNo(resolveHasImei(p)),
     active: p.active == null ? "" : yesNo(!!p.active),
     location: p.location ?? "",
     image_url: p.image_url ?? "",
@@ -332,10 +330,31 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     diffCount: number;
     diffStock: number;
     filename: string;
+    // Conferência Auditoria ↔ CSV
+    auditFound: number;
+    auditExported: number;
+    auditSmartphones: number;
     auditWithImei: number;
+    auditWithoutImei: number;
+    auditAccessories: number;
+    auditTablets: number;
+    auditSmartwatches: number;
+    auditOthers: number;
+    csvLines: number;
+    csvSmartphones: number;
+    csvWithImei: number;
+    csvWithoutImei: number;
+    csvAccessories: number;
+    csvTablets: number;
+    csvSmartwatches: number;
+    csvOthers: number;
+    parityAudit: boolean;
+    parityCsv: boolean;
+    result: "ok" | "diverg";
     exportedWithImei: number;
     imeiDiff: number;
     missingSkus: string[];
+    divergences: Array<{ produto: string; sku: string; imei: string; fonte: string; motivo: string }>;
   }>(null);
 
 
@@ -405,7 +424,8 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         const cls = classifyProduct(p as any);
         const isDevice = cls === "smartphone" || cls === "tablet" || cls === "smartwatch";
         if (!isDevice) return true;
-        return filters.imei === "with" ? !!p.has_imei : !p.has_imei;
+        const has = resolveHasImei(p);
+        return filters.imei === "with" ? has : !has;
       });
     }
 
@@ -430,13 +450,8 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     const accessories = byClass("acessorio");
     const others = byClass("outro");
 
-    const hasImeiValue = (p: any) => {
-      const md: any = p.metadata ?? {};
-      const val = String(md.imei ?? md.imei_1 ?? "").trim();
-      return val !== "" || Number(md.imei_count ?? 0) > 0 || p.has_imei === true;
-    };
-    const withImei = smartphones.filter(hasImeiValue);
-    const withoutImei = smartphones.filter((p) => !withImei.includes(p));
+    const withImei = smartphones.filter((p) => resolveHasImei(p));
+    const withoutImei = smartphones.filter((p) => !resolveHasImei(p));
 
     const units = (arr: any[]) => arr.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
     const totalUnits = units(filteredProducts);
@@ -450,11 +465,11 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     const negativeCount = filteredProducts.filter((p) => Number(p.stock_quantity ?? 0) < 0).length;
     const coverage = smartphones.length === 0 ? 100 : (withImei.length / smartphones.length) * 100;
 
-    // Comparação "antes vs depois": legado usava apenas has_imei.
-    const legacySmartphones = filteredProducts.filter((p) => !!p.has_imei);
-    const legacyAccessories = filteredProducts.filter((p) => !p.has_imei);
+    // Comparação "antes vs depois": legado usava apenas has_imei bruto.
+    const legacySmartphones = filteredProducts.filter((p) => p.has_imei === true);
+    const legacyAccessories = filteredProducts.filter((p) => p.has_imei !== true);
     const changedCount = filteredProducts.filter((p) => {
-      const wasSmart = !!p.has_imei;
+      const wasSmart = p.has_imei === true;
       const isSmart = classifyProduct(p as any) === "smartphone";
       return wasSmart !== isSmart;
     }).length;
@@ -504,19 +519,45 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     try {
       const t0 = performance.now();
 
-      // ── Guarda de paridade Auditoria ↔ CSV ─────────────────────────────
-      // O CSV DEVE exportar exatamente o mesmo conjunto usado na auditoria
-      // (sortedFiltered → previewRows). Verificamos antes de baixar o arquivo:
-      // todo smartphone com IMEI listado na tela precisa estar no CSV.
+      // ── Auditoria (fonte oficial: telefoniaAudit) ─────────────────────
+      const auditFound = telefoniaAudit.totalFound;
+      const auditExported = telefoniaAudit.totalExported;
+      const auditSmartphones = telefoniaAudit.smartphonesCount;
+      const auditWithImei = telefoniaAudit.withImei.length;
+      const auditWithoutImei = telefoniaAudit.withoutImei.length;
+      const auditAccessories = telefoniaAudit.accessoriesCount;
+      const auditTablets = telefoniaAudit.tabletsCount;
+      const auditSmartwatches = telefoniaAudit.smartwatchesCount;
+      const auditOthers = telefoniaAudit.othersCount;
+
+      // ── Guarda de paridade Auditoria ↔ conjunto exportado ─────────────
       const exportedIds = new Set(sortedFiltered.map((p) => p.id));
-      const auditWithImeiIds = telefoniaAudit.withImei.map((p) => p.id);
       const missing = telefoniaAudit.withImei.filter((p) => !exportedIds.has(p.id));
+      const divergences: Array<{ produto: string; sku: string; imei: string; fonte: string; motivo: string }> = [];
       if (missing.length > 0) {
+        for (const p of missing) {
+          const imei = extractImei(p);
+          const md: any = (p as any).metadata ?? {};
+          const fonte =
+            (p as any).has_imei === true ? "has_imei"
+            : (p as any).imei ? "imei"
+            : md.imei || md.imei_1 || md.imei1 ? "metadata.imei"
+            : md.imeis ? "metadata.imeis"
+            : md.serial_number ? "metadata.serial_number"
+            : (p as any).serial_number ? "serial_number"
+            : "desconhecida";
+          divergences.push({
+            produto: s(p.name),
+            sku: s(p.sku) || s(p.ean) || s(p.id),
+            imei,
+            fonte,
+            motivo: "Filtros removeram o registro do conjunto exportado.",
+          });
+        }
         const skus = missing.map((p) => s(p.sku) || s(p.ean) || s(p.id));
         console.error("[Estoque] divergência auditoria↔CSV", { missing: skus });
         toast.error(
-          `Exportação bloqueada: ${missing.length} smartphone(s) com IMEI da auditoria não entrariam no CSV. ` +
-          `SKUs: ${skus.slice(0, 5).join(", ")}${skus.length > 5 ? "…" : ""}`,
+          `Exportação bloqueada: ${missing.length} smartphone(s) com IMEI da auditoria não entrariam no CSV.`,
           { duration: 8000 },
         );
         setLastReport({
@@ -525,26 +566,133 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
           ms: Math.round(performance.now() - t0), kb: 0,
           reconcileOk: false, diffCount: 0, diffStock: 0,
           filename: "(exportação bloqueada)",
-          auditWithImei: auditWithImeiIds.length,
-          exportedWithImei: auditWithImeiIds.length - missing.length,
+          auditFound, auditExported, auditSmartphones, auditWithImei, auditWithoutImei,
+          auditAccessories, auditTablets, auditSmartwatches, auditOthers,
+          csvLines: 0, csvSmartphones: 0, csvWithImei: 0, csvWithoutImei: 0,
+          csvAccessories: 0, csvTablets: 0, csvSmartwatches: 0, csvOthers: 0,
+          parityAudit: false, parityCsv: false, result: "diverg",
+          exportedWithImei: auditWithImei - missing.length,
           imeiDiff: missing.length,
           missingSkus: skus,
+          divergences,
         });
         return;
       }
 
+      // ── Monta CSV em memória (mesma função usada no download) ─────────
       const filename = `estoque_premier_${new Date().toISOString().slice(0, 10)}.csv`;
-      const bytes = downloadCsv(filename, previewRows, [...PREMIER_STOCK_COLUMNS]);
+      const csvText = rowsToCsv(previewRows, [...PREMIER_STOCK_COLUMNS]);
+
+      // ── Validação: lê o próprio CSV e reclassifica pelo NOME (mesma
+      // função de classificação usada na auditoria). has_imei do CSV foi
+      // gerado com resolveHasImei — regra única. ────────────────────────
+      const stripped = csvText.replace(/^\uFEFF/, "");
+      const allLines = stripped.split("\n").filter((l) => l.length > 0);
+      const header = allLines[0]?.split(";") ?? [];
+      const dataLines = allLines.slice(1);
+      const csvLines = dataLines.length;
+      const idxNome = header.indexOf("nome");
+      const idxMarca = header.indexOf("marca");
+      const idxModelo = header.indexOf("modelo");
+      const idxCategoria = header.indexOf("categoria");
+      const idxHasImei = header.indexOf("has_imei");
+
+      // parser CSV simples respeitando aspas
+      const parseLine = (line: string): string[] => {
+        const out: string[] = []; let cur = ""; let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (inQ) {
+            if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+            else if (ch === '"') inQ = false;
+            else cur += ch;
+          } else {
+            if (ch === '"') inQ = true;
+            else if (ch === ";") { out.push(cur); cur = ""; }
+            else cur += ch;
+          }
+        }
+        out.push(cur);
+        return out;
+      };
+
+      let csvSmartphones = 0, csvWithImei = 0, csvWithoutImei = 0;
+      let csvAccessories = 0, csvTablets = 0, csvSmartwatches = 0, csvOthers = 0;
+      for (const line of dataLines) {
+        const cols = parseLine(line);
+        const fake = {
+          name: cols[idxNome] ?? "",
+          brand: cols[idxMarca] ?? "",
+          model: cols[idxModelo] ?? "",
+          category: cols[idxCategoria] ?? "",
+        };
+        const cls = classifyProduct(fake as any);
+        const hasImei = (cols[idxHasImei] ?? "").toLowerCase() === "sim";
+        if (cls === "smartphone") {
+          csvSmartphones++;
+          if (hasImei) csvWithImei++; else csvWithoutImei++;
+        } else if (cls === "tablet") csvTablets++;
+        else if (cls === "smartwatch") csvSmartwatches++;
+        else if (cls === "acessorio") csvAccessories++;
+        else csvOthers++;
+      }
+
+      const parityAudit = csvLines === auditExported;
+      const parityCsv =
+        csvSmartphones === auditSmartphones &&
+        csvWithImei === auditWithImei &&
+        csvWithoutImei === auditWithoutImei &&
+        csvAccessories === auditAccessories &&
+        csvTablets === auditTablets &&
+        csvSmartwatches === auditSmartwatches &&
+        csvOthers === auditOthers;
+
+      if (!parityAudit || !parityCsv) {
+        console.error("[Estoque] divergência CSV↔Auditoria", {
+          auditExported, csvLines,
+          auditSmartphones, csvSmartphones,
+          auditWithImei, csvWithImei,
+          auditWithoutImei, csvWithoutImei,
+          auditAccessories, csvAccessories,
+          auditTablets, csvTablets,
+          auditSmartwatches, csvSmartwatches,
+          auditOthers, csvOthers,
+        });
+        toast.error("Exportação bloqueada: CSV divergente da auditoria. Veja Conferência Final.", { duration: 8000 });
+        setLastReport({
+          exportedCount: 0, exportedStockSum: 0, withoutStock: 0,
+          ignored: snapshot.ignoredIds.size, inconsistencies: 0,
+          ms: Math.round(performance.now() - t0), kb: 0,
+          reconcileOk: false, diffCount: 0, diffStock: 0,
+          filename: "(exportação bloqueada)",
+          auditFound, auditExported, auditSmartphones, auditWithImei, auditWithoutImei,
+          auditAccessories, auditTablets, auditSmartwatches, auditOthers,
+          csvLines, csvSmartphones, csvWithImei, csvWithoutImei,
+          csvAccessories, csvTablets, csvSmartwatches, csvOthers,
+          parityAudit, parityCsv, result: "diverg",
+          exportedWithImei: csvWithImei,
+          imeiDiff: Math.abs(auditWithImei - csvWithImei),
+          missingSkus: [],
+          divergences,
+        });
+        return;
+      }
+
+      // ── Paridade OK: dispara o download real ──────────────────────────
+      const blob = new Blob([csvText], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      const bytes = blob.size;
       const ms = performance.now() - t0;
 
       const exportedCount = previewRows.length;
       const exportedStockSum = previewStockSum;
       const withoutStock = previewRows.filter((r) => Number(r.estoque || 0) === 0).length;
       const ignored = snapshot.ignoredIds.size;
-      const inconsistencies = snapshot.issues
-        .filter((i) => i.bloqueia)
-        .reduce((s, i) => s + i.quantidade, 0);
-
+      const inconsistencies = snapshot.issues.filter((i) => i.bloqueia).reduce((s, i) => s + i.quantidade, 0);
       const diffCount = snapshot.dbCount - (exportedCount + ignored);
       const diffStock = snapshot.dbStockSum - exportedStockSum;
       const reconcileOk = ignored === 0 && diffCount === 0 && diffStock === 0;
@@ -553,16 +701,19 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         exportedCount, exportedStockSum, withoutStock, ignored, inconsistencies,
         ms: Math.round(ms), kb: Number((bytes / 1024).toFixed(1)),
         reconcileOk, diffCount, diffStock, filename,
-        auditWithImei: auditWithImeiIds.length,
-        exportedWithImei: auditWithImeiIds.length,
+        auditFound, auditExported, auditSmartphones, auditWithImei, auditWithoutImei,
+        auditAccessories, auditTablets, auditSmartwatches, auditOthers,
+        csvLines, csvSmartphones, csvWithImei, csvWithoutImei,
+        csvAccessories, csvTablets, csvSmartwatches, csvOthers,
+        parityAudit: true, parityCsv: true, result: "ok" as const,
+        exportedWithImei: csvWithImei,
         imeiDiff: 0,
         missingSkus: [] as string[],
+        divergences: [] as Array<{ produto: string; sku: string; imei: string; fonte: string; motivo: string }>,
       };
       setLastReport(report);
       console.info("[Estoque] relatório final", report);
-      toast.success(
-        `Estoque exportado: ${filename} · ${auditWithImeiIds.length}/${auditWithImeiIds.length} smartphones c/ IMEI conferidos.`,
-      );
+      toast.success(`Estoque exportado: ${filename} · ${csvWithImei}/${auditWithImei} c/ IMEI conferidos.`);
     } catch (e: any) {
       toast.error(`Falha na exportação: ${e?.message ?? e}`);
     } finally {
@@ -1042,6 +1193,112 @@ Total exportado....${telefoniaAudit.totalExported}`}
               )}
             </div>
 
+            {/* ── Conferência Final da Exportação ─────────────────────── */}
+            <div
+              className={`rounded-md border px-3 py-2 ${
+                lastReport.result === "ok"
+                  ? "border-emerald-500/40 bg-emerald-500/10"
+                  : "border-destructive/50 bg-destructive/10"
+              }`}
+            >
+              <div className="flex items-center gap-2 font-bold text-xs">
+                {lastReport.result === "ok" ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                )}
+                Conferência Final da Exportação
+                <Badge variant="outline" className="text-[9px] ml-auto">
+                  Regra única: resolveHasImei()
+                </Badge>
+              </div>
+
+              <div className="overflow-x-auto mt-2">
+                <table className="w-full text-[11px]">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="text-left px-2 py-1 border-b">Métrica</th>
+                      <th className="text-right px-2 py-1 border-b">Auditoria</th>
+                      <th className="text-right px-2 py-1 border-b">CSV</th>
+                      <th className="text-center px-2 py-1 border-b">OK</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-mono">
+                    <ConfRow label="Produtos encontrados" a={lastReport.auditFound} c={lastReport.csvLines || lastReport.auditExported} skipCheck />
+                    <ConfRow label="Produtos exportados" a={lastReport.auditExported} c={lastReport.csvLines} />
+                    <ConfRow label="Smartphones" a={lastReport.auditSmartphones} c={lastReport.csvSmartphones} />
+                    <ConfRow label="Smartphones c/ IMEI" a={lastReport.auditWithImei} c={lastReport.csvWithImei} />
+                    <ConfRow label="Smartphones s/ IMEI" a={lastReport.auditWithoutImei} c={lastReport.csvWithoutImei} />
+                    <ConfRow label="Tablets" a={lastReport.auditTablets} c={lastReport.csvTablets} />
+                    <ConfRow label="Smartwatches" a={lastReport.auditSmartwatches} c={lastReport.csvSmartwatches} />
+                    <ConfRow label="Acessórios" a={lastReport.auditAccessories} c={lastReport.csvAccessories} />
+                    <ConfRow label="Outros" a={lastReport.auditOthers} c={lastReport.csvOthers} />
+                    <tr>
+                      <td className="px-2 py-1 border-t font-bold">Linhas do CSV</td>
+                      <td className="px-2 py-1 text-right tabular-nums border-t" colSpan={2}>{lastReport.csvLines}</td>
+                      <td className="px-2 py-1 text-center border-t">—</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 font-bold">Paridade Auditoria</td>
+                      <td className="px-2 py-1 text-right" colSpan={2}>
+                        {lastReport.parityAudit ? "conferido" : "divergente"}
+                      </td>
+                      <td className="px-2 py-1 text-center">{lastReport.parityAudit ? "✔" : "✖"}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 font-bold">Paridade CSV</td>
+                      <td className="px-2 py-1 text-right" colSpan={2}>
+                        {lastReport.parityCsv ? "conferido" : "divergente"}
+                      </td>
+                      <td className="px-2 py-1 text-center">{lastReport.parityCsv ? "✔" : "✖"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div
+                className={`mt-2 rounded-md px-2 py-1 text-xs font-bold ${
+                  lastReport.result === "ok"
+                    ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300"
+                    : "bg-destructive/20 text-destructive"
+                }`}
+              >
+                Resultado: {lastReport.result === "ok" ? "✔ OK" : "✖ Divergência encontrada"}
+              </div>
+
+              {lastReport.divergences.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-[11px] font-bold mb-1">Divergências ({lastReport.divergences.length})</div>
+                  <div className="overflow-x-auto max-h-56">
+                    <table className="w-full text-[11px]">
+                      <thead className="bg-muted/40 sticky top-0">
+                        <tr>
+                          <th className="text-left px-2 py-1 border-b">Produto</th>
+                          <th className="text-left px-2 py-1 border-b">SKU</th>
+                          <th className="text-left px-2 py-1 border-b">IMEI encontrado</th>
+                          <th className="text-left px-2 py-1 border-b">Fonte</th>
+                          <th className="text-left px-2 py-1 border-b">Motivo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lastReport.divergences.slice(0, 200).map((d, i) => (
+                          <tr key={i} className="border-b last:border-0">
+                            <td className="px-2 py-1">{d.produto || "—"}</td>
+                            <td className="px-2 py-1 font-mono">{d.sku || "—"}</td>
+                            <td className="px-2 py-1 font-mono">{d.imei || "—"}</td>
+                            <td className="px-2 py-1">{d.fonte}</td>
+                            <td className="px-2 py-1">{d.motivo}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+
+
           </CardContent>
         </Card>
       )}
@@ -1171,6 +1428,20 @@ function Sum({ label, value }: { label: string; value: string }) {
       <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{label}</div>
       <div className="text-sm font-black tabular-nums">{value}</div>
     </div>
+  );
+}
+
+function ConfRow({ label, a, c, skipCheck }: { label: string; a: number; c: number; skipCheck?: boolean }) {
+  const ok = skipCheck ? true : a === c;
+  return (
+    <tr>
+      <td className="px-2 py-1 border-b">{label}</td>
+      <td className="px-2 py-1 text-right tabular-nums border-b">{a.toLocaleString("pt-BR")}</td>
+      <td className="px-2 py-1 text-right tabular-nums border-b">{c.toLocaleString("pt-BR")}</td>
+      <td className={`px-2 py-1 text-center border-b ${ok ? "text-emerald-600" : "text-destructive font-bold"}`}>
+        {skipCheck ? "—" : ok ? "✔" : "✖"}
+      </td>
+    </tr>
   );
 }
 
