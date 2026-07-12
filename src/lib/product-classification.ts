@@ -139,4 +139,35 @@ export function isDeviceClass(c: ProductClass): boolean {
   return c === "smartphone" || c === "tablet" || c === "smartwatch";
 }
 
+// ─────────────────────────────────────────────────────────────────
+// resolveHasImei — REGRA ÚNICA usada em auditoria e CSV.
+// Nunca comparar product.has_imei diretamente fora desta função.
+// ─────────────────────────────────────────────────────────────────
+const nonEmpty = (v: unknown): boolean => {
+  if (v == null) return false;
+  if (typeof v === "boolean") return v === true;
+  if (typeof v === "number") return Number.isFinite(v) && v !== 0;
+  if (typeof v === "string") return v.trim() !== "";
+  if (Array.isArray(v)) return v.some(nonEmpty);
+  if (typeof v === "object") return Object.keys(v as any).length > 0;
+  return false;
+};
+
+export function resolveHasImei(product: any): boolean {
+  if (!product) return false;
+  const md: any = product.metadata && typeof product.metadata === "object" ? product.metadata : {};
+  if (product.has_imei === true) return true;
+  if (nonEmpty(product.imei)) return true;
+  if (nonEmpty(product.imei1)) return true;
+  if (nonEmpty(product.imei2)) return true;
+  if (nonEmpty(product.serial_number)) return true;
+  if (nonEmpty(md.imei)) return true;
+  if (nonEmpty(md.imei_1) || nonEmpty(md.imei1)) return true;
+  if (nonEmpty(md.imeis)) return true;
+  if (nonEmpty(md.serial_number)) return true;
+  if (md.has_imei === true) return true;
+  if (Number(md.imei_count ?? 0) > 0) return true;
+  return false;
+}
+
 export const CLASS_ORDER: ProductClass[] = ["smartphone", "tablet", "smartwatch", "acessorio", "outro"];
