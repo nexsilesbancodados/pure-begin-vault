@@ -55,6 +55,7 @@ import {
   FinancialIntegrityReport,
 } from "@/lib/export/financial";
 import { FinancialAssistant } from "@/components/exportacao/FinancialAssistant";
+import { StockAssistant } from "@/components/exportacao/StockAssistant";
 import { MigrationPreviewModal } from "@/components/exportacao/MigrationPreviewModal";
 
 export const Route = createFileRoute("/sistema/exportacao")({
@@ -132,6 +133,9 @@ function ExportacaoPage() {
           <TabsTrigger value="financeiro" className="gap-2">
             <Banknote className="h-4 w-4" /> Financeiro
           </TabsTrigger>
+          <TabsTrigger value="estoque" className="gap-2">
+            <Package className="h-4 w-4" /> Estoque
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -154,6 +158,9 @@ function ExportacaoPage() {
         </TabsContent>
         <TabsContent value="financeiro">
           <FinancialTab orgId={orgId} />
+        </TabsContent>
+        <TabsContent value="estoque">
+          <StockAssistant orgId={orgId} />
         </TabsContent>
       </Tabs>
     </div>
