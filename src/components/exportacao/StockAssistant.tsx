@@ -547,6 +547,112 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         </CardContent>
       </Card>
 
+      {/* Filtros da Exportação */}
+      {snapshot && (
+        <Card className="border-primary/30">
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Filtros da Exportação
+              <Badge variant="outline" className="text-[10px]">Layout do CSV inalterado</Badge>
+            </CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => setFilters(DEFAULT_FILTERS)}>
+              Restaurar padrão
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4 text-xs">
+            {/* Estoque + Status + IMEI */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <FilterBox title="Estoque">
+                <Chk label="Somente estoque positivo (> 0)" v={filters.stockPositive} on={(x) => setF("stockPositive", x)} />
+                <Chk label="Incluir produtos zerados" v={filters.includeZero} on={(x) => setF("includeZero", x)} />
+                <Chk label="Incluir estoque negativo" v={filters.includeNegative} on={(x) => setF("includeNegative", x)} />
+              </FilterBox>
+              <FilterBox title="Status do produto">
+                <Chk label="Apenas produtos ativos" v={filters.onlyActive} on={(x) => setF("onlyActive", x)} />
+                <Chk label="Incluir inativos" v={filters.includeInactive} on={(x) => setF("includeInactive", x)} />
+              </FilterBox>
+              <FilterBox title="IMEI">
+                <Rad name="imei" label="Todos" v={filters.imei === "all"} on={() => setF("imei", "all")} />
+                <Rad name="imei" label="Apenas com IMEI" v={filters.imei === "with"} on={() => setF("imei", "with")} />
+                <Rad name="imei" label="Apenas sem IMEI" v={filters.imei === "without"} on={() => setF("imei", "without")} />
+              </FilterBox>
+            </div>
+
+            {/* Categoria / Marca / Local */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <ChipMulti
+                title={`Categoria (${filters.categories.length || "todas"})`}
+                options={facets.categories}
+                selected={filters.categories}
+                onToggle={(v) => setF("categories", toggleInList(filters.categories, v))}
+                onClear={() => setF("categories", [])}
+              />
+              <ChipMulti
+                title={`Marca (${filters.brands.length || "todas"})`}
+                options={facets.brands}
+                selected={filters.brands}
+                onToggle={(v) => setF("brands", toggleInList(filters.brands, v))}
+                onClear={() => setF("brands", [])}
+              />
+              <ChipMulti
+                title={`Local (${filters.locations.length || "todos"})`}
+                options={facets.locations}
+                selected={filters.locations}
+                onToggle={(v) => setF("locations", toggleInList(filters.locations, v))}
+                onClear={() => setF("locations", [])}
+              />
+            </div>
+
+            {/* Faixas + busca */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <FilterBox title="Faixa de quantidade">
+                <div className="flex gap-2">
+                  <NumIn label="Mín" v={filters.qtyMin} on={(x) => setF("qtyMin", x)} />
+                  <NumIn label="Máx" v={filters.qtyMax} on={(x) => setF("qtyMax", x)} />
+                </div>
+              </FilterBox>
+              <FilterBox title="Preço de custo">
+                <div className="flex gap-2">
+                  <NumIn label="Mín" v={filters.costMin} on={(x) => setF("costMin", x)} />
+                  <NumIn label="Máx" v={filters.costMax} on={(x) => setF("costMax", x)} />
+                </div>
+              </FilterBox>
+              <FilterBox title="Preço de venda">
+                <div className="flex gap-2">
+                  <NumIn label="Mín" v={filters.priceMin} on={(x) => setF("priceMin", x)} />
+                  <NumIn label="Máx" v={filters.priceMax} on={(x) => setF("priceMax", x)} />
+                </div>
+              </FilterBox>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <FilterBox title="Busca (SKU, nome, código de barras, modelo)">
+                <input
+                  className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
+                  placeholder="Digite para filtrar..."
+                  value={filters.search}
+                  onChange={(e) => setF("search", e.target.value)}
+                />
+              </FilterBox>
+              <FilterBox title="Duplicados">
+                <Chk label="Ignorar produtos duplicados (mesmo SKU/EAN)" v={filters.dedupe} on={(x) => setF("dedupe", x)} />
+                <Chk label="Exportar apenas o registro mais recente" v={filters.latestOnly} on={(x) => setF("latestOnly", x)} />
+              </FilterBox>
+            </div>
+
+            {/* Resumo em tempo real */}
+            <div className="rounded-md border bg-primary/5 px-3 py-2 grid grid-cols-2 md:grid-cols-5 gap-2">
+              <Sum label="Encontrados" value={previewRows.length.toLocaleString("pt-BR")} />
+              <Sum label="Serão exportados" value={previewRows.length.toLocaleString("pt-BR")} />
+              <Sum label="Qtd. total" value={previewStockSum.toLocaleString("pt-BR")} />
+              <Sum label="Valor custo" value={brl(previewCostSum)} />
+              <Sum label="Valor venda" value={brl(previewPriceSum)} />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
       {/* Integridade */}
       {snapshot && (
         <Card>
