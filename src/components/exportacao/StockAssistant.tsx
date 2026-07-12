@@ -41,11 +41,7 @@ type ProductRow = {
   brand: string | null;
   model: string | null;
   category: string | null;
-  storage: string | null;
-  capacity: string | null;
-  color: string | null;
   cost_price: number | null;
-  sale_price: number | null;
   price: number | null;
   stock_quantity: number | null;
   supplier_id: string | null;
@@ -64,16 +60,28 @@ type ProductRow = {
   updated_at: string | null;
 };
 
+// NOTA: colunas como storage/capacity/color/sale_price NÃO existem em public.products.
+// Capacidade e cor ficam em metadata (jsonb); preço de venda usa a coluna `price`.
 const PRODUCT_SELECT = [
   "id","organization_id","sku","ean","name","brand","model","category",
-  "storage","capacity","color","cost_price","sale_price","price","stock_quantity",
+  "cost_price","price","stock_quantity",
   "supplier_id","reference","ncm","has_imei","active","location","image_url",
   "metadata","unit","weight","min_stock","wholesale_price","created_at","updated_at",
 ].join(",");
 
 const yesNo = (b: boolean) => (b ? "sim" : "nao");
 
+const metaVal = (md: any, ...keys: string[]): string => {
+  if (!md || typeof md !== "object") return "";
+  for (const k of keys) {
+    const v = md[k];
+    if (v != null && String(v).trim() !== "") return String(v);
+  }
+  return "";
+};
+
 function toPremierRow(p: ProductRow) {
+  const md = p.metadata;
   return {
     produto_id: p.id,
     sku: p.sku ?? "",
@@ -82,10 +90,10 @@ function toPremierRow(p: ProductRow) {
     marca: p.brand ?? "",
     modelo: p.model ?? "",
     categoria: p.category ?? "",
-    capacidade: p.storage ?? p.capacity ?? "",
-    cor: p.color ?? "",
+    capacidade: metaVal(md, "capacidade", "capacity", "storage", "gb"),
+    cor: metaVal(md, "cor", "color"),
     custo: p.cost_price ?? 0,
-    preco_venda: p.sale_price ?? p.price ?? 0,
+    preco_venda: p.price ?? 0,
     estoque: p.stock_quantity ?? 0,
     fornecedor_id: p.supplier_id ?? "",
     empresa_id: p.organization_id ?? "",
@@ -97,7 +105,7 @@ function toPremierRow(p: ProductRow) {
     active: p.active == null ? "" : yesNo(!!p.active),
     location: p.location ?? "",
     image_url: p.image_url ?? "",
-    metadata: p.metadata ? JSON.stringify(p.metadata) : "",
+    metadata: md ? JSON.stringify(md) : "",
     unit: p.unit ?? "",
     weight: p.weight ?? "",
     min_stock: p.min_stock ?? "",
