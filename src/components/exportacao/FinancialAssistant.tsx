@@ -201,23 +201,24 @@ function loadPersisted(): PersistedState | null {
   } catch { return null; }
 }
 
-export function FinancialAssistant(props: { orgId: string | null } = { orgId: null }) {
+export function FinancialAssistant(props: { orgId?: string | null } = {}) {
   const orgId = props?.orgId ?? null;
-  const persisted = useRef<PersistedState | null>(null);
-  if (persisted.current === null) persisted.current = loadPersisted();
+  const persistedRef = useRef<PersistedState | null | undefined>(undefined);
+  if (persistedRef.current === undefined) persistedRef.current = loadPersisted();
+  const persisted = persistedRef.current;
 
   const [selected, setSelected] = useState<Set<FinancialModuleKey>>(
-    () => new Set(persisted.current?.selected ?? ["accounts_payable"]),
+    () => new Set(persisted?.selected ?? ["accounts_payable"]),
   );
   const [filters, setFilters] = useState<Partial<Record<FinancialModuleKey, ModuleFilter>>>(
-    () => persisted.current?.filters ?? {
+    () => persisted?.filters ?? {
       accounts_payable: { status: "open", dateField: "due_date" },
       accounts_receivable: { status: "open", dateField: "due_date" },
       finance_transactions: { dateField: "transaction_date" },
     },
   );
   const [presets, setPresets] = useState<Partial<Record<FinancialModuleKey, Preset>>>(
-    () => persisted.current?.presets ?? {},
+    () => persisted?.presets ?? {},
   );
   const [summaries, setSummaries] = useState<Partial<Record<FinancialModuleKey, { count: number; totalAmount: number; loading?: boolean }>>>({});
   const [busy, setBusy] = useState<string | null>(null);
