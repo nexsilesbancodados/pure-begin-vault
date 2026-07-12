@@ -656,7 +656,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         csvSmartwatches === auditSmartwatches &&
         csvOthers === auditOthers;
 
-      if (!parityAudit || !parityCsv) {
+      if (!parityAudit || !parityCsv || !imeiColumnParity) {
         console.error("[Estoque] divergência CSV↔Auditoria", {
           auditExported, csvLines,
           auditSmartphones, csvSmartphones,
