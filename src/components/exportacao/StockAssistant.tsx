@@ -29,7 +29,7 @@ const PREMIER_STOCK_COLUMNS = [
   "capacidade","cor","custo","preco_venda","estoque","fornecedor_id","empresa_id",
   "internal_code","external_code","reference","ncm","has_imei","active","location",
   "image_url","metadata","unit","weight","min_stock","wholesale_price",
-  "created_at","updated_at",
+  "created_at","updated_at","status",
 ] as const;
 
 type ProductRow = {
@@ -82,6 +82,13 @@ const metaVal = (md: any, ...keys: string[]): string => {
 
 function toPremierRow(p: ProductRow) {
   const md = p.metadata;
+  const qtyRaw = p.stock_quantity;
+  const qty = Number(qtyRaw ?? 0);
+  const status =
+    !Number.isFinite(qty) ? "INVALID_STOCK"
+    : qty < 0 ? "NEGATIVE_STOCK"
+    : qty === 0 ? "ZERO_STOCK"
+    : "OK";
   return {
     produto_id: p.id,
     sku: p.sku ?? "",
@@ -94,7 +101,7 @@ function toPremierRow(p: ProductRow) {
     cor: metaVal(md, "cor", "color"),
     custo: p.cost_price ?? 0,
     preco_venda: p.price ?? 0,
-    estoque: p.stock_quantity ?? 0,
+    estoque: Number.isFinite(qty) ? qty : 0,
     fornecedor_id: p.supplier_id ?? "",
     empresa_id: p.organization_id ?? "",
     internal_code: p.reference ?? "",
@@ -112,6 +119,7 @@ function toPremierRow(p: ProductRow) {
     wholesale_price: p.wholesale_price ?? "",
     created_at: p.created_at ?? "",
     updated_at: p.updated_at ?? "",
+    status,
   };
 }
 
@@ -172,10 +180,14 @@ function analyze(products: ProductRow[]): Pick<Snapshot, "issues" | "duplicatedS
   const duplicatedEans = new Set<string>();
   for (const [k, v] of eanMap) if (v > 1) duplicatedEans.add(k);
 
-  const semCodigo: ProductRow[] = [];
-  const semVinculo: ProductRow[] = [];
-  const negativos: ProductRow[] = [];
-  const zerados: ProductRow[] = [];
+  const semIdentificador: ProductRow[] = []; // BLOQUEIA: sem SKU, sem EAN e sem ID interno
+  const qtdInvalida: ProductRow[] = [];      // BLOQUEIA: NaN
+  const semVinculo: ProductRow[] = [];       // BLOQUEIA: sem organization_id
+  const semEan: ProductRow[] = [];           // aviso
+  const semMarca: ProductRow[] = [];         // aviso
+  const semCategoria: ProductRow[] = [];     // aviso
+  const negativos: ProductRow[] = [];        // aviso (exporta com status=NEGATIVE_STOCK)
+  const zerados: ProductRow[] = [];          // aviso (exporta normalmente)
   const dupSkuRows: ProductRow[] = [];
   const dupEanRows: ProductRow[] = [];
   let dbStockSum = 0;
@@ -183,33 +195,47 @@ function analyze(products: ProductRow[]): Pick<Snapshot, "issues" | "duplicatedS
   for (const p of products) {
     const sku = (p.sku ?? "").trim();
     const ean = (p.ean ?? "").trim();
-    const qty = Number(p.stock_quantity ?? 0);
-    dbStockSum += qty;
-    if (!sku && !ean) semCodigo.push(p);
+    const idInterno = (p.reference ?? "").trim() || (p.id ?? "").trim();
+    const rawQty = p.stock_quantity;
+    const qty = Number(rawQty ?? 0);
+    const qtyOk = Number.isFinite(qty);
+    if (qtyOk) dbStockSum += qty;
+
+    if (!sku && !ean && !idInterno) semIdentificador.push(p);
+    if (!qtyOk) qtdInvalida.push(p);
     if (!p.organization_id) semVinculo.push(p);
-    if (qty < 0) negativos.push(p);
-    if (qty === 0) zerados.push(p);
+    if (!ean) semEan.push(p);
+    if (!p.brand || !p.brand.trim()) semMarca.push(p);
+    if (!p.category || !p.category.trim()) semCategoria.push(p);
+    if (qtyOk && qty < 0) negativos.push(p);
+    if (qtyOk && qty === 0) zerados.push(p);
     if (sku && duplicatedSkus.has(sku)) dupSkuRows.push(p);
     if (ean && duplicatedEans.has(ean)) dupEanRows.push(p);
   }
 
-  // regras: BLOQUEIA sem código, sem vínculo e negativos (não exportar).
+  // BLOQUEANTES: apenas produtos sem NENHUM identificador, quantidade inválida ou sem loja.
   const ignoredIds = new Set<string>([
-    ...semCodigo.map((p) => p.id),
+    ...semIdentificador.map((p) => p.id),
+    ...qtdInvalida.map((p) => p.id),
     ...semVinculo.map((p) => p.id),
-    ...negativos.map((p) => p.id),
   ]);
 
   const amostra = (list: ProductRow[]) =>
-    list.slice(0, 10).map((p) => `${p.sku || p.ean || "—"} · ${p.name ?? "sem nome"}`);
+    list.slice(0, 10).map((p) => `${p.sku || p.ean || p.reference || p.id || "—"} · ${p.name ?? "sem nome"}`);
 
   const issues: Issue[] = [
+    // Bloqueantes
+    { tipo: "Sem identificador (sem SKU, sem EAN e sem ID interno)", quantidade: semIdentificador.length, amostra: amostra(semIdentificador), bloqueia: true },
+    { tipo: "Quantidade inválida (NaN)", quantidade: qtdInvalida.length, amostra: amostra(qtdInvalida), bloqueia: true },
+    { tipo: "Sem vínculo com loja (organization_id)", quantidade: semVinculo.length, amostra: amostra(semVinculo), bloqueia: true },
+    // Avisos (nunca bloqueiam)
+    { tipo: "Sem EAN (aviso)", quantidade: semEan.length, amostra: amostra(semEan), bloqueia: false },
+    { tipo: "Sem marca (aviso)", quantidade: semMarca.length, amostra: amostra(semMarca), bloqueia: false },
+    { tipo: "Sem categoria (aviso)", quantidade: semCategoria.length, amostra: amostra(semCategoria), bloqueia: false },
+    { tipo: "Estoque negativo (aviso · exportado como NEGATIVE_STOCK)", quantidade: negativos.length, amostra: amostra(negativos), bloqueia: false },
+    { tipo: "Sem estoque (aviso · exportado)", quantidade: zerados.length, amostra: amostra(zerados), bloqueia: false },
     { tipo: "Duplicados por SKU", quantidade: dupSkuRows.length, amostra: amostra(dupSkuRows), bloqueia: false },
     { tipo: "Duplicados por código de barras", quantidade: dupEanRows.length, amostra: amostra(dupEanRows), bloqueia: false },
-    { tipo: "Sem código (sem SKU e sem EAN)", quantidade: semCodigo.length, amostra: amostra(semCodigo), bloqueia: true },
-    { tipo: "Sem vínculo com loja (organization_id)", quantidade: semVinculo.length, amostra: amostra(semVinculo), bloqueia: true },
-    { tipo: "Quantidade negativa", quantidade: negativos.length, amostra: amostra(negativos), bloqueia: true },
-    { tipo: "Sem estoque (informativo)", quantidade: zerados.length, amostra: amostra(zerados), bloqueia: false },
   ];
 
   return { issues, duplicatedSkus, duplicatedEans, ignoredIds, dbStockSum };
@@ -219,6 +245,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [includeZeroStock, setIncludeZeroStock] = useState(true);
   const [lastReport, setLastReport] = useState<null | {
     exportedCount: number;
     exportedStockSum: number;
@@ -273,8 +300,13 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     if (!snapshot) return [];
     return snapshot.products
       .filter((p) => !snapshot.ignoredIds.has(p.id))
+      .filter((p) => {
+        if (includeZeroStock) return true;
+        const q = Number(p.stock_quantity ?? 0);
+        return Number.isFinite(q) && q !== 0;
+      })
       .map(toPremierRow);
-  }, [snapshot]);
+  }, [snapshot, includeZeroStock]);
 
   const previewStockSum = useMemo(
     () => previewRows.reduce((s, r) => s + Number(r.estoque || 0), 0),
@@ -454,6 +486,19 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
               </div>
             )}
 
+            <label className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs cursor-pointer hover:bg-muted/40">
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                checked={includeZeroStock}
+                onChange={(e) => setIncludeZeroStock(e.target.checked)}
+              />
+              <span>
+                <strong>Exportar estoque completo</strong> — inclui produtos com quantidade 0
+                {" "}(desmarque para exportar apenas itens com saldo).
+              </span>
+            </label>
+
             <div className="flex items-center gap-2 text-xs">
               <span className="font-bold">Compatível com:</span>
               <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 gap-1">
@@ -461,6 +506,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
               </Badge>
               <span className="text-muted-foreground">{PREMIER_STOCK_COLUMNS.length} colunas</span>
             </div>
+
 
             <Button
               size="lg"
