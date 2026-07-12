@@ -22,6 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { downloadCsv } from "@/lib/export/csv";
+import { classifyProduct, type ProductClass } from "@/lib/product-classification";
 
 // ── Colunas EXATAS do products.csv Premier (não renomear, não reordenar) ──
 const PREMIER_STOCK_COLUMNS = [
@@ -448,39 +449,67 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
   const previewRows = useMemo(() => filteredProducts.map(toPremierRow), [filteredProducts]);
 
   const telefoniaAudit = useMemo(() => {
-    const smartphones = filteredProducts.filter((p) => !!p.has_imei);
-    const accessories = filteredProducts.filter((p) => !p.has_imei);
-    const smartphonesWithImei = smartphones.filter(
-      (p) => (p.metadata && typeof p.metadata === "object" && String((p.metadata as any).imei ?? "").trim() !== "")
-        || Number((p.metadata as any)?.imei_count ?? 0) > 0,
-    );
-    // Fallback: assume smartphone tem IMEI se o snapshot marcar; caso contrário usar metadata
-    const withImei = smartphones.filter((p) => {
+    // Classificação inteligente (não altera o CSV — apenas auditoria/estatística).
+    const classified = filteredProducts.map((p) => ({ p, c: classifyProduct(p as any) }));
+    const byClass = (cls: ProductClass) => classified.filter((x) => x.c === cls).map((x) => x.p);
+
+    const smartphones = byClass("smartphone");
+    const tablets = byClass("tablet");
+    const smartwatches = byClass("smartwatch");
+    const accessories = byClass("acessorio");
+    const others = byClass("outro");
+
+    const hasImeiValue = (p: any) => {
       const md: any = p.metadata ?? {};
       const val = String(md.imei ?? md.imei_1 ?? "").trim();
-      return val !== "" || Number(md.imei_count ?? 0) > 0;
-    });
+      return val !== "" || Number(md.imei_count ?? 0) > 0 || p.has_imei === true;
+    };
+    const withImei = smartphones.filter(hasImeiValue);
     const withoutImei = smartphones.filter((p) => !withImei.includes(p));
-    const totalUnits = filteredProducts.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
-    const smartphoneUnits = smartphones.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
-    const accessoryUnits = accessories.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
+
+    const units = (arr: any[]) => arr.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
+    const totalUnits = units(filteredProducts);
+    const smartphoneUnits = units(smartphones);
+    const accessoryUnits = units(accessories);
+    const tabletUnits = units(tablets);
+    const smartwatchUnits = units(smartwatches);
+    const otherUnits = units(others);
+
     const zeroCount = filteredProducts.filter((p) => Number(p.stock_quantity ?? 0) === 0).length;
     const negativeCount = filteredProducts.filter((p) => Number(p.stock_quantity ?? 0) < 0).length;
     const coverage = smartphones.length === 0 ? 100 : (withImei.length / smartphones.length) * 100;
-    void smartphonesWithImei;
+
+    // Comparação "antes vs depois": legado usava apenas has_imei.
+    const legacySmartphones = filteredProducts.filter((p) => !!p.has_imei);
+    const legacyAccessories = filteredProducts.filter((p) => !p.has_imei);
+    const changedCount = filteredProducts.filter((p) => {
+      const wasSmart = !!p.has_imei;
+      const isSmart = classifyProduct(p as any) === "smartphone";
+      return wasSmart !== isSmart;
+    }).length;
+
     return {
       totalFound: snapshot?.products.length ?? 0,
       totalExported: filteredProducts.length,
       smartphonesCount: smartphones.length,
+      tabletsCount: tablets.length,
+      smartwatchesCount: smartwatches.length,
       accessoriesCount: accessories.length,
+      othersCount: others.length,
       totalUnits,
       smartphoneUnits,
       accessoryUnits,
+      tabletUnits,
+      smartwatchUnits,
+      otherUnits,
       zeroCount,
       negativeCount,
       withImei,
       withoutImei,
       coverage,
+      legacySmartphonesCount: legacySmartphones.length,
+      legacyAccessoriesCount: legacyAccessories.length,
+      changedCount,
     };
   }, [filteredProducts, snapshot]);
 
@@ -800,7 +829,10 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
                 <Sum label="Encontrados" value={telefoniaAudit.totalFound.toLocaleString("pt-BR")} />
                 <Sum label="Exportados" value={telefoniaAudit.totalExported.toLocaleString("pt-BR")} />
                 <Sum label="Smartphones" value={telefoniaAudit.smartphonesCount.toLocaleString("pt-BR")} />
+                <Sum label="Tablets" value={telefoniaAudit.tabletsCount.toLocaleString("pt-BR")} />
+                <Sum label="Smartwatches" value={telefoniaAudit.smartwatchesCount.toLocaleString("pt-BR")} />
                 <Sum label="Acessórios" value={telefoniaAudit.accessoriesCount.toLocaleString("pt-BR")} />
+                <Sum label="Outros" value={telefoniaAudit.othersCount.toLocaleString("pt-BR")} />
                 <Sum label="Unidades exportadas" value={telefoniaAudit.totalUnits.toLocaleString("pt-BR")} />
                 <Sum label="Produtos zerados" value={telefoniaAudit.zeroCount.toLocaleString("pt-BR")} />
                 <Sum label="Produtos negativos" value={telefoniaAudit.negativeCount.toLocaleString("pt-BR")} />
@@ -833,9 +865,27 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
                       <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.withImei.length}</td>
                     </tr>
                     <tr>
+                      <td className="px-2 py-1 border-b">Tablets</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.tabletsCount}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.tabletUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 border-b">Smartwatches</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartwatchesCount}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartwatchUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
+                    </tr>
+                    <tr>
                       <td className="px-2 py-1 border-b">Acessórios</td>
                       <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.accessoriesCount}</td>
                       <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.accessoryUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 border-b">Outros</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.othersCount}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.otherUnits}</td>
                       <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
                     </tr>
                     <tr className="font-bold bg-muted/30">
@@ -846,6 +896,15 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* Comparativo antes vs depois (só auditoria, não afeta o CSV) */}
+              <div className="rounded-md border border-border bg-muted/20 p-2 text-[11px] space-y-1">
+                <div className="font-bold text-xs mb-1">Comparativo de classificação</div>
+                <div>Antes (apenas has_imei): <b>{telefoniaAudit.legacySmartphonesCount}</b> smartphones · <b>{telefoniaAudit.legacyAccessoriesCount}</b> acessórios</div>
+                <div>Depois (classificação inteligente): <b>{telefoniaAudit.smartphonesCount}</b> smartphones · <b>{telefoniaAudit.accessoriesCount}</b> acessórios · <b>{telefoniaAudit.tabletsCount}</b> tablets · <b>{telefoniaAudit.smartwatchesCount}</b> smartwatches · <b>{telefoniaAudit.othersCount}</b> outros</div>
+                <div>Produtos que mudaram de categoria: <b>{telefoniaAudit.changedCount}</b></div>
+                <div className="text-muted-foreground">O layout do CSV (29 colunas + status) permanece inalterado — apenas a auditoria usa esta classificação.</div>
               </div>
 
               {telefoniaAudit.withoutImei.length > 0 && (
