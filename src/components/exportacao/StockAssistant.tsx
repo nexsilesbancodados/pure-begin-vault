@@ -449,39 +449,67 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
   const previewRows = useMemo(() => filteredProducts.map(toPremierRow), [filteredProducts]);
 
   const telefoniaAudit = useMemo(() => {
-    const smartphones = filteredProducts.filter((p) => !!p.has_imei);
-    const accessories = filteredProducts.filter((p) => !p.has_imei);
-    const smartphonesWithImei = smartphones.filter(
-      (p) => (p.metadata && typeof p.metadata === "object" && String((p.metadata as any).imei ?? "").trim() !== "")
-        || Number((p.metadata as any)?.imei_count ?? 0) > 0,
-    );
-    // Fallback: assume smartphone tem IMEI se o snapshot marcar; caso contrário usar metadata
-    const withImei = smartphones.filter((p) => {
+    // Classificação inteligente (não altera o CSV — apenas auditoria/estatística).
+    const classified = filteredProducts.map((p) => ({ p, c: classifyProduct(p as any) }));
+    const byClass = (cls: ProductClass) => classified.filter((x) => x.c === cls).map((x) => x.p);
+
+    const smartphones = byClass("smartphone");
+    const tablets = byClass("tablet");
+    const smartwatches = byClass("smartwatch");
+    const accessories = byClass("acessorio");
+    const others = byClass("outro");
+
+    const hasImeiValue = (p: any) => {
       const md: any = p.metadata ?? {};
       const val = String(md.imei ?? md.imei_1 ?? "").trim();
-      return val !== "" || Number(md.imei_count ?? 0) > 0;
-    });
+      return val !== "" || Number(md.imei_count ?? 0) > 0 || p.has_imei === true;
+    };
+    const withImei = smartphones.filter(hasImeiValue);
     const withoutImei = smartphones.filter((p) => !withImei.includes(p));
-    const totalUnits = filteredProducts.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
-    const smartphoneUnits = smartphones.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
-    const accessoryUnits = accessories.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
+
+    const units = (arr: any[]) => arr.reduce((s, p) => s + Number(p.stock_quantity ?? 0), 0);
+    const totalUnits = units(filteredProducts);
+    const smartphoneUnits = units(smartphones);
+    const accessoryUnits = units(accessories);
+    const tabletUnits = units(tablets);
+    const smartwatchUnits = units(smartwatches);
+    const otherUnits = units(others);
+
     const zeroCount = filteredProducts.filter((p) => Number(p.stock_quantity ?? 0) === 0).length;
     const negativeCount = filteredProducts.filter((p) => Number(p.stock_quantity ?? 0) < 0).length;
     const coverage = smartphones.length === 0 ? 100 : (withImei.length / smartphones.length) * 100;
-    void smartphonesWithImei;
+
+    // Comparação "antes vs depois": legado usava apenas has_imei.
+    const legacySmartphones = filteredProducts.filter((p) => !!p.has_imei);
+    const legacyAccessories = filteredProducts.filter((p) => !p.has_imei);
+    const changedCount = filteredProducts.filter((p) => {
+      const wasSmart = !!p.has_imei;
+      const isSmart = classifyProduct(p as any) === "smartphone";
+      return wasSmart !== isSmart;
+    }).length;
+
     return {
       totalFound: snapshot?.products.length ?? 0,
       totalExported: filteredProducts.length,
       smartphonesCount: smartphones.length,
+      tabletsCount: tablets.length,
+      smartwatchesCount: smartwatches.length,
       accessoriesCount: accessories.length,
+      othersCount: others.length,
       totalUnits,
       smartphoneUnits,
       accessoryUnits,
+      tabletUnits,
+      smartwatchUnits,
+      otherUnits,
       zeroCount,
       negativeCount,
       withImei,
       withoutImei,
       coverage,
+      legacySmartphonesCount: legacySmartphones.length,
+      legacyAccessoriesCount: legacyAccessories.length,
+      changedCount,
     };
   }, [filteredProducts, snapshot]);
 
