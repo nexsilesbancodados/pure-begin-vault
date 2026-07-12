@@ -133,6 +133,9 @@ function ExportacaoPage() {
           <TabsTrigger value="financeiro" className="gap-2">
             <Banknote className="h-4 w-4" /> Financeiro
           </TabsTrigger>
+          <TabsTrigger value="estoque" className="gap-2">
+            <Package className="h-4 w-4" /> Estoque
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
