@@ -597,6 +597,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       const idxModelo = header.indexOf("modelo");
       const idxCategoria = header.indexOf("categoria");
       const idxHasImei = header.indexOf("has_imei");
+      const idxImei = header.indexOf("imei");
 
       // parser CSV simples respeitando aspas
       const parseLine = (line: string): string[] => {
