@@ -549,67 +549,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
               </FilterBox>
             </div>
 
-            {/* Categoria / Marca / Local */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <ChipMulti
-                title={`Categoria (${filters.categories.length || "todas"})`}
-                options={facets.categories}
-                selected={filters.categories}
-                onToggle={(v) => setF("categories", toggleInList(filters.categories, v))}
-                onClear={() => setF("categories", [])}
-              />
-              <ChipMulti
-                title={`Marca (${filters.brands.length || "todas"})`}
-                options={facets.brands}
-                selected={filters.brands}
-                onToggle={(v) => setF("brands", toggleInList(filters.brands, v))}
-                onClear={() => setF("brands", [])}
-              />
-              <ChipMulti
-                title={`Local (${filters.locations.length || "todos"})`}
-                options={facets.locations}
-                selected={filters.locations}
-                onToggle={(v) => setF("locations", toggleInList(filters.locations, v))}
-                onClear={() => setF("locations", [])}
-              />
-            </div>
 
-            {/* Faixas + busca */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <FilterBox title="Faixa de quantidade">
-                <div className="flex gap-2">
-                  <NumIn label="Mín" v={filters.qtyMin} on={(x) => setF("qtyMin", x)} />
-                  <NumIn label="Máx" v={filters.qtyMax} on={(x) => setF("qtyMax", x)} />
-                </div>
-              </FilterBox>
-              <FilterBox title="Preço de custo">
-                <div className="flex gap-2">
-                  <NumIn label="Mín" v={filters.costMin} on={(x) => setF("costMin", x)} />
-                  <NumIn label="Máx" v={filters.costMax} on={(x) => setF("costMax", x)} />
-                </div>
-              </FilterBox>
-              <FilterBox title="Preço de venda">
-                <div className="flex gap-2">
-                  <NumIn label="Mín" v={filters.priceMin} on={(x) => setF("priceMin", x)} />
-                  <NumIn label="Máx" v={filters.priceMax} on={(x) => setF("priceMax", x)} />
-                </div>
-              </FilterBox>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <FilterBox title="Busca (SKU, nome, código de barras, modelo)">
-                <input
-                  className="w-full rounded-md border bg-background px-2 py-1.5 text-xs"
-                  placeholder="Digite para filtrar..."
-                  value={filters.search}
-                  onChange={(e) => setF("search", e.target.value)}
-                />
-              </FilterBox>
-              <FilterBox title="Duplicados">
-                <Chk label="Ignorar produtos duplicados (mesmo SKU/EAN)" v={filters.dedupe} on={(x) => setF("dedupe", x)} />
-                <Chk label="Exportar apenas o registro mais recente" v={filters.latestOnly} on={(x) => setF("latestOnly", x)} />
-              </FilterBox>
-            </div>
 
             {/* Resumo em tempo real */}
             <div className="rounded-md border bg-primary/5 px-3 py-2 grid grid-cols-2 md:grid-cols-5 gap-2">
