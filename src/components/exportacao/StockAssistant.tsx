@@ -172,10 +172,14 @@ function analyze(products: ProductRow[]): Pick<Snapshot, "issues" | "duplicatedS
   const duplicatedEans = new Set<string>();
   for (const [k, v] of eanMap) if (v > 1) duplicatedEans.add(k);
 
-  const semCodigo: ProductRow[] = [];
-  const semVinculo: ProductRow[] = [];
-  const negativos: ProductRow[] = [];
-  const zerados: ProductRow[] = [];
+  const semIdentificador: ProductRow[] = []; // BLOQUEIA: sem SKU, sem EAN e sem ID interno
+  const qtdInvalida: ProductRow[] = [];      // BLOQUEIA: NaN
+  const semVinculo: ProductRow[] = [];       // BLOQUEIA: sem organization_id
+  const semEan: ProductRow[] = [];           // aviso
+  const semMarca: ProductRow[] = [];         // aviso
+  const semCategoria: ProductRow[] = [];     // aviso
+  const negativos: ProductRow[] = [];        // aviso (exporta com status=NEGATIVE_STOCK)
+  const zerados: ProductRow[] = [];          // aviso (exporta normalmente)
   const dupSkuRows: ProductRow[] = [];
   const dupEanRows: ProductRow[] = [];
   let dbStockSum = 0;
@@ -183,33 +187,47 @@ function analyze(products: ProductRow[]): Pick<Snapshot, "issues" | "duplicatedS
   for (const p of products) {
     const sku = (p.sku ?? "").trim();
     const ean = (p.ean ?? "").trim();
-    const qty = Number(p.stock_quantity ?? 0);
-    dbStockSum += qty;
-    if (!sku && !ean) semCodigo.push(p);
+    const idInterno = (p.reference ?? "").trim() || (p.id ?? "").trim();
+    const rawQty = p.stock_quantity;
+    const qty = Number(rawQty ?? 0);
+    const qtyOk = Number.isFinite(qty);
+    if (qtyOk) dbStockSum += qty;
+
+    if (!sku && !ean && !idInterno) semIdentificador.push(p);
+    if (!qtyOk) qtdInvalida.push(p);
     if (!p.organization_id) semVinculo.push(p);
-    if (qty < 0) negativos.push(p);
-    if (qty === 0) zerados.push(p);
+    if (!ean) semEan.push(p);
+    if (!p.brand || !p.brand.trim()) semMarca.push(p);
+    if (!p.category || !p.category.trim()) semCategoria.push(p);
+    if (qtyOk && qty < 0) negativos.push(p);
+    if (qtyOk && qty === 0) zerados.push(p);
     if (sku && duplicatedSkus.has(sku)) dupSkuRows.push(p);
     if (ean && duplicatedEans.has(ean)) dupEanRows.push(p);
   }
 
-  // regras: BLOQUEIA sem código, sem vínculo e negativos (não exportar).
+  // BLOQUEANTES: apenas produtos sem NENHUM identificador, quantidade inválida ou sem loja.
   const ignoredIds = new Set<string>([
-    ...semCodigo.map((p) => p.id),
+    ...semIdentificador.map((p) => p.id),
+    ...qtdInvalida.map((p) => p.id),
     ...semVinculo.map((p) => p.id),
-    ...negativos.map((p) => p.id),
   ]);
 
   const amostra = (list: ProductRow[]) =>
-    list.slice(0, 10).map((p) => `${p.sku || p.ean || "—"} · ${p.name ?? "sem nome"}`);
+    list.slice(0, 10).map((p) => `${p.sku || p.ean || p.reference || p.id || "—"} · ${p.name ?? "sem nome"}`);
 
   const issues: Issue[] = [
+    // Bloqueantes
+    { tipo: "Sem identificador (sem SKU, sem EAN e sem ID interno)", quantidade: semIdentificador.length, amostra: amostra(semIdentificador), bloqueia: true },
+    { tipo: "Quantidade inválida (NaN)", quantidade: qtdInvalida.length, amostra: amostra(qtdInvalida), bloqueia: true },
+    { tipo: "Sem vínculo com loja (organization_id)", quantidade: semVinculo.length, amostra: amostra(semVinculo), bloqueia: true },
+    // Avisos (nunca bloqueiam)
+    { tipo: "Sem EAN (aviso)", quantidade: semEan.length, amostra: amostra(semEan), bloqueia: false },
+    { tipo: "Sem marca (aviso)", quantidade: semMarca.length, amostra: amostra(semMarca), bloqueia: false },
+    { tipo: "Sem categoria (aviso)", quantidade: semCategoria.length, amostra: amostra(semCategoria), bloqueia: false },
+    { tipo: "Estoque negativo (aviso · exportado como NEGATIVE_STOCK)", quantidade: negativos.length, amostra: amostra(negativos), bloqueia: false },
+    { tipo: "Sem estoque (aviso · exportado)", quantidade: zerados.length, amostra: amostra(zerados), bloqueia: false },
     { tipo: "Duplicados por SKU", quantidade: dupSkuRows.length, amostra: amostra(dupSkuRows), bloqueia: false },
     { tipo: "Duplicados por código de barras", quantidade: dupEanRows.length, amostra: amostra(dupEanRows), bloqueia: false },
-    { tipo: "Sem código (sem SKU e sem EAN)", quantidade: semCodigo.length, amostra: amostra(semCodigo), bloqueia: true },
-    { tipo: "Sem vínculo com loja (organization_id)", quantidade: semVinculo.length, amostra: amostra(semVinculo), bloqueia: true },
-    { tipo: "Quantidade negativa", quantidade: negativos.length, amostra: amostra(negativos), bloqueia: true },
-    { tipo: "Sem estoque (informativo)", quantidade: zerados.length, amostra: amostra(zerados), bloqueia: false },
   ];
 
   return { issues, duplicatedSkus, duplicatedEans, ignoredIds, dbStockSum };
