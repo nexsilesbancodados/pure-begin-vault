@@ -293,8 +293,55 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
   const toggleInList = (list: string[], v: string) =>
     list.includes(v) ? list.filter((x) => x !== v) : [...list, v];
   const [lastReport, setLastReport] = useState<null | {
-...
-  const facets = useMemo(() => {
+    exportedCount: number;
+    exportedStockSum: number;
+    withoutStock: number;
+    ignored: number;
+    inconsistencies: number;
+    ms: number;
+    kb: number;
+    reconcileOk: boolean;
+    diffCount: number;
+    diffStock: number;
+    filename: string;
+  }>(null);
+
+  const loadSnapshot = async () => {
+    if (!orgId) return;
+    setLoading(true);
+    setLastReport(null);
+    try {
+      const t0 = performance.now();
+      const [products, totals] = await Promise.all([
+        fetchAllProducts(orgId),
+        fetchDbTotals(orgId),
+      ]);
+      const a = analyze(products);
+      const snap: Snapshot = {
+        loadedAt: Date.now(),
+        products,
+        dbCount: totals.dbCount || products.length,
+        ...a,
+      };
+      setSnapshot(snap);
+      // eslint-disable-next-line no-console
+      console.info(`[Estoque] snapshot carregado em ${((performance.now() - t0) / 1000).toFixed(2)}s`, {
+        produtos: snap.products.length,
+        banco: snap.dbCount,
+        soma_estoque: snap.dbStockSum,
+      });
+    } catch (e: any) {
+      toast.error(`Falha ao carregar estoque: ${e?.message ?? e}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (orgId) void loadSnapshot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
+
     const cats = new Set<string>();
     const brs = new Set<string>();
     const locs = new Set<string>();
