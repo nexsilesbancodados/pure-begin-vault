@@ -1005,6 +1005,43 @@ Total exportado....${telefoniaAudit.totalExported}`}
                 )}
               </div>
             </div>
+
+            {/* Paridade Auditoria ↔ CSV (Smartphones com IMEI) */}
+            <div
+              className={`rounded-md border px-3 py-2 ${
+                lastReport.imeiDiff === 0
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "border-destructive/50 bg-destructive/10 text-destructive"
+              }`}
+            >
+              <div className="flex items-center gap-2 font-bold text-xs">
+                {lastReport.imeiDiff === 0 ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <AlertTriangle className="h-4 w-4" />
+                )}
+                Paridade Auditoria ↔ CSV (Smartphones com IMEI)
+              </div>
+              <div className="grid grid-cols-3 gap-2 mt-1 text-[11px]">
+                <div>Auditoria: <strong className="tabular-nums">{lastReport.auditWithImei}</strong></div>
+                <div>CSV exportado: <strong className="tabular-nums">{lastReport.exportedWithImei}</strong></div>
+                <div>Diferença: <strong className="tabular-nums">{lastReport.imeiDiff}</strong></div>
+              </div>
+              {lastReport.missingSkus.length > 0 && (
+                <div className="mt-2 text-[11px]">
+                  <div className="font-bold">SKUs ausentes no CSV:</div>
+                  <ul className="ml-4 list-disc font-mono">
+                    {lastReport.missingSkus.slice(0, 20).map((sku) => (
+                      <li key={sku}>{sku}</li>
+                    ))}
+                  </ul>
+                  {lastReport.missingSkus.length > 20 && (
+                    <div className="opacity-70">…e mais {lastReport.missingSkus.length - 20}.</div>
+                  )}
+                </div>
+              )}
+            </div>
+
           </CardContent>
         </Card>
       )}
