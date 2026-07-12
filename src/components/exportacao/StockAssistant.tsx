@@ -330,10 +330,31 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     diffCount: number;
     diffStock: number;
     filename: string;
+    // Conferência Auditoria ↔ CSV
+    auditFound: number;
+    auditExported: number;
+    auditSmartphones: number;
     auditWithImei: number;
+    auditWithoutImei: number;
+    auditAccessories: number;
+    auditTablets: number;
+    auditSmartwatches: number;
+    auditOthers: number;
+    csvLines: number;
+    csvSmartphones: number;
+    csvWithImei: number;
+    csvWithoutImei: number;
+    csvAccessories: number;
+    csvTablets: number;
+    csvSmartwatches: number;
+    csvOthers: number;
+    parityAudit: boolean;
+    parityCsv: boolean;
+    result: "ok" | "diverg";
     exportedWithImei: number;
     imeiDiff: number;
     missingSkus: string[];
+    divergences: Array<{ produto: string; sku: string; imei: string; fonte: string; motivo: string }>;
   }>(null);
 
 
