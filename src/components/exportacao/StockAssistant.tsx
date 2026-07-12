@@ -859,3 +859,97 @@ function Kpi({
     </div>
   );
 }
+
+function FilterBox({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-md border px-3 py-2 space-y-1.5">
+      <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function Chk({ label, v, on }: { label: string; v: boolean; on: (x: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input type="checkbox" className="h-3.5 w-3.5" checked={v} onChange={(e) => on(e.target.checked)} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+function Rad({ name, label, v, on }: { name: string; label: string; v: boolean; on: () => void }) {
+  return (
+    <label className="flex items-center gap-2 cursor-pointer">
+      <input type="radio" name={name} className="h-3.5 w-3.5" checked={v} onChange={on} />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+function NumIn({ label, v, on }: { label: string; v: string; on: (x: string) => void }) {
+  return (
+    <label className="flex-1 flex flex-col gap-1">
+      <span className="text-[10px] text-muted-foreground">{label}</span>
+      <input
+        type="number"
+        className="w-full rounded-md border bg-background px-2 py-1 text-xs"
+        value={v}
+        onChange={(e) => on(e.target.value)}
+      />
+    </label>
+  );
+}
+
+function ChipMulti({
+  title, options, selected, onToggle, onClear,
+}: {
+  title: string;
+  options: string[];
+  selected: string[];
+  onToggle: (v: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="rounded-md border px-3 py-2 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{title}</div>
+        {selected.length > 0 && (
+          <button className="text-[10px] underline text-muted-foreground" onClick={onClear}>
+            limpar
+          </button>
+        )}
+      </div>
+      {options.length === 0 ? (
+        <div className="text-[11px] text-muted-foreground italic">Sem valores no snapshot.</div>
+      ) : (
+        <div className="flex flex-wrap gap-1 max-h-28 overflow-auto">
+          {options.map((op) => {
+            const on = selected.includes(op);
+            return (
+              <button
+                key={op}
+                onClick={() => onToggle(op)}
+                className={`text-[11px] px-2 py-0.5 rounded-full border ${
+                  on ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted"
+                }`}
+              >
+                {op}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Sum({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-sm font-black tabular-nums">{value}</div>
+    </div>
+  );
+}
+
