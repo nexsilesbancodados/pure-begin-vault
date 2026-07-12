@@ -403,7 +403,8 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         const cls = classifyProduct(p as any);
         const isDevice = cls === "smartphone" || cls === "tablet" || cls === "smartwatch";
         if (!isDevice) return true;
-        return filters.imei === "with" ? !!p.has_imei : !p.has_imei;
+        const has = resolveHasImei(p);
+        return filters.imei === "with" ? has : !has;
       });
     }
 
