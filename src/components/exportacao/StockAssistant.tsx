@@ -790,6 +790,100 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
               <span className="text-muted-foreground">{PREMIER_STOCK_COLUMNS.length} colunas</span>
             </div>
 
+            {/* Resumo da Exportação — auditoria de telefonia */}
+            <div className="rounded-md border border-primary/30 bg-background p-3 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-bold">
+                <ShieldCheck className="h-4 w-4 text-primary" /> Resumo da Exportação (Telefonia)
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <Sum label="Encontrados" value={telefoniaAudit.totalFound.toLocaleString("pt-BR")} />
+                <Sum label="Exportados" value={telefoniaAudit.totalExported.toLocaleString("pt-BR")} />
+                <Sum label="Smartphones" value={telefoniaAudit.smartphonesCount.toLocaleString("pt-BR")} />
+                <Sum label="Acessórios" value={telefoniaAudit.accessoriesCount.toLocaleString("pt-BR")} />
+                <Sum label="Unidades exportadas" value={telefoniaAudit.totalUnits.toLocaleString("pt-BR")} />
+                <Sum label="Produtos zerados" value={telefoniaAudit.zeroCount.toLocaleString("pt-BR")} />
+                <Sum label="Produtos negativos" value={telefoniaAudit.negativeCount.toLocaleString("pt-BR")} />
+                <Sum label="Cobertura IMEI" value={`${telefoniaAudit.coverage.toFixed(1)}%`} />
+              </div>
+
+              {telefoniaAudit.smartphonesCount > 0 && (
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <Sum label="Smartphones c/ IMEI" value={telefoniaAudit.withImei.length.toLocaleString("pt-BR")} />
+                  <Sum label="Smartphones s/ IMEI" value={telefoniaAudit.withoutImei.length.toLocaleString("pt-BR")} />
+                  <Sum label="Unid. smartphones" value={telefoniaAudit.smartphoneUnits.toLocaleString("pt-BR")} />
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border">
+                  <thead className="bg-muted/40">
+                    <tr>
+                      <th className="text-left px-2 py-1 border-b">Categoria</th>
+                      <th className="text-right px-2 py-1 border-b">Produtos</th>
+                      <th className="text-right px-2 py-1 border-b">Unidades</th>
+                      <th className="text-right px-2 py-1 border-b">IMEIs</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="px-2 py-1 border-b">Smartphones</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartphonesCount}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartphoneUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.withImei.length}</td>
+                    </tr>
+                    <tr>
+                      <td className="px-2 py-1 border-b">Acessórios</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.accessoriesCount}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.accessoryUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
+                    </tr>
+                    <tr className="font-bold bg-muted/30">
+                      <td className="px-2 py-1">Total</td>
+                      <td className="text-right tabular-nums px-2 py-1">{telefoniaAudit.totalExported}</td>
+                      <td className="text-right tabular-nums px-2 py-1">{telefoniaAudit.totalUnits}</td>
+                      <td className="text-right tabular-nums px-2 py-1">{telefoniaAudit.withImei.length}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {telefoniaAudit.withoutImei.length > 0 && (
+                <div className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+                  <div className="flex items-center gap-2 font-bold">
+                    <AlertTriangle className="h-4 w-4" />
+                    {telefoniaAudit.withoutImei.length} smartphone(s) sem IMEI
+                  </div>
+                  <ul className="list-disc pl-5 max-h-40 overflow-auto">
+                    {telefoniaAudit.withoutImei.slice(0, 50).map((p) => (
+                      <li key={p.id}>
+                        <span className="font-medium">{p.name ?? "—"}</span>
+                        <span className="text-muted-foreground"> · SKU: {p.sku ?? "—"}</span>
+                      </li>
+                    ))}
+                    {telefoniaAudit.withoutImei.length > 50 && (
+                      <li className="text-muted-foreground">
+                        …e mais {telefoniaAudit.withoutImei.length - 50} produto(s).
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {telefoniaAudit.smartphonesCount > 0 && telefoniaAudit.withoutImei.length === 0 ? (
+                <div className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Todos os smartphones possuem IMEI e podem ser migrados com segurança.
+                </div>
+              ) : telefoniaAudit.withoutImei.length > 0 ? (
+                <div className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Existem smartphones sem IMEI. Recomenda-se corrigir antes da migração.
+                </div>
+              ) : null}
+            </div>
+
+
 
             <Button
               size="lg"
