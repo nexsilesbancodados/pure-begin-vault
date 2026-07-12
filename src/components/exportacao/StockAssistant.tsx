@@ -729,6 +729,47 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
                 <ShieldCheck className="h-4 w-4 text-primary" /> Resumo da Exportação (Telefonia)
               </div>
 
+              {/* Resumo em árvore */}
+              <pre className="text-[11px] font-mono bg-muted/30 rounded-md p-3 whitespace-pre-wrap leading-relaxed">
+{`Smartphones........${telefoniaAudit.smartphonesCount}
+├── Com IMEI.......${telefoniaAudit.withImei.length}
+└── Sem IMEI.......${telefoniaAudit.withoutImei.length}
+
+Tablets............${telefoniaAudit.tabletsCount}
+
+Smartwatch.........${telefoniaAudit.smartwatchesCount}
+
+Acessórios.........${telefoniaAudit.accessoriesCount}
+
+Outros.............${telefoniaAudit.othersCount}
+
+Total exportado....${telefoniaAudit.totalExported}`}
+              </pre>
+
+              {/* Cobertura IMEI colorida */}
+              {telefoniaAudit.smartphonesCount > 0 && (() => {
+                const cov = telefoniaAudit.coverage;
+                const tone =
+                  cov < 50 ? { bar: "bg-red-500", text: "text-red-600 dark:text-red-400" } :
+                  cov <= 90 ? { bar: "bg-amber-500", text: "text-amber-600 dark:text-amber-400" } :
+                  { bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400" };
+                return (
+                  <div className="rounded-md border p-3 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold">Cobertura IMEI</span>
+                      <span className={`font-black tabular-nums ${tone.text}`}>{cov.toFixed(0)}%</span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {telefoniaAudit.withImei.length} / {telefoniaAudit.smartphonesCount} smartphones
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                      <div className={`h-full ${tone.bar} transition-all`} style={{ width: `${Math.min(100, Math.max(0, cov))}%` }} />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* KPIs por categoria */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                 <Sum label="Encontrados" value={telefoniaAudit.totalFound.toLocaleString("pt-BR")} />
                 <Sum label="Exportados" value={telefoniaAudit.totalExported.toLocaleString("pt-BR")} />
@@ -737,99 +778,118 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
                 <Sum label="Smartwatches" value={telefoniaAudit.smartwatchesCount.toLocaleString("pt-BR")} />
                 <Sum label="Acessórios" value={telefoniaAudit.accessoriesCount.toLocaleString("pt-BR")} />
                 <Sum label="Outros" value={telefoniaAudit.othersCount.toLocaleString("pt-BR")} />
-                <Sum label="Unidades exportadas" value={telefoniaAudit.totalUnits.toLocaleString("pt-BR")} />
-                <Sum label="Produtos zerados" value={telefoniaAudit.zeroCount.toLocaleString("pt-BR")} />
-                <Sum label="Produtos negativos" value={telefoniaAudit.negativeCount.toLocaleString("pt-BR")} />
-                <Sum label="Cobertura IMEI" value={`${telefoniaAudit.coverage.toFixed(1)}%`} />
+                <Sum label="Unidades" value={telefoniaAudit.totalUnits.toLocaleString("pt-BR")} />
               </div>
 
-              {telefoniaAudit.smartphonesCount > 0 && (
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <Sum label="Smartphones c/ IMEI" value={telefoniaAudit.withImei.length.toLocaleString("pt-BR")} />
-                  <Sum label="Smartphones s/ IMEI" value={telefoniaAudit.withoutImei.length.toLocaleString("pt-BR")} />
-                  <Sum label="Unid. smartphones" value={telefoniaAudit.smartphoneUnits.toLocaleString("pt-BR")} />
+              {/* Tabela Smartphones sem IMEI */}
+              {telefoniaAudit.withoutImei.length > 0 && (
+                <div className="rounded-md border border-amber-500/40 overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-amber-500/10 text-amber-800 dark:text-amber-300">
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      <AlertTriangle className="h-4 w-4" />
+                      Smartphones sem IMEI ({telefoniaAudit.withoutImei.length})
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1.5 text-[11px]"
+                      onClick={() => {
+                        const rows = telefoniaAudit.withoutImei.map((p) => ({
+                          produto: s(p.name), sku: s(p.sku),
+                          estoque: Number(p.stock_quantity ?? 0),
+                          marca: s(p.brand), categoria: s(p.category),
+                        }));
+                        downloadCsv(`smartphones_sem_imei_${new Date().toISOString().slice(0,10)}.csv`, rows,
+                          ["produto","sku","estoque","marca","categoria"]);
+                      }}
+                    >
+                      <Download className="h-3 w-3" /> Exportar CSV
+                    </Button>
+                  </div>
+                  <div className="overflow-x-auto max-h-64">
+                    <table className="w-full text-[11px]">
+                      <thead className="bg-muted/40 sticky top-0">
+                        <tr>
+                          <th className="text-left px-2 py-1 border-b">Produto</th>
+                          <th className="text-left px-2 py-1 border-b">SKU</th>
+                          <th className="text-right px-2 py-1 border-b">Estoque</th>
+                          <th className="text-left px-2 py-1 border-b">Marca</th>
+                          <th className="text-left px-2 py-1 border-b">Categoria</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {telefoniaAudit.withoutImei.slice(0, 200).map((p) => (
+                          <tr key={p.id} className="border-b last:border-0">
+                            <td className="px-2 py-1">{s(p.name) || "—"}</td>
+                            <td className="px-2 py-1 font-mono">{s(p.sku) || "—"}</td>
+                            <td className="px-2 py-1 text-right tabular-nums">{Number(p.stock_quantity ?? 0)}</td>
+                            <td className="px-2 py-1">{s(p.brand) || "—"}</td>
+                            <td className="px-2 py-1">{s(p.category) || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {telefoniaAudit.withoutImei.length > 200 && (
+                      <div className="text-[10px] text-muted-foreground px-2 py-1">
+                        Exibindo 200 de {telefoniaAudit.withoutImei.length}. Use "Exportar CSV" para a lista completa.
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border">
-                  <thead className="bg-muted/40">
-                    <tr>
-                      <th className="text-left px-2 py-1 border-b">Categoria</th>
-                      <th className="text-right px-2 py-1 border-b">Produtos</th>
-                      <th className="text-right px-2 py-1 border-b">Unidades</th>
-                      <th className="text-right px-2 py-1 border-b">IMEIs</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="px-2 py-1 border-b">Smartphones</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartphonesCount}</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartphoneUnits}</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.withImei.length}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 py-1 border-b">Tablets</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.tabletsCount}</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.tabletUnits}</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 py-1 border-b">Smartwatches</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartwatchesCount}</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.smartwatchUnits}</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 py-1 border-b">Acessórios</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.accessoriesCount}</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.accessoryUnits}</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
-                    </tr>
-                    <tr>
-                      <td className="px-2 py-1 border-b">Outros</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.othersCount}</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">{telefoniaAudit.otherUnits}</td>
-                      <td className="text-right tabular-nums px-2 py-1 border-b">—</td>
-                    </tr>
-                    <tr className="font-bold bg-muted/30">
-                      <td className="px-2 py-1">Total</td>
-                      <td className="text-right tabular-nums px-2 py-1">{telefoniaAudit.totalExported}</td>
-                      <td className="text-right tabular-nums px-2 py-1">{telefoniaAudit.totalUnits}</td>
-                      <td className="text-right tabular-nums px-2 py-1">{telefoniaAudit.withImei.length}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Comparativo antes vs depois (só auditoria, não afeta o CSV) */}
-              <div className="rounded-md border border-border bg-muted/20 p-2 text-[11px] space-y-1">
-                <div className="font-bold text-xs mb-1">Comparativo de classificação</div>
-                <div>Antes (apenas has_imei): <b>{telefoniaAudit.legacySmartphonesCount}</b> smartphones · <b>{telefoniaAudit.legacyAccessoriesCount}</b> acessórios</div>
-                <div>Depois (classificação inteligente): <b>{telefoniaAudit.smartphonesCount}</b> smartphones · <b>{telefoniaAudit.accessoriesCount}</b> acessórios · <b>{telefoniaAudit.tabletsCount}</b> tablets · <b>{telefoniaAudit.smartwatchesCount}</b> smartwatches · <b>{telefoniaAudit.othersCount}</b> outros</div>
-                <div>Produtos que mudaram de categoria: <b>{telefoniaAudit.changedCount}</b></div>
-                <div className="text-muted-foreground">O layout do CSV (29 colunas + status) permanece inalterado — apenas a auditoria usa esta classificação.</div>
-              </div>
-
-              {telefoniaAudit.withoutImei.length > 0 && (
-                <div className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
-                  <div className="flex items-center gap-2 font-bold">
-                    <AlertTriangle className="h-4 w-4" />
-                    {telefoniaAudit.withoutImei.length} smartphone(s) sem IMEI
+              {/* Tabela Smartphones com IMEI */}
+              {telefoniaAudit.withImei.length > 0 && (
+                <div className="rounded-md border border-emerald-500/40 overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Smartphones com IMEI ({telefoniaAudit.withImei.length})
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1.5 text-[11px]"
+                      onClick={() => {
+                        const rows = telefoniaAudit.withImei.map((p) => ({
+                          produto: s(p.name), sku: s(p.sku),
+                          imei: extractImei(p),
+                          quantidade: Number(p.stock_quantity ?? 0),
+                        }));
+                        downloadCsv(`smartphones_com_imei_${new Date().toISOString().slice(0,10)}.csv`, rows,
+                          ["produto","sku","imei","quantidade"]);
+                      }}
+                    >
+                      <Download className="h-3 w-3" /> Exportar CSV
+                    </Button>
                   </div>
-                  <ul className="list-disc pl-5 max-h-40 overflow-auto">
-                    {telefoniaAudit.withoutImei.slice(0, 50).map((p) => (
-                      <li key={p.id}>
-                        <span className="font-medium">{p.name ?? "—"}</span>
-                        <span className="text-muted-foreground"> · SKU: {p.sku ?? "—"}</span>
-                      </li>
-                    ))}
-                    {telefoniaAudit.withoutImei.length > 50 && (
-                      <li className="text-muted-foreground">
-                        …e mais {telefoniaAudit.withoutImei.length - 50} produto(s).
-                      </li>
+                  <div className="overflow-x-auto max-h-64">
+                    <table className="w-full text-[11px]">
+                      <thead className="bg-muted/40 sticky top-0">
+                        <tr>
+                          <th className="text-left px-2 py-1 border-b">Produto</th>
+                          <th className="text-left px-2 py-1 border-b">SKU</th>
+                          <th className="text-left px-2 py-1 border-b">IMEI</th>
+                          <th className="text-right px-2 py-1 border-b">Quantidade</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {telefoniaAudit.withImei.slice(0, 200).map((p) => (
+                          <tr key={p.id} className="border-b last:border-0">
+                            <td className="px-2 py-1">{s(p.name) || "—"}</td>
+                            <td className="px-2 py-1 font-mono">{s(p.sku) || "—"}</td>
+                            <td className="px-2 py-1 font-mono">{extractImei(p) || "—"}</td>
+                            <td className="px-2 py-1 text-right tabular-nums">{Number(p.stock_quantity ?? 0)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {telefoniaAudit.withImei.length > 200 && (
+                      <div className="text-[10px] text-muted-foreground px-2 py-1">
+                        Exibindo 200 de {telefoniaAudit.withImei.length}. Use "Exportar CSV" para a lista completa.
+                      </div>
                     )}
-                  </ul>
+                  </div>
                 </div>
               )}
 
@@ -844,6 +904,10 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
                   Existem smartphones sem IMEI. Recomenda-se corrigir antes da migração.
                 </div>
               ) : null}
+
+              <div className="text-[10px] text-muted-foreground">
+                CSV do Premier ordenado por: smartphones c/ IMEI → s/ IMEI → tablets → smartwatches → acessórios → outros (marca, modelo, nome). Layout, colunas, delimitador e BOM UTF-8 inalterados.
+              </div>
             </div>
 
 
