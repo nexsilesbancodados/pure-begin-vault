@@ -620,6 +620,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
 
       let csvSmartphones = 0, csvWithImei = 0, csvWithoutImei = 0;
       let csvAccessories = 0, csvTablets = 0, csvSmartwatches = 0, csvOthers = 0;
+      let csvImeiFilled = 0;
       for (const line of dataLines) {
         const cols = parseLine(line);
         const fake = {
@@ -630,6 +631,8 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         };
         const cls = classifyProduct(fake as any);
         const hasImei = (cols[idxHasImei] ?? "").toLowerCase() === "sim";
+        const imeiCell = (cols[idxImei] ?? "").trim();
+        if (imeiCell) csvImeiFilled++;
         if (cls === "smartphone") {
           csvSmartphones++;
           if (hasImei) csvWithImei++; else csvWithoutImei++;
@@ -638,6 +641,10 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         else if (cls === "acessorio") csvAccessories++;
         else csvOthers++;
       }
+
+      // Conferência extra: nº de linhas com coluna imei preenchida
+      // deve ser igual ao total de smartphones com IMEI da auditoria.
+      const imeiColumnParity = csvImeiFilled === auditWithImei;
 
       const parityAudit = csvLines === auditExported;
       const parityCsv =
