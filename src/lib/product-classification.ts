@@ -170,4 +170,36 @@ export function resolveHasImei(product: any): boolean {
   return false;
 }
 
+// resolveImei — retorna string com o(s) IMEI(s) separados por vírgula, ou "".
+// Nunca retorna "sim"/"nao"; apenas os números reais.
+export function resolveImei(product: any): string {
+  if (!product) return "";
+  const md: any = product.metadata && typeof product.metadata === "object" ? product.metadata : {};
+  const collected: string[] = [];
+  const push = (v: unknown) => {
+    if (v == null) return;
+    if (Array.isArray(v)) { v.forEach(push); return; }
+    const s = String(v).trim();
+    if (!s) return;
+    // Aceita apenas dígitos (IMEI/serial numérico). Ignora "sim"/"nao"/booleanos textuais.
+    if (/^[0-9]{6,}$/.test(s.replace(/\s+/g, ""))) collected.push(s.replace(/\s+/g, ""));
+    else if (/[0-9]/.test(s) && !/^(sim|nao|não|true|false|yes|no)$/i.test(s)) collected.push(s);
+  };
+  push(product.imei);
+  push(product.imei1);
+  push(product.imei2);
+  push(md.imei);
+  push(md.imei_1);
+  push(md.imei1);
+  push(md.imei2);
+  push(md.imeis);
+  // serial_number apenas quando parece IMEI (numérico ≥ 6 dígitos)
+  const sn = product.serial_number ?? md.serial_number;
+  if (sn && /^[0-9]{6,}$/.test(String(sn).replace(/\s+/g, ""))) collected.push(String(sn).replace(/\s+/g, ""));
+  // dedupe preservando ordem
+  const seen = new Set<string>();
+  const uniq = collected.filter((x) => (seen.has(x) ? false : (seen.add(x), true)));
+  return uniq.join(",");
+}
+
 export const CLASS_ORDER: ProductClass[] = ["smartphone", "tablet", "smartwatch", "acessorio", "outro"];
