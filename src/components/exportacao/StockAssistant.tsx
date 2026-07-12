@@ -1,0 +1,555 @@
+// Central de Exportação — Estoque (compatível com Premier ERP)
+// ATENÇÃO: este módulo NÃO altera nenhuma outra exportação.
+// Layout do CSV é idêntico ao products.csv gerado pelo pacote Premier
+// (src/lib/export/sales.ts), mesmas colunas, delimitador ";" e BOM UTF-8.
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Boxes,
+  CheckCircle2,
+  Clock,
+  Download,
+  Loader2,
+  Package,
+  RefreshCw,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
+import { downloadCsv } from "@/lib/export/csv";
+
+// ── Colunas EXATAS do products.csv Premier (não renomear, não reordenar) ──
+const PREMIER_STOCK_COLUMNS = [
+  "produto_id","sku","codigo_barras","nome","marca","modelo","categoria",
+  "capacidade","cor","custo","preco_venda","estoque","fornecedor_id","empresa_id",
+  "internal_code","external_code","reference","ncm","has_imei","active","location",
+  "image_url","metadata","unit","weight","min_stock","wholesale_price",
+  "created_at","updated_at",
+] as const;
+
+type ProductRow = {
+  id: string;
+  organization_id: string | null;
+  sku: string | null;
+  ean: string | null;
+  name: string | null;
+  brand: string | null;
+  model: string | null;
+  category: string | null;
+  storage: string | null;
+  capacity: string | null;
+  color: string | null;
+  cost_price: number | null;
+  sale_price: number | null;
+  price: number | null;
+  stock_quantity: number | null;
+  supplier_id: string | null;
+  reference: string | null;
+  ncm: string | null;
+  has_imei: boolean | null;
+  active: boolean | null;
+  location: string | null;
+  image_url: string | null;
+  metadata: any;
+  unit: string | null;
+  weight: number | null;
+  min_stock: number | null;
+  wholesale_price: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+const PRODUCT_SELECT = [
+  "id","organization_id","sku","ean","name","brand","model","category",
+  "storage","capacity","color","cost_price","sale_price","price","stock_quantity",
+  "supplier_id","reference","ncm","has_imei","active","location","image_url",
+  "metadata","unit","weight","min_stock","wholesale_price","created_at","updated_at",
+].join(",");
+
+const yesNo = (b: boolean) => (b ? "sim" : "nao");
+
+function toPremierRow(p: ProductRow) {
+  return {
+    produto_id: p.id,
+    sku: p.sku ?? "",
+    codigo_barras: p.ean ?? "",
+    nome: p.name ?? "",
+    marca: p.brand ?? "",
+    modelo: p.model ?? "",
+    categoria: p.category ?? "",
+    capacidade: p.storage ?? p.capacity ?? "",
+    cor: p.color ?? "",
+    custo: p.cost_price ?? 0,
+    preco_venda: p.sale_price ?? p.price ?? 0,
+    estoque: p.stock_quantity ?? 0,
+    fornecedor_id: p.supplier_id ?? "",
+    empresa_id: p.organization_id ?? "",
+    internal_code: p.reference ?? "",
+    external_code: "",
+    reference: p.reference ?? "",
+    ncm: p.ncm ?? "",
+    has_imei: p.has_imei == null ? "" : yesNo(!!p.has_imei),
+    active: p.active == null ? "" : yesNo(!!p.active),
+    location: p.location ?? "",
+    image_url: p.image_url ?? "",
+    metadata: p.metadata ? JSON.stringify(p.metadata) : "",
+    unit: p.unit ?? "",
+    weight: p.weight ?? "",
+    min_stock: p.min_stock ?? "",
+    wholesale_price: p.wholesale_price ?? "",
+    created_at: p.created_at ?? "",
+    updated_at: p.updated_at ?? "",
+  };
+}
+
+type Issue = { tipo: string; quantidade: number; amostra: string[]; bloqueia: boolean };
+
+type Snapshot = {
+  loadedAt: number;
+  products: ProductRow[];
+  dbCount: number;
+  dbStockSum: number;
+  issues: Issue[];
+  duplicatedSkus: Set<string>;
+  duplicatedEans: Set<string>;
+  ignoredIds: Set<string>;
+};
+
+async function fetchAllProducts(orgId: string): Promise<ProductRow[]> {
+  const pageSize = 1000;
+  let from = 0;
+  const all: ProductRow[] = [];
+  // paginação para suportar milhares de SKUs sem estourar o limit do Supabase
+  // (uma consulta por página, mesma projeção)
+  while (true) {
+    const { data, error } = await (supabase as any)
+      .from("products")
+      .select(PRODUCT_SELECT)
+      .eq("organization_id", orgId)
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as ProductRow[];
+    all.push(...rows);
+    if (rows.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
+async function fetchDbTotals(orgId: string) {
+  // count exato + soma via RPC alternativa (soma no cliente é usada como fonte final;
+  // o count do banco serve para reconciliação de quantidade de registros).
+  const { count } = await (supabase as any)
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", orgId);
+  return { dbCount: Number(count ?? 0) };
+}
+
+function analyze(products: ProductRow[]): Pick<Snapshot, "issues" | "duplicatedSkus" | "duplicatedEans" | "ignoredIds" | "dbStockSum"> {
+  const skuMap = new Map<string, number>();
+  const eanMap = new Map<string, number>();
+  for (const p of products) {
+    if (p.sku && p.sku.trim()) skuMap.set(p.sku.trim(), (skuMap.get(p.sku.trim()) ?? 0) + 1);
+    if (p.ean && p.ean.trim()) eanMap.set(p.ean.trim(), (eanMap.get(p.ean.trim()) ?? 0) + 1);
+  }
+  const duplicatedSkus = new Set<string>();
+  for (const [k, v] of skuMap) if (v > 1) duplicatedSkus.add(k);
+  const duplicatedEans = new Set<string>();
+  for (const [k, v] of eanMap) if (v > 1) duplicatedEans.add(k);
+
+  const semCodigo: ProductRow[] = [];
+  const semVinculo: ProductRow[] = [];
+  const negativos: ProductRow[] = [];
+  const zerados: ProductRow[] = [];
+  const dupSkuRows: ProductRow[] = [];
+  const dupEanRows: ProductRow[] = [];
+  let dbStockSum = 0;
+
+  for (const p of products) {
+    const sku = (p.sku ?? "").trim();
+    const ean = (p.ean ?? "").trim();
+    const qty = Number(p.stock_quantity ?? 0);
+    dbStockSum += qty;
+    if (!sku && !ean) semCodigo.push(p);
+    if (!p.organization_id) semVinculo.push(p);
+    if (qty < 0) negativos.push(p);
+    if (qty === 0) zerados.push(p);
+    if (sku && duplicatedSkus.has(sku)) dupSkuRows.push(p);
+    if (ean && duplicatedEans.has(ean)) dupEanRows.push(p);
+  }
+
+  // regras: BLOQUEIA sem código, sem vínculo e negativos (não exportar).
+  const ignoredIds = new Set<string>([
+    ...semCodigo.map((p) => p.id),
+    ...semVinculo.map((p) => p.id),
+    ...negativos.map((p) => p.id),
+  ]);
+
+  const amostra = (list: ProductRow[]) =>
+    list.slice(0, 10).map((p) => `${p.sku || p.ean || "—"} · ${p.name ?? "sem nome"}`);
+
+  const issues: Issue[] = [
+    { tipo: "Duplicados por SKU", quantidade: dupSkuRows.length, amostra: amostra(dupSkuRows), bloqueia: false },
+    { tipo: "Duplicados por código de barras", quantidade: dupEanRows.length, amostra: amostra(dupEanRows), bloqueia: false },
+    { tipo: "Sem código (sem SKU e sem EAN)", quantidade: semCodigo.length, amostra: amostra(semCodigo), bloqueia: true },
+    { tipo: "Sem vínculo com loja (organization_id)", quantidade: semVinculo.length, amostra: amostra(semVinculo), bloqueia: true },
+    { tipo: "Quantidade negativa", quantidade: negativos.length, amostra: amostra(negativos), bloqueia: true },
+    { tipo: "Sem estoque (informativo)", quantidade: zerados.length, amostra: amostra(zerados), bloqueia: false },
+  ];
+
+  return { issues, duplicatedSkus, duplicatedEans, ignoredIds, dbStockSum };
+}
+
+export function StockAssistant({ orgId }: { orgId: string | null }) {
+  const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [lastReport, setLastReport] = useState<null | {
+    exportedCount: number;
+    exportedStockSum: number;
+    withoutStock: number;
+    ignored: number;
+    inconsistencies: number;
+    ms: number;
+    kb: number;
+    reconcileOk: boolean;
+    diffCount: number;
+    diffStock: number;
+    filename: string;
+  }>(null);
+
+  const loadSnapshot = async () => {
+    if (!orgId) return;
+    setLoading(true);
+    setLastReport(null);
+    try {
+      const t0 = performance.now();
+      const [products, totals] = await Promise.all([
+        fetchAllProducts(orgId),
+        fetchDbTotals(orgId),
+      ]);
+      const a = analyze(products);
+      const snap: Snapshot = {
+        loadedAt: Date.now(),
+        products,
+        dbCount: totals.dbCount || products.length,
+        ...a,
+      };
+      setSnapshot(snap);
+      // eslint-disable-next-line no-console
+      console.info(`[Estoque] snapshot carregado em ${((performance.now() - t0) / 1000).toFixed(2)}s`, {
+        produtos: snap.products.length,
+        banco: snap.dbCount,
+        soma_estoque: snap.dbStockSum,
+      });
+    } catch (e: any) {
+      toast.error(`Falha ao carregar estoque: ${e?.message ?? e}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (orgId) void loadSnapshot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
+
+  const previewRows = useMemo(() => {
+    if (!snapshot) return [];
+    return snapshot.products
+      .filter((p) => !snapshot.ignoredIds.has(p.id))
+      .map(toPremierRow);
+  }, [snapshot]);
+
+  const previewStockSum = useMemo(
+    () => previewRows.reduce((s, r) => s + Number(r.estoque || 0), 0),
+    [previewRows],
+  );
+
+  const doExport = async () => {
+    if (!snapshot) return;
+    setExporting(true);
+    try {
+      const t0 = performance.now();
+      const filename = `estoque_premier_${new Date().toISOString().slice(0, 10)}.csv`;
+      const bytes = downloadCsv(filename, previewRows, [...PREMIER_STOCK_COLUMNS]);
+      const ms = performance.now() - t0;
+
+      const exportedCount = previewRows.length;
+      const exportedStockSum = previewStockSum;
+      const withoutStock = previewRows.filter((r) => Number(r.estoque || 0) === 0).length;
+      const ignored = snapshot.ignoredIds.size;
+      const inconsistencies = snapshot.issues
+        .filter((i) => i.bloqueia)
+        .reduce((s, i) => s + i.quantidade, 0);
+
+      const diffCount = snapshot.dbCount - (exportedCount + ignored);
+      const diffStock = snapshot.dbStockSum - exportedStockSum;
+      // Só considera 100% ok quando: nada foi ignorado E somas batem
+      const reconcileOk = ignored === 0 && diffCount === 0 && diffStock === 0;
+
+      const report = {
+        exportedCount,
+        exportedStockSum,
+        withoutStock,
+        ignored,
+        inconsistencies,
+        ms: Math.round(ms),
+        kb: Number((bytes / 1024).toFixed(1)),
+        reconcileOk,
+        diffCount,
+        diffStock,
+        filename,
+      };
+      setLastReport(report);
+      // eslint-disable-next-line no-console
+      console.info("[Estoque] relatório final", report);
+      toast.success(`Estoque exportado: ${filename}`);
+    } catch (e: any) {
+      toast.error(`Falha na exportação: ${e?.message ?? e}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const blocking = snapshot?.issues.filter((i) => i.bloqueia && i.quantidade > 0) ?? [];
+  const warnings = snapshot?.issues.filter((i) => !i.bloqueia && i.quantidade > 0) ?? [];
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Boxes className="h-4 w-4" /> Estoque para Premier ERP
+            <Badge variant="outline" className="ml-2 text-[10px]">
+              Layout inalterado · UTF-8 · delimitador ";"
+            </Badge>
+          </CardTitle>
+          <Button size="sm" variant="outline" onClick={loadSnapshot} disabled={loading} className="gap-1.5">
+            {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Recarregar snapshot
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {!snapshot ? (
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              {loading ? "Carregando estoque..." : "Selecione uma loja para carregar o estoque."}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Kpi icon={Package} label="SKUs no banco" value={snapshot.dbCount.toLocaleString("pt-BR")} />
+              <Kpi icon={Boxes} label="Unidades (banco)" value={snapshot.dbStockSum.toLocaleString("pt-BR")} />
+              <Kpi icon={CheckCircle2} label="Serão exportados" value={previewRows.length.toLocaleString("pt-BR")} tone="success" />
+              <Kpi icon={XCircle} label="Serão ignorados" value={snapshot.ignoredIds.size.toLocaleString("pt-BR")} tone={snapshot.ignoredIds.size > 0 ? "warning" : "muted"} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Integridade */}
+      {snapshot && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Integridade dos dados
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {snapshot.issues.length === 0 ? (
+              <div className="text-xs text-muted-foreground">Sem verificações.</div>
+            ) : (
+              snapshot.issues.map((i) => {
+                const zero = i.quantidade === 0;
+                const cls = zero
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : i.bloqueia
+                    ? "border-destructive/50 bg-destructive/10 text-destructive"
+                    : "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400";
+                return (
+                  <div key={i.tipo} className={`text-xs border rounded-md px-3 py-2 ${cls}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {zero ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                        <span className="font-bold">{i.tipo}</span>
+                        {i.bloqueia && !zero && <Badge variant="outline" className="text-[9px]">bloqueia</Badge>}
+                      </div>
+                      <span className="font-black tabular-nums">{i.quantidade.toLocaleString("pt-BR")}</span>
+                    </div>
+                    {!zero && i.amostra.length > 0 && (
+                      <ul className="mt-1 ml-5 list-disc text-[10px] opacity-80">
+                        {i.amostra.map((s, idx) => (
+                          <li key={idx} className="truncate">{s}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reconciliação + exportar */}
+      {snapshot && (
+        <Card className="border-primary/40">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Download className="h-4 w-4" /> Prévia da exportação
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="rounded-md border bg-primary/5 px-3 py-2 text-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span>Registros no banco</span>
+                <span className="font-black tabular-nums">{snapshot.dbCount.toLocaleString("pt-BR")}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Registros que serão exportados</span>
+                <span className="font-black tabular-nums">{previewRows.length.toLocaleString("pt-BR")}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Registros ignorados (inconsistências bloqueantes)</span>
+                <span className="font-black tabular-nums">{snapshot.ignoredIds.size.toLocaleString("pt-BR")}</span>
+              </div>
+              <hr className="my-1 border-primary/20" />
+              <div className="flex items-center justify-between">
+                <span>Soma de estoque no banco</span>
+                <span className="font-black tabular-nums">{snapshot.dbStockSum.toLocaleString("pt-BR")}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Soma de estoque exportada</span>
+                <span className="font-black tabular-nums">{previewStockSum.toLocaleString("pt-BR")}</span>
+              </div>
+              <div className="flex items-center justify-between font-bold">
+                <span>Diferença</span>
+                <span className={`tabular-nums ${snapshot.dbStockSum - previewStockSum === 0 ? "text-emerald-600" : "text-amber-600"}`}>
+                  {(snapshot.dbStockSum - previewStockSum).toLocaleString("pt-BR")} un.
+                </span>
+              </div>
+            </div>
+
+            {blocking.length > 0 && (
+              <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                  {snapshot.ignoredIds.size.toLocaleString("pt-BR")} produto(s) serão <strong>ignorados</strong> por inconsistências
+                  bloqueantes. Corrija a origem se quiser que apareçam no Premier.
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold">Compatível com:</span>
+              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 gap-1">
+                <BadgeCheck className="h-3 w-3" /> Premier ERP · products.csv
+              </Badge>
+              <span className="text-muted-foreground">{PREMIER_STOCK_COLUMNS.length} colunas</span>
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full gap-2 font-bold"
+              onClick={doExport}
+              disabled={exporting || previewRows.length === 0}
+            >
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Exportar Estoque (.csv)
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Relatório final */}
+      {lastReport && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Clock className="h-4 w-4" /> Relatório da exportação
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Kpi icon={CheckCircle2} label="Exportados" value={lastReport.exportedCount.toLocaleString("pt-BR")} tone="success" />
+              <Kpi icon={Boxes} label="Unidades exportadas" value={lastReport.exportedStockSum.toLocaleString("pt-BR")} />
+              <Kpi icon={Package} label="Sem estoque" value={lastReport.withoutStock.toLocaleString("pt-BR")} tone="muted" />
+              <Kpi icon={XCircle} label="Ignorados" value={lastReport.ignored.toLocaleString("pt-BR")} tone={lastReport.ignored ? "warning" : "muted"} />
+            </div>
+            <div className="flex flex-wrap gap-4 pt-1">
+              <span><strong>Inconsistências:</strong> {lastReport.inconsistencies.toLocaleString("pt-BR")}</span>
+              <span><strong>Tempo:</strong> {(lastReport.ms / 1000).toFixed(2)}s</span>
+              <span><strong>Arquivo:</strong> {lastReport.kb} KB</span>
+              <span className="font-mono opacity-70">{lastReport.filename}</span>
+            </div>
+            <div
+              className={`rounded-md border px-3 py-2 flex items-start gap-2 ${
+                lastReport.reconcileOk
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+              }`}
+            >
+              {lastReport.reconcileOk ? (
+                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              )}
+              <div>
+                <div className="font-bold">
+                  {lastReport.reconcileOk
+                    ? "Reconciliação: os totais conferem 100%."
+                    : "Reconciliação: divergência detectada."}
+                </div>
+                {!lastReport.reconcileOk && (
+                  <div className="text-[11px] opacity-90">
+                    Diferença de registros (banco − exportado − ignorado): <strong>{lastReport.diffCount.toLocaleString("pt-BR")}</strong>
+                    {" · "}
+                    Diferença de unidades: <strong>{lastReport.diffStock.toLocaleString("pt-BR")}</strong>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function Kpi({
+  icon: Icon,
+  label,
+  value,
+  tone = "primary",
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  tone?: "primary" | "success" | "warning" | "muted";
+}) {
+  const toneClass: Record<string, string> = {
+    primary: "bg-primary/10 text-primary",
+    success: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+    warning: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    muted: "bg-muted text-muted-foreground",
+  };
+  return (
+    <div className="rounded-md border px-3 py-2">
+      <div className="flex items-center gap-2">
+        <div className={`h-8 w-8 rounded-md flex items-center justify-center ${toneClass[tone]}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{label}</div>
+          <div className="text-lg font-black truncate tabular-nums" title={value}>{value}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
