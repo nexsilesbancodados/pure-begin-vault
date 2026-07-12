@@ -245,6 +245,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [includeZeroStock, setIncludeZeroStock] = useState(true);
   const [lastReport, setLastReport] = useState<null | {
     exportedCount: number;
     exportedStockSum: number;
@@ -299,8 +300,13 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     if (!snapshot) return [];
     return snapshot.products
       .filter((p) => !snapshot.ignoredIds.has(p.id))
+      .filter((p) => {
+        if (includeZeroStock) return true;
+        const q = Number(p.stock_quantity ?? 0);
+        return Number.isFinite(q) && q !== 0;
+      })
       .map(toPremierRow);
-  }, [snapshot]);
+  }, [snapshot, includeZeroStock]);
 
   const previewStockSum = useMemo(
     () => previewRows.reduce((s, r) => s + Number(r.estoque || 0), 0),
