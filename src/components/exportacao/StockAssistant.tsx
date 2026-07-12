@@ -694,6 +694,27 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       a.href = url; a.download = filename;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      // Arquivo complementar imeis.csv (garantia caso o importador Premier
+      // ignore a coluna "imei" no products.csv). Contém apenas smartphones
+      // com IMEI resolvido — mesma coleção auditada.
+      const imeiRows = sortedFiltered
+        .map((p: any) => ({ p, imei: resolveImei(p) }))
+        .filter((r) => r.imei && classifyProduct(r.p) === "smartphone")
+        .map((r) => ({
+          sku: r.p.sku ?? "",
+          produto: r.p.name ?? "",
+          imei: r.imei,
+          quantidade: Number(r.p.stock_quantity ?? 0),
+        }));
+      if (imeiRows.length > 0) {
+        downloadCsv(
+          `imeis_${new Date().toISOString().slice(0, 10)}.csv`,
+          imeiRows,
+          ["sku", "produto", "imei", "quantidade"],
+        );
+      }
+
       const bytes = blob.size;
       const ms = performance.now() - t0;
 
