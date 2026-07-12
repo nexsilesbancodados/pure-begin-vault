@@ -21,7 +21,7 @@ import {
   ShieldCheck,
   XCircle,
 } from "lucide-react";
-import { rowsToCsv } from "@/lib/export/csv";
+import { rowsToCsv, downloadCsv } from "@/lib/export/csv";
 import { classifyProduct, resolveHasImei, type ProductClass, CLASS_ORDER } from "@/lib/product-classification";
 
 // Coerção segura para React children — nunca renderiza objeto cru.
