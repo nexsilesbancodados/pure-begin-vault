@@ -342,6 +342,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgId]);
 
+  const facets = useMemo(() => {
     const cats = new Set<string>();
     const brs = new Set<string>();
     const locs = new Set<string>();
