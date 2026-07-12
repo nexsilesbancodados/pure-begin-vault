@@ -77,7 +77,7 @@ function sortForExport<T extends { p: any }>(rows: T[]): T[] {
 const PREMIER_STOCK_COLUMNS = [
   "produto_id","sku","codigo_barras","nome","marca","modelo","categoria",
   "capacidade","cor","custo","preco_venda","estoque","fornecedor_id","empresa_id",
-  "internal_code","external_code","reference","ncm","has_imei","active","location",
+  "internal_code","external_code","reference","ncm","has_imei","imei","active","location",
   "image_url","metadata","unit","weight","min_stock","wholesale_price",
   "created_at","updated_at","status",
 ] as const;
