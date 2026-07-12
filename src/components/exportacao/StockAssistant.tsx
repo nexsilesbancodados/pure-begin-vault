@@ -332,7 +332,12 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     diffCount: number;
     diffStock: number;
     filename: string;
+    auditWithImei: number;
+    exportedWithImei: number;
+    imeiDiff: number;
+    missingSkus: string[];
   }>(null);
+
 
   const loadSnapshot = async () => {
     if (!orgId) return;
@@ -498,6 +503,36 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
     setExporting(true);
     try {
       const t0 = performance.now();
+
+      // ── Guarda de paridade Auditoria ↔ CSV ─────────────────────────────
+      // O CSV DEVE exportar exatamente o mesmo conjunto usado na auditoria
+      // (sortedFiltered → previewRows). Verificamos antes de baixar o arquivo:
+      // todo smartphone com IMEI listado na tela precisa estar no CSV.
+      const exportedIds = new Set(sortedFiltered.map((p) => p.id));
+      const auditWithImeiIds = telefoniaAudit.withImei.map((p) => p.id);
+      const missing = telefoniaAudit.withImei.filter((p) => !exportedIds.has(p.id));
+      if (missing.length > 0) {
+        const skus = missing.map((p) => s(p.sku) || s(p.ean) || s(p.id));
+        console.error("[Estoque] divergência auditoria↔CSV", { missing: skus });
+        toast.error(
+          `Exportação bloqueada: ${missing.length} smartphone(s) com IMEI da auditoria não entrariam no CSV. ` +
+          `SKUs: ${skus.slice(0, 5).join(", ")}${skus.length > 5 ? "…" : ""}`,
+          { duration: 8000 },
+        );
+        setLastReport({
+          exportedCount: 0, exportedStockSum: 0, withoutStock: 0,
+          ignored: snapshot.ignoredIds.size, inconsistencies: 0,
+          ms: Math.round(performance.now() - t0), kb: 0,
+          reconcileOk: false, diffCount: 0, diffStock: 0,
+          filename: "(exportação bloqueada)",
+          auditWithImei: auditWithImeiIds.length,
+          exportedWithImei: auditWithImeiIds.length - missing.length,
+          imeiDiff: missing.length,
+          missingSkus: skus,
+        });
+        return;
+      }
+
       const filename = `estoque_premier_${new Date().toISOString().slice(0, 10)}.csv`;
       const bytes = downloadCsv(filename, previewRows, [...PREMIER_STOCK_COLUMNS]);
       const ms = performance.now() - t0;
@@ -512,32 +547,29 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
 
       const diffCount = snapshot.dbCount - (exportedCount + ignored);
       const diffStock = snapshot.dbStockSum - exportedStockSum;
-      // Só considera 100% ok quando: nada foi ignorado E somas batem
       const reconcileOk = ignored === 0 && diffCount === 0 && diffStock === 0;
 
       const report = {
-        exportedCount,
-        exportedStockSum,
-        withoutStock,
-        ignored,
-        inconsistencies,
-        ms: Math.round(ms),
-        kb: Number((bytes / 1024).toFixed(1)),
-        reconcileOk,
-        diffCount,
-        diffStock,
-        filename,
+        exportedCount, exportedStockSum, withoutStock, ignored, inconsistencies,
+        ms: Math.round(ms), kb: Number((bytes / 1024).toFixed(1)),
+        reconcileOk, diffCount, diffStock, filename,
+        auditWithImei: auditWithImeiIds.length,
+        exportedWithImei: auditWithImeiIds.length,
+        imeiDiff: 0,
+        missingSkus: [] as string[],
       };
       setLastReport(report);
-      // eslint-disable-next-line no-console
       console.info("[Estoque] relatório final", report);
-      toast.success(`Estoque exportado: ${filename}`);
+      toast.success(
+        `Estoque exportado: ${filename} · ${auditWithImeiIds.length}/${auditWithImeiIds.length} smartphones c/ IMEI conferidos.`,
+      );
     } catch (e: any) {
       toast.error(`Falha na exportação: ${e?.message ?? e}`);
     } finally {
       setExporting(false);
     }
   };
+
 
   const blocking = snapshot?.issues.filter((i) => i.bloqueia && i.quantidade > 0) ?? [];
   const warnings = snapshot?.issues.filter((i) => !i.bloqueia && i.quantidade > 0) ?? [];
