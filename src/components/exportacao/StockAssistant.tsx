@@ -521,15 +521,13 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       {/* Filtros da Exportação */}
       {snapshot && (
         <Card className="border-primary/30">
-          <CardHeader className="flex-row items-center justify-between">
+          <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               <ShieldCheck className="h-4 w-4" /> Filtros da Exportação
               <Badge variant="outline" className="text-[10px]">Layout do CSV inalterado</Badge>
             </CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => setFilters(DEFAULT_FILTERS)}>
-              Restaurar padrão
-            </Button>
           </CardHeader>
+
           <CardContent className="space-y-4 text-xs">
             {/* Estoque + Status + IMEI */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
