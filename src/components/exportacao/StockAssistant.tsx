@@ -22,7 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { rowsToCsv, downloadCsv } from "@/lib/export/csv";
-import { classifyProduct, resolveHasImei, type ProductClass, CLASS_ORDER } from "@/lib/product-classification";
+import { classifyProduct, resolveHasImei, resolveImei, type ProductClass, CLASS_ORDER } from "@/lib/product-classification";
 
 // Coerção segura para React children — nunca renderiza objeto cru.
 const s = (v: unknown): string => {
@@ -77,7 +77,7 @@ function sortForExport<T extends { p: any }>(rows: T[]): T[] {
 const PREMIER_STOCK_COLUMNS = [
   "produto_id","sku","codigo_barras","nome","marca","modelo","categoria",
   "capacidade","cor","custo","preco_venda","estoque","fornecedor_id","empresa_id",
-  "internal_code","external_code","reference","ncm","has_imei","active","location",
+  "internal_code","external_code","reference","ncm","has_imei","imei","active","location",
   "image_url","metadata","unit","weight","min_stock","wholesale_price",
   "created_at","updated_at","status",
 ] as const;
@@ -159,6 +159,7 @@ function toPremierRow(p: ProductRow) {
     reference: p.reference ?? "",
     ncm: p.ncm ?? "",
     has_imei: yesNo(resolveHasImei(p)),
+    imei: resolveImei(p),
     active: p.active == null ? "" : yesNo(!!p.active),
     location: p.location ?? "",
     image_url: p.image_url ?? "",
@@ -596,6 +597,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       const idxModelo = header.indexOf("modelo");
       const idxCategoria = header.indexOf("categoria");
       const idxHasImei = header.indexOf("has_imei");
+      const idxImei = header.indexOf("imei");
 
       // parser CSV simples respeitando aspas
       const parseLine = (line: string): string[] => {
@@ -618,6 +620,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
 
       let csvSmartphones = 0, csvWithImei = 0, csvWithoutImei = 0;
       let csvAccessories = 0, csvTablets = 0, csvSmartwatches = 0, csvOthers = 0;
+      let csvImeiFilled = 0;
       for (const line of dataLines) {
         const cols = parseLine(line);
         const fake = {
@@ -628,6 +631,8 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         };
         const cls = classifyProduct(fake as any);
         const hasImei = (cols[idxHasImei] ?? "").toLowerCase() === "sim";
+        const imeiCell = (cols[idxImei] ?? "").trim();
+        if (imeiCell) csvImeiFilled++;
         if (cls === "smartphone") {
           csvSmartphones++;
           if (hasImei) csvWithImei++; else csvWithoutImei++;
@@ -636,6 +641,10 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         else if (cls === "acessorio") csvAccessories++;
         else csvOthers++;
       }
+
+      // Conferência extra: nº de linhas com coluna imei preenchida
+      // deve ser igual ao total de smartphones com IMEI da auditoria.
+      const imeiColumnParity = csvImeiFilled === auditWithImei;
 
       const parityAudit = csvLines === auditExported;
       const parityCsv =
@@ -647,7 +656,7 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
         csvSmartwatches === auditSmartwatches &&
         csvOthers === auditOthers;
 
-      if (!parityAudit || !parityCsv) {
+      if (!parityAudit || !parityCsv || !imeiColumnParity) {
         console.error("[Estoque] divergência CSV↔Auditoria", {
           auditExported, csvLines,
           auditSmartphones, csvSmartphones,
@@ -685,6 +694,27 @@ export function StockAssistant({ orgId }: { orgId: string | null }) {
       a.href = url; a.download = filename;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      // Arquivo complementar imeis.csv (garantia caso o importador Premier
+      // ignore a coluna "imei" no products.csv). Contém apenas smartphones
+      // com IMEI resolvido — mesma coleção auditada.
+      const imeiRows = sortedFiltered
+        .map((p: any) => ({ p, imei: resolveImei(p) }))
+        .filter((r) => r.imei && classifyProduct(r.p) === "smartphone")
+        .map((r) => ({
+          sku: r.p.sku ?? "",
+          produto: r.p.name ?? "",
+          imei: r.imei,
+          quantidade: Number(r.p.stock_quantity ?? 0),
+        }));
+      if (imeiRows.length > 0) {
+        downloadCsv(
+          `imeis_${new Date().toISOString().slice(0, 10)}.csv`,
+          imeiRows,
+          ["sku", "produto", "imei", "quantidade"],
+        );
+      }
+
       const bytes = blob.size;
       const ms = performance.now() - t0;
 
